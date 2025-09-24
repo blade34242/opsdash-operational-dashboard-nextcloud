@@ -1,0 +1,17 @@
+<?xml version="1.0"?>
+<info>
+  <id>aaacalstatsdashxyz</id>
+  <name>Calendar Dashboard</name>
+  <summary>Stats for calendars</summary>
+  <description>Beta app</description>
+  <version>0.3.0</version>
+  <licence>agpl</licence>
+  <author>Gellert Innovation</author>
+  <namespace>Aaacalstatsdashxyz</namespace>
+  <category>tools</category>
+  <dependencies>
+    <!-- Broaden compatibility so the app loads and registers navigation on newer NC -->
+    <nextcloud min-version="27" max-version="34"/>
+  </dependencies>
+  <icon>app</icon>
+</info>

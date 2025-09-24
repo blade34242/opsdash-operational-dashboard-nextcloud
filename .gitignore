@@ -1,0 +1,18 @@
+# General
+.DS_Store
+Thumbs.db
+npm-debug.log*
+*.log
+
+# IDE
+.idea/
+.vscode/
+
+# Env
+.env
+
+# App-specific
+aaacalstatsdashxyz/node_modules/
+aaacalstatsdashxyz/.vite/
+aaacalstatsdashxyz/dist/
+

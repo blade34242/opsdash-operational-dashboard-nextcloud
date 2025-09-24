@@ -1,0 +1,21 @@
+version: "3.9"
+
+services:
+  nextcloud:
+    image: ghcr.io/juliusknorr/nextcloud-dev-php83:latest
+    container_name: nc32-dev
+    ports:
+      - "8080:80"
+    environment:
+      # NC-Server-Tag/Branch auswählen (hier: 32er Beta)
+      SERVER_BRANCH: v32.0.0beta2
+    volumes:
+      # persistenter Server + Daten (verhindert erneutes Herunterladen)
+      - nc32srv:/var/www/html
+      # dein App-Code "live" einbinden (→ Pfad unten anpassen!)
+      - /home/thewestboi/Documents/devCalDash/aaacalstatsdashxyz:/var/www/html/apps-extra/aaacalstatsdashxyz
+    restart: unless-stopped
+
+volumes:
+  nc32srv:
+

@@ -1,0 +1,27 @@
+# Security Guidelines
+
+## Threat Model
+- Only authenticated users can access data; all storage is per-user.
+- Calendar IDs are intersected with the user’s calendars; spoofed IDs are ignored.
+- Read endpoints are strictly side-effect free; write endpoints require POST + CSRF.
+
+## Controls
+- CSRF: POST endpoints (`save`, `persist`, `notes`) require `requesttoken`.
+- Input validation: clamp `range`, `offset`, groups (0–9), ID lengths; notes length capped (32k).
+- Output encoding: Vue escapes all text fields; no HTML rendering from user input.
+- Colors: normalized to `#RRGGBB` to avoid CSS injection.
+- DAV: same-origin WebDAV only for `calendar-color` discovery.
+- Logging: Debug logs avoid sensitive data; no raw request parameters echoed.
+
+## DoS Mitigations
+- Aggregation caps per calendar and per request; `meta.truncated` indicates partial results.
+- Drawing throttled on the client; no `ResizeObserver` feedback on `body`.
+
+## CSP
+- No inline scripts; CSS extracted and loaded via `Util::addStyle`.
+- Remaining dynamic styles are limited to color dots; consider palette classes if strict CSP forbids any inline styles.
+
+## Recommendations
+- Keep debug level off in production.
+- Consider app-level rate limiting for expensive ranges.
+- Continue removing inline styles in templates; prefer CSS classes.
