@@ -270,6 +270,17 @@ function readDataAttr(name:string){ const el=document.getElementById('app'); ret
 const appVersion = ref<string>(readDataAttr('aaacaldashVersion'))
 const changelogUrl = ref<string>(readDataAttr('aaacaldashChangelog'))
 
+// Fallback: query ping endpoint to populate version/link if missing
+async function ensureMeta(){
+  if (appVersion.value && changelogUrl.value) return
+  try {
+    const res = await getJson(route('load').replace('/config_dashboard/load','/config_dashboard/ping'), {})
+    if (!appVersion.value && typeof res?.version === 'string') appVersion.value = res.version
+    if (!changelogUrl.value && typeof res?.changelog === 'string') changelogUrl.value = res.changelog
+  } catch {}
+}
+ensureMeta()
+
 const pie = ref<HTMLCanvasElement | null>(null)
 const perDay = ref<HTMLCanvasElement | null>(null)
 const hod = ref<HTMLCanvasElement | null>(null)

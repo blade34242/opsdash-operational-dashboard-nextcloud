@@ -60,9 +60,15 @@ final class ConfigDashboardController extends Controller {
     #[NoAdminRequired]
     #[NoCSRFRequired]
     public function ping(): DataResponse {
+        $version = '';
+        try { if (class_exists('OC_App') && method_exists(\OC_App::class, 'getAppVersion')) { $version = (string)(\OC_App::getAppVersion($this->appName) ?? ''); } } catch (\Throwable) {}
+        $changelog = '';
+        try { $changelog = (string)$this->config->getAppValue($this->appName, 'changelog_url', ''); } catch (\Throwable) {}
         return new DataResponse([
             'ok' => true,
             'app' => $this->appName,
+            'version' => $version,
+            'changelog' => $changelog,
             'ts' => time(),
         ], Http::STATUS_OK);
     }
