@@ -37,7 +37,8 @@ function draw(){
     if (false) chosen = tint(chosen)
     ctx.beginPath();ctx.moveTo(cx,cy);ctx.arc(cx,cy,r,ang,a2);ctx.closePath();ctx.fillStyle=chosen;ctx.fill();ctx.stroke();
     const mid=(ang+a2)/2,lx=cx+Math.cos(mid)*(r+12),ly=cy+Math.sin(mid)*(r+12); ctx.fillStyle=getComputedStyle(document.documentElement).getPropertyValue('--fg').trim()||'#0f172a'; ctx.font='12px ui-sans-serif,system-ui'
-    const txt=`${labels?.[i]?labels[i]+' ':''}(${Number(v).toFixed(2)}h)`; const tw=ctx.measureText(txt).width; ctx.fillText(txt,lx-tw/2,ly)
+    const perc = Math.max(0, Number(v)||0) / total * 100;
+    const txt=`${labels?.[i]?labels[i]+' ':''}(${Number(v).toFixed(2)}h, ${perc.toFixed(1)}%)`; const tw=ctx.measureText(txt).width; ctx.fillText(txt,lx-tw/2,ly)
     ang=a2
   })
 }
