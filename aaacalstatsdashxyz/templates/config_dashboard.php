@@ -11,7 +11,7 @@ $chg = isset($changelog) ? (string)$changelog : '';
     Calendar Dashboard is loading… If this message stays,
     the JS bundle may be missing.
     <div style="margin-top:6px;font-size:12px">
-      Expected: <code>/apps/aaacalstatsdashxyz/js/main46.js</code>
+      Expected: <code>/apps/aaacalstatsdashxyz/js/main47.js</code>
     </div>
   </div>
 </div>

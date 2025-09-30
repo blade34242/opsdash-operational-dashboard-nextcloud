@@ -22,7 +22,7 @@ export default defineConfig({
       input: 'src/main.ts',
       output: {
         format: 'iife',
-        entryFileNames: 'main46.js',
+        entryFileNames: 'main47.js',
         chunkFileNames: 'chunks/[name].js',
         assetFileNames: (assetInfo) => {
           if (assetInfo.name && assetInfo.name.endsWith('.css')) return '../css/[name][extname]'

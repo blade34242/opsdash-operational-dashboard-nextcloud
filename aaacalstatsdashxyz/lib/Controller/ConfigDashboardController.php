@@ -39,7 +39,7 @@ final class ConfigDashboardController extends Controller {
         // Load bundled frontend (JS) — cache-busted filename
         // Load CSS first to align with strict CSP (avoid runtime style injection)
         \OCP\Util::addStyle($this->appName, 'style');
-        \OCP\Util::addScript($this->appName, 'main46');
+        \OCP\Util::addScript($this->appName, 'main47');
         // Expose version and optional changelog URL to template
         $version = '';
         try {
