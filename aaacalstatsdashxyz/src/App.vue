@@ -72,6 +72,11 @@
           <div class="sub">
             <template v-if="stats.median_per_day != null">Median/Day: {{ n2(stats.median_per_day) }}h</template>
             <template v-if="delta.avg_per_event != null"> · <span :class="delta.avg_per_event >= 0 ? 'delta pos' : 'delta neg'">{{ arrow(delta.avg_per_event) }} {{ n2(Math.abs(delta.avg_per_event)) }}h</span></template>
+            <template v-if="wkHas || weHas">
+              <br />
+              <template v-if="wkHas">Workdays: avg {{ n2(wkAvg) }}h, median {{ n2(wkMedian) }}h</template>
+              <template v-if="weHas"> · Weekend: avg {{ n2(weAvg) }}h, median {{ n2(weMedian) }}h</template>
+            </template>
           </div>
         </div>
         <div class="card">
@@ -269,6 +274,26 @@ const notesLabelCurrTitle = computed(()=> range.value==='month' ? 'Notes for cur
 function n1(v:any){ return Number(v ?? 0).toFixed(1) }
 function n2(v:any){ return Number(v ?? 0).toFixed(2) }
 function arrow(v:number){ return v>0?'▲':(v<0?'▼':'—') }
+
+// ---- Workdays vs Weekend stats (median and average per day) ----
+function avg(arr: number[]): number { if (!arr.length) return 0; return arr.reduce((a,b)=>a+b,0)/arr.length }
+function median(arr: number[]): number {
+  if (!arr.length) return 0
+  const s = [...arr].sort((a,b)=>a-b)
+  const m = Math.floor(s.length/2)
+  return s.length % 2 ? s[m] : (s[m-1]+s[m])/2
+}
+function dayOfWeek(dateStr: string): number {
+  // 0=Sun..6=Sat
+  const d = new Date(dateStr+'T00:00:00Z')
+  return d.getUTCDay()
+}
+const wkHas = computed(()=> (byDay.value||[]).some(d=>{ const dow=dayOfWeek(String(d.date)); return dow>=1 && dow<=5 }))
+const weHas = computed(()=> (byDay.value||[]).some(d=>{ const dow=dayOfWeek(String(d.date)); return dow===0 || dow===6 }))
+const wkAvg = computed(()=> { const vals=(byDay.value||[]).filter(d=>{const w=dayOfWeek(String(d.date)); return w>=1&&w<=5}).map(d=>Number(d.total_hours||0)); return avg(vals) })
+const wkMedian = computed(()=> { const vals=(byDay.value||[]).filter(d=>{const w=dayOfWeek(String(d.date)); return w>=1&&w<=5}).map(d=>Number(d.total_hours||0)); return median(vals) })
+const weAvg = computed(()=> { const vals=(byDay.value||[]).filter(d=>{const w=dayOfWeek(String(d.date)); return w===0||w===6}).map(d=>Number(d.total_hours||0)); return avg(vals) })
+const weMedian = computed(()=> { const vals=(byDay.value||[]).filter(d=>{const w=dayOfWeek(String(d.date)); return w===0||w===6}).map(d=>Number(d.total_hours||0)); return median(vals) })
 
 function getRoot(){ const w:any=window as any; return (w.OC && (w.OC.webroot || w.OC.getRootPath?.())) || (w._oc_webroot) || '' }
 function qs(params: Record<string, any>): string { const u=new URLSearchParams(); Object.entries(params).forEach(([k,v])=>{ if(Array.isArray(v)) v.forEach(x=>u.append(k,String(x))); else if(v!==undefined&&v!==null) u.set(k,String(v)) }); return u.toString() }
