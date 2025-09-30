@@ -3,6 +3,9 @@
   <NcAppNavigation>
     <div class="sb-title" title="Kalender filtern und gruppieren">Filter Calendars</div>
     <div class="rangebar" title="Time range">
+      <div class="range-actions">
+        <NcButton class="nav-btn" type="primary" :disabled="isLoading" @click="$emit('load')">Load</NcButton>
+      </div>
       <div class="range-toggle">
         <NcCheckboxRadioSwitch type="radio" name="range-week" :checked="range==='week'" @update:checked="val => { if (val) $emit('update:range','week') }">Week</NcCheckboxRadioSwitch>
         <NcCheckboxRadioSwitch type="radio" name="range-month" :checked="range==='month'" @update:checked="val => { if (val) $emit('update:range','month') }">Month</NcCheckboxRadioSwitch>
@@ -82,7 +85,7 @@ const props = defineProps<{
 }>()
 
 const emit = defineEmits([
-  'update:range','update:offset','select-all','toggle-calendar','set-group','update:notes','save-notes'
+  'load','update:range','update:offset','select-all','toggle-calendar','set-group','update:notes','save-notes'
 ])
 
 function getGroup(id:string){

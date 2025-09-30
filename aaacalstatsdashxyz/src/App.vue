@@ -18,6 +18,7 @@
         :notes-label-prev-title="notesLabelPrevTitle"
         :notes-label-curr-title="notesLabelCurrTitle"
         :is-saving-note="isSavingNote"
+        @load="load"
         @update:range="(v)=>{ range=v as any; offset=0; load() }"
         @update:offset="(v)=>{ offset=v as number; load() }"
         @select-all="(v:boolean)=> selectAll(v)"
