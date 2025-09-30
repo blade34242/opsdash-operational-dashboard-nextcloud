@@ -2,6 +2,15 @@
 
 All notable changes to this project are documented here. This file is served locally for development.
 
+## [0.4.0] - 2025-09-30
+- Targets: per‑calendar targets (hours) for week and month; edit in sidebar; auto‑convert week⇄month (×4/÷4); persisted per user
+- By Calendar: added Target, Δ, and % columns (per current range)
+- Sidebar: redesigned calendar entries as cards with labeled Group and Target inputs
+- Charts: bar segment labels and column totals; pie labels include percentages
+- UI: Events card reformatted (Active Days, Typical, Weekend, Evening)
+- Footer: version + changelog link (package.json aligned)
+- Docs: Dev workflow, Known issues, Operations updated; local changelog
+
 ## [0.3.1] - 2025-09-30
 - UI: App icon next to header title
 - UI: Load button restored above Week/Month radios
@@ -16,4 +25,3 @@ All notable changes to this project are documented here. This file is served loc
 ---
 
 Unreleased work and internal experiments are tracked in docs/NEXT_STEPS.md.
-
