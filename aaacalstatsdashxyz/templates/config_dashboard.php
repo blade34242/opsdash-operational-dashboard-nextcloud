@@ -7,10 +7,10 @@ $ver = isset($version) ? (string)$version : '';
 $chg = isset($changelog) ? (string)$changelog : '';
 ?>
 <div id="app" data-aaacaldash-version="<?php echo htmlspecialchars($ver, ENT_QUOTES); ?>" data-aaacaldash-changelog="<?php echo htmlspecialchars($chg, ENT_QUOTES); ?>">
-  <div style="padding:16px;color:#64748b;font:14px ui-sans-serif,system-ui">
+  <div class="fallback-msg">
     Calendar Dashboard is loading… If this message stays,
     the JS bundle may be missing.
-    <div style="margin-top:6px;font-size:12px">
+    <div class="fallback-hint">
       Expected: <code>/apps/aaacalstatsdashxyz/js/main47.js</code>
     </div>
   </div>

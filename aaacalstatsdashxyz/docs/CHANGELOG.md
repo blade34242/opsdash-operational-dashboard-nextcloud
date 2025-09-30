@@ -8,6 +8,7 @@ All notable changes to this project are documented here. This file is served loc
 - Sidebar: redesigned calendar entries as cards with labeled Group and Target inputs
 - Charts: bar segment labels and column totals; pie labels include percentages
 - UI: Events card reformatted (Active Days, Typical, Weekend, Evening)
+- CSP: removed inline styles from template fallback; uses CSS classes
 - Footer: version + changelog link (package.json aligned)
 - Docs: Dev workflow, Known issues, Operations updated; local changelog
 

@@ -113,9 +113,13 @@ canvas.chart{display:block; width:100%; height:360px; border:1px solid var(--lin
 #aaacalstatsdashxyz .app-container{ width:100% !important; max-width:100% !important }
 #aaacalstatsdashxyz .app-layout{ width:100vw; max-width:100vw; margin-left:50%; transform:translateX(-50%); }
 @supports (width: 100dvw){
-  #aaacalstatsdashxyz .app-layout{ width:100dvw; max-width:100dvw }
+#aaacalstatsdashxyz .app-layout{ width:100dvw; max-width:100dvw }
 }
 
 /* Small deltas styling moved from SFC to global CSS */
 .delta.pos{ color: var(--pos); font-weight: 600 }
 .delta.neg{ color: var(--neg); font-weight: 600 }
+
+/* Template fallback (no inline styles to satisfy CSP) */
+.fallback-msg{ padding:16px; color:#64748b; font:14px ui-sans-serif,system-ui }
+.fallback-hint{ margin-top:6px; font-size:12px }

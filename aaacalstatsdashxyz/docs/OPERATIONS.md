@@ -25,6 +25,7 @@
 ## CSP
 - CSS is loaded via `Util::addStyle($app, 'style')`.
 - No inline scripts; avoid adding any inline styles in templates.
+- Template fallback message uses CSS classes only (no inline styles).
 
 ## Performance Caps
 - Aggregation caps are reported in `meta.truncated` and `meta.limits`.
