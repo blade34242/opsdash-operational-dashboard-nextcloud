@@ -40,7 +40,21 @@ final class ConfigDashboardController extends Controller {
         // Load CSS first to align with strict CSP (avoid runtime style injection)
         \OCP\Util::addStyle($this->appName, 'style');
         \OCP\Util::addScript($this->appName, 'main46');
-        return new TemplateResponse($this->appName, 'config_dashboard');
+        // Expose version and optional changelog URL to template
+        $version = '';
+        try {
+            if (class_exists('OC_App') && method_exists(\OC_App::class, 'getAppVersion')) {
+                $version = (string) (\OC_App::getAppVersion($this->appName) ?? '');
+            }
+        } catch (\Throwable) { }
+        $changelog = '';
+        try {
+            $changelog = (string)$this->config->getAppValue($this->appName, 'changelog_url', '');
+        } catch (\Throwable) { }
+        return new TemplateResponse($this->appName, 'config_dashboard', [
+            'version' => $version,
+            'changelog' => $changelog,
+        ]);
     }
 
     #[NoAdminRequired]

@@ -135,7 +135,11 @@
         </template>
       </div>
 
-      <div class="hint footer">Powered by <strong>Gellert Innovation</strong> • Built with <span class="mono">aaacalstatsdashxyz</span></div>
+      <div class="hint footer">
+        Powered by <strong>Gellert Innovation</strong> • Built with <span class="mono">aaacalstatsdashxyz</span>
+        <template v-if="appVersion"> v{{ appVersion }}</template>
+        <template v-if="changelogUrl"> • <a :href="changelogUrl" target="_blank" rel="noreferrer noopener">Changelog</a></template>
+      </div>
     </div>
   </NcAppContent>
   </div>
@@ -258,6 +262,11 @@ const iconCandidates = computed(() => {
 })
 const iconSrc = computed(() => iconCandidates.value[Math.min(iconIdx.value, iconCandidates.value.length-1)] || '')
 function onIconError(){ if (iconIdx.value + 1 < iconCandidates.value.length) iconIdx.value++ }
+
+// Version + changelog from template data attributes
+function readDataAttr(name:string){ const el=document.getElementById('app'); return (el && (el as any).dataset ? ((el as any).dataset as any)[name] : '') || '' }
+const appVersion = ref<string>(readDataAttr('aaacaldashVersion'))
+const changelogUrl = ref<string>(readDataAttr('aaacaldashChangelog'))
 
 const pie = ref<HTMLCanvasElement | null>(null)
 const perDay = ref<HTMLCanvasElement | null>(null)
