@@ -22,6 +22,11 @@ use Sabre\VObject\Reader;
 // use Sabre\VObject\Reader; // removed to avoid parsing raw ICS in NC32
 
 final class ConfigDashboardController extends Controller {
+    private const MAX_OFFSET = 24;
+    private const MAX_TARGET_HOURS = 10000;
+    private const MAX_GROUP = 9;
+    private const MAX_AGG_PER_CAL = 2000;
+    private const MAX_AGG_TOTAL   = 5000;
     public function __construct(
         string $appName,
         IRequest $request,
@@ -143,7 +148,7 @@ final class ConfigDashboardController extends Controller {
         $range  = strtolower((string)($data['range']  ?? 'week'));
         if ($range !== 'month') $range = 'week';
         $offset = (int)($data['offset'] ?? 0);
-        if ($offset > 24) $offset = 24; elseif ($offset < -24) $offset = -24;
+        if ($offset > self::MAX_OFFSET) $offset = self::MAX_OFFSET; elseif ($offset < -self::MAX_OFFSET) $offset = -self::MAX_OFFSET;
         // Ensure this endpoint is strictly read-only; ignore any 'save' requests
         $save   = false;
 
@@ -253,8 +258,8 @@ final class ConfigDashboardController extends Controller {
         // --- Aktuelle Periode einlesen/aggregieren ---
         $events = [];
         // Limits to prevent excessive processing
-        $maxPerCal = 2000; // soft cap per calendar
-        $maxTotal  = 5000; // soft cap overall
+        $maxPerCal = self::MAX_AGG_PER_CAL; // soft cap per calendar
+        $maxTotal  = self::MAX_AGG_TOTAL;   // soft cap overall
         $totalAdded = 0;
         $truncated = false;
         foreach ($cals as $cal) {
@@ -922,7 +927,7 @@ final class ConfigDashboardController extends Controller {
         foreach ($src as $k=>$v) {
             $id = substr((string)$k, 0, 128);
             if (!isset($allowedSet[$id])) continue;
-            $n = (float)$v; if (!is_finite($n)) continue; if ($n < 0) $n = 0; if ($n > 10000) $n = 10000;
+            $n = (float)$v; if (!is_finite($n)) continue; if ($n < 0) $n = 0; if ($n > self::MAX_TARGET_HOURS) $n = self::MAX_TARGET_HOURS;
             $out[$id] = $n;
         }
         return $out;
@@ -933,7 +938,7 @@ final class ConfigDashboardController extends Controller {
         foreach ($src as $k=>$v) {
             $id = substr((string)$k, 0, 128);
             if (!isset($allowedSet[$id])) continue;
-            $n = (int)$v; if ($n < 0) $n = 0; if ($n > 9) $n = 9;
+            $n = (int)$v; if ($n < 0) $n = 0; if ($n > self::MAX_GROUP) $n = self::MAX_GROUP;
             $out[$id] = $n;
         }
         foreach ($allIds as $id) { if (!isset($out[$id])) $out[$id] = 0; }

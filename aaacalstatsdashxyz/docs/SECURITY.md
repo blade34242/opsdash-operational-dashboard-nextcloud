@@ -8,6 +8,8 @@
 ## Controls
 - CSRF: POST endpoints (`save`, `persist`, `notes`) require `requesttoken`.
 - Input validation: clamp `range`, `offset`, groups (0–9), ID lengths; notes length capped (32k).
+  - Targets clamped to 0–10000 hours per calendar (decimals allowed).
+  - Offset clamped to ±24 weeks/months.
 - Output encoding: Vue escapes all text fields; no HTML rendering from user input.
 - Colors: normalized to `#RRGGBB` to avoid CSS injection.
 - DAV: same-origin WebDAV only for `calendar-color` discovery.
@@ -19,6 +21,7 @@
 
 ## CSP
 - No inline scripts; CSS extracted and loaded via `Util::addStyle`.
+- Template fallback uses CSS classes (no inline styles).
 - Remaining dynamic styles are limited to color dots; consider palette classes if strict CSP forbids any inline styles.
 
 ## Recommendations
