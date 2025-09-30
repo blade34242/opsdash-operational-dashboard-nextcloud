@@ -47,6 +47,7 @@ Notes
 - Configuration: docs/CONFIGURATION.md
 - Seeding test data: docs/SEEDING.md
 - Troubleshooting: docs/TROUBLESHOOTING.md
+- Known Issues: docs/KNOWN_ISSUES.md
 - Upgrade Notes: docs/UPGRADE.md
 - Contributing: CONTRIBUTING.md
 - Next Steps: docs/NEXT_STEPS.md
