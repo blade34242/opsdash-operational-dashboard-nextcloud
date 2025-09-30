@@ -36,8 +36,17 @@ main{min-height:0; overflow:auto; padding-right:4px}
 .sb-actions{display:flex; gap:6px; flex-wrap:wrap; margin:8px 0; padding:0 12px 4px; justify-content:center}
 .sb-list{display:flex; flex-direction:column; gap:6px; max-height:50vh; overflow:auto; border-top:1px solid var(--line); padding:8px 12px 12px}
 .sb-hints{ padding:0 12px 6px; font-size:12px; color:var(--muted) }
+.sb-hints .sb-hintline{ margin-top:2px }
 .cal-row{ display:flex; align-items:center; gap:8px; justify-content:space-between; width:100% }
 .cal-row .cal-item{ flex:1; min-width:0 }
+.cal-card{ display:block; width:100%; border:1px solid var(--line); border-radius:12px; background:var(--card); padding:10px 12px; box-sizing:border-box; margin:8px 0 }
+.cal-card-head{ display:flex; align-items:center; gap:8px; justify-content:space-between; cursor:pointer }
+.cal-card-head .cal-name{ flex:1; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; font-weight:600 }
+.cal-card-head .cal-state{ font-size:11px; color:var(--muted) }
+.cal-card-head .cal-state.on{ color:var(--pos) }
+.cal-fields{ display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-top:8px }
+.cal-fields .field{ display:flex; flex-direction:column; gap:6px }
+.cal-fields .field .label{ font-size:12px; color:var(--muted) }
 .group-input{ width:58px; padding:6px 8px; border-radius:8px; border:1px solid var(--line); background:var(--card); color:var(--fg); text-align:right }
 .target-input{ width:86px; padding:6px 8px; border-radius:8px; border:1px solid var(--line); background:var(--card); color:var(--fg); text-align:right; margin-left:6px }
 .appbar-meta{ display:flex; align-items:center; gap:8px }

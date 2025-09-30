@@ -21,32 +21,36 @@
       <NcButton type="tertiary" :disabled="isLoading" @click="$emit('select-all', false)">None</NcButton>
     </div>
     <div class="sb-hints">
-      <div title="Gruppe 0 = keine Gruppe; 1–9 = benutzerdefinierte Gruppen">Group: 0 = none, 1–9 = custom</div>
-      <div title="Nur ausgewählte Kalender fließen in die Auswertung">Only selected calendars are used</div>
+      <div class="sb-title" style="margin:0">Per‑Calendar Settings</div>
+      <div class="sb-hintline" title="Gruppe 0 = keine Gruppe; 1–9 = benutzerdefinierte Gruppen"><strong>Group</strong>: 0 = none, 1–9 = custom</div>
+      <div class="sb-hintline" title="Zielstunden im aktuellen Bereich (Woche/Monat)"><strong>Target (h)</strong>: hours for current range (week/month)</div>
+      <div class="sb-hintline" title="Nur ausgewählte Kalender fließen in die Auswertung">Only selected calendars are used</div>
     </div>
     <div class="sb-list">
-      <div v-for="c in calendars" :key="c.id" class="cal-row">
-        <div class="cal-item">
-          <NcAppNavigationItem
-            :name="c.displayname || c.id"
-            :active="selected.includes(c.id)"
-            @click="$emit('toggle-calendar', c.id)"
-          >
-            <template #icon>
-              <span class="color-dot" :style="{background:(c.color||'var(--brand)')}"></span>
-            </template>
-          </NcAppNavigationItem>
+      <div v-for="c in calendars" :key="c.id" class="cal-card">
+        <div class="cal-card-head" @click="$emit('toggle-calendar', c.id)" :aria-pressed="selected.includes(c.id)" role="button" tabindex="0">
+          <span class="color-dot" :style="{background:(c.color||'var(--brand)')}"></span>
+          <span class="cal-name">{{ c.displayname || c.id }}</span>
+          <span class="cal-state" :class="{ on: selected.includes(c.id) }">{{ selected.includes(c.id) ? 'Selected' : 'Hidden' }}</span>
         </div>
-        <input type="number"
-               :value="getGroup(c.id)"
-               min="0" max="9" step="1" aria-label="Calendar group"
-               @input="(e:any)=> $emit('set-group', { id: c.id, n: e?.target?.value })"
-               title="Group 0–9 (0 = none)" class="group-input" />
-        <input type="number"
-               :value="getTarget(c.id)"
-               min="0" max="10000" step="0.25" aria-label="Target hours"
-               @input="(e:any)=> $emit('set-target', { id: c.id, h: e?.target?.value })"
-               :title="`Target (${range==='week'?'week':'month'}) in hours`" class="target-input" />
+        <div class="cal-fields">
+          <label class="field">
+            <span class="label">Group</span>
+            <input type="number"
+                   :value="getGroup(c.id)"
+                   min="0" max="9" step="1" aria-label="Calendar group"
+                   @input="(e:any)=> $emit('set-group', { id: c.id, n: e?.target?.value })"
+                   title="Group 0–9 (0 = none)" class="group-input" />
+          </label>
+          <label class="field">
+            <span class="label">Target (h)</span>
+            <input type="number"
+                   :value="getTarget(c.id)"
+                   min="0" max="10000" step="0.25" aria-label="Target hours"
+                   @input="(e:any)=> $emit('set-target', { id: c.id, h: e?.target?.value })"
+                   :title="`Target (${range==='week'?'week':'month'}) in hours`" class="target-input" />
+          </label>
+        </div>
       </div>
       <div class="hint mt-8">Selection is stored per user.</div>
     </div>
