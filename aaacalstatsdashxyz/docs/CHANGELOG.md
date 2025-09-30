@@ -10,6 +10,7 @@ All notable changes to this project are documented here. This file is served loc
 - UI: Events card reformatted (Active Days, Typical, Weekend, Evening)
 - CSP: removed inline styles from template fallback; uses CSS classes
 - Footer: version + changelog link (package.json aligned)
+- Assets: controller uses Vite manifest to resolve JS entry (no hard-coded filename)
 - Docs: Dev workflow, Known issues, Operations updated; local changelog
 
 ## [0.3.1] - 2025-09-30

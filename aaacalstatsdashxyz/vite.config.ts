@@ -17,6 +17,7 @@ export default defineConfig({
   build: {
     outDir: 'js',
     emptyOutDir: true,
+    manifest: true,
     sourcemap: false,
     rollupOptions: {
       input: 'src/main.ts',

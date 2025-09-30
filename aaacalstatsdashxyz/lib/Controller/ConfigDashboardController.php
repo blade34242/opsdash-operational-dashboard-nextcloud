@@ -36,10 +36,12 @@ final class ConfigDashboardController extends Controller {
     #[NoAdminRequired]
     #[NoCSRFRequired]
     public function index(): TemplateResponse {
-        // Load bundled frontend (JS) — cache-busted filename
-        // Load CSS first to align with strict CSP (avoid runtime style injection)
+        // Load bundled frontend (CSS + JS)
+        // CSS first to align with strict CSP (avoid runtime style injection)
         \OCP\Util::addStyle($this->appName, 'style');
-        \OCP\Util::addScript($this->appName, 'main47');
+        // Resolve JS entry via Vite manifest if available; fall back to hard-coded name
+        $entry = $this->resolveBuiltEntry();
+        \OCP\Util::addScript($this->appName, $entry);
         // Expose version and optional changelog URL to template
         $version = '';
         try {
@@ -55,6 +57,31 @@ final class ConfigDashboardController extends Controller {
             'version' => $version,
             'changelog' => $changelog,
         ]);
+    }
+
+    private function resolveBuiltEntry(): string {
+        // Default script name without extension
+        $fallback = 'main47';
+        try {
+            if (!class_exists('OC_App') || !method_exists(\OC_App::class, 'getAppPath')) {
+                return $fallback;
+            }
+            $appPath = \OC_App::getAppPath($this->appName);
+            if (!is_string($appPath) || $appPath === '') return $fallback;
+            $manifest = $appPath . '/js/.vite/manifest.json';
+            if (!is_readable($manifest)) return $fallback;
+            $json = json_decode((string)@file_get_contents($manifest), true);
+            if (!is_array($json)) return $fallback;
+            // Vite uses the input path as key when rollupOptions.input is a string
+            $entry = $json['src/main.ts']['file'] ?? null;
+            if (!is_string($entry) || $entry === '') return $fallback;
+            // Expect something like 'main47.js' in js/
+            $base = basename($entry);
+            if (!str_ends_with($base, '.js')) return $fallback;
+            return substr($base, 0, -3);
+        } catch (\Throwable) {
+            return $fallback;
+        }
     }
 
     #[NoAdminRequired]

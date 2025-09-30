@@ -6,17 +6,15 @@
 
 ## Deploy (UI changes)
 1. Place app directory under `apps/aaacalstatsdashxyz/` (or `apps-extra/`).
-2. Cache-bust the bundle if UI changed:
-   - In `vite.config.ts` bump `entryFileNames` (e.g., `main47.js`).
-   - In `lib/Controller/ConfigDashboardController.php` update `Util::addScript($app, 'main47')`.
-3. Build frontend: `npm ci && npm run build` (outputs `js/mainXX.js`).
-4. Restart and re-enable app to clear opcache:
-   - `docker restart <container>`
-   - `occ app:disable aaacalstatsdashxyz && occ app:enable aaacalstatsdashxyz`
-5. Verify assets and route:
-   - `curl -I http://<host>/apps-extra/aaacalstatsdashxyz/js/mainXX.js` → 200
-   - `curl -I http://<host>/index.php/apps/aaacalstatsdashxyz/config_dashboard` → 200 after login
-6. In browser: disable cache in DevTools and hard-reload.
+2. Build frontend: `npm ci && npm run build` (outputs `js/mainXX.js` and `js/.vite/manifest.json`).
+   - The controller resolves the built entry via the Vite manifest; no need to bump filenames.
+3. Restart and re-enable app to clear opcache:
+    - `docker restart <container>`
+    - `occ app:disable aaacalstatsdashxyz && occ app:enable aaacalstatsdashxyz`
+4. Verify assets and route:
+   - `curl -I http://<host>/apps-extra/aaacalstatsdashxyz/js/mainXX.js` → 200 (or any new filename)
+    - `curl -I http://<host>/index.php/apps/aaacalstatsdashxyz/config_dashboard` → 200 after login
+5. In browser: disable cache in DevTools and hard-reload.
 
 ## Logs
 - App logs use Nextcloud logging; set system log level to Debug to see query diagnostics (non-sensitive).
