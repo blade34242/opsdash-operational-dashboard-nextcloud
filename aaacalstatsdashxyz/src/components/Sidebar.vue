@@ -42,6 +42,11 @@
                min="0" max="9" step="1" aria-label="Calendar group"
                @input="(e:any)=> $emit('set-group', { id: c.id, n: e?.target?.value })"
                title="Group 0–9 (0 = none)" class="group-input" />
+        <input type="number"
+               :value="getTarget(c.id)"
+               min="0" max="10000" step="0.25" aria-label="Target hours"
+               @input="(e:any)=> $emit('set-target', { id: c.id, h: e?.target?.value })"
+               :title="`Target (${range==='week'?'week':'month'}) in hours`" class="target-input" />
       </div>
       <div class="hint mt-8">Selection is stored per user.</div>
     </div>
@@ -74,6 +79,9 @@ const props = defineProps<{
   offset: number
   from: string
   to: string
+  // targets maps
+  targetsWeek?: Record<string, number>
+  targetsMonth?: Record<string, number>
   // notes
   notesPrev: string
   notesCurrDraft: string
@@ -85,11 +93,17 @@ const props = defineProps<{
 }>()
 
 const emit = defineEmits([
-  'load','update:range','update:offset','select-all','toggle-calendar','set-group','update:notes','save-notes'
+  'load','update:range','update:offset','select-all','toggle-calendar','set-group','set-target','update:notes','save-notes'
 ])
 
 function getGroup(id:string){
   const n = Number((props.groupsById||{})[id] ?? 0)
   return (isFinite(n) ? Math.max(0, Math.min(9, Math.trunc(n))) : 0)
+}
+
+function getTarget(id:string){
+  const map = props.range==='month' ? (props.targetsMonth||{}) : (props.targetsWeek||{})
+  const n = Number((map as any)[id] ?? '')
+  return isFinite(n) ? n : ''
 }
 </script>

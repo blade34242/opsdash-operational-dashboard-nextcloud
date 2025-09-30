@@ -210,6 +210,29 @@ final class ConfigDashboardController extends Controller {
         foreach ($allowedIds as $id) { if (!isset($cleanGroups[$id])) $cleanGroups[$id] = 0; }
         $groupsById = $cleanGroups;
 
+        // Per-calendar targets (hours) for week and month
+        $targetsWeek = [];
+        $targetsMonth = [];
+        try {
+            $tw = (string)$this->config->getUserValue($uid, $this->appName, 'cal_targets_week', '');
+            $tm = (string)$this->config->getUserValue($uid, $this->appName, 'cal_targets_month', '');
+            if ($tw !== '') { $tmp = json_decode($tw, true); if (is_array($tmp)) $targetsWeek = $tmp; }
+            if ($tm !== '') { $tmp = json_decode($tm, true); if (is_array($tmp)) $targetsMonth = $tmp; }
+        } catch (\Throwable) {}
+        // Clean: only allow known ids, clamp values
+        $cleanTargets = function(array $src) use ($allowedSet): array {
+            $out = [];
+            foreach ($src as $k=>$v) {
+                $id = substr((string)$k, 0, 128);
+                if (!isset($allowedSet[$id])) continue;
+                $n = (float)$v; if (!is_finite($n)) continue; if ($n < 0) $n = 0; if ($n > 10000) $n = 10000;
+                $out[$id] = $n;
+            }
+            return $out;
+        };
+        $targetsWeek = $cleanTargets($targetsWeek);
+        $targetsMonth = $cleanTargets($targetsMonth);
+
         // --- Aktuelle Periode einlesen/aggregieren ---
         $events = [];
         // Limits to prevent excessive processing
@@ -459,6 +482,7 @@ final class ConfigDashboardController extends Controller {
             'selected'  => $selectedIds,
             'colors'    => ['byId'=>$colorsById, 'byName'=>$colorsByName],
             'groups'    => ['byId'=>$groupsById],
+            'targets'   => ['week'=>$targetsWeek, 'month'=>$targetsMonth],
             'calDebug'  => $calDebug,
             // Always include debug envelope so clients can introspect easily
             'debug'     => [
@@ -605,6 +629,38 @@ final class ConfigDashboardController extends Controller {
             } catch (\Throwable) {}
         }
 
+        // Optional: per-calendar targets (week/month) mapping: { id: hours }
+        $targetsWeekSaved = null; $targetsMonthSaved = null; $targetsWeekRead = null; $targetsMonthRead = null;
+        $cleanTargets = function($src) use ($allowed) {
+            $out = [];
+            if (!is_array($src)) return $out;
+            foreach ($src as $k=>$v) {
+                $id = substr((string)$k, 0, 128);
+                if (!isset($allowed[$id])) continue;
+                $n = (float)$v; if (!is_finite($n)) continue; if ($n < 0) $n = 0; if ($n > 10000) $n = 10000;
+                $out[$id] = $n;
+            }
+            return $out;
+        };
+        if (isset($data['targets_week'])) {
+            $tw = $cleanTargets($data['targets_week']);
+            $this->config->setUserValue($uid, $this->appName, 'cal_targets_week', json_encode($tw));
+            $targetsWeekSaved = $tw;
+            try {
+                $r = (string)$this->config->getUserValue($uid, $this->appName, 'cal_targets_week', '');
+                $targetsWeekRead = $r!=='' ? json_decode($r, true) : [];
+            } catch (\Throwable) {}
+        }
+        if (isset($data['targets_month'])) {
+            $tm = $cleanTargets($data['targets_month']);
+            $this->config->setUserValue($uid, $this->appName, 'cal_targets_month', json_encode($tm));
+            $targetsMonthSaved = $tm;
+            try {
+                $r = (string)$this->config->getUserValue($uid, $this->appName, 'cal_targets_month', '');
+                $targetsMonthRead = $r!=='' ? json_decode($r, true) : [];
+            } catch (\Throwable) {}
+        }
+
         // Read-back
         $readCsv = (string)$this->config->getUserValue($uid, $this->appName, 'selected_cals', '');
         $read = array_values(array_filter(explode(',', $readCsv), fn($x)=>$x!==''));
@@ -618,6 +674,10 @@ final class ConfigDashboardController extends Controller {
             'read'  => $read,
             'groups_saved' => $groupsSaved,
             'groups_read'  => $groupsRead,
+            'targets_week_saved'  => $targetsWeekSaved,
+            'targets_week_read'   => $targetsWeekRead,
+            'targets_month_saved' => $targetsMonthSaved,
+            'targets_month_read'  => $targetsMonthRead,
         ], Http::STATUS_OK);
     }
 

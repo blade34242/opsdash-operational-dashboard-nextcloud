@@ -11,6 +11,8 @@
         :offset="offset"
         :from="from"
         :to="to"
+        :targets-week="targetsWeek"
+        :targets-month="targetsMonth"
         :notes-prev="notesPrev"
         :notes-curr-draft="notesCurrDraft"
         :notes-label-prev="notesLabelPrev"
@@ -24,6 +26,7 @@
         @select-all="(v:boolean)=> selectAll(v)"
         @toggle-calendar="(id:string)=> toggleCalendar(id)"
         @set-group="(p:{id:string;n:any})=> setGroup(p.id, p.n)"
+        @set-target="(p:{id:string;h:any})=> setTarget(p.id, p.h)"
         @update:notes="(v:string)=> notesCurrDraft = v"
         @save-notes="saveNotes"
       />
@@ -103,7 +106,7 @@
       <div class="card full tab-panel" v-show="pane==='cal'">
         <NcEmptyContent v-if="byCal.length===0" name="No data" description="Try changing the range or calendars"/>
         <template v-else>
-          <ByCalendarTable :rows="byCal" :n2="n2" />
+          <ByCalendarTable :rows="byCal" :n2="n2" :targets="currentTargets" />
           <div class="grid2 mt-12">
             <div class="card"><PieChart :data="charts.pie" :colors-by-id="colorsById" :colors-by-name="colorsByName" /></div>
             <div class="card"><StackedBars :stacked="(charts as any).perDaySeries" :legacy="charts.perDay" :colors-by-id="colorsById" /></div>
@@ -232,12 +235,29 @@ function setGroup(id: string, n: number){
   queueSave(false)
 }
 
+function setTarget(id: string, h: any){
+  const num = Number(h)
+  if (!isFinite(num) || num < 0) return
+  const v = Math.min(10000, Math.round(num*100)/100)
+  if (range.value === 'month') {
+    targetsMonth.value = { ...(targetsMonth.value||{}), [id]: v }
+  } else {
+    targetsWeek.value = { ...(targetsWeek.value||{}), [id]: v }
+  }
+  // Persist silently without reload
+  queueSave(false)
+}
+
 const stats = reactive<any>({})
 const delta = reactive<any>({})
 const byCal = ref<any[]>([])
 const byDay = ref<any[]>([])
 const longest = ref<any[]>([])
 const charts = ref<Charts>({})
+// Targets per calendar (hours)
+const targetsWeek = ref<Record<string, number>>({})
+const targetsMonth = ref<Record<string, number>>({})
+const currentTargets = computed(()=> range.value==='month' ? targetsMonth.value : targetsWeek.value)
 const detailsIndex = ref<number|null>(null)
 function toggleDetails(i:number){ detailsIndex.value = detailsIndex.value===i ? null : i }
 function calendarDayLink(dateStr: string){
@@ -370,6 +390,12 @@ async function load(){
     const map: Record<string, number> = {}
     for (const c of calendars.value||[]) { const id=String(c.id); const n = Number((gobj as any)[id] ?? 0); map[id] = (isFinite(n)?Math.max(0,Math.min(9,Math.trunc(n))):0) }
     groupsById.value = map
+    // targets
+    const tw = (json.targets && (json.targets.week||{})) || {}
+    const tm = (json.targets && (json.targets.month||{})) || {}
+    targetsWeek.value = tw
+    targetsMonth.value = tm
+
     if (isDbg()) {
       console.group('[aaacalstatsdashxyz] calendars/colors')
       console.table((calendars.value||[]).map(c=>({id:c.id,name:c.displayname,color:c.color, raw:(c as any).color_raw, src:(c as any).color_src})))
@@ -465,7 +491,12 @@ function queueSave(reload: boolean = true){
     try {
       isSaving.value = true
       // Include groups so group edits are saved too
-      const res = await postJson(route('persist'), { cals: selected.value, groups: groupsById.value })
+      const res = await postJson(route('persist'), {
+        cals: selected.value,
+        groups: groupsById.value,
+        targets_week: targetsWeek.value,
+        targets_month: targetsMonth.value,
+      })
       // Update local selection from read-back to avoid mismatch
       selected.value = Array.isArray(res.read) ? res.read : (Array.isArray(res.saved)?res.saved:[])
       if (reload) {
