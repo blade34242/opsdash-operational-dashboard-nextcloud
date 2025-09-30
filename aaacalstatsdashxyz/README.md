@@ -44,6 +44,7 @@ Notes
 - Performance: docs/PERFORMANCE.md
 - Operations: docs/OPERATIONS.md
 - Configuration: docs/CONFIGURATION.md
+- Seeding test data: docs/SEEDING.md
 - Troubleshooting: docs/TROUBLESHOOTING.md
 - Upgrade Notes: docs/UPGRADE.md
 - Contributing: CONTRIBUTING.md

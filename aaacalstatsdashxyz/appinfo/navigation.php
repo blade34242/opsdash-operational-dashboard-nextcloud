@@ -6,14 +6,16 @@ declare(strict_types=1);
 
 /** @var \OCP\IURLGenerator $url */
 $url = \OC::$server->getURLGenerator();
-/** @var \OCP\L10N\IFactory $l10nFactory */
-$l10nFactory = \OC::$server->getL10NFactory();
-$l = $l10nFactory->get('aaacalstatsdashxyz');
 
-return [
+return [[
     'id' => 'aaacalstatsdashxyz',
     'order' => 10,
     'href' => $url->linkToRoute('aaacalstatsdashxyz.config_dashboard.index'),
     'icon' => $url->imagePath('aaacalstatsdashxyz', 'app.svg'),
-    'name' => $l->t('Calendar Dashboard'),
-];
+    'name' => 'Calendar Dashboard',
+    'type' => 'link',
+    'classes' => '',
+    'active' => false,
+    'unread' => 0,
+    'default' => false,
+]];

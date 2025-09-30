@@ -37,6 +37,11 @@ class Application extends App implements IBootstrap {
                             'href' => $route,
                             'icon' => $icon,
                             'name' => $l->t('Calendar Dashboard'),
+                            'type' => 'link',
+                            'classes' => '',
+                            'active' => false,
+                            'unread' => 0,
+                            'default' => false,
                         ];
                     });
                 }

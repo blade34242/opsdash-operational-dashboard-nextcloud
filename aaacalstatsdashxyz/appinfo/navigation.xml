@@ -4,7 +4,9 @@
     <id>aaacalstatsdashxyz</id>
     <name>Calendar Dashboard</name>
     <route>aaacalstatsdashxyz.config_dashboard.index</route>
-    <icon>app.svg</icon>
+    <icon>app</icon>
     <order>10</order>
   </nav>
+  
 </navigation>
+

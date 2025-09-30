@@ -11,11 +11,11 @@ services:
       SERVER_BRANCH: v31.0.8
     volumes:
       # persistenter Server + Daten (verhindert erneutes Herunterladen)
-      - nc31srv:/var/www/html
+      - nc31srv2:/var/www/html
       # dein App-Code "live" einbinden (→ Pfad unten anpassen!)
       - /home/thewestboi/Documents/dev/devCalDash/aaacalstatsdashxyz:/var/www/html/apps-extra/aaacalstatsdashxyz
     restart: unless-stopped
 
 volumes:
-  nc31srv:
+  nc31srv2:
 
