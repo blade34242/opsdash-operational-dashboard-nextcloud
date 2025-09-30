@@ -7,6 +7,7 @@ All notable changes to this project are documented here. This file is served loc
 - By Calendar: added Target, Δ, and % columns (per current range)
 - Sidebar: redesigned calendar entries as cards with labeled Group and Target inputs
 - Charts: bar segment labels and column totals; pie labels include percentages
+- Timezone: heatmap, per-day stacks, and DOW now bucket in the user’s timezone (DST-safe). Event count remains on the start day.
 - UI: Events card reformatted (Active Days, Typical, Weekend, Evening)
 - CSP: removed inline styles from template fallback; uses CSS classes
 - Footer: version + changelog link (package.json aligned)

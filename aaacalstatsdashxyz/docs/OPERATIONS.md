@@ -33,6 +33,7 @@
 - If the frontend does not load, verify `js/main46.js` is present and readable.
 - For missing colors, server falls back to DAV discover; ensure DAV endpoints are reachable.
 - If charts do not render, check browser console and ensure CSP is not blocking assets.
+ - Heatmap/timezone: Bucketing uses the user’s timezone (Nextcloud profile). If results look shifted, verify the user timezone is set under personal settings.
 ## Version and Changelog in Footer
 - Version sources (order):
   1. Installed app version via `OC_App::getAppVersion()` (template data attributes)

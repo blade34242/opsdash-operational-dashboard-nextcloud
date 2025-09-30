@@ -71,6 +71,14 @@
           </div>
         </div>
         <div class="card">
+          <div>Targets</div>
+          <div class="value">{{ n2(stats.total_hours) }} / {{ n2(totalTarget) }}h</div>
+          <div class="sub">
+            <span :class="targetDelta >= 0 ? 'delta pos' : 'delta neg'">Δ {{ targetDelta >= 0 ? '+' : '-' }}{{ n2(Math.abs(targetDelta)) }}h</span>
+            <template v-if="totalTarget > 0"> · {{ Math.round(targetPercent) }}%</template>
+          </div>
+        </div>
+        <div class="card">
           <div>Avg Hours/Event</div>
           <div class="value">{{ n2(stats.avg_per_event) }}</div>
           <div class="sub">
@@ -264,6 +272,31 @@ const charts = ref<Charts>({})
 const targetsWeek = ref<Record<string, number>>({})
 const targetsMonth = ref<Record<string, number>>({})
 const currentTargets = computed(()=> range.value==='month' ? targetsMonth.value : targetsWeek.value)
+const totalTarget = computed(()=> {
+  try {
+    const t = currentTargets.value || {}
+    const rows:any[] = byCal.value || []
+    let sum = 0
+    for (const r of rows) {
+      const id = String((r as any).id ?? '')
+      if (!id) continue
+      const v = Number((t as any)[id] ?? 0)
+      if (isFinite(v)) sum += v
+    }
+    return Math.max(0, Math.round(sum*100)/100)
+  } catch { return 0 }
+})
+const targetDelta = computed(()=> {
+  const cur = Number((stats as any).total_hours || 0)
+  return Math.round((cur - totalTarget.value)*100)/100
+})
+const targetPercent = computed(()=> {
+  const tgt = totalTarget.value
+  if (tgt <= 0) return 0
+  const cur = Number((stats as any).total_hours || 0)
+  const p = (cur / tgt) * 100
+  return Math.max(0, Math.min(100, p))
+})
 const detailsIndex = ref<number|null>(null)
 function toggleDetails(i:number){ detailsIndex.value = detailsIndex.value===i ? null : i }
 function calendarDayLink(dateStr: string){

@@ -227,15 +227,7 @@ final class ConfigDashboardController extends Controller {
         } catch (\Throwable) {}
         $allowedIds = array_map(fn($x)=>$x['id'], $sidebar);
         $allowedSet = array_flip($allowedIds);
-        $cleanGroups = [];
-        foreach ($groupsById as $k=>$v) {
-            $id = substr((string)$k, 0, 128);
-            if (!isset($allowedSet[$id])) continue;
-            $n = (int)$v; if ($n < 0) $n = 0; if ($n > 9) $n = 9;
-            $cleanGroups[$id] = $n;
-        }
-        foreach ($allowedIds as $id) { if (!isset($cleanGroups[$id])) $cleanGroups[$id] = 0; }
-        $groupsById = $cleanGroups;
+        $groupsById = $this->cleanGroups($groupsById, $allowedSet, $allowedIds);
 
         // --- User timezone for bucketing (heatmap, DOW, per-day) ---
         $userTzName = 'UTC';
@@ -255,18 +247,8 @@ final class ConfigDashboardController extends Controller {
             if ($tm !== '') { $tmp = json_decode($tm, true); if (is_array($tmp)) $targetsMonth = $tmp; }
         } catch (\Throwable) {}
         // Clean: only allow known ids, clamp values
-        $cleanTargets = function(array $src) use ($allowedSet): array {
-            $out = [];
-            foreach ($src as $k=>$v) {
-                $id = substr((string)$k, 0, 128);
-                if (!isset($allowedSet[$id])) continue;
-                $n = (float)$v; if (!is_finite($n)) continue; if ($n < 0) $n = 0; if ($n > 10000) $n = 10000;
-                $out[$id] = $n;
-            }
-            return $out;
-        };
-        $targetsWeek = $cleanTargets($targetsWeek);
-        $targetsMonth = $cleanTargets($targetsMonth);
+        $targetsWeek = $this->cleanTargets($targetsWeek, $allowedSet);
+        $targetsMonth = $this->cleanTargets($targetsMonth, $allowedSet);
 
         // --- Aktuelle Periode einlesen/aggregieren ---
         $events = [];
@@ -668,13 +650,7 @@ final class ConfigDashboardController extends Controller {
         // Optional: groups mapping
         $groupsSaved = null; $groupsRead = null;
         if (isset($data['groups']) && is_array($data['groups'])) {
-            $gclean = [];
-            foreach ($data['groups'] as $k=>$v) {
-                $id = substr((string)$k, 0, 128);
-                if (!isset($allowed[$id])) continue;
-                $n = (int)$v; if ($n < 0) $n = 0; if ($n > 9) $n = 9;
-                $gclean[$id] = $n;
-            }
+            $gclean = $this->cleanGroups($data['groups'], $allowed, array_keys($allowed));
             $this->config->setUserValue($uid, $this->appName, 'cal_groups', json_encode($gclean));
             $groupsSaved = $gclean;
             try {
@@ -686,19 +662,8 @@ final class ConfigDashboardController extends Controller {
 
         // Optional: per-calendar targets (week/month) mapping: { id: hours }
         $targetsWeekSaved = null; $targetsMonthSaved = null; $targetsWeekRead = null; $targetsMonthRead = null;
-        $cleanTargets = function($src) use ($allowed) {
-            $out = [];
-            if (!is_array($src)) return $out;
-            foreach ($src as $k=>$v) {
-                $id = substr((string)$k, 0, 128);
-                if (!isset($allowed[$id])) continue;
-                $n = (float)$v; if (!is_finite($n)) continue; if ($n < 0) $n = 0; if ($n > 10000) $n = 10000;
-                $out[$id] = $n;
-            }
-            return $out;
-        };
         if (isset($data['targets_week'])) {
-            $tw = $cleanTargets($data['targets_week']);
+            $tw = $this->cleanTargets(is_array($data['targets_week'])?$data['targets_week']:[], $allowed);
             $this->config->setUserValue($uid, $this->appName, 'cal_targets_week', json_encode($tw));
             $targetsWeekSaved = $tw;
             try {
@@ -707,7 +672,7 @@ final class ConfigDashboardController extends Controller {
             } catch (\Throwable) {}
         }
         if (isset($data['targets_month'])) {
-            $tm = $cleanTargets($data['targets_month']);
+            $tm = $this->cleanTargets(is_array($data['targets_month'])?$data['targets_month']:[], $allowed);
             $this->config->setUserValue($uid, $this->appName, 'cal_targets_month', json_encode($tm));
             $targetsMonthSaved = $tm;
             try {
@@ -948,5 +913,30 @@ final class ConfigDashboardController extends Controller {
         }
         // fallback
         return $c;
+    }
+
+    // ---- Validation helpers ----
+    /** @param array<string,mixed> $src @param array<string,int> $allowedSet */
+    private function cleanTargets(array $src, array $allowedSet): array {
+        $out = [];
+        foreach ($src as $k=>$v) {
+            $id = substr((string)$k, 0, 128);
+            if (!isset($allowedSet[$id])) continue;
+            $n = (float)$v; if (!is_finite($n)) continue; if ($n < 0) $n = 0; if ($n > 10000) $n = 10000;
+            $out[$id] = $n;
+        }
+        return $out;
+    }
+    /** @param array<string,mixed> $src @param array<string,int> $allowedSet @param string[] $allIds */
+    private function cleanGroups(array $src, array $allowedSet, array $allIds): array {
+        $out = [];
+        foreach ($src as $k=>$v) {
+            $id = substr((string)$k, 0, 128);
+            if (!isset($allowedSet[$id])) continue;
+            $n = (int)$v; if ($n < 0) $n = 0; if ($n > 9) $n = 9;
+            $out[$id] = $n;
+        }
+        foreach ($allIds as $id) { if (!isset($out[$id])) $out[$id] = 0; }
+        return $out;
     }
 }

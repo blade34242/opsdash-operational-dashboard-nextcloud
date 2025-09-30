@@ -24,6 +24,7 @@ Base path: `/apps/aaacalstatsdashxyz`
   selected: [id,...],
   colors: { byId: { [id]: '#RRGGBB' }, byName: { [name]: '#RRGGBB' } },
   groups: { byId: { [id]: 0..9 } },
+  targets: { week: { [id]: number }, month: { [id]: number } },
   stats: { total_hours, avg_per_day, ... },
   byCal: [...], byDay: [...], longest: [...],
   charts: { pie, perDay, perDaySeries, dow, dowSeries, hod }
@@ -32,9 +33,14 @@ Base path: `/apps/aaacalstatsdashxyz`
 
 ## Persist Selection (save)
 - Method: POST `/config_dashboard/persist`
-- Body: JSON `{ cals: string[]; groups?: Record<string,number> }`
+- Body: JSON `{ cals: string[]; groups?: Record<string,number>; targets_week?: Record<string,number>; targets_month?: Record<string,number> }`
 - CSRF: required (`window.oc_requesttoken`)
-- Response: `{ ok, saved, read, groups_saved?, groups_read? }`
+- Response: `{ ok, saved, read, groups_saved?, groups_read?, targets_week_saved?, targets_week_read?, targets_month_saved?, targets_month_read? }`
+
+Validation
+- `cals`: intersected with user’s calendars; unknown ids ignored.
+- `groups`: per-calendar 0..9; missing ids default to 0.
+- `targets_*`: per-calendar hours clamped to [0..10000], decimals allowed; unknown ids ignored.
 
 ## Save Selection (legacy)
 - Method: POST `/config_dashboard/save`
