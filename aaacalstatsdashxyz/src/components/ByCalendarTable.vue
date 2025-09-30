@@ -1,7 +1,7 @@
 <template>
   <!-- Table: totals grouped by calendar -->
   <table>
-    <colgroup><col class="col-w-40"><col class="col-w-12"><col class="col-w-16"><col class="col-w-16"><col class="col-w-16"></colgroup>
+    <colgroup><col class="col-w-38"><col class="col-w-12"><col class="col-w-18"><col class="col-w-14"><col class="col-w-18"></colgroup>
     <thead>
       <tr>
         <th class="nowrap">Calendar</th>
@@ -15,7 +15,14 @@
       <tr v-for="r in rows" :key="r.id || r.calendar">
         <td><span class="cell" :title="r.calendar">{{ r.calendar }}</span></td>
         <td class="num">{{ r.events_count }}</td>
-        <td class="num">{{ n2(r.total_hours) }}</td>
+        <td class="num">
+          <div class="cell">
+            <div class="progress" v-if="hasTarget(r.id) && targetVal(r.id) > 0">
+              <div class="progress-bar" :style="{ width: progressPct(r.total_hours, targetVal(r.id)) + '%' }"></div>
+            </div>
+            <span>{{ n2(r.total_hours) }}</span>
+          </div>
+        </td>
         <td class="num">{{ targetText(r.id) }}</td>
         <td class="num">
           <template v-if="hasTarget(r.id)">
@@ -38,4 +45,5 @@ function targetText(id?: string){ const v = targetVal(id); return v>0 ? (Math.ro
 function deltaClass(hours:number, target:number){ const d = hours - target; return d>=0 ? 'delta pos' : 'delta neg' }
 function deltaText(hours:number, target:number){ const d = hours - target; const v = Math.abs(Math.round(d*100)/100).toFixed(2); return (d>=0?'+':'-') + v + 'h' }
 function progressText(hours:number, target:number){ const p = Math.max(0, Math.min(100, target>0 ? (hours/target*100) : 0)); return p.toFixed(0) + '%' }
+function progressPct(hours:number, target:number){ return Math.max(0, Math.min(100, target>0 ? (hours/target*100) : 0)) }
 </script>
