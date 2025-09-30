@@ -76,7 +76,9 @@
             <template v-if="wkHas || weHas">
               <br />
               <template v-if="wkHas">Workdays: avg {{ n2(wkAvg) }}h, median {{ n2(wkMedian) }}h</template>
-              <template v-if="weHas"> · Weekend: avg {{ n2(weAvg) }}h, median {{ n2(weMedian) }}h</template>
+              <template v-if="weHas"> · Weekend: avg {{ n2(weAvg) }}h, median {{ n2(weMedian) }}h
+                <template v-if="stats.weekend_share != null"> ({{ n1(stats.weekend_share) }}%)</template>
+              </template>
             </template>
           </div>
         </div>
