@@ -43,6 +43,7 @@ Notes
 - Security: docs/SECURITY.md
 - Performance: docs/PERFORMANCE.md
 - Operations: docs/OPERATIONS.md
+- Dev Workflow: docs/DEV_WORKFLOW.md
 - Configuration: docs/CONFIGURATION.md
 - Seeding test data: docs/SEEDING.md
 - Troubleshooting: docs/TROUBLESHOOTING.md

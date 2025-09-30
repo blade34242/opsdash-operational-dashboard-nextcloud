@@ -73,13 +73,12 @@
           <div class="sub">
             <template v-if="stats.median_per_day != null">Median/Day: {{ n2(stats.median_per_day) }}h</template>
             <template v-if="delta.avg_per_event != null"> · <span :class="delta.avg_per_event >= 0 ? 'delta pos' : 'delta neg'">{{ arrow(delta.avg_per_event) }} {{ n2(Math.abs(delta.avg_per_event)) }}h</span></template>
-            <template v-if="wkHas || weHas">
-              <br />
-              <template v-if="wkHas">Workdays: avg {{ n2(wkAvg) }}h, median {{ n2(wkMedian) }}h</template>
-              <template v-if="weHas"><br />Weekend: avg {{ n2(weAvg) }}h, median {{ n2(weMedian) }}h
-                <template v-if="stats.weekend_share != null"> ({{ n1(stats.weekend_share) }}%)</template>
-              </template>
-            </template>
+            <br />
+            <span>Workdays: avg {{ n2(wkAvg) }}h, median {{ n2(wkMedian) }}h</span>
+            <br />
+            <span>Weekend: avg {{ n2(weAvg) }}h, median {{ n2(weMedian) }}h
+              <template v-if="stats.weekend_share != null"> ({{ n1(stats.weekend_share) }}%)</template>
+            </span>
           </div>
         </div>
         <div class="card">
@@ -169,6 +168,9 @@ function notifyError(msg: string){
   else { console.error('ERROR:', msg); alert(msg) }
 }
 import { onMounted, reactive, ref, watch, nextTick, computed } from 'vue'
+// Ensure a visible version even if backend attrs are empty: use package.json as fallback
+// @ts-ignore
+import pkg from '../package.json'
 
 type Charts = {
   pie?: { labels: string[]; data: number[] }
@@ -267,7 +269,7 @@ function onIconError(){ if (iconIdx.value + 1 < iconCandidates.value.length) ico
 
 // Version + changelog from template data attributes
 function readDataAttr(name:string){ const el=document.getElementById('app'); return (el && (el as any).dataset ? ((el as any).dataset as any)[name] : '') || '' }
-const appVersion = ref<string>(readDataAttr('aaacaldashVersion'))
+const appVersion = ref<string>(readDataAttr('aaacaldashVersion') || (pkg?.version ? String(pkg.version) : ''))
 const changelogUrl = ref<string>(readDataAttr('aaacaldashChangelog'))
 
 // Fallback: query ping endpoint to populate version/link if missing
