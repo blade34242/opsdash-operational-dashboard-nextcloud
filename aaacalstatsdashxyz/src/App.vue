@@ -240,9 +240,15 @@ function setTarget(id: string, h: any){
   if (!isFinite(num) || num < 0) return
   const v = Math.min(10000, Math.round(num*100)/100)
   if (range.value === 'month') {
+    // Set monthly and convert weekly = month/4
+    const weekConv = Math.min(10000, Math.round((v/4)*100)/100)
     targetsMonth.value = { ...(targetsMonth.value||{}), [id]: v }
+    targetsWeek.value  = { ...(targetsWeek.value||{}),  [id]: weekConv }
   } else {
-    targetsWeek.value = { ...(targetsWeek.value||{}), [id]: v }
+    // Set weekly and convert monthly = week*4
+    const monthConv = Math.min(10000, Math.round((v*4)*100)/100)
+    targetsWeek.value  = { ...(targetsWeek.value||{}),  [id]: v }
+    targetsMonth.value = { ...(targetsMonth.value||{}), [id]: monthConv }
   }
   // Persist silently without reload
   queueSave(false)
