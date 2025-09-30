@@ -81,15 +81,14 @@
             </span>
           </div>
         </div>
-        <div class="card">
+        <div class="card"> 
           <div>Events</div>
           <div class="value">{{ stats.events ?? 0 }}</div>
           <div class="sub">
-            <span v-if="stats.active_days != null">Active Days: {{ stats.active_days }}</span>
-            <span v-if="stats.typical_start && stats.typical_end"> · Typical: {{ stats.typical_start }}–{{ stats.typical_end }}</span>
-            <span v-if="stats.weekend_share != null"> · Weekend: {{ n1(stats.weekend_share) }}%</span>
-            <span v-if="stats.evening_share != null"> · Evening: {{ n1(stats.evening_share) }}%</span>
-            <span v-if="delta.events != null"> · Δ {{ arrow(delta.events) }} {{ Math.abs(delta.events) }}</span>
+            <div v-if="stats.active_days != null">Active Days: {{ stats.active_days }}</div>
+            <div v-if="stats.typical_start && stats.typical_end">Typical: {{ stats.typical_start }}–{{ stats.typical_end }}</div>
+            <div v-if="stats.weekend_share != null">Weekend: {{ n1(stats.weekend_share) }}%</div>
+            <div v-if="stats.evening_share != null">Evening: {{ n1(stats.evening_share) }}%</div>
           </div>
         </div>
       </div>
