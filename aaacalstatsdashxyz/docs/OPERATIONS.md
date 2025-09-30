@@ -39,6 +39,7 @@
   1. Installed app version via `OC_App::getAppVersion()` (template data attributes)
   2. Fallback ping: `GET /apps/aaacalstatsdashxyz/config_dashboard/ping` returns `{version, changelog}`
   3. Build fallback: `package.json` version is shown until (1)/(2) resolve
+- Keep `appinfo/info.xml` and `package.json` versions aligned to avoid a temporary mismatch in the footer text (the build fallback may render first).
 - Configure changelog URL (dev example):
   - `occ config:app:set aaacalstatsdashxyz changelog_url --value="http://<host>/apps-extra/aaacalstatsdashxyz/docs/CHANGELOG.md"`
 
