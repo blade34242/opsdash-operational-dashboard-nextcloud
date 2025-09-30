@@ -237,6 +237,14 @@ final class ConfigDashboardController extends Controller {
         foreach ($allowedIds as $id) { if (!isset($cleanGroups[$id])) $cleanGroups[$id] = 0; }
         $groupsById = $cleanGroups;
 
+        // --- User timezone for bucketing (heatmap, DOW, per-day) ---
+        $userTzName = 'UTC';
+        try {
+            $tz = (string)$this->config->getUserValue($uid, 'core', 'timezone', '');
+            if ($tz !== '') $userTzName = $tz;
+        } catch (\Throwable) {}
+        try { $userTz = new \DateTimeZone($userTzName); } catch (\Throwable) { $userTz = new \DateTimeZone('UTC'); }
+
         // Per-calendar targets (hours) for week and month
         $targetsWeek = [];
         $targetsMonth = [];
@@ -327,18 +335,23 @@ final class ConfigDashboardController extends Controller {
             $byCalMap[$calId] = $byCalMap[$calId] ?? ['id'=>$calId,'calendar'=>$calName,'events_count'=>0,'total_hours'=>0.0];
             $byCalMap[$calId]['events_count']++; $byCalMap[$calId]['total_hours'] += $h;
 
-            $day = substr((string)($r['start']??''),0,10);
-            $byDay[$day] = $byDay[$day] ?? ['date'=>$day,'events_count'=>0,'total_hours'=>0.0];
-            $byDay[$day]['events_count']++; $byDay[$day]['total_hours'] += $h; $daysSeen[$day]=true;
+            // Parse start/end in their original tz (if provided), then convert to user tz
+            $stStr=(string)($r['start']??''); $enStr=(string)($r['end']??'');
+            $stTzName=(string)($r['startTz']??''); $enTzName=(string)($r['endTz']??'');
+            try { $srcTzStart = new \DateTimeZone($stTzName ?: 'UTC'); } catch (\Throwable) { $srcTzStart = new \DateTimeZone('UTC'); }
+            try { $srcTzEnd   = new \DateTimeZone($enTzName ?: 'UTC'); } catch (\Throwable) { $srcTzEnd   = new \DateTimeZone('UTC'); }
+            $dtStart = $stStr !== '' ? new \DateTimeImmutable($stStr, $srcTzStart) : null;
+            $dtEnd   = $enStr !== '' ? new \DateTimeImmutable($enStr, $srcTzEnd)   : null;
+            $dtStartUser = $dtStart?->setTimezone($userTz);
+            $dtEndUser   = $dtEnd?->setTimezone($userTz);
 
-            $ts=strtotime((string)($r['start']??'')); $w=$ts?date('D',$ts):'Mon'; $dow[$w]=($dow[$w]??0)+$h;
-            $cidStack = (string)($r['calendar_id'] ?? $calId ?? $calName);
-            // per-day per-calendar stack
-            if (!isset($perDayByCal[$day])) $perDayByCal[$day] = [];
-            $perDayByCal[$day][$cidStack] = ($perDayByCal[$day][$cidStack] ?? 0) + $h;
-            // per-DOW per-calendar stack
-            if (!isset($dowByCal[$w])) $dowByCal[$w] = [];
-            $dowByCal[$w][$cidStack] = ($dowByCal[$w][$cidStack] ?? 0) + $h;
+            // By-day: count event on start day; hours distributed below will adjust totals per day correctly
+            if ($dtStartUser) {
+                $dayStart = $dtStartUser->format('Y-m-d');
+                $byDay[$dayStart] = $byDay[$dayStart] ?? ['date'=>$dayStart,'events_count'=>0,'total_hours'=>0.0];
+                $byDay[$dayStart]['events_count']++;
+                $daysSeen[$dayStart]=true;
+            }
 
             $long[]=[
                 'calendar'=>$calName,
@@ -348,22 +361,37 @@ final class ConfigDashboardController extends Controller {
                 'desc'=>(string)($r['desc']??'')
             ];
 
-            // ---- 24×7 Heatmap: Eventdauer anteilig auf Stunden/Buckets verteilen ----
-            $stStr=(string)($r['start']??null); $enStr=(string)($r['end']??null);
-            $st=$stStr?strtotime($stStr):null; $en=$enStr?strtotime($enStr):null;
-            if ($st && $en && $en > $st) {
-                $cur=$st;
-                while ($cur < $en) {
-                    $slotEnd = strtotime(date('Y-m-d H:00:00', $cur).' +1 hour');
-                    if ($slotEnd === false) break;
-                    if ($slotEnd > $en) $slotEnd = $en;
-                    $dur = max(0, $slotEnd - $cur) / 3600.0; // Stunden
-                    $dname = date('D', $cur); // Mon..Sun
-                    $hour  = (int)date('G', $cur); // 0..23
+            // ---- 24×7 Heatmap and per-day/per-DOW stacks in USER TZ ----
+            if ($dtStartUser && $dtEndUser && $dtEndUser > $dtStartUser) {
+                $cur = $dtStartUser;
+                while ($cur < $dtEndUser) {
+                    // end of current hour in user tz
+                    $hourStart = \DateTimeImmutable::createFromFormat('Y-m-d H:00:00', $cur->format('Y-m-d H:00:00'), $userTz) ?: $cur;
+                    $slotEnd = $hourStart->modify('+1 hour');
+                    if ($slotEnd > $dtEndUser) $slotEnd = $dtEndUser;
+                    $dur = max(0, ($slotEnd->getTimestamp() - $cur->getTimestamp()) / 3600.0);
+                    $dname = $cur->format('D');
+                    $hour  = (int)$cur->format('G');
                     if (isset($hod[$dname][$hour])) $hod[$dname][$hour] += $dur;
+                    // per-day per-calendar stack
+                    $dayKey = $cur->format('Y-m-d');
+                    if (!isset($perDayByCal[$dayKey])) $perDayByCal[$dayKey] = [];
+                    $perDayByCal[$dayKey][$calId] = ($perDayByCal[$dayKey][$calId] ?? 0) + $dur;
+                    // dow per-calendar stack
+                    if (!isset($dowByCal[$dname])) $dowByCal[$dname] = [];
+                    $dowByCal[$dname][$calId] = ($dowByCal[$dname][$calId] ?? 0) + $dur;
+                    // byDay totals per slot day
+                    $byDay[$dayKey] = $byDay[$dayKey] ?? ['date'=>$dayKey,'events_count'=>0,'total_hours'=>0.0];
+                    $byDay[$dayKey]['total_hours'] += $dur;
+                    $daysSeen[$dayKey]=true;
                     $cur = $slotEnd;
                 }
             }
+        }
+
+        // Recompute DOW totals from heatmap matrix to ensure tz-correct sums
+        foreach ($dowOrder as $d) {
+            $dow[$d] = array_sum($hod[$d]);
         }
         usort($long,fn($a,$b)=>$b['duration_h']<=>$a['duration_h']);
         $byCalList = array_values($byCalMap);
