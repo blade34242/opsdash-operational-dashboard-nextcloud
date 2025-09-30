@@ -1,7 +1,7 @@
 <template>
   <!-- Table: totals grouped by calendar -->
   <table>
-    <colgroup><col class="col-w-38"><col class="col-w-12"><col class="col-w-18"><col class="col-w-14"><col class="col-w-18"></colgroup>
+    <colgroup><col class="col-w-42"><col class="col-w-12"><col class="col-w-14"><col class="col-w-14"><col class="col-w-18"></colgroup>
     <thead>
       <tr>
         <th class="nowrap">Calendar</th>
@@ -13,16 +13,16 @@
     </thead>
     <tbody>
       <tr v-for="r in rows" :key="r.id || r.calendar">
-        <td><span class="cell" :title="r.calendar">{{ r.calendar }}</span></td>
-        <td class="num">{{ r.events_count }}</td>
-        <td class="num">
-          <div class="cell">
+        <td>
+          <div class="cell" :title="r.calendar">
+            <div class="row-name">{{ r.calendar }}</div>
             <div class="progress" v-if="hasTarget(r.id) && targetVal(r.id) > 0">
               <div class="progress-bar" :style="{ width: progressPct(r.total_hours, targetVal(r.id)) + '%' }"></div>
             </div>
-            <span>{{ n2(r.total_hours) }}</span>
           </div>
         </td>
+        <td class="num">{{ r.events_count }}</td>
+        <td class="num">{{ n2(r.total_hours) }}</td>
         <td class="num">{{ targetText(r.id) }}</td>
         <td class="num">
           <template v-if="hasTarget(r.id)">

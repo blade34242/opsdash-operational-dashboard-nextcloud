@@ -28,3 +28,4 @@
 - Keep debug level off in production.
 - Consider app-level rate limiting for expensive ranges.
 - Continue removing inline styles in templates; prefer CSS classes.
+ - Consider adding Web Application Firewall (WAF) rules to throttle abusive clients on read endpoints.
