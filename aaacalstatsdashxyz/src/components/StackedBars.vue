@@ -10,6 +10,14 @@ import { ctxFor } from '../services/charts'
 const props = defineProps<{ stacked?: any, legacy?: any, colorsById: Record<string,string> }>()
 const cv = ref<HTMLCanvasElement|null>(null)
 
+function hexToRgb(hex:string){ const m=/^#?([\da-f]{2})([\da-f]{2})([\da-f]{2})$/i.exec(hex||''); if(!m) return null; return {r:parseInt(m[1],16), g:parseInt(m[2],16), b:parseInt(m[3],16)} }
+function textColorFor(bg:string, fallback:string): string {
+  const rgb = hexToRgb(bg)
+  if (!rgb) return fallback
+  const lum = (0.2126*rgb.r + 0.7152*rgb.g + 0.0722*rgb.b)/255
+  return lum < 0.55 ? '#ffffff' : fallback
+}
+
 function draw(){
   const cvEl = cv.value; if (!cvEl) return
   const ctx = ctxFor(cvEl); if(!ctx) return
@@ -33,6 +41,7 @@ function draw(){
     const n=labels.length||1, g=8, bw=Math.max(6,(x1-x0-g*(n+1))/n), scale=(y0-pad)/max
     labels.forEach((_,i)=>{
       let y=y0
+      let colTotal = 0
       series.forEach(s=>{
         const v = Math.max(0, Number(s.data?.[i]||0))
         const h = v*scale
@@ -40,11 +49,29 @@ function draw(){
         y = y - h
         const col = props.colorsById[s.id] || s.color || '#93c5fd'
         ctx.fillStyle = col
-        if (h>0.5) ctx.fillRect(x, y, bw, h)
+        if (h>0.5) {
+          ctx.fillRect(x, y, bw, h)
+          if (h>14 && bw>22 && v>0.01) {
+            const label = String((Math.round(v*100)/100).toFixed(1))
+            ctx.fillStyle = textColorFor(col, fg)
+            ctx.font = '11px ui-sans-serif,system-ui'
+            const tw = ctx.measureText(label).width
+            ctx.fillText(label, x + bw/2 - tw/2, y + h/2 + 4)
+          }
+        }
+        colTotal += v
       })
       ctx.fillStyle=fg; ctx.font='12px ui-sans-serif,system-ui'
       const t=weekday(String(labels[i]||''))
       if (bw>26){ const tw=ctx.measureText(t).width; ctx.fillText(t, x0+g+i*(bw+g)+bw/2-tw/2, y0+14) }
+      if (colTotal>0.01) {
+        const x = x0+g+i*(bw+g)
+        const labelT = String((Math.round(colTotal*100)/100).toFixed(1))
+        ctx.fillStyle = fg
+        ctx.font = '11px ui-sans-serif,system-ui'
+        const twT = ctx.measureText(labelT).width
+        ctx.fillText(labelT, x + bw/2 - twT/2, y - 4)
+      }
     })
     return
   }
@@ -60,9 +87,23 @@ function draw(){
   ctx.fillStyle='#93c5fd'
   data.forEach((v:any,i:number)=>{
     const h=Math.max(0,v*scale), x=x0+g+i*(bw+g), y=y0-h; ctx.fillRect(x,y,bw,h)
+    if (h>14 && bw>22 && v>0.01) {
+      const label = String((Math.round(v*100)/100).toFixed(1))
+      ctx.fillStyle = textColorFor('#93c5fd', fg)
+      ctx.font = '11px ui-sans-serif,system-ui'
+      const tw = ctx.measureText(label).width
+      ctx.fillText(label, x + bw/2 - tw/2, y + h/2 + 4)
+    }
     ctx.fillStyle=fg; ctx.font='12px ui-sans-serif,system-ui'
     const t=weekday(String(labelsL[i]||''))
     if (bw>26){ const tw=ctx.measureText(t).width; ctx.fillText(t, x+bw/2-tw/2, y0+14) }
+    if (v>0.01) {
+      const labelT = String((Math.round(v*100)/100).toFixed(1))
+      ctx.fillStyle = fg
+      ctx.font = '11px ui-sans-serif,system-ui'
+      const twT = ctx.measureText(labelT).width
+      ctx.fillText(labelT, x + bw/2 - twT/2, y - 4)
+    }
   })
 }
 
