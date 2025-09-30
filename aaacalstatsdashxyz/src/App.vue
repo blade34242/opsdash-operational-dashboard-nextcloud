@@ -31,6 +31,7 @@
     <div class="app-container">
       <div class="appbar">
         <div class="title">
+          <img :src="iconSrc" @error="onIconError" class="app-icon" alt="" aria-hidden="true" />
           <span>Calendar Dashboard</span>
           <span class="chip" v-text="range.toUpperCase()" />
         </div>
@@ -236,6 +237,21 @@ function calendarDayLink(dateStr: string){
 function isDbg(){ return false }
 function useTint(){ return false }
 function useInvert(){ return false }
+
+// App icon resolution (works across apps/apps-extra/apps-writable)
+const iconIdx = ref(0)
+const iconCandidates = computed(() => {
+  const w:any = window as any
+  const out:string[] = []
+  try { if (w.OC?.imagePath) { const p = w.OC.imagePath('aaacalstatsdashxyz','app.svg'); if (p) out.push(p) } } catch {}
+  const root = getRoot()
+  out.push(root + '/apps/aaacalstatsdashxyz/img/app.svg')
+  out.push(root + '/apps-extra/aaacalstatsdashxyz/img/app.svg')
+  out.push(root + '/apps-writable/aaacalstatsdashxyz/img/app.svg')
+  return out
+})
+const iconSrc = computed(() => iconCandidates.value[Math.min(iconIdx.value, iconCandidates.value.length-1)] || '')
+function onIconError(){ if (iconIdx.value + 1 < iconCandidates.value.length) iconIdx.value++ }
 
 const pie = ref<HTMLCanvasElement | null>(null)
 const perDay = ref<HTMLCanvasElement | null>(null)
