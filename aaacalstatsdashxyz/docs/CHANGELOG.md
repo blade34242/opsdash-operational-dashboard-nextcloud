@@ -2,7 +2,7 @@
 
 All notable changes to this project are documented here. This file is served locally for development.
 
-## [0.4.0] - 2025-09-30
+## [0.4.0] - 2025-09-30 (NC 31 line)
 - Targets: per‑calendar targets (hours) for week and month; edit in sidebar; auto‑convert week⇄month (×4/÷4); persisted per user
 - By Calendar: added Target, Δ, and % columns (per current range)
 - Sidebar: redesigned calendar entries as cards with labeled Group and Target inputs
@@ -13,6 +13,10 @@ All notable changes to this project are documented here. This file is served loc
 - Footer: version + changelog link (package.json aligned)
 - Assets: controller uses Vite manifest to resolve JS entry (no hard-coded filename)
 - Docs: Dev workflow, Known issues, Operations updated; local changelog
+- Rename: app id to `opsdash`, display name `OpsDash`, primary route `/dashboard` (NC 31 line).
+
+## [0.5.0] - Planned (NC 32 line)
+- Compatibility window: NC 32 (later extend to 33 after test).
 
 ## [0.3.1] - 2025-09-30
 - UI: App icon next to header title

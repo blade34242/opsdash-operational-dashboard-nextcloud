@@ -11,8 +11,8 @@
   <bootstrap>OCA\Aaacalstatsdashxyz\AppInfo\Application</bootstrap>
   <category>tools</category>
   <dependencies>
-    <!-- Target NC 31–32 explicitly for reliable icon/nav behavior -->
-    <nextcloud min-version="31" max-version="32"/>
+    <!-- Dev breadth: allow NC 30–32 to test locally; adjust before publishing -->
+    <nextcloud min-version="30" max-version="32"/>
   </dependencies>
   <!-- Nextcloud resolves this relative to the img/ folder: img/app.svg (and img/app-dark.svg for dark mode) -->
   <icon>app.svg</icon>

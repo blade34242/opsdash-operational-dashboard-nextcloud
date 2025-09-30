@@ -5,9 +5,9 @@ A Nextcloud app that aggregates calendar statistics (hours, events, heatmaps) ac
 Built with Codex CLI (OpenAI’s agentic coding assistant) for maintainability, security, and modern CSP‑friendly patterns.
 
 ## Requirements
-- Nextcloud 32
-- PHP compatible with your NC32 instance
-- Node.js 18+ and npm for building the frontend
+- Current focus line: Nextcloud 31 (0.4.x)
+- Upcoming line: Nextcloud 32 (0.5.x; planned rename to OpsDash)
+- Node.js 18+ and npm for building the frontend (dev only)
 
 ## Install (development)
 1. Place this app in `apps/aaacalstatsdashxyz`.
@@ -26,12 +26,12 @@ Built with Codex CLI (OpenAI’s agentic coding assistant) for maintainability, 
   - `/var/www/html/apps` → `/apps` (usually read-only)
   - `/var/www/html/apps-extra` → `/apps-extra` (read-only)
   - `/var/www/html/apps-writable` → `/apps-writable` (writable; used by App Store)
-- Place your app folder `aaacalstatsdashxyz` in ONE of these paths. The folder name must match the app id.
+- Place your app folder `opsdash` in ONE of these paths. The folder name must match the app id.
 - Test static icons directly, without `index.php`, using the prefix that matches where your app lives:
-  - If in `apps-extra`: `http://<host>/apps-extra/aaacalstatsdashxyz/img/app.svg`
-  - If in `apps-writable`: `http://<host>/apps-writable/aaacalstatsdashxyz/img/app.svg`
+  - If in `apps-extra`: `http://<host>/apps-extra/opsdash/img/app.svg`
+  - If in `apps-writable`: `http://<host>/apps-writable/opsdash/img/app.svg`
 - App routes (PHP) use the front controller and do include `index.php`:
-  - `http://<host>/index.php/apps/aaacalstatsdashxyz/config_dashboard`
+  - `http://<host>/index.php/apps/opsdash/dashboard`
 
 Notes
 - The app menu entry appears only after the app is installed in a configured `apps_paths` AND enabled (`occ app:enable aaacalstatsdashxyz`).
@@ -48,6 +48,8 @@ Notes
 - Directory Structure: docs/DIRECTORY_STRUCTURE.md
 - Release Process: docs/RELEASE.md
 - Publishing Checklist: docs/PUBLISHING_CHECKLIST.md
+- App Store Publishing Policy: docs/APP_STORE_PUBLISHING.md
+- Calendar App Setup (dev): docs/CALENDAR_DEV_SETUP.md
 - Configuration: docs/CONFIGURATION.md
 - Seeding test data: docs/SEEDING.md
 - Troubleshooting: docs/TROUBLESHOOTING.md
@@ -71,9 +73,9 @@ Notes
 Removed. No usage metrics are collected or exposed in admin settings.
 
 ## Server Endpoints
-- `GET  /apps/aaacalstatsdashxyz/config_dashboard/load` — loads stats for the selected range (week/month + offset). Accepts optional selection for previewing.
-- `POST /apps/aaacalstatsdashxyz/config_dashboard/save` — saves selected calendars and optional groups per user
-- `POST /apps/aaacalstatsdashxyz/config_dashboard/persist` — persists selection (and groups) and returns the saved/read‑back values
+- `GET  /apps/opsdash/dashboard/load` — loads stats for the selected range (week/month + offset). Accepts optional selection for previewing.
+- `POST /apps/opsdash/dashboard/save` — saves selected calendars and optional groups per user
+- `POST /apps/opsdash/dashboard/persist` — persists selection (and groups) and returns the saved/read‑back values
 
 CSRF is required for POST endpoints and is handled via `window.oc_requesttoken`.
 

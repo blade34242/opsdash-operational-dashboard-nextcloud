@@ -30,13 +30,17 @@ class Application extends App implements IBootstrap {
                     $route = $url->linkToRoute('aaacalstatsdashxyz.config_dashboard.index');
                     // Use explicit SVG name for NC31/32 compatibility (Nextcloud resolves to img/app.svg)
                     $icon  = $url->imagePath('aaacalstatsdashxyz', 'app.svg');
-                    $nav->add(function () use ($route, $icon, $l) {
+                    // Version-sensitive fallback (NC 32 navigation quirks)
+                    $major = 0;
+                    try { if (class_exists('OC_Util') && method_exists('OC_Util','getVersion')) { $ver = \OC_Util::getVersion(); $major = (int)($ver[0] ?? 0); } } catch (\Throwable) {}
+                    $nav->add(function () use ($route, $icon, $l, $major) {
                         return [
                             'id' => 'aaacalstatsdashxyz',
                             'order' => 10,
                             'href' => $route,
                             'icon' => $icon,
                             'name' => $l->t('Calendar Dashboard'),
+                            // Some NC versions expect explicit 'link' type; keep consistent
                             'type' => 'link',
                             'classes' => '',
                             'active' => false,
