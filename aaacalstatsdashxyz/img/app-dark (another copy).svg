@@ -1,0 +1,10 @@
+<svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+  <!-- OpsDash: bold stats bars + up arrow (dark theme, all white) -->
+  <!-- Bars (filled, white) -->
+  <rect x="3.5" y="10" width="5.2" height="10.5" rx="0.8" fill="#ffffff"/>
+  <rect x="10"  y="6.5" width="5.2" height="14"   rx="0.8" fill="#ffffff"/>
+  <rect x="16.5" y="12" width="5.2" height="8.5"  rx="0.8" fill="#ffffff"/>
+  <!-- Up arrow (thick, white) -->
+  <path d="M8 8 L12 4 L16 8" fill="none" stroke="#ffffff" stroke-width="3.6" stroke-linecap="round" stroke-linejoin="round"/>
+  <title>OpsDash</title>
+</svg>
