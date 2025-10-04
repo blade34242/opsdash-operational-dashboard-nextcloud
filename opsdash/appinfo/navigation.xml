@@ -1,0 +1,11 @@
+<?xml version="1.0"?>
+<navigation>
+  <nav>
+    <id>opsdash</id>
+    <name>Operational Dashboard</name>
+    <route>opsdash.config_dashboard.index</route>
+    <icon>app</icon>
+    <order>10</order>
+  </nav>
+  
+</navigation>

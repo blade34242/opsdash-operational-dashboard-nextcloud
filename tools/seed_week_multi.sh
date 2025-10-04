@@ -125,4 +125,4 @@ for i in {0..6}; do
 done
 
 echo "[seed_week_multi] Done. Open: $BASE_URL/index.php/apps/calendar/"
-echo "[seed_week_multi] API check: $BASE_URL/index.php/apps/aaacalstatsdashxyz/config_dashboard/load?range=week&offset=0"
+echo "[seed_week_multi] API check: $BASE_URL/index.php/apps/opsdash/config_dashboard/load?range=week&offset=0"

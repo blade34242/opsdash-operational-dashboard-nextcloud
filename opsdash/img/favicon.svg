@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" role="img" aria-label="OpsDash favicon (blue)">
+  <!-- background: Nextcloud blue -->
+  <rect x="0" y="0" width="24" height="24" rx="5" fill="#0082C9" />
+  <!-- gauge (white) -->
+  <g stroke="#ffffff" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M3 18a9 9 0 0 1 18 0"/>
+    <line x1="12" y1="18" x2="18.5" y2="11.5"/>
+    <circle cx="12" cy="18" r="2.2" fill="#ffffff" stroke="none"/>
+    <line x1="6"  y1="17.5" x2="7.7" y2="13.6"/>
+    <line x1="12" y1="7"    x2="12"  y2="5"/>
+    <line x1="18" y1="17.5" x2="16.3" y2="13.6"/>
+  </g>
+</svg>
+

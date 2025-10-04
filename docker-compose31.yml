@@ -13,7 +13,7 @@ services:
       # persistenter Server + Daten (verhindert erneutes Herunterladen)
       - nc31srv2:/var/www/html
       # dein App-Code "live" einbinden (→ Pfad unten anpassen!)
-      - /home/thewestboi/Documents/dev/devCalDash/aaacalstatsdashxyz:/var/www/html/apps-extra/aaacalstatsdashxyz
+      - /home/thewestboi/Documents/dev/devCalDash/opsdash:/var/www/html/apps-extra/opsdash
     restart: unless-stopped
 
 volumes:

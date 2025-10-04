@@ -134,4 +134,4 @@ for d in $(seq 1 $DAYS_IN_MONTH); do
 done
 
 echo "[seed_month_multi] Done. Open: $BASE_URL/index.php/apps/calendar/"
-echo "[seed_month_multi] API check: $BASE_URL/index.php/apps/aaacalstatsdashxyz/config_dashboard/load?range=month&offset=0"
+echo "[seed_month_multi] API check: $BASE_URL/index.php/apps/opsdash/config_dashboard/load?range=month&offset=0"
