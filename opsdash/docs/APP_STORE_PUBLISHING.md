@@ -16,9 +16,9 @@ Planned lines
   - Purpose: current development line with new features.
 
 Branching model
-- `main`: current line (0.5.x for NC 32)
-- `support/0.4.x`: maintenance line for NC 30–31
-- We only backport critical fixes to maintenance lines.
+- `main`: current line for NC 32+ (0.5.x onwards).
+- `support/0.4.x`: maintenance line for NC 30–31.
+- Only critical fixes are backported to the maintenance branch; new work lands on `main` first.
 
 ## Versioning
 

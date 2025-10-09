@@ -1,40 +1,39 @@
 <template>
   <div id="opsdash" class="opsdash">
   <NcAppContent app-name="Operational Dashboard">
-    <template #navigation>
-      <Sidebar
-        :calendars="calendars"
-        :selected="selected"
-        :groups-by-id="groupsById"
-        :is-loading="isLoading"
-        :range="range"
-        :offset="offset"
-        :from="from"
-        :to="to"
-        :targets-week="targetsWeek"
-        :targets-month="targetsMonth"
-        :targets-config="targetsConfig"
-        :notes-prev="notesPrev"
-        :notes-curr-draft="notesCurrDraft"
-        :notes-label-prev="notesLabelPrev"
-        :notes-label-curr="notesLabelCurr"
-        :notes-label-prev-title="notesLabelPrevTitle"
-        :notes-label-curr-title="notesLabelCurrTitle"
-        :is-saving-note="isSavingNote"
-        @load="load"
-        @update:range="(v)=>{ range=v as any; offset=0; load() }"
-        @update:offset="(v)=>{ offset=v as number; load() }"
-        @select-all="(v:boolean)=> selectAll(v)"
-        @toggle-calendar="(id:string)=> toggleCalendar(id)"
-        @set-group="(p:{id:string;n:any})=> setGroup(p.id, p.n)"
-        @set-target="(p:{id:string;h:any})=> setTarget(p.id, p.h)"
-        @update:notes="(v:string)=> notesCurrDraft = v"
-        @save-notes="saveNotes"
-        @update:targets-config="updateTargetsConfig"
-      />
-    </template>
+    <SidebarDock
+      :calendars="calendars"
+      :selected="selected"
+      :groups-by-id="groupsById"
+      :is-loading="isLoading"
+      :range="range"
+      :offset="offset"
+      :from="from"
+      :to="to"
+      :targets-week="targetsWeek"
+      :targets-month="targetsMonth"
+      :targets-config="targetsConfig"
+      :notes-prev="notesPrev"
+      :notes-curr-draft="notesCurrDraft"
+      :notes-label-prev="notesLabelPrev"
+      :notes-label-curr="notesLabelCurr"
+      :notes-label-prev-title="notesLabelPrevTitle"
+      :notes-label-curr-title="notesLabelCurrTitle"
+      :is-saving-note="isSavingNote"
+      @load="load"
+      @update:range="(v)=>{ range=v as any; offset=0; load() }"
+      @update:offset="(v)=>{ offset=v as number; load() }"
+      @select-all="(v:boolean)=> selectAll(v)"
+      @toggle-calendar="(id:string)=> toggleCalendar(id)"
+      @set-group="(p:{id:string;n:any})=> setGroup(p.id, p.n)"
+      @set-target="(p:{id:string;h:any})=> setTarget(p.id, p.h)"
+      @update:notes="(v:string)=> notesCurrDraft = v"
+      @save-notes="saveNotes"
+      @update:targets-config="updateTargetsConfig"
+    />
 
-    <div class="app-container">
+    <div class="app-main">
+      <div class="app-container">
       <div class="appbar">
         <div class="title">
           <img :src="iconSrc" @error="onIconError" class="app-icon" alt="" aria-hidden="true" />
@@ -119,10 +118,11 @@
         </template>
       </div>
 
-      <div class="hint footer">
-        Powered by <strong>Gellert Innovation</strong> • Built with <span class="mono">opsdash</span>
-        <template v-if="appVersion"> v{{ appVersion }}</template>
-        <template v-if="changelogUrl"> • <a :href="changelogUrl" target="_blank" rel="noreferrer noopener">Changelog</a></template>
+        <div class="hint footer">
+          Powered by <strong>Gellert Innovation</strong> • Built with <span class="mono">opsdash</span>
+          <template v-if="appVersion"> v{{ appVersion }}</template>
+          <template v-if="changelogUrl"> • <a :href="changelogUrl" target="_blank" rel="noreferrer noopener">Changelog</a></template>
+        </div>
       </div>
     </div>
   </NcAppContent>
@@ -131,7 +131,7 @@
 
 <script setup lang="ts">
 import { NcAppContent, NcEmptyContent, NcLoadingIcon } from '@nextcloud/vue'
-import Sidebar from './components/Sidebar.vue'
+import SidebarDock from './components/SidebarDock.vue'
 import PieChart from './components/PieChart.vue'
 import StackedBars from './components/StackedBars.vue'
 import GroupCharts from './components/GroupCharts.vue'
@@ -141,7 +141,7 @@ import ByDayTable from './components/ByDayTable.vue'
 import TopEventsTable from './components/TopEventsTable.vue'
 import TimeSummaryCard from './components/TimeSummaryCard.vue'
 import TimeTargetsCard from './components/TimeTargetsCard.vue'
-import { createDefaultTargetsConfig, buildTargetsSummary, normalizeTargetsConfig, type TargetsConfig } from './services/targets'
+import { createDefaultTargetsConfig, buildTargetsSummary, normalizeTargetsConfig, createEmptyTargetsSummary, type TargetsConfig } from './services/targets'
 // Lightweight notifications without @nextcloud/dialogs
 function notifySuccess(msg: string){
   const w:any = window as any
@@ -324,16 +324,23 @@ const timeSummary = computed(() => ({
 }))
 
 const targetsConfig = ref<TargetsConfig>(normalizeTargetsConfig(createDefaultTargetsConfig()))
-const targetsSummary = computed(() => buildTargetsSummary({
-  config: targetsConfig.value,
-  stats,
-  byDay: byDay.value || [],
-  byCal: byCal.value || [],
-  groupsById: groupsById.value || {},
-  range: range.value,
-  from: from.value,
-  to: to.value,
-}))
+const targetsSummary = computed(() => {
+  try {
+    return buildTargetsSummary({
+      config: targetsConfig.value,
+      stats,
+      byDay: byDay.value || [],
+      byCal: byCal.value || [],
+      groupsById: groupsById.value || {},
+      range: range.value,
+      from: from.value,
+      to: to.value,
+    })
+  } catch (e) {
+    console.error('[opsdash] targets summary failed', e)
+    return createEmptyTargetsSummary(targetsConfig.value)
+  }
+})
 
 // Targets per calendar (hours)
 const targetsWeek = ref<Record<string, number>>({})

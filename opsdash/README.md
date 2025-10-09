@@ -1,6 +1,6 @@
 # Operational Dashboard (opsdash)
 
-A Nextcloud app that aggregates calendar statistics (hours, events, heatmaps) across selected calendars, with optional calendar grouping and per‑group charts.
+A Nextcloud app that aggregates calendar statistics (hours, events, heatmaps) across selected calendars, with optional calendar grouping, per-category targets, and dockable navigation.
 
 Built with Codex CLI (OpenAI’s agentic coding assistant) for maintainability, security, and modern CSP‑friendly patterns.
 
@@ -58,15 +58,16 @@ Notes
 - Next Steps: docs/NEXT_STEPS.md
 
 ### Features
-- Calendar selection per user (stored server‑side).
-- Optional calendar grouping (0–9 per calendar; default 0). Groups 1–9 render per‑group pie + stacked charts when selected.
-- Charts: overall pie and per‑day stacked bars; heatmap (24×7) with blue→purple palette.
+- Dockable sidebar with persistent user configuration (calendar selection, notes, target presets).
+- Per-category targets with configurable pacing thresholds, forecast band, and category assignment per calendar.
+- Optional calendar grouping (0–9 per calendar). Groups render per-group pie + stacked charts when selected.
+- Charts: overall pie and per-day stacked bars; heatmap (24×7) with blue→purple palette.
 - Stats: total/avg hours, events, busiest day, weekend/evening shares, typical start/end, deltas vs previous period.
 
 ### Behavior
 - First load: if no saved selection exists, all calendars are selected by default.
-- Groups: if no saved group mapping exists, all calendars default to group 0.
-- Saving: selection and groups persist immediately; selection changes reload data, group changes do not force a reload.
+- Groups/Categories: if no saved mapping exists, calendars default to category “Unassigned” (group 0). Assigning a category automatically maps the calendar to the category’s underlying group id.
+- Saving: selection, groups, categories, and target settings persist immediately; selection changes trigger a reload.
 
 ## Admin Metrics
 Removed. No usage metrics are collected or exposed in admin settings.
@@ -84,7 +85,7 @@ CSRF is required for POST endpoints and is handled via `window.oc_requesttoken`.
 - As a fallback, a deterministic color derived from the calendar id is used.
 
 ## Build Artifacts
-- Vite outputs a `js/main47.js` bundle that the controller loads via `Util::addScript($app, 'main47')`.
+- Vite outputs a `js/main*.js` bundle (resolved at runtime via the manifest, fallback `main47`).
 
 ## License
 AGPL-3.0-or-later

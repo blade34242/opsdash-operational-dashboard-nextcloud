@@ -26,7 +26,6 @@ This document captures a prioritized plan to harden, modularize, and validate th
   - `components/Sidebar.vue` (selection, groups, notes panel)
   - `components/Charts/` (PieChart, StackedBars, Heatmap)
   - `components/Tables/` (ByCalendarTable, ByDayTable, LongestTable)
-- 4.0.2 kickoff: extract the new Time Summary card into `components/TimeSummaryCard.vue` and keep trimming `App.vue` as features evolve.
 - Add composables in `src/composables/`:
   - `useRange.ts`, `useCalendars.ts`, `useCharts.ts`, `useNotes.ts`
 - Extract chart drawing utils into `src/services/charts.ts`; consolidate color helpers in `src/services/colors.ts`.

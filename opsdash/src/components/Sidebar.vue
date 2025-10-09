@@ -35,12 +35,12 @@
         </div>
         <div class="cal-fields">
           <label class="field">
-            <span class="label">Group</span>
-            <input type="number"
-                   :value="getGroup(c.id)"
-                   min="0" max="9" step="1" aria-label="Calendar group"
-                   @input="(e:any)=> $emit('set-group', { id: c.id, n: e?.target?.value })"
-                   title="Group 0–9 (0 = none)" class="group-input" />
+            <span class="label">Category</span>
+            <select :value="calendarCategoryId(c.id)"
+                    @change="(e:any)=> setCalendarCategory(c.id, e?.target?.value)">
+              <option value="">Unassigned</option>
+              <option v-for="cat in categoryOptions" :key="cat.id" :value="cat.id">{{ cat.label }}</option>
+            </select>
           </label>
           <label class="field">
             <span class="label">Target (h)</span>
@@ -80,8 +80,13 @@
         <NcButton type="tertiary" @click="applyPreset('work-week')">Preset: Work-Week</NcButton>
         <NcButton type="tertiary" @click="applyPreset('balanced-life')">Preset: Balanced-Life</NcButton>
       </div>
-      <div class="target-category" v-for="cat in targets.categories" :key="cat.id">
-        <div class="cat-header">{{ cat.label }}</div>
+      <div class="target-category" v-for="cat in categoryOptions" :key="cat.id">
+        <div class="cat-header">
+          <input class="cat-name" type="text" :value="cat.label"
+                 @input="setCategoryLabel(cat.id, ($event.target as HTMLInputElement).value)"
+                 placeholder="Category name" />
+          <button class="remove-cat" type="button" @click="removeCategory(cat.id)" :disabled="categoryOptions.length <= 1" title="Remove category">✕</button>
+        </div>
         <div class="cat-fields">
           <label class="field">
             <span class="label">Target (h)</span>
@@ -89,13 +94,6 @@
                    :value="cat.targetHours"
                    min="0" max="1000" step="0.5"
                    @input="setCategoryTarget(cat.id, ($event.target as HTMLInputElement).value)" />
-          </label>
-          <label class="field">
-            <span class="label">Group</span>
-            <input type="number"
-                   :value="cat.groupIds && cat.groupIds.length ? cat.groupIds[0] : ''"
-                   min="0" max="9" step="1"
-                   @input="setCategoryGroup(cat.id, ($event.target as HTMLInputElement).value)" />
           </label>
           <label class="field checkbox">
             <input type="checkbox"
@@ -105,6 +103,7 @@
           </label>
         </div>
       </div>
+      <NcButton type="tertiary" class="add-category" :disabled="!canAddCategory" @click="addCategory">Add category</NcButton>
       <div class="target-section">
         <div class="section-title">Pace</div>
         <label class="field checkbox">
@@ -190,7 +189,7 @@
 
 <script setup lang="ts">
 import { computed } from 'vue'
-import { NcAppNavigation, NcButton, NcCheckboxRadioSwitch, NcAppNavigationItem } from '@nextcloud/vue'
+import { NcAppNavigation, NcButton, NcCheckboxRadioSwitch } from '@nextcloud/vue'
 import { normalizeTargetsConfig, type TargetsConfig, type TargetsMode } from '../services/targets'
 import NotesPanel from './NotesPanel.vue'
 
@@ -224,6 +223,64 @@ const emit = defineEmits([
 type TargetsPreset = 'work-week'|'balanced-life'
 
 const targets = computed(() => props.targetsConfig)
+const categoryOptions = computed(() => targets.value?.categories ?? [])
+const canAddCategory = computed(() => nextGroupId() !== null)
+
+function nextGroupId(): number | null {
+  const used = new Set<number>()
+  for (const cat of categoryOptions.value) {
+    (cat.groupIds || []).forEach((g:number) => used.add(Number(g)))
+  }
+  Object.values(props.groupsById || {}).forEach((g:any) => used.add(Number(g)))
+  for (let i = 1; i <= 9; i++) {
+    if (!used.has(i)) return i
+  }
+  return null
+}
+
+function makeCategoryId(): string {
+  return `cat-${Date.now().toString(36)}-${Math.random().toString(36).slice(2,5)}`
+}
+
+function calendarCategoryId(id: string): string {
+  const group = getGroup(id)
+  const cat = categoryOptions.value.find(cat => Array.isArray(cat.groupIds) && cat.groupIds.includes(group))
+  return cat ? cat.id : ''
+}
+
+function setCalendarCategory(calendarId: string, categoryId: string){
+  if (!categoryId) {
+    emit('set-group', { id: calendarId, n: 0 })
+    return
+  }
+  const cat = categoryOptions.value.find(cat => cat.id === categoryId)
+  if (!cat) {
+    emit('set-group', { id: calendarId, n: 0 })
+    return
+  }
+  const group = ensureCategoryGroup(cat.id)
+  emit('set-group', { id: calendarId, n: group })
+}
+
+function ensureCategoryGroup(catId: string): number {
+  const cat = categoryOptions.value.find(cat => cat.id === catId)
+  if (!cat) return 0
+  const existing = Array.isArray(cat.groupIds) && cat.groupIds.length ? Number(cat.groupIds[0]) : null
+  if (existing && Number.isFinite(existing)) return existing
+  const next = nextGroupId() ?? 0
+  updateConfig(cfg => {
+    const target = cfg.categories.find(c => c.id === catId)
+    if (target) target.groupIds = next ? [next] : []
+  })
+  return next
+}
+
+function updateCategory(id: string, mutator: (cat: any) => void){
+  updateConfig(cfg => {
+    const cat = cfg.categories.find(c => c.id === id)
+    if (cat) mutator(cat)
+  })
+}
 
 function getGroup(id:string){
   const n = Number((props.groupsById||{})[id] ?? 0)
@@ -249,25 +306,15 @@ function onTotalTarget(value: string){
 
 function setCategoryTarget(id: string, value: string){
   const num = clampNumber(value, 0, 1000, 0.5)
-  updateConfig(cfg => {
-    const cat = cfg.categories.find(c=>c.id===id)
-    if (cat) cat.targetHours = num
-  })
+  updateCategory(id, cat => { cat.targetHours = num })
 }
 
-function setCategoryGroup(id: string, value: string){
-  const num = clampNumber(value, 0, 9, 1)
-  updateConfig(cfg => {
-    const cat = cfg.categories.find(c=>c.id===id)
-    if (cat) cat.groupIds = Number.isFinite(num) ? [Math.trunc(num)] : []
-  })
+function setCategoryLabel(id: string, value: string){
+  updateCategory(id, cat => { cat.label = value.trim() || cat.label })
 }
 
 function setCategoryWeekend(id: string, checked: boolean){
-  updateConfig(cfg => {
-    const cat = cfg.categories.find(c=>c.id===id)
-    if (cat) cat.includeWeekend = checked
-  })
+  updateCategory(id, cat => { cat.includeWeekend = checked })
 }
 
 function setIncludeWeekendTotal(checked: boolean){
@@ -329,6 +376,41 @@ function applyPreset(preset: TargetsPreset){
       cfg.includeZeroDaysInStats = false
     }
   })
+}
+
+function addCategory(){
+  const group = nextGroupId()
+  if (group === null) {
+    window.alert?.('All category slots are currently in use (max 9).')
+    return
+  }
+  updateConfig(cfg => {
+    cfg.categories = [...cfg.categories, {
+      id: makeCategoryId(),
+      label: `Category ${cfg.categories.length + 1}`,
+      targetHours: 0,
+      includeWeekend: true,
+      paceMode: 'days_only',
+      groupIds: [group],
+    }]
+  })
+}
+
+function removeCategory(id: string){
+  if (categoryOptions.value.length <= 1) return
+  const cat = categoryOptions.value.find(c => c.id === id)
+  if (!cat) return
+  const group = Array.isArray(cat.groupIds) && cat.groupIds.length ? Number(cat.groupIds[0]) : null
+  updateConfig(cfg => {
+    cfg.categories = cfg.categories.filter(c => c.id !== id)
+  })
+  if (group !== null) {
+    Object.entries(props.groupsById || {}).forEach(([calId, grp]) => {
+      if (Number(grp) === group) {
+        emit('set-group', { id: calId, n: 0 })
+      }
+    })
+  }
 }
 
 function clampNumber(value: string, min: number, max: number, step: number){

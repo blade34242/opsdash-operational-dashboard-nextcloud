@@ -62,6 +62,45 @@ export interface TargetsSummary {
   }
 }
 
+export function createEmptyTargetsSummary(config?: TargetsConfig): TargetsSummary {
+  const cfg = config ? normalizeTargetsConfig(config) : createDefaultTargetsConfig()
+  const baseProgress: TargetsProgress = {
+    id: 'total',
+    label: 'Total',
+    actualHours: 0,
+    targetHours: cfg.totalHours,
+    percent: 0,
+    deltaHours: 0,
+    remainingHours: cfg.totalHours,
+    needPerDay: 0,
+    daysLeft: 0,
+    calendarPercent: 0,
+    gap: 0,
+    status: 'none',
+    statusLabel: '—',
+    includeWeekend: true,
+    paceMode: 'days_only',
+  }
+
+  return {
+    total: baseProgress,
+    categories: (cfg.categories || []).map((cat) => ({
+      ...baseProgress,
+      id: cat.id,
+      label: cat.label,
+      targetHours: cat.targetHours,
+      remainingHours: cat.targetHours,
+    })),
+    forecast: {
+      linear: 0,
+      momentum: 0,
+      low: 0,
+      high: 0,
+      text: '~0–0 h',
+    },
+  }
+}
+
 export interface BuildTargetsSummaryInput {
   config: TargetsConfig
   stats: any
@@ -110,7 +149,10 @@ export function buildTargetsSummary(input: BuildTargetsSummaryInput): TargetsSum
   const end = parseDate(input.to)
   const dailyHours = buildDailyMap(input.byDay)
 
-  const totalActual = Number(input.stats?.total_hours ?? 0)
+  const totalActual = (input.byCal || []).reduce((sum: number, row: any) => {
+    const raw = Number(row?.total_hours ?? row?.hours ?? 0)
+    return Number.isFinite(raw) ? sum + raw : sum
+  }, 0)
   const totalTarget = cfg.totalHours || 0
   const totalPace = computePaceInfo({
     includeWeekend: cfg.pace.includeWeekendTotal,
@@ -169,33 +211,81 @@ export function buildTargetsSummary(input: BuildTargetsSummaryInput): TargetsSum
   }
 }
 
-export function normalizeTargetsConfig(cfg: TargetsConfig): TargetsConfig {
-  const clone: TargetsConfig = JSON.parse(JSON.stringify(cfg || {}))
+export function normalizeTargetsConfig(cfg: TargetsConfig | string | null | undefined): TargetsConfig {
+  if (typeof cfg === 'string') {
+    try {
+      const parsed = JSON.parse(cfg)
+      return normalizeTargetsConfig(parsed as TargetsConfig)
+    } catch {
+      return normalizeTargetsConfig(undefined)
+    }
+  }
+
+  const base: TargetsConfig = createDefaultTargetsConfig()
+  const clone: any = JSON.parse(JSON.stringify(cfg ?? {}))
+
+  if (typeof clone !== 'object' || clone === null || Array.isArray(clone)) {
+    return base
+  }
+
   if (!Array.isArray(clone.categories)) {
     clone.categories = []
   }
-  clone.categories = clone.categories.map((cat) => ({
-    id: cat.id || cryptoLike(cat.label || 'cat'),
-    label: cat.label || 'Category',
-    targetHours: Number(cat.targetHours) || 0,
-    includeWeekend: !!cat.includeWeekend,
-    paceMode: cat.paceMode === 'time_aware' ? 'time_aware' : 'days_only',
-    groupIds: Array.isArray(cat.groupIds) ? cat.groupIds.filter((n) => Number.isFinite(n)).map((n) => Number(n)) : [],
-  }))
-  clone.totalHours = Number(clone.totalHours) || 0
-  clone.pace = clone.pace || { includeWeekendTotal: true, mode: 'days_only', thresholds: { onTrack: -2, atRisk: -10 } }
-  clone.pace.mode = clone.pace.mode === 'time_aware' ? 'time_aware' : 'days_only'
-  clone.pace.includeWeekendTotal = !!clone.pace.includeWeekendTotal
-  clone.pace.thresholds = clone.pace.thresholds || { onTrack: -2, atRisk: -10 }
-  clone.pace.thresholds.onTrack = Number(clone.pace.thresholds.onTrack) || 0
-  clone.pace.thresholds.atRisk = Number(clone.pace.thresholds.atRisk) || 0
-  clone.forecast = clone.forecast || { methodPrimary: 'linear', momentumLastNDays: 2, padding: 1.5 }
-  clone.forecast.methodPrimary = 'linear'
-  clone.forecast.momentumLastNDays = Math.max(1, Math.round(Number(clone.forecast.momentumLastNDays) || 1))
-  clone.forecast.padding = Math.max(0, Number(clone.forecast.padding) || 0)
-  clone.ui = clone.ui || { showTotalDelta: true, showNeedPerDay: true, showCategoryBlocks: true, badges: true, includeWeekendToggle: true }
-  clone.includeZeroDaysInStats = !!clone.includeZeroDaysInStats
-  return clone
+  const sanitizedCategories = clone.categories.map((cat) => {
+    const id = (cat?.id && typeof cat.id === 'string' ? cat.id : '') || cryptoLike(String(cat?.label ?? 'cat'))
+    const label = (typeof cat?.label === 'string' && cat.label.trim() !== '') ? cat.label.trim() : capitalize(id)
+    const targetHours = clampNumber(cat?.targetHours, 0, 10000)
+    const includeWeekend = !!cat?.includeWeekend
+    const paceMode: TargetsMode = cat?.paceMode === 'time_aware' ? 'time_aware' : 'days_only'
+    const groupIds = Array.isArray(cat?.groupIds)
+      ? cat.groupIds
+          .map((n: any) => Number(n))
+          .filter((n: number) => Number.isFinite(n) && n >= 0 && n <= 9)
+      : []
+    return { id, label, targetHours, includeWeekend, paceMode, groupIds }
+  })
+
+  const result: TargetsConfig = {
+    totalHours: clampNumber(clone.totalHours, 0, 10000),
+    categories: sanitizedCategories.length ? sanitizedCategories : base.categories,
+    pace: {
+      includeWeekendTotal: !!(clone.pace?.includeWeekendTotal ?? base.pace.includeWeekendTotal),
+      mode: clone.pace?.mode === 'time_aware' ? 'time_aware' : base.pace.mode,
+      thresholds: {
+        onTrack: clampNumber(clone.pace?.thresholds?.onTrack ?? base.pace.thresholds.onTrack, -100, 100),
+        atRisk: clampNumber(clone.pace?.thresholds?.atRisk ?? base.pace.thresholds.atRisk, -100, 100),
+      },
+    },
+    forecast: {
+      methodPrimary: 'linear',
+      momentumLastNDays: (() => {
+        const n = Math.round(clone.forecast?.momentumLastNDays ?? base.forecast.momentumLastNDays)
+        return Math.min(14, Math.max(1, Number.isFinite(n) ? n : base.forecast.momentumLastNDays))
+      })(),
+      padding: clampNumber(clone.forecast?.padding ?? base.forecast.padding, 0, 100),
+    },
+    ui: {
+      showTotalDelta: !!(clone.ui?.showTotalDelta ?? base.ui.showTotalDelta),
+      showNeedPerDay: !!(clone.ui?.showNeedPerDay ?? base.ui.showNeedPerDay),
+      showCategoryBlocks: !!(clone.ui?.showCategoryBlocks ?? base.ui.showCategoryBlocks),
+      badges: !!(clone.ui?.badges ?? base.ui.badges),
+      includeWeekendToggle: !!(clone.ui?.includeWeekendToggle ?? base.ui.includeWeekendToggle),
+    },
+    includeZeroDaysInStats: !!(clone.includeZeroDaysInStats ?? base.includeZeroDaysInStats),
+  }
+
+  return result
+}
+
+function capitalize(value: string): string {
+  if (!value) return ''
+  return value.charAt(0).toUpperCase() + value.slice(1)
+}
+
+function clampNumber(value: any, min: number, max: number): number {
+  const num = Number(value)
+  if (!Number.isFinite(num)) return min
+  return Math.min(max, Math.max(min, Math.round(num * 100) / 100))
 }
 
 function computeCategoryActual(cat: TargetCategoryConfig, byCal: any[], groupsById: Record<string, number>): number {

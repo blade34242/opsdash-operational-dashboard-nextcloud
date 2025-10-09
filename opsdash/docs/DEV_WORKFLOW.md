@@ -22,6 +22,6 @@ This checklist ensures changes show up reliably in a Nextcloud dev container.
 
 ## Quick verification
 - Icon: `GET /apps-extra/opsdash/img/app.svg` → 200
-- JS: `GET /apps-extra/opsdash/js/mainXX.js` → 200
+- JS: `GET /apps-extra/opsdash/js/mainXX.js` → 200 (exact name resolved via manifest)
 - Route: `GET /index.php/apps/opsdash/config_dashboard` (after login)
 - Ping: `GET /index.php/apps/opsdash/config_dashboard/ping` (shows version)

@@ -2,6 +2,12 @@
 
 All notable changes to this project are documented here. This file is served locally for development.
 
+## [Unreleased]
+- UI: Sidebar dock with persistent open/close state; main content spans full width when collapsed.
+- Targets: configurable categories (add/remove/rename), per-category pacing/forecast options, and category assignment for calendars.
+- Targets: client summary now computes totals from aggregated `byCal` data to keep the cards in sync with tables.
+- Docs: refreshed README, Architecture, Configuration, Dev Workflow notes; clarified manifest-based bundle handling.
+
 ## [4.0.1] - 2025-10-04 (NC 31 line)
 - Rename finalized: app id `opsdash`, display name “Operational Dashboard”
 - Routing: unified canonical endpoints under `/apps/opsdash/config_dashboard/*`; navigation points to index

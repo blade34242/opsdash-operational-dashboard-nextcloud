@@ -34,20 +34,12 @@ Guiding principles:
 
 ## Frontend Modules (current)
 
-- `src/App.vue`: main view (to be modularized into Sidebar/Notes/Charts/Tables).
+- `src/App.vue`: hosts the content area, wires data to the docked sidebar and summary cards.
 - `src/main.ts`: bootstraps the app.
-- `css/style.css`: extracted global styles for CSP compliance.
+- `src/components/SidebarDock.vue`: dockable container that persists open/close state and manages the global padding when the sidebar is hidden.
+- `src/components/Sidebar.vue`: calendar selection, per-calendar targets, notes, and the targets configuration UI (categories, pacing, forecast, display).
+- `src/components/TimeSummaryCard.vue` / `TimeTargetsCard.vue`: summary cards rendered in the main panel.
+- `src/components/By*` + chart components: tables and charts rendered inside the tab panels.
+- `src/services/targets.ts`: shared calculator for total/category progress, pace, and forecasts.
 
-## Planned Modularization
-
-- Components:
-  - Sidebar: selection + groups
-  - NotesPanel: previous/current notes
-  - Charts: PieChart, StackedBars, Heatmap
-  - Tables: ByCalendarTable, ByDayTable, TopEventsTable
-- Composables:
-  - `useRange`, `useCalendars`, `useCharts`, `useNotes`
-- Services:
-  - `api.ts` (typed client), `colors.ts`, `charts.ts`
-
-This will keep files small (<150 LOC) and responsibilities clear.
+The "monolith App.vue" phase is over—the major widgets live in their own components, making future changes noticeably easier to reason about.
