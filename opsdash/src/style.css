@@ -89,3 +89,16 @@ canvas.chart{display:block; width:100%; height:360px; border:1px solid var(--lin
 @supports (width: 100dvw){
   #opsdash .app-layout{ width:100dvw; max-width:100dvw }
 }
+
+.target-config{ display:flex; flex-direction:column; gap:8px; padding:8px 0 }
+.target-config .field{ display:flex; flex-direction:column; gap:4px }
+.target-config .field.checkbox{ flex-direction:row; align-items:center; gap:6px }
+.target-config .field .label{ font-size:12px; font-weight:600; color:var(--muted) }
+.target-config input[type="number"],
+.target-config select{ width:100%; padding:6px 8px; border-radius:8px; border:1px solid var(--line); background:var(--card); color:var(--fg); font-size:13px; box-sizing:border-box }
+.target-config .preset-buttons{ display:flex; gap:6px; flex-wrap:wrap }
+.target-config .target-category{ border:1px solid var(--line); border-radius:8px; padding:8px; display:flex; flex-direction:column; gap:6px; background:color-mix(in srgb, var(--card) 94%, var(--brand) 6%) }
+.target-config .target-category .cat-header{ font-weight:700; font-size:13px; color:var(--fg) }
+.target-config .target-category .cat-fields{ display:flex; flex-wrap:wrap; gap:8px }
+.target-config .target-section{ border-top:1px solid var(--line); padding-top:8px; margin-top:4px; display:flex; flex-direction:column; gap:6px }
+.target-config .target-section .section-title{ font-size:12px; font-weight:700; color:var(--muted) }

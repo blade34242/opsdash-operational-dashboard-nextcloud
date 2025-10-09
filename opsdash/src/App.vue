@@ -13,6 +13,7 @@
         :to="to"
         :targets-week="targetsWeek"
         :targets-month="targetsMonth"
+        :targets-config="targetsConfig"
         :notes-prev="notesPrev"
         :notes-curr-draft="notesCurrDraft"
         :notes-label-prev="notesLabelPrev"
@@ -29,6 +30,7 @@
         @set-target="(p:{id:string;h:any})=> setTarget(p.id, p.h)"
         @update:notes="(v:string)=> notesCurrDraft = v"
         @save-notes="saveNotes"
+        @update:targets-config="updateTargetsConfig"
       />
     </template>
 
@@ -59,15 +61,10 @@
           :mode="activeDayMode"
           @update:mode="setActiveDayMode"
         />
-        <div class="card">
-          <div>Targets</div>
-          <div class="value">{{ n2(stats.total_hours) }} / {{ n2(totalTarget) }}h</div>
-          <div class="sub">
-            <span :class="targetDelta >= 0 ? 'delta pos' : 'delta neg'">Δ {{ targetDelta >= 0 ? '+' : '-' }}{{ n2(Math.abs(targetDelta)) }}h</span>
-            <template v-if="totalTarget > 0"> · {{ Math.round(targetPercent) }}%</template>
-          </div>
-        </div>
-        
+        <TimeTargetsCard
+          :summary="targetsSummary"
+          :config="targetsConfig"
+        />
         <div class="card"> 
           <div>Events</div>
           <div class="value">{{ stats.events ?? 0 }}</div>
@@ -143,6 +140,8 @@ import ByCalendarTable from './components/ByCalendarTable.vue'
 import ByDayTable from './components/ByDayTable.vue'
 import TopEventsTable from './components/TopEventsTable.vue'
 import TimeSummaryCard from './components/TimeSummaryCard.vue'
+import TimeTargetsCard from './components/TimeTargetsCard.vue'
+import { createDefaultTargetsConfig, buildTargetsSummary, normalizeTargetsConfig, type TargetsConfig } from './services/targets'
 // Lightweight notifications without @nextcloud/dialogs
 function notifySuccess(msg: string){
   const w:any = window as any
@@ -252,8 +251,11 @@ function setTarget(id: string, h: any){
   queueSave(false)
 }
 
+function updateTargetsConfig(next: TargetsConfig){
+  targetsConfig.value = normalizeTargetsConfig(next)
+}
+
 const stats = reactive<any>({})
-const delta = reactive<any>({})
 const byCal = ref<any[]>([])
 const byDay = ref<any[]>([])
 const longest = ref<any[]>([])
@@ -316,35 +318,22 @@ const timeSummary = computed(() => ({
   balanceIndex: balanceIndex.value
 }))
 
+const targetsConfig = ref<TargetsConfig>(createDefaultTargetsConfig())
+const targetsSummary = computed(() => buildTargetsSummary({
+  config: targetsConfig.value,
+  stats,
+  byDay: byDay.value || [],
+  byCal: byCal.value || [],
+  groupsById: groupsById.value || {},
+  range: range.value,
+  from: from.value,
+  to: to.value,
+}))
+
 // Targets per calendar (hours)
 const targetsWeek = ref<Record<string, number>>({})
 const targetsMonth = ref<Record<string, number>>({})
 const currentTargets = computed(()=> range.value==='month' ? targetsMonth.value : targetsWeek.value)
-const totalTarget = computed(()=> {
-  try {
-    const t = currentTargets.value || {}
-    const rows:any[] = byCal.value || []
-    let sum = 0
-    for (const r of rows) {
-      const id = String((r as any).id ?? '')
-      if (!id) continue
-      const v = Number((t as any)[id] ?? 0)
-      if (isFinite(v)) sum += v
-    }
-    return Math.max(0, Math.round(sum*100)/100)
-  } catch { return 0 }
-})
-const targetDelta = computed(()=> {
-  const cur = Number((stats as any).total_hours || 0)
-  return Math.round((cur - totalTarget.value)*100)/100
-})
-const targetPercent = computed(()=> {
-  const tgt = totalTarget.value
-  if (tgt <= 0) return 0
-  const cur = Number((stats as any).total_hours || 0)
-  const p = (cur / tgt) * 100
-  return Math.max(0, Math.min(100, p))
-})
 const detailsIndex = ref<number|null>(null)
 function toggleDetails(i:number){ detailsIndex.value = detailsIndex.value===i ? null : i }
 function calendarDayLink(dateStr: string){
@@ -533,7 +522,6 @@ async function load(){
     userChangedSelection.value = false
 
     Object.assign(stats, json.stats||{})
-    Object.assign(delta, json.delta||{})
     byCal.value = json.byCal||[]
     byDay.value = json.byDay||[]
     longest.value = json.longest||[]
