@@ -26,6 +26,7 @@ This document captures a prioritized plan to harden, modularize, and validate th
   - `components/Sidebar.vue` (selection, groups, notes panel)
   - `components/Charts/` (PieChart, StackedBars, Heatmap)
   - `components/Tables/` (ByCalendarTable, ByDayTable, LongestTable)
+- 4.0.2 kickoff: extract the new Time Summary card into `components/TimeSummaryCard.vue` and keep trimming `App.vue` as features evolve.
 - Add composables in `src/composables/`:
   - `useRange.ts`, `useCalendars.ts`, `useCharts.ts`, `useNotes.ts`
 - Extract chart drawing utils into `src/services/charts.ts`; consolidate color helpers in `src/services/colors.ts`.
@@ -53,4 +54,3 @@ This document captures a prioritized plan to harden, modularize, and validate th
 ## Open Questions
 - Should we support NC 31–32 only or extend to 33 when available? (affects API calls and assets)
 - Do we want to keep `save` (legacy) or deprecate fully in favor of `persist`?
-

@@ -54,38 +54,11 @@
       </div>
 
       <div class="cards">
-        <div class="card">
-          <div>Total Hours</div>
-          <div class="value">{{ n2(stats.total_hours) }}</div>
-          <div class="sub">
-            <template v-if="stats.top_calendar">Top Cal: {{ stats.top_calendar.calendar }} {{ n1(stats.top_calendar.share) }}%</template>
-            <template v-if="topThreeText"> · Top 3: {{ topThreeText }}</template>
-            <template v-if="delta.total_hours != null"> · <span :class="delta.total_hours >= 0 ? 'delta pos' : 'delta neg'">{{ arrow(delta.total_hours) }} {{ n2(Math.abs(delta.total_hours)) }}h</span></template>
-          </div>
-        </div>
-        <div class="card">
-          <div>Averages</div>
-          <div class="value-row">
-            <div class="value-pair">
-              <div class="label">Avg/Day</div>
-              <div class="value">{{ n2(stats.avg_per_day) }}</div>
-            </div>
-            <div class="value-pair">
-              <div class="label">Avg/Event</div>
-              <div class="value">{{ n2(stats.avg_per_event) }}</div>
-            </div>
-          </div>
-          <div class="sub">
-            <template v-if="stats.busiest_day">Busiest: {{ stats.busiest_day.date }} {{ n2(stats.busiest_day.hours) }}h</template>
-            <template v-if="stats.median_per_day != null"> · Median/Day: {{ n2(stats.median_per_day) }}h</template>
-            <br />
-            <span>Workdays: avg {{ n2(wkAvg) }}h, median {{ n2(wkMedian) }}h</span>
-            <br />
-            <span>Weekend: avg {{ n2(weAvg) }}h, median {{ n2(weMedian) }}h
-              <template v-if="stats.weekend_share != null"> ({{ n1(stats.weekend_share) }}%)</template>
-            </span>
-          </div>
-        </div>
+        <TimeSummaryCard
+          :summary="timeSummary"
+          :mode="activeDayMode"
+          @update:mode="setActiveDayMode"
+        />
         <div class="card">
           <div>Targets</div>
           <div class="value">{{ n2(stats.total_hours) }} / {{ n2(totalTarget) }}h</div>
@@ -169,6 +142,7 @@ import HeatmapCanvas from './components/HeatmapCanvas.vue'
 import ByCalendarTable from './components/ByCalendarTable.vue'
 import ByDayTable from './components/ByDayTable.vue'
 import TopEventsTable from './components/TopEventsTable.vue'
+import TimeSummaryCard from './components/TimeSummaryCard.vue'
 // Lightweight notifications without @nextcloud/dialogs
 function notifySuccess(msg: string){
   const w:any = window as any
@@ -222,10 +196,6 @@ const topThree = computed(() => {
   const items = data.map((v:number,i:number)=> ({ name: labels[i]||'', value: Math.max(0,v) }))
   items.sort((a,b)=> b.value - a.value)
   return items.slice(0,3).map(it => ({ name: it.name, share: (it.value/total)*100 }))
-})
-const topThreeText = computed(() => {
-  if (!topThree.value.length) return ''
-  return topThree.value.map(t => `${t.name} ${n1(t.share)}%`).join(', ')
 })
 
 const calendars = ref<{id:string;displayname:string;color?:string;checked:boolean}[]>([])
@@ -288,6 +258,64 @@ const byCal = ref<any[]>([])
 const byDay = ref<any[]>([])
 const longest = ref<any[]>([])
 const charts = ref<Charts>({})
+const activeDayMode = ref<'active'|'all'>('active')
+const rangeLabel = computed(()=> range.value === 'month' ? 'Month' : 'Week')
+const dailyTotals = computed(()=> (byDay.value||[]).map(d=> Number((d as any).total_hours || 0)))
+function filteredValues(values: number[]): number[]{
+  const normalized = values.map(v => (Number(v) || 0))
+  if (activeDayMode.value === 'active') {
+    return normalized.filter(v => v > 0)
+  }
+  return normalized
+}
+const avgDayValue = computed(()=> avg(filteredValues(dailyTotals.value)))
+const medianDayValue = computed(()=> median(filteredValues(dailyTotals.value)))
+
+const workdayTotals = computed(()=> (byDay.value||[])
+  .filter(d=>{ const dow=dayOfWeek(String((d as any).date)); return dow>=1 && dow<=5 })
+  .map(d=> Number((d as any).total_hours || 0)))
+const weekendTotals = computed(()=> (byDay.value||[])
+  .filter(d=>{ const dow=dayOfWeek(String((d as any).date)); return dow===0 || dow===6 })
+  .map(d=> Number((d as any).total_hours || 0)))
+const workdayAvg = computed(()=> avg(filteredValues(workdayTotals.value)))
+const workdayMedian = computed(()=> median(filteredValues(workdayTotals.value)))
+const weekendAvg = computed(()=> avg(filteredValues(weekendTotals.value)))
+const weekendMedian = computed(()=> median(filteredValues(weekendTotals.value)))
+
+const activeCalendarsCount = computed(()=> selected.value.length || (calendars.value?.length ?? 0))
+const topCalendarsSummary = computed(()=>{
+  if (topThree.value.length) {
+    return topThree.value.map(t => `${t.name} ${n1(t.share)}%`).join(', ')
+  }
+  const top = (stats as any)?.top_calendar
+  if (top && top.calendar) {
+    const share = Number(top.share ?? 0)
+    return `${top.calendar} ${n1(share)}%`
+  }
+  return ''
+})
+const balanceIndex = computed(()=>{
+  const raw = (stats as any)?.balance_index ?? (stats as any)?.balanceIndex
+  const num = Number(raw)
+  return Number.isFinite(num) ? num : null
+})
+const timeSummary = computed(() => ({
+  rangeLabel: rangeLabel.value,
+  totalHours: Number((stats as any).total_hours ?? 0),
+  avgDay: avgDayValue.value,
+  avgEvent: Number((stats as any).avg_per_event ?? 0),
+  medianDay: medianDayValue.value,
+  busiest: (stats as any)?.busiest_day ?? null,
+  workdayAvg: workdayAvg.value,
+  workdayMedian: workdayMedian.value,
+  weekendAvg: weekendAvg.value,
+  weekendMedian: weekendMedian.value,
+  weekendShare: (stats as any)?.weekend_share ?? null,
+  activeCalendars: activeCalendarsCount.value,
+  calendarSummary: topCalendarsSummary.value,
+  balanceIndex: balanceIndex.value
+}))
+
 // Targets per calendar (hours)
 const targetsWeek = ref<Record<string, number>>({})
 const targetsMonth = ref<Record<string, number>>({})
@@ -391,13 +419,6 @@ function dayOfWeek(dateStr: string): number {
   const d = new Date(dateStr+'T00:00:00Z')
   return d.getUTCDay()
 }
-const wkHas = computed(()=> (byDay.value||[]).some(d=>{ const dow=dayOfWeek(String(d.date)); return dow>=1 && dow<=5 }))
-const weHas = computed(()=> (byDay.value||[]).some(d=>{ const dow=dayOfWeek(String(d.date)); return dow===0 || dow===6 }))
-const wkAvg = computed(()=> { const vals=(byDay.value||[]).filter(d=>{const w=dayOfWeek(String(d.date)); return w>=1&&w<=5}).map(d=>Number(d.total_hours||0)); return avg(vals) })
-const wkMedian = computed(()=> { const vals=(byDay.value||[]).filter(d=>{const w=dayOfWeek(String(d.date)); return w>=1&&w<=5}).map(d=>Number(d.total_hours||0)); return median(vals) })
-const weAvg = computed(()=> { const vals=(byDay.value||[]).filter(d=>{const w=dayOfWeek(String(d.date)); return w===0||w===6}).map(d=>Number(d.total_hours||0)); return avg(vals) })
-const weMedian = computed(()=> { const vals=(byDay.value||[]).filter(d=>{const w=dayOfWeek(String(d.date)); return w===0||w===6}).map(d=>Number(d.total_hours||0)); return median(vals) })
-
 function getRoot(){ const w:any=window as any; return (w.OC && (w.OC.webroot || w.OC.getRootPath?.())) || (w._oc_webroot) || '' }
 function qs(params: Record<string, any>): string { const u=new URLSearchParams(); Object.entries(params).forEach(([k,v])=>{ if(Array.isArray(v)) v.forEach(x=>u.append(k,String(x))); else if(v!==undefined&&v!==null) u.set(k,String(v)) }); return u.toString() }
 async function getJson(url: string, params: any){ const q=qs(params||{}); const u=q?(url+(url.includes('?')?'&':'?')+q):url; const res=await fetch(u,{method:'GET',credentials:'same-origin'}); if(!res.ok) throw new Error('HTTP '+res.status); return await res.json() }
@@ -424,6 +445,12 @@ function route(name: string){
 
 function selectAll(v:boolean){
   selected.value = v ? calendars.value.map(c=>c.id) : []
+}
+
+function setActiveDayMode(mode:'active'|'all'){
+  if (activeDayMode.value !== mode) {
+    activeDayMode.value = mode
+  }
 }
 
 let loadSeq = 0
