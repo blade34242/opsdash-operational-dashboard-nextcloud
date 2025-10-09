@@ -259,7 +259,7 @@ function setCategoryGroup(id: string, value: string){
   const num = clampNumber(value, 0, 9, 1)
   updateConfig(cfg => {
     const cat = cfg.categories.find(c=>c.id===id)
-    if (cat) cat.groupIds = Number.isFinite(num) ? [num] : []
+    if (cat) cat.groupIds = Number.isFinite(num) ? [Math.trunc(num)] : []
   })
 }
 

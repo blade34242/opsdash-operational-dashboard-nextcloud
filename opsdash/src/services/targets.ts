@@ -1,5 +1,3 @@
-import type { Ref } from 'vue'
-
 export type TargetsMode = 'days_only' | 'time_aware'
 
 export interface TargetCategoryConfig {

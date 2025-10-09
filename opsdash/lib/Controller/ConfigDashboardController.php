@@ -255,6 +255,8 @@ final class ConfigDashboardController extends Controller {
         $targetsWeek = $this->cleanTargets($targetsWeek, $allowedSet);
         $targetsMonth = $this->cleanTargets($targetsMonth, $allowedSet);
 
+        $targetsConfig = $this->readTargetsConfig($uid);
+
         // --- Aktuelle Periode einlesen/aggregieren ---
         $events = [];
         // Limits to prevent excessive processing
@@ -525,6 +527,7 @@ final class ConfigDashboardController extends Controller {
             'colors'    => ['byId'=>$colorsById, 'byName'=>$colorsByName],
             'groups'    => ['byId'=>$groupsById],
             'targets'   => ['week'=>$targetsWeek, 'month'=>$targetsMonth],
+            'targetsConfig' => $targetsConfig,
             'calDebug'  => $calDebug,
             // Always include debug envelope so clients can introspect easily
             'debug'     => [
@@ -667,6 +670,7 @@ final class ConfigDashboardController extends Controller {
 
         // Optional: per-calendar targets (week/month) mapping: { id: hours }
         $targetsWeekSaved = null; $targetsMonthSaved = null; $targetsWeekRead = null; $targetsMonthRead = null;
+        $targetsConfigSaved = null; $targetsConfigRead = null;
         if (isset($data['targets_week'])) {
             $tw = $this->cleanTargets(is_array($data['targets_week'])?$data['targets_week']:[], $allowed);
             $this->config->setUserValue($uid, $this->appName, 'cal_targets_week', json_encode($tw));
@@ -674,6 +678,20 @@ final class ConfigDashboardController extends Controller {
             try {
                 $r = (string)$this->config->getUserValue($uid, $this->appName, 'cal_targets_week', '');
                 $targetsWeekRead = $r!=='' ? json_decode($r, true) : [];
+            } catch (\Throwable) {}
+        }
+        if (isset($data['targets_config'])) {
+            $cleanCfg = $this->cleanTargetsConfig($data['targets_config']);
+            $this->config->setUserValue($uid, $this->appName, 'targets_config', json_encode($cleanCfg));
+            $targetsConfigSaved = $cleanCfg;
+            try {
+                $cfgJson = (string)$this->config->getUserValue($uid, $this->appName, 'targets_config', '');
+                if ($cfgJson !== '') {
+                    $tmp = json_decode($cfgJson, true);
+                    if (is_array($tmp)) {
+                        $targetsConfigRead = $this->cleanTargetsConfig($tmp);
+                    }
+                }
             } catch (\Throwable) {}
         }
         if (isset($data['targets_month'])) {
@@ -703,6 +721,8 @@ final class ConfigDashboardController extends Controller {
             'targets_week_read'   => $targetsWeekRead,
             'targets_month_saved' => $targetsMonthSaved,
             'targets_month_read'  => $targetsMonthRead,
+            'targets_config_saved' => $targetsConfigSaved,
+            'targets_config_read'  => $targetsConfigRead,
         ], Http::STATUS_OK);
     }
 
@@ -918,6 +938,180 @@ final class ConfigDashboardController extends Controller {
         }
         // fallback
         return $c;
+    }
+
+    private function readTargetsConfig(string $uid): array {
+        try {
+            $json = (string)$this->config->getUserValue($uid, $this->appName, 'targets_config', '');
+            if ($json !== '') {
+                $tmp = json_decode($json, true);
+                if (is_array($tmp)) {
+                    return $this->cleanTargetsConfig($tmp);
+                }
+            }
+        } catch (\Throwable $e) {
+            if ($this->isDebugEnabled()) {
+                $this->logger->debug('read targets config failed', ['app'=>$this->appName, 'error'=>$e->getMessage()]);
+            }
+        }
+        return $this->defaultTargetsConfig();
+    }
+
+    private function defaultTargetsConfig(): array {
+        return [
+            'totalHours' => 48,
+            'categories' => [
+                [
+                    'id' => 'work',
+                    'label' => 'Work',
+                    'targetHours' => 32,
+                    'includeWeekend' => false,
+                    'paceMode' => 'days_only',
+                    'groupIds' => [1],
+                ],
+                [
+                    'id' => 'hobby',
+                    'label' => 'Hobby',
+                    'targetHours' => 6,
+                    'includeWeekend' => true,
+                    'paceMode' => 'days_only',
+                    'groupIds' => [2],
+                ],
+                [
+                    'id' => 'sport',
+                    'label' => 'Sport',
+                    'targetHours' => 4,
+                    'includeWeekend' => true,
+                    'paceMode' => 'days_only',
+                    'groupIds' => [3],
+                ],
+            ],
+            'pace' => [
+                'includeWeekendTotal' => true,
+                'mode' => 'days_only',
+                'thresholds' => ['onTrack' => -2, 'atRisk' => -10],
+            ],
+            'forecast' => [
+                'methodPrimary' => 'linear',
+                'momentumLastNDays' => 2,
+                'padding' => 1.5,
+            ],
+            'ui' => [
+                'showTotalDelta' => true,
+                'showNeedPerDay' => true,
+                'showCategoryBlocks' => true,
+                'badges' => true,
+                'includeWeekendToggle' => true,
+            ],
+            'includeZeroDaysInStats' => false,
+        ];
+    }
+
+    /** @param mixed $cfg */
+    private function cleanTargetsConfig($cfg): array {
+        $base = $this->defaultTargetsConfig();
+        if (!is_array($cfg)) {
+            return $base;
+        }
+
+        $out = $base;
+
+        if (isset($cfg['totalHours'])) {
+            $out['totalHours'] = round($this->clampFloat((float)$cfg['totalHours'], 0, self::MAX_TARGET_HOURS), 2);
+        }
+
+        if (isset($cfg['categories']) && is_array($cfg['categories'])) {
+            $cats = [];
+            foreach ($cfg['categories'] as $cat) {
+                if (!is_array($cat)) continue;
+                $id = substr((string)($cat['id'] ?? ''), 0, 64);
+                if ($id === '') {
+                    $id = 'cat_' . count($cats);
+                }
+                $label = trim((string)($cat['label'] ?? ''));
+                if ($label === '') {
+                    $label = ucfirst($id);
+                }
+                $target = round($this->clampFloat((float)($cat['targetHours'] ?? 0), 0, self::MAX_TARGET_HOURS), 2);
+                $includeWeekend = !empty($cat['includeWeekend']);
+                $paceMode = ((string)($cat['paceMode'] ?? '') === 'time_aware') ? 'time_aware' : 'days_only';
+                $groupIds = [];
+                if (isset($cat['groupIds']) && is_array($cat['groupIds'])) {
+                    foreach ($cat['groupIds'] as $gid) {
+                        $n = (int)$gid;
+                        if ($n < 0 || $n > self::MAX_GROUP) continue;
+                        if (!in_array($n, $groupIds, true)) {
+                            $groupIds[] = $n;
+                        }
+                    }
+                }
+                $cats[] = [
+                    'id' => $id,
+                    'label' => $label,
+                    'targetHours' => $target,
+                    'includeWeekend' => $includeWeekend,
+                    'paceMode' => $paceMode,
+                    'groupIds' => $groupIds,
+                ];
+                if (count($cats) >= 12) break;
+            }
+            if (!empty($cats)) {
+                $out['categories'] = $cats;
+            }
+        }
+
+        if (isset($cfg['pace']) && is_array($cfg['pace'])) {
+            $pace = $cfg['pace'];
+            $out['pace']['includeWeekendTotal'] = !empty($pace['includeWeekendTotal']);
+            $mode = (string)($pace['mode'] ?? $out['pace']['mode']);
+            $out['pace']['mode'] = $mode === 'time_aware' ? 'time_aware' : 'days_only';
+            if (isset($pace['thresholds']) && is_array($pace['thresholds'])) {
+                $thr = $pace['thresholds'];
+                if (isset($thr['onTrack'])) {
+                    $out['pace']['thresholds']['onTrack'] = round($this->clampFloat((float)$thr['onTrack'], -100, 100), 2);
+                }
+                if (isset($thr['atRisk'])) {
+                    $out['pace']['thresholds']['atRisk'] = round($this->clampFloat((float)$thr['atRisk'], -100, 100), 2);
+                }
+            }
+        }
+
+        if (isset($cfg['forecast']) && is_array($cfg['forecast'])) {
+            $forecast = $cfg['forecast'];
+            $out['forecast']['methodPrimary'] = 'linear';
+            if (isset($forecast['momentumLastNDays'])) {
+                $n = (int)$forecast['momentumLastNDays'];
+                if ($n < 1) $n = 1; if ($n > 14) $n = 14;
+                $out['forecast']['momentumLastNDays'] = $n;
+            }
+            if (isset($forecast['padding'])) {
+                $out['forecast']['padding'] = round($this->clampFloat((float)$forecast['padding'], 0, 100), 2);
+            }
+        }
+
+        if (isset($cfg['ui']) && is_array($cfg['ui'])) {
+            $ui = $cfg['ui'];
+            foreach ($out['ui'] as $key => $val) {
+                if (array_key_exists($key, $ui)) {
+                    $out['ui'][$key] = !empty($ui[$key]);
+                }
+            }
+        }
+
+        if (isset($cfg['includeZeroDaysInStats'])) {
+            $out['includeZeroDaysInStats'] = !empty($cfg['includeZeroDaysInStats']);
+        }
+
+        return $out;
+    }
+
+    private function clampFloat(float $value, float $min, float $max): float {
+        if (!is_finite($value)) {
+            return $min;
+        }
+        if ($value < $min) return $min;
+        if ($value > $max) return $max;
+        return $value;
     }
 
     // ---- Validation helpers ----

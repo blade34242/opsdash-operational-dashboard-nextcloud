@@ -253,6 +253,11 @@ function setTarget(id: string, h: any){
 
 function updateTargetsConfig(next: TargetsConfig){
   targetsConfig.value = normalizeTargetsConfig(next)
+  queueSave(false)
+}
+
+function serializeTargetsConfig(cfg: TargetsConfig){
+  return JSON.parse(JSON.stringify(normalizeTargetsConfig(cfg))) as TargetsConfig
 }
 
 const stats = reactive<any>({})
@@ -318,7 +323,7 @@ const timeSummary = computed(() => ({
   balanceIndex: balanceIndex.value
 }))
 
-const targetsConfig = ref<TargetsConfig>(createDefaultTargetsConfig())
+const targetsConfig = ref<TargetsConfig>(normalizeTargetsConfig(createDefaultTargetsConfig()))
 const targetsSummary = computed(() => buildTargetsSummary({
   config: targetsConfig.value,
   stats,
@@ -470,6 +475,7 @@ async function load(){
     const tm = (json.targets && (json.targets.month||{})) || {}
     targetsWeek.value = tw
     targetsMonth.value = tm
+    targetsConfig.value = normalizeTargetsConfig((json.targetsConfig ?? createDefaultTargetsConfig()) as TargetsConfig)
 
     if (isDbg()) {
       console.group('[opsdash] calendars/colors')
@@ -570,9 +576,15 @@ function queueSave(reload: boolean = true){
         groups: groupsById.value,
         targets_week: targetsWeek.value,
         targets_month: targetsMonth.value,
+        targets_config: serializeTargetsConfig(targetsConfig.value),
       })
       // Update local selection from read-back to avoid mismatch
       selected.value = Array.isArray(res.read) ? res.read : (Array.isArray(res.saved)?res.saved:[])
+      if (res.targets_config_read) {
+        targetsConfig.value = normalizeTargetsConfig(res.targets_config_read as TargetsConfig)
+      } else if (res.targets_config_saved) {
+        targetsConfig.value = normalizeTargetsConfig(res.targets_config_saved as TargetsConfig)
+      }
       if (reload) {
         await load()
       }
