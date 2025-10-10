@@ -1,153 +1,638 @@
-:root{
-  --fg:#0f172a; --muted:#475569; --bg:#f3f4f6; --card:#ffffff; --line:#e5e7eb; --brand:#2563eb; --soft:#eef2ff;
-  --pos:#16a34a; --neg:#ef4444;
+#opsdash{
+  --fg:#0f172a;
+  --muted:#475569;
+  --bg:#f3f4f6;
+  --card:#ffffff;
+  --line:#e5e7eb;
+  --brand:#2563eb;
+  --soft:#eef2ff;
+  --pos:#16a34a;
+  --neg:#ef4444;
+  --opsdash-sidebar-width:320px;
+  --opsdash-gap:16px;
+  --opsdash-radius:16px;
 }
-@media (prefers-color-scheme: dark) {
-  :root{ --fg:#e5e7eb; --muted:#94a3b8; --bg:#0b1220; --card:#0f172a; --line:#1f2937; --brand:#60a5fa; --soft:#0b2942; --pos:#22c55e; --neg:#f87171; }
+@media (prefers-color-scheme: dark){
+  #opsdash{
+    --fg:#e5e7eb;
+    --muted:#94a3b8;
+    --bg:#0b1220;
+    --card:#0f172a;
+    --line:#1f2937;
+    --brand:#60a5fa;
+    --soft:#0b2942;
+    --pos:#22c55e;
+    --neg:#f87171;
+  }
 }
-html,body{margin:0;padding:0;height:100%}
-body{background:var(--bg); color:var(--fg); font:14px/1.55 ui-sans-serif,system-ui,-apple-system,Segoe UI,Roboto,Ubuntu,"Helvetica Neue",Arial}
-.app-layout{display:grid; grid-template-columns:320px minmax(0,1fr); gap:16px; height:calc(100vh - 56px); box-sizing:border-box; padding:12px 16px}
-@media (max-width: 1200px){ .app-layout{ grid-template-columns:280px minmax(0,1fr) } }
-.app-sidebar{background:var(--card); border:1px solid var(--line); border-radius:16px; padding:14px; overflow:auto}
-.app-main{display:block; width:100%; max-width:100%; min-width:0; min-height:0; overflow-y:scroll; overflow-x:hidden; scrollbar-gutter:stable; box-sizing:border-box; grid-column:2 / -1; justify-self:stretch}
-.app-main > *{ width:100%; max-width:100%; box-sizing:border-box }
-.app-main .card.full{ width:100%; box-sizing:border-box }
-.app-main .grid2{ width:100% }
-.card.full .card{ border:none; box-shadow:none; background:transparent; padding:0 }
-.card.full .card .chart{ background:var(--card); border:1px solid var(--line); border-radius:12px }
-.app-container{display:flex; flex-direction:column; width:100%; max-width:100%; min-width:0; margin:0; padding:0 8px; box-sizing:border-box; min-height:100%}
-.app-main .app-container{display:flex; flex-direction:column; width:100%; max-width:100%; margin:0; padding:0 8px; box-sizing:border-box; min-height:100%}
-.appbar{display:flex; align-items:center; justify-content:space-between; gap:12px; margin:8px 0}
-.title{display:flex; align-items:center; gap:10px; font-weight:800; font-size:20px}
-.app-icon{ width:22px; height:22px; display:block }
-.layout{display:grid; grid-template-columns:280px 1fr; gap:16px; height:calc(100vh - 120px); min-height:0}
-.sidebar{background:var(--card); border:1px solid var(--line); border-radius:16px; padding:14px; box-shadow:0 8px 24px rgba(0,0,0,.08); display:flex; flex-direction:column; align-items:center; gap:8px}
-.sidebar > *{ width:100% }
-.sb-title{ text-align:center }
-.sidebar .sb-title{ padding:8px 12px }
-main{min-height:0; overflow:auto; padding-right:4px}
-.sb-title{font-weight:700; margin-bottom:8px}
-.rangebar{display:flex; gap:8px; align-items:center; margin:6px 0; flex-wrap:wrap; flex-direction:column; padding:0 12px 8px}
-.rangebar .range-toggle{display:flex; gap:10px; align-items:center; justify-content:center}
-.rangebar .range-nav{display:flex; align-items:center; justify-content:space-between; gap:10px; width:100%}
-.rangebar .range-dates{font-weight:600}
-.rangebar .nav-btn{min-width:36px}
-.sb-actions{display:flex; gap:6px; flex-wrap:wrap; margin:8px 0; padding:0 12px 4px; justify-content:center}
-.sb-list{display:flex; flex-direction:column; gap:6px; max-height:50vh; overflow:auto; border-top:1px solid var(--line); padding:8px 12px 12px}
-.sb-hints{ padding:0 12px 6px; font-size:12px; color:var(--muted) }
-.sb-hints .sb-hintline{ margin-top:2px }
-.cal-row{ display:flex; align-items:center; gap:8px; justify-content:space-between; width:100% }
-.cal-row .cal-item{ flex:1; min-width:0 }
-.cal-card{ display:block; width:100%; border:1px solid var(--line); border-radius:12px; background:var(--card); padding:10px 12px; box-sizing:border-box; margin:8px 0 }
-.cal-card-head{ display:flex; align-items:center; gap:8px; justify-content:space-between; cursor:pointer }
-.cal-card-head .cal-name{ flex:1; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; font-weight:600 }
-.cal-card-head .cal-state{ font-size:11px; color:var(--muted) }
-.cal-card-head .cal-state.on{ color:var(--pos) }
-.cal-fields{ display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-top:8px }
-.cal-fields .field{ display:flex; flex-direction:column; gap:6px }
-.cal-fields .field .label{ font-size:12px; color:var(--muted) }
-.group-input{ width:58px; padding:6px 8px; border-radius:8px; border:1px solid var(--line); background:var(--card); color:var(--fg); text-align:right }
-.target-input{ width:86px; padding:6px 8px; border-radius:8px; border:1px solid var(--line); background:var(--card); color:var(--fg); text-align:right; margin-left:6px }
-.appbar-meta{ display:flex; align-items:center; gap:8px }
-.group-title{ font-size:14px; font-weight:700; margin-bottom:6px }
-.heatmap-hint{ }
-.notes-section{ padding:0 12px 8px; display:grid; gap:8px }
-.notes-textarea{ width:100%; resize:vertical; min-height:72px; max-height:200px; border:1px solid var(--line); border-radius:10px; background:var(--card); color:var(--fg); padding:8px }
-.notes-actions{ display:flex; justify-content:flex-end; gap:8px }
-.banner{ padding:8px 12px; border-radius:10px; border:1px solid var(--line); background:color-mix(in oklab, var(--brand), transparent 90%); color:var(--fg); margin:8px 0 }
-.banner.warn{ background:color-mix(in oklab, #f59e0b, transparent 85%); border-color:color-mix(in oklab, #f59e0b, transparent 60%) }
-
-/* Utilities */
-.mt-8{ margin-top:8px }
-.mt-12{ margin-top:12px }
-.cursor-pointer{ cursor:pointer }
-.color-dot{ display:inline-block; width:10px; height:10px; border-radius:50% }
-.cell-details{ background:color-mix(in oklab, var(--card), #000 3%); border-top:1px solid var(--line) }
-
-/* Column width helpers */
-.col-w-60{ width:60% }
-.col-w-40{ width:40% }
-.col-w-30{ width:30% }
-.col-w-22{ width:22% }
-.col-w-20{ width:20% }
-.col-w-18{ width:18% }
-.col-w-16{ width:16% }
-.col-w-14{ width:14% }
-.col-w-12{ width:12% }
-.btn{padding:8px 12px; border-radius:10px; border:1px solid var(--line); background:var(--card); color:var(--fg); cursor:pointer}
-.btn.primary{background:var(--brand); color:#fff; border-color:var(--brand)}
-.btn.soft{background:var(--soft)}
-.btn.soft.nav-item[aria-pressed="true"]{ background: color-mix(in oklab, var(--brand), transparent 85%); border-color: color-mix(in oklab, var(--brand), transparent 70%); }
-.btn.soft.nav-item{ transition: background .12s ease, border-color .12s ease }
-.cards{display:grid; width:100%; grid-template-columns:repeat(auto-fit, minmax(260px, 1fr)); gap:16px; margin:10px 0}
-.cards > .card{ width:100%; min-width:0 }
-@media (min-width: 1280px){
-  /* On wide screens, guarantee four equal columns to avoid leftover whitespace */
-  .cards{ grid-template-columns: repeat(4, minmax(0, 1fr)); }
+#opsdash{
+  position:relative;
+  display:block;
+  width:100%;
+  max-width:100%;
+  min-height:100vh;
+  background:var(--bg);
+  color:var(--fg);
+  font:14px/1.55 ui-sans-serif,system-ui,-apple-system,Segoe UI,Roboto,Ubuntu,"Helvetica Neue",Arial;
+  overflow-x:clip;
 }
-.card{background:var(--card); border:1px solid var(--line); border-radius:16px; padding:16px; box-shadow:0 8px 24px rgba(0,0,0,.08)}
-.card.full{width:100%; display:block}
-.value{font-size:30px; font-weight:800}
-.value-row{ display:grid; grid-template-columns:1fr 1fr; gap:12px; align-items:end; margin-top:4px }
-.value-pair .label{ font-size:12px; color:var(--muted); font-weight:600; margin-bottom:2px }
-.value-pair .value{ font-size:26px; font-weight:800 }
-.sub{font-size:12px; color:var(--muted); margin-top:4px}
-.tabs{display:grid; grid-auto-flow:column; grid-auto-columns:1fr; gap:16px; margin:12px 0; width:100%}
-.tabs a{ display:block; color:var(--brand); padding:10px 6px; font-weight:600; text-align:center; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; border-bottom:2px solid transparent }
-.tabs a.active{border-color:var(--brand)}
-table{width:100%; border-collapse:collapse; table-layout:fixed; background:var(--card)}
-th,td{border-top:1px solid var(--line); padding:10px 12px; text-align:left; vertical-align:middle}
-th.num, td.num{ text-align:right; font-variant-numeric: tabular-nums }
-th.mono, td.mono{ font-family:ui-monospace,Consolas,Menlo,monospace }
-th.nowrap, td.nowrap{ white-space:nowrap }
-td > .cell, th > .cell{ display:block; overflow:hidden; text-overflow:ellipsis; white-space:nowrap }
-th{position:sticky; top:0; z-index:1}
-tr:nth-child(even) td{background:color-mix(in oklab, var(--card), #000 3%)}
-td.num{text-align:right}
-.mono{font-family:ui-monospace,Consolas,Menlo,monospace}
-.nowrap{white-space:nowrap}
-.grid2{display:grid; grid-template-columns:1fr 1fr; gap:16px; margin-top:12px}
-canvas.chart{display:block; width:100%; height:360px; border:1px solid var(--line); border-radius:12px; background:var(--card)}
-.hint{font-size:12px; color:var(--muted)}
-.progress{ position:relative; width:100%; height:8px; border-radius:6px; background:color-mix(in oklab, var(--card), #000 6%); overflow:hidden; margin-bottom:4px }
-.progress .progress-bar{ position:absolute; top:0; left:0; bottom:0; background:color-mix(in oklab, var(--brand), transparent 35%) }
-.footer{text-align:center; margin-top:16px}
-.tab-panel{ width:100%; max-width:100%; box-sizing:border-box; border:1px solid var(--line); border-radius:16px; background:var(--card); padding:16px; box-shadow:0 8px 24px rgba(0,0,0,.08); display:flex; flex-direction:column; flex:1 1 auto; min-height:100% }
-.tab-panel{ align-self:stretch }
-.tab-panel > *{ width:100%; max-width:100% }
-.tab-panel > .nc-empty-content, .tab-panel > .empty-content, .tab-panel > .emptycontent, .tab-panel > .empty-content__container { flex: 1 1 auto; display:flex; align-items:center; justify-content:center }
-.tab-panel .nc-empty-content, .tab-panel .empty-content, .tab-panel .emptycontent, .tab-panel .empty-content__container { width:100%; max-width:100% }
-.app-main{ width:100% }
-.tab-panel .grid2{ width:100% }
-.tab-panel .chart{ width:100% }
-#opsdash, .opsdash{ display:block; width:100%; max-width:100%; box-sizing:border-box; overflow-x: clip }
-#opsdash .app-layout{ width:100vw; max-width:100vw; height:calc(100vh - 56px); margin-left:50%; transform:translateX(-50%); }
-#opsdash .app-main{ width:100% !important; max-width:100% !important; overflow-y:auto; scrollbar-gutter:stable; height:100%; display:flex; flex-direction:column }
-#opsdash .app-container{ width:100% !important; max-width:100% !important; min-height:100%; flex:1 1 auto }
-@supports (width: 100dvw){
-  #opsdash .app-layout{ width:100dvw; max-width:100dvw }
+#opsdash *, #opsdash *::before, #opsdash *::after{
+  box-sizing:border-box;
 }
-
-/* Expand parent NC containers when this app is active (requires browsers with :has) */
-body:has(#opsdash) #content,
-body:has(#opsdash) .app-content,
-body:has(#opsdash) .content,
-body:has(#opsdash) .app-content__main,
-body:has(#opsdash) .app-content-wrapper {
-  max-width: 100vw !important;
-  width: 100vw !important;
+#opsdash a{
+  color:var(--brand);
 }
-
-/* Small deltas styling moved from SFC to global CSS */
-.delta.pos{ color: var(--pos); font-weight: 600 }
-.delta.neg{ color: var(--neg); font-weight: 600 }
-
-/* Defensively override any outer width clamps in NC shell when this app is active */
-#opsdash .app-main, #opsdash .app-container, #opsdash .tab-panel, #opsdash .cards, #opsdash .grid2 {
-  max-width: 100% !important;
+#opsdash .app-content{
+  display:grid;
+  grid-template-columns:var(--opsdash-sidebar-width) minmax(0,1fr);
+  column-gap:var(--opsdash-gap);
+  row-gap:var(--opsdash-gap);
+  min-height:calc(100vh - 56px);
+  height:calc(100vh - 56px);
+  padding:16px;
+  align-items:start;
+  overflow:hidden;
 }
-
-/* Template fallback (no inline styles to satisfy CSP) */
-.fallback-msg{ padding:16px; color:#64748b; font:14px ui-sans-serif,system-ui }
-.fallback-hint{ margin-top:6px; font-size:12px }
+#opsdash.is-nav-collapsed .app-content{
+  grid-template-columns:0 minmax(0,1fr);
+}
+#opsdash .app-content__navigation{
+  position:relative;
+  display:flex;
+  flex-direction:column;
+  width:var(--opsdash-sidebar-width);
+  max-width:var(--opsdash-sidebar-width);
+  height:100%;
+  background:var(--card);
+  border:1px solid var(--line);
+  border-radius:var(--opsdash-radius);
+  padding:14px;
+  overflow:hidden;
+  transition:width .25s ease, max-width .25s ease, padding .25s ease, border .25s ease, box-shadow .25s ease, opacity .2s ease;
+}
+#opsdash .app-content__navigation[aria-hidden="true"]{
+  pointer-events:none;
+}
+#opsdash.is-nav-collapsed .app-content__navigation{
+  width:0;
+  max-width:0;
+  padding:0;
+  border:none;
+  box-shadow:none;
+  opacity:0;
+}
+#opsdash .app-navigation{
+  display:flex;
+  flex-direction:column;
+  gap:8px;
+  flex:1 1 auto;
+  min-height:0;
+  overflow-y:auto;
+  padding-right:4px;
+}
+#opsdash .app-shell{
+  position:relative;
+  width:100%;
+  max-width:100%;
+  margin:0;
+  padding:0 16px 24px;
+  display:flex;
+  flex-direction:column;
+  flex:1 1 auto;
+  min-height:0;
+  height:100%;
+}
+#opsdash .nav-toggle{
+  position:absolute;
+  top:12px;
+  left:calc(var(--opsdash-sidebar-width) + 0.5 * var(--opsdash-gap));
+  transform:translateX(-50%);
+  width:36px;
+  height:36px;
+  border-radius:999px;
+  border:1px solid var(--line);
+  background:var(--card);
+  color:var(--fg);
+  cursor:pointer;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  box-shadow:0 6px 20px rgba(15,23,42,0.18);
+  transition:left .25s ease, background .2s ease, color .2s ease;
+  z-index:5;
+}
+#opsdash.is-nav-collapsed .nav-toggle{
+  left:var(--opsdash-gap);
+  transform:none;
+}
+#opsdash .nav-toggle:hover{
+  background:color-mix(in oklab, var(--brand), transparent 90%);
+}
+#opsdash .nav-toggle span{
+  font-size:18px;
+  line-height:1;
+}
+#opsdash .app-content__main{
+  display:flex;
+  flex-direction:column;
+  flex:1 1 auto;
+  min-height:0;
+  height:100%;
+  overflow:hidden;
+}
+#opsdash .app-main{
+  display:flex;
+  flex-direction:column;
+  gap:16px;
+  width:100%;
+  max-width:100%;
+  min-height:0;
+  flex:1 1 auto;
+  overflow-y:auto;
+  overflow-x:hidden;
+}
+#opsdash .app-container{
+  display:flex;
+  flex-direction:column;
+  gap:16px;
+  width:100%;
+  flex:0 0 auto;
+}
+#opsdash .appbar{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:12px;
+  margin:8px 0;
+}
+#opsdash .title{
+  display:flex;
+  align-items:center;
+  gap:10px;
+  font-weight:800;
+  font-size:20px;
+}
+#opsdash .app-icon{
+  width:28px;
+  height:28px;
+  border-radius:6px;
+}
+#opsdash .appbar-meta{
+  display:flex;
+  align-items:center;
+  gap:8px;
+}
+#opsdash .chip{
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  padding:2px 10px;
+  font-size:12px;
+  font-weight:700;
+  border-radius:999px;
+  background:color-mix(in oklab, var(--brand), transparent 80%);
+  color:var(--brand);
+}
+#opsdash .cards{
+  display:grid;
+  grid-template-columns:repeat(auto-fit, minmax(220px, 1fr));
+  gap:12px;
+  margin:10px 0;
+}
+#opsdash .card{
+  background:var(--card);
+  border:1px solid var(--line);
+  border-radius:var(--opsdash-radius);
+  padding:16px;
+  box-shadow:0 8px 24px rgba(0,0,0,0.08);
+}
+#opsdash .card.full{
+  width:100%;
+  display:block;
+}
+#opsdash .card.full .card{
+  border:none;
+  box-shadow:none;
+  background:transparent;
+  padding:0;
+}
+#opsdash .card.full .card .chart{
+  background:var(--card);
+  border:1px solid var(--line);
+  border-radius:12px;
+}
+#opsdash .value{
+  font-size:30px;
+  font-weight:800;
+}
+#opsdash .sub{
+  font-size:12px;
+  color:var(--muted);
+  margin-top:4px;
+}
+#opsdash .tabs{
+  display:grid;
+  grid-auto-flow:column;
+  grid-auto-columns:1fr;
+  gap:16px;
+  margin:12px 0;
+  width:100%;
+}
+#opsdash .tabs a{
+  display:block;
+  color:var(--brand);
+  padding:10px 6px;
+  font-weight:600;
+  text-align:center;
+  overflow:hidden;
+  text-overflow:ellipsis;
+  white-space:nowrap;
+  border-bottom:2px solid transparent;
+}
+#opsdash .tabs a.active{
+  border-color:var(--brand);
+}
+#opsdash table{
+  width:100%;
+  border-collapse:collapse;
+  table-layout:fixed;
+  background:var(--card);
+}
+#opsdash th,
+#opsdash td{
+  border-top:1px solid var(--line);
+  padding:10px 12px;
+  text-align:left;
+  vertical-align:middle;
+}
+#opsdash th.num,
+#opsdash td.num{
+  text-align:right;
+  font-variant-numeric:tabular-nums;
+}
+#opsdash th.mono,
+#opsdash td.mono{
+  font-family:ui-monospace,Consolas,Menlo,monospace;
+}
+#opsdash th.nowrap,
+#opsdash td.nowrap{
+  white-space:nowrap;
+}
+#opsdash td > .cell,
+#opsdash th > .cell{
+  display:block;
+  overflow:hidden;
+  text-overflow:ellipsis;
+  white-space:nowrap;
+}
+#opsdash th{
+  position:sticky;
+  top:0;
+  z-index:1;
+  background:var(--card);
+}
+#opsdash tr:nth-child(even) td{
+  background:color-mix(in oklab, var(--card), rgba(0,0,0,0.03));
+}
+#opsdash .mono{
+  font-family:ui-monospace,Consolas,Menlo,monospace;
+}
+#opsdash .nowrap{
+  white-space:nowrap;
+}
+#opsdash .grid2{
+  display:grid;
+  grid-template-columns:1fr 1fr;
+  gap:16px;
+  margin-top:12px;
+}
+#opsdash canvas.chart{
+  display:block;
+  width:100%;
+  height:360px;
+  border:1px solid var(--line);
+  border-radius:12px;
+  background:var(--card);
+}
+#opsdash .hint{
+  font-size:12px;
+  color:var(--muted);
+}
+#opsdash .footer{
+  text-align:center;
+  margin-top:16px;
+}
+#opsdash .tab-panel{
+  width:100%;
+  max-width:100%;
+  border:1px solid var(--line);
+  border-radius:var(--opsdash-radius);
+  background:var(--card);
+  padding:16px;
+  box-shadow:0 8px 24px rgba(0,0,0,0.08);
+  display:block;
+  min-height:420px;
+}
+#opsdash .tab-panel > *{
+  width:100%;
+  max-width:100%;
+}
+#opsdash .banner{
+  border-radius:12px;
+  padding:12px 16px;
+  font-weight:600;
+}
+#opsdash .banner.warn{
+  background:color-mix(in oklab, var(--brand), transparent 85%);
+  border:1px solid color-mix(in oklab, var(--brand), transparent 60%);
+}
+#opsdash .btn{
+  padding:8px 12px;
+  border-radius:10px;
+  border:1px solid var(--line);
+  background:var(--card);
+  color:var(--fg);
+  cursor:pointer;
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  gap:6px;
+  transition:background .12s ease, border-color .12s ease, color .12s ease;
+}
+#opsdash .btn.primary{
+  background:var(--brand);
+  color:#fff;
+  border-color:var(--brand);
+}
+#opsdash .btn.soft{
+  background:var(--soft);
+}
+#opsdash .btn.soft.nav-item.is-active,
+#opsdash .btn.soft.nav-item[aria-pressed="true"]{
+  background:color-mix(in oklab, var(--brand), transparent 85%);
+  border-color:color-mix(in oklab, var(--brand), transparent 70%);
+}
+#opsdash .btn:disabled{
+  opacity:.6;
+  cursor:not-allowed;
+}
+#opsdash .rangebar{
+  display:flex;
+  gap:8px;
+  align-items:center;
+  margin:6px 0;
+  flex-wrap:wrap;
+  flex-direction:column;
+}
+#opsdash .rangebar .range-toggle{
+  display:flex;
+  gap:10px;
+  align-items:center;
+  justify-content:center;
+}
+#opsdash .rangebar .range-nav{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:10px;
+  width:100%;
+}
+#opsdash .rangebar .range-dates{
+  font-weight:600;
+}
+#opsdash .rangebar .nav-btn{
+  min-width:36px;
+}
+#opsdash .sb-actions{
+  display:flex;
+  gap:6px;
+  flex-wrap:wrap;
+  margin:8px 0;
+}
+#opsdash .sb-tabs{
+  display:flex;
+  gap:8px;
+  margin:12px 0;
+}
+#opsdash .sb-tab{
+  flex:1 1 auto;
+  padding:6px 10px;
+  border-radius:8px;
+  border:1px solid var(--line);
+  background:var(--card);
+  color:var(--muted);
+  font-weight:600;
+  cursor:pointer;
+  transition:background .15s ease, color .15s ease, border .15s ease;
+}
+#opsdash .sb-tab:hover,
+#opsdash .sb-tab:focus-visible{
+  border-color:var(--brand);
+  color:var(--brand);
+}
+#opsdash .sb-tab.active{
+  border-color:var(--brand);
+  color:var(--brand);
+  background:color-mix(in oklab, var(--brand), transparent 85%);
+}
+#opsdash .sb-tab:focus-visible{
+  outline:2px solid color-mix(in oklab, var(--brand), transparent 60%);
+  outline-offset:2px;
+}
+#opsdash .sb-pane{
+  display:flex;
+  flex-direction:column;
+  gap:12px;
+  min-height:0;
+  flex:1 1 auto;
+  overflow-y:auto;
+}
+#opsdash .sb-title{
+  font-weight:700;
+  margin-bottom:8px;
+  text-align:center;
+}
+#opsdash .sb-hints{
+  font-size:12px;
+  color:var(--muted);
+  display:flex;
+  flex-direction:column;
+  gap:4px;
+}
+#opsdash .sb-hintline{
+  display:flex;
+  gap:4px;
+  justify-content:center;
+  flex-wrap:wrap;
+}
+#opsdash .sb-list{
+  display:flex;
+  flex-direction:column;
+  gap:6px;
+  border-top:1px solid var(--line);
+  padding-top:8px;
+}
+#opsdash .cal-card{
+  border:1px solid var(--line);
+  border-radius:10px;
+  padding:10px;
+  display:flex;
+  flex-direction:column;
+  gap:8px;
+  background:color-mix(in oklab, var(--card), var(--brand) 6%);
+}
+#opsdash .cal-card-head{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:10px;
+  cursor:pointer;
+}
+#opsdash .cal-card-head .color-dot{
+  width:12px;
+  height:12px;
+  border-radius:50%;
+  border:1px solid color-mix(in oklab, #000, transparent 80%);
+}
+#opsdash .cal-state{
+  font-size:12px;
+  color:var(--muted);
+}
+#opsdash .cal-state.on{
+  color:var(--brand);
+  font-weight:600;
+}
+#opsdash .cal-fields{
+  display:flex;
+  flex-direction:column;
+  gap:8px;
+}
+#opsdash .cal-fields .field{
+  display:flex;
+  flex-direction:column;
+  gap:4px;
+}
+#opsdash .cal-fields .label{
+  font-size:12px;
+  font-weight:600;
+  color:var(--muted);
+}
+#opsdash select,
+#opsdash input[type="number"],
+#opsdash input[type="text"],
+#opsdash input[type="checkbox"]{
+  font:inherit;
+}
+#opsdash select,
+#opsdash input[type="number"],
+#opsdash input[type="text"]{
+  width:100%;
+  padding:6px 8px;
+  border-radius:8px;
+  border:1px solid var(--line);
+  background:var(--card);
+  color:var(--fg);
+  font-size:13px;
+}
+#opsdash input[type="number"]{
+  -moz-appearance:textfield;
+}
+#opsdash input[type="number"]::-webkit-inner-spin-button,
+#opsdash input[type="number"]::-webkit-outer-spin-button{
+  -webkit-appearance:none;
+  margin:0;
+}
+#opsdash .target-config{
+  display:flex;
+  flex-direction:column;
+  gap:8px;
+  padding:8px 0;
+}
+#opsdash .target-config .field{
+  display:flex;
+  flex-direction:column;
+  gap:4px;
+}
+#opsdash .target-config .field.checkbox{
+  flex-direction:row;
+  align-items:center;
+  gap:6px;
+}
+#opsdash .target-config .field .label{
+  font-size:12px;
+  font-weight:600;
+  color:var(--muted);
+}
+#opsdash .target-config .preset-buttons{
+  display:flex;
+  gap:6px;
+  flex-wrap:wrap;
+}
+#opsdash .target-config .target-category{
+  border:1px solid var(--line);
+  border-radius:8px;
+  padding:8px;
+  display:flex;
+  flex-direction:column;
+  gap:8px;
+  background:color-mix(in srgb, var(--card) 94%, var(--brand) 6%);
+}
+#opsdash .target-config .target-category .cat-header{
+  display:flex;
+  align-items:center;
+  gap:8px;
+}
+#opsdash .target-config .target-category .cat-name{
+  flex:1;
+}
+#opsdash .target-config .target-category .remove-cat{
+  border:none;
+  background:transparent;
+  color:var(--muted);
+  cursor:pointer;
+  padding:4px;
+  border-radius:6px;
+  font-size:14px;
+}
+#opsdash .target-config .target-category .remove-cat:hover{
+  color:var(--neg);
+  background:color-mix(in srgb, var(--neg) 12%, transparent);
+}
+#opsdash .target-config .target-category .cat-fields{
+  display:flex;
+  flex-wrap:wrap;
+  gap:8px;
+}
+#opsdash .target-config .add-category{
+  align-self:flex-start;
+}
+#opsdash .target-config .target-section{
+  border-top:1px solid var(--line);
+  padding-top:8px;
+  margin-top:4px;
+  display:flex;
+  flex-direction:column;
+  gap:6px;
+}
+#opsdash .target-config .target-section .section-title{
+  font-size:12px;
+  font-weight:700;
+  color:var(--muted);
+}
+#opsdash .target-config .field.checkbox input[type="checkbox"]{
+  margin:0;
+}
+#opsdash .mt-12{
+  margin-top:12px;
+}
+#opsdash .hint.footer{
+  margin-top:24px;
+}
+#opsdash .nav-item__icon{
+  display:inline-flex;
+  align-items:center;
+}
+@keyframes spin{
+  from{ transform:rotate(0deg); }
+  to{ transform:rotate(360deg); }
+}

@@ -26,14 +26,15 @@ Not shipped (exclude from tarball)
 
 Reference tree (minimal example)
 ```
-aaacalstatsdashxyz/
+opsdash/
   appinfo/
     info.xml
     signatures/
   css/
     style.css
   js/
-    mainXX.js
+    assets/
+      main-<hash>.js
     .vite/
       manifest.json
   img/
@@ -52,7 +53,6 @@ aaacalstatsdashxyz/
 ```
 
 Notes
-- The controller resolves the JS entry via Vite manifest; no fixed filename required.
+- The controller resolves JS and CSS entries via the Vite manifest; hashed filenames under `js/assets/` are referenced automatically.
 - Keep info.xml and package.json versions aligned before building.
 - After signing, `appinfo/signatures/*.json` must be present in the shipped app.
-

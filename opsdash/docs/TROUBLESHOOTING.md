@@ -2,9 +2,14 @@
 
 ## Frontend does not load
 - Verify bundle exists and is served by Nextcloud.
-  - `curl -I http://<host>/apps-extra/aaacalstatsdashxyz/js/mainXX.js` → 200
-  - If not, `npm run build` and ensure controller loads the same `mainXX`.
+  - `curl -I http://<host>/apps-extra/opsdash/js/assets/<bundle-from-manifest>.js` → 200
+  - If not, `npm run build` and ensure the controller resolves script/style names from `js/.vite/manifest.json`.
 - Check browser console for CSP violations.
+
+## Targets card shows 0 % / 0 h
+- Open DevTools console and look for `[opsdash] targets summary failed`.
+- Cause: older builds referenced `dailyHours` directly inside `computePaceInfo`; the helper now reads `opts.dailyHours`.
+- Fix: rebuild with the current sources (`npm run build`) so `/apps-extra/opsdash/js/assets/main-*.js` contains the patched code; confirm the manifest points to the new hash and reload the page.
 
 ## No colors for calendars
 - Ensure DAV endpoints are reachable.
@@ -21,9 +26,10 @@
 ## Performance issues
 - Reduce range to week or select fewer calendars.
 - Monitor server caps via the banner; caps are 2k per calendar, 5k total.
+
 ## UI changes not visible (stale cache)
-- Bump the bundle name in `vite.config.ts` (e.g., `main47.js`) and update controller `Util::addScript`.
-- Rebuild: `npm run build`.
-- Restart container; re-enable app: `occ app:disable/enable aaacalstatsdashxyz`.
+- Rebuild: `npm run build` (produces new hashed assets in `js/assets/`).
+- Restart container; re-enable app: `occ app:disable/enable opsdash`.
 - In browser DevTools, enable “Disable cache” and hard-reload.
-- Confirm the page HTML references the new bundle and template has `#app` with data attributes.
+- Confirm `js/.vite/manifest.json` references the new hash and the HTML includes the matching `<script src="/apps-extra/opsdash/js/assets/...">`.
+- Confirm the template still renders the `#app` mount with data attributes.

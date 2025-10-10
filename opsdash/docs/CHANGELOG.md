@@ -4,8 +4,10 @@ All notable changes to this project are documented here. This file is served loc
 
 ## [Unreleased]
 - UI: Sidebar dock with persistent open/close state; main content spans full width when collapsed.
+- UI: Sidebar calendars/targets split into tabs; each pane scrolls independently.
 - Targets: configurable categories (add/remove/rename), per-category pacing/forecast options, and category assignment for calendars.
 - Targets: client summary now computes totals from aggregated `byCal` data to keep the cards in sync with tables.
+- Targets: fixed `computePaceInfo` to read `opts.dailyHours`, preventing “[opsdash] targets summary failed” and zero-value cards.
 - Docs: refreshed README, Architecture, Configuration, Dev Workflow notes; clarified manifest-based bundle handling.
 
 ## [4.0.1] - 2025-10-04 (NC 31 line)

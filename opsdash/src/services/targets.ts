@@ -397,7 +397,7 @@ function computePaceInfo(opts: {
   let elapsed = 0
   for (const date of totalEligibleDates) {
     const key = dayKey(date)
-    const hours = dailyHours.get(key) ?? 0
+    const hours = opts.dailyHours.get(key) ?? 0
     if (!opts.includeZeroDays && hours <= 0 && key !== dayKey(today)) {
       continue
     }

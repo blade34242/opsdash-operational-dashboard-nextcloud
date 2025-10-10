@@ -15,4 +15,6 @@ npm-debug.log*
 aaacalstatsdashxyz/node_modules/
 aaacalstatsdashxyz/.vite/
 aaacalstatsdashxyz/dist/
-
+opsdash/node_modules/
+opsdash/.vite/
+opsdash/dist/

@@ -23,7 +23,7 @@ rsync -a --delete \
   --exclude 'src' --exclude 'tools' --exclude 'test' --exclude 'backup' \
   --exclude 'docs' --exclude 'vite.config.ts' --exclude 'tsconfig*.json' \
   --exclude 'package*.json' \
-  aaacalstatsdashxyz/ dist/aaacalstatsdashxyz
+  opsdash/ dist/opsdash
 ```
 - Ensure dist tree matches `docs/DIRECTORY_STRUCTURE.md`.
 
@@ -33,14 +33,14 @@ rsync -a --delete \
 php /var/www/html/occ integrity:sign-app \
   --privateKey=/path/privkey.pem \
   --certificate=/path/cert.crt \
-  --path=/path/to/dist/aaacalstatsdashxyz
+  --path=/path/to/dist/opsdash
 ```
-- This creates JSON signatures in `dist/aaacalstatsdashxyz/appinfo/`.
+- This creates JSON signatures in `dist/opsdash/appinfo/`.
 - Optional verify: install the app locally and check no integrity warnings.
 
 4) Create tarball
 ```
-(cd dist && tar -czf aaacalstatsdashxyz-<version>.tar.gz aaacalstatsdashxyz)
+(cd dist && tar -czf opsdash-<version>.tar.gz opsdash)
 ```
 
 5) Upload to App Store
@@ -51,4 +51,3 @@ Notes
 - Keep blacklisted files out of the package; see App Store docs.
 - Do not include `node_modules` or any dev-time files.
 - Consider CI automation for repeatable releases (see RELEASE.md).
-

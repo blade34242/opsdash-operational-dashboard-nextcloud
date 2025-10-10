@@ -18,6 +18,7 @@ use Psr\Log\LoggerInterface;
 use DateInterval;
 use DateTimeImmutable;
 use DateTimeInterface;
+use JsonException;
 use Sabre\VObject\Reader;
 // use Sabre\VObject\Reader; // removed to avoid parsing raw ICS in NC32
 
@@ -43,10 +44,19 @@ final class ConfigDashboardController extends Controller {
     public function index(): TemplateResponse {
         // Load bundled frontend (CSS + JS)
         // CSS first to align with strict CSP (avoid runtime style injection)
+        try {
+            $assets = $this->resolveBuiltAssets();
+        } catch (\Throwable $e) {
+            $this->logger->error('Failed to resolve Opsdash frontend assets', [
+                'exception' => $e,
+            ]);
+            throw $e instanceof \RuntimeException ? $e : new \RuntimeException('Failed to resolve frontend assets', 0, $e);
+        }
         \OCP\Util::addStyle($this->appName, 'style');
-        // Resolve JS entry via Vite manifest if available; fall back to hard-coded name
-        $entry = $this->resolveBuiltEntry();
-        \OCP\Util::addScript($this->appName, $entry);
+        foreach ($assets['styles'] as $style) {
+            \OCP\Util::addStyle($this->appName, $style);
+        }
+        \OCP\Util::addScript($this->appName, $assets['script']);
         // Expose version and optional changelog URL to template
         $version = '';
         try {
@@ -64,29 +74,61 @@ final class ConfigDashboardController extends Controller {
         ]);
     }
 
-    private function resolveBuiltEntry(): string {
-        // Default script name without extension
-        $fallback = 'main47';
-        try {
-            if (!class_exists('OC_App') || !method_exists(\OC_App::class, 'getAppPath')) {
-                return $fallback;
-            }
-            $appPath = \OC_App::getAppPath($this->appName);
-            if (!is_string($appPath) || $appPath === '') return $fallback;
-            $manifest = $appPath . '/js/.vite/manifest.json';
-            if (!is_readable($manifest)) return $fallback;
-            $json = json_decode((string)@file_get_contents($manifest), true);
-            if (!is_array($json)) return $fallback;
-            // Vite uses the input path as key when rollupOptions.input is a string
-            $entry = $json['src/main.ts']['file'] ?? null;
-            if (!is_string($entry) || $entry === '') return $fallback;
-            // Expect something like 'main47.js' in js/
-            $base = basename($entry);
-            if (!str_ends_with($base, '.js')) return $fallback;
-            return substr($base, 0, -3);
-        } catch (\Throwable) {
-            return $fallback;
+    /**
+     * Resolve built asset names (script + styles) from the Vite manifest.
+     *
+     * @return array{script: string, styles: string[]}
+     */
+    private function resolveBuiltAssets(): array {
+        if (!class_exists('OC_App') || !method_exists(\OC_App::class, 'getAppPath')) {
+            throw new \RuntimeException('Unable to locate app path (OC_App::getAppPath unavailable)');
         }
+        $appPath = \OC_App::getAppPath($this->appName);
+        if (!is_string($appPath) || $appPath === '') {
+            throw new \RuntimeException('Unable to resolve app path for ' . $this->appName);
+        }
+        $manifestPath = $appPath . '/js/.vite/manifest.json';
+        if (!is_readable($manifestPath)) {
+            throw new \RuntimeException('Vite manifest not found: ' . $manifestPath);
+        }
+        $raw = @file_get_contents($manifestPath);
+        if ($raw === false) {
+            throw new \RuntimeException('Failed to read Vite manifest: ' . $manifestPath);
+        }
+        try {
+            $json = json_decode($raw, true, flags: JSON_THROW_ON_ERROR);
+        } catch (JsonException $e) {
+            throw new \RuntimeException('Invalid Vite manifest JSON: ' . $manifestPath, 0, $e);
+        }
+        if (!isset($json['src/main.ts']) || !is_array($json['src/main.ts'])) {
+            throw new \RuntimeException('Vite manifest missing entry for src/main.ts');
+        }
+        $entry = $json['src/main.ts'];
+        $scriptFile = isset($entry['file']) && is_string($entry['file']) ? trim($entry['file']) : '';
+        if ($scriptFile === '') {
+            throw new \RuntimeException('Vite manifest entry for src/main.ts is missing "file"');
+        }
+        $scriptPath = preg_replace('/\.js$/', '', $scriptFile);
+        if ($scriptPath === '' || $scriptPath === $scriptFile) {
+            throw new \RuntimeException('Unexpected script filename in manifest: ' . $scriptFile);
+        }
+        $styles = [];
+        if (isset($entry['css']) && is_array($entry['css'])) {
+            foreach ($entry['css'] as $cssPath) {
+                if (!is_string($cssPath) || $cssPath === '') {
+                    continue;
+                }
+                $css = preg_replace('/\.css$/', '', $cssPath);
+                if ($css !== '' && $css !== $cssPath) {
+                    $styles[] = $css;
+                }
+            }
+        }
+
+        return [
+            'script' => $scriptPath,
+            'styles' => $styles,
+        ];
     }
 
     #[NoAdminRequired]

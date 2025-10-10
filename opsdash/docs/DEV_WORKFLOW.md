@@ -3,9 +3,9 @@
 This checklist ensures changes show up reliably in a Nextcloud dev container.
 
 ## UI changes (Vue)
-- Build: `npm ci && npm run build`.
+- Build: `npm ci && npm run build` (outputs hashed JS under `js/assets/` and updates `js/.vite/manifest.json`).
 - Restart + re-enable app to flush opcache: `docker restart <container>` then `occ app:disable/enable opsdash`.
-- Verify asset 200 OK with curl; hard-reload browser with cache disabled.
+- Verify bundle via the manifest (`cat js/.vite/manifest.json`) and hard-reload the browser with cache disabled.
 
 ## Footer version + Changelog
 - Version sources (fallback chain): template → ping → package.json.
@@ -22,6 +22,6 @@ This checklist ensures changes show up reliably in a Nextcloud dev container.
 
 ## Quick verification
 - Icon: `GET /apps-extra/opsdash/img/app.svg` → 200
-- JS: `GET /apps-extra/opsdash/js/mainXX.js` → 200 (exact name resolved via manifest)
+- JS: `GET /apps-extra/opsdash/js/assets/<manifest file>` → 200 (match the filename from `js/.vite/manifest.json`)
 - Route: `GET /index.php/apps/opsdash/config_dashboard` (after login)
 - Ping: `GET /index.php/apps/opsdash/config_dashboard/ping` (shows version)

@@ -1,137 +1,153 @@
 <template>
-  <div id="opsdash" class="opsdash">
-  <NcAppContent app-name="Operational Dashboard">
-    <SidebarDock
-      :calendars="calendars"
-      :selected="selected"
-      :groups-by-id="groupsById"
-      :is-loading="isLoading"
-      :range="range"
-      :offset="offset"
-      :from="from"
-      :to="to"
-      :targets-week="targetsWeek"
-      :targets-month="targetsMonth"
-      :targets-config="targetsConfig"
-      :notes-prev="notesPrev"
-      :notes-curr-draft="notesCurrDraft"
-      :notes-label-prev="notesLabelPrev"
-      :notes-label-curr="notesLabelCurr"
-      :notes-label-prev-title="notesLabelPrevTitle"
-      :notes-label-curr-title="notesLabelCurrTitle"
-      :is-saving-note="isSavingNote"
-      @load="load"
-      @update:range="(v)=>{ range=v as any; offset=0; load() }"
-      @update:offset="(v)=>{ offset=v as number; load() }"
-      @select-all="(v:boolean)=> selectAll(v)"
-      @toggle-calendar="(id:string)=> toggleCalendar(id)"
-      @set-group="(p:{id:string;n:any})=> setGroup(p.id, p.n)"
-      @set-target="(p:{id:string;h:any})=> setTarget(p.id, p.h)"
-      @update:notes="(v:string)=> notesCurrDraft = v"
-      @save-notes="saveNotes"
-      @update:targets-config="updateTargetsConfig"
-    />
-
-    <div class="app-main">
-      <div class="app-container">
-      <div class="appbar">
-        <div class="title">
-          <img :src="iconSrc" @error="onIconError" class="app-icon" alt="" aria-hidden="true" />
-          <span>Operational Dashboard</span>
-          <span class="chip" v-text="range.toUpperCase()" />
-        </div>
-        <div class="hint appbar-meta">
-          <NcLoadingIcon v-if="isLoading" :size="16" />
-          <span v-text="uid" />
-          <span v-if="isTruncated" title="Results truncated for performance">· Partial data</span>
-        </div>
-      </div>
-
-      <div class="banner warn" v-if="isTruncated" :title="truncTooltip">
-        Showing partial data to keep things fast.
-        <template v-if="truncLimits && truncLimits.totalProcessed != null">
-          Processed {{ truncLimits.totalProcessed }} items.
-        </template>
-      </div>
-
-      <div class="cards">
-        <TimeSummaryCard
-          :summary="timeSummary"
-          :mode="activeDayMode"
-          @update:mode="setActiveDayMode"
+  <div id="opsdash" class="opsdash" :class="{ 'is-nav-collapsed': !navOpen }">
+    <NcAppContent app-name="Operational Dashboard" :show-navigation="navOpen">
+      <template #navigation>
+        <Sidebar
+          id="opsdash-sidebar"
+          :calendars="calendars"
+          :selected="selected"
+          :groups-by-id="groupsById"
+          :is-loading="isLoading"
+          :range="range"
+          :offset="offset"
+          :from="from"
+          :to="to"
+          :targets-week="targetsWeek"
+          :targets-month="targetsMonth"
+          :targets-config="targetsConfig"
+          :notes-prev="notesPrev"
+          :notes-curr-draft="notesCurrDraft"
+          :notes-label-prev="notesLabelPrev"
+          :notes-label-curr="notesLabelCurr"
+          :notes-label-prev-title="notesLabelPrevTitle"
+          :notes-label-curr-title="notesLabelCurrTitle"
+          :is-saving-note="isSavingNote"
+          @load="load"
+          @update:range="(v)=>{ range=v as any; offset=0; load() }"
+          @update:offset="(v)=>{ offset=v as number; load() }"
+          @select-all="(v:boolean)=> selectAll(v)"
+          @toggle-calendar="(id:string)=> toggleCalendar(id)"
+          @set-group="(p:{id:string;n:any})=> setGroup(p.id, p.n)"
+          @set-target="(p:{id:string;h:any})=> setTarget(p.id, p.h)"
+          @update:notes="(v:string)=> notesCurrDraft = v"
+          @save-notes="saveNotes"
+          @update:targets-config="updateTargetsConfig"
         />
-        <TimeTargetsCard
-          :summary="targetsSummary"
-          :config="targetsConfig"
-        />
-        <div class="card"> 
-          <div>Events</div>
-          <div class="value">{{ stats.events ?? 0 }}</div>
-          <div class="sub">
-            <div v-if="stats.active_days != null">Active Days: {{ stats.active_days }}</div>
-            <div v-if="stats.typical_start && stats.typical_end">Typical: {{ stats.typical_start }}–{{ stats.typical_end }}</div>
-            <div v-if="stats.weekend_share != null">Weekend: {{ n1(stats.weekend_share) }}%</div>
-            <div v-if="stats.evening_share != null">Evening: {{ n1(stats.evening_share) }}%</div>
+      </template>
+
+      <div class="app-shell">
+        <button
+          class="nav-toggle"
+          type="button"
+          @click="toggleNav"
+          :aria-expanded="navOpen"
+          aria-controls="opsdash-sidebar"
+          :aria-label="navToggleLabel"
+        >
+          <span v-if="navOpen">⟨</span>
+          <span v-else>⟩</span>
+        </button>
+
+        <div class="app-main">
+          <div class="app-container">
+            <div class="appbar">
+              <div class="title">
+                <img :src="iconSrc" @error="onIconError" class="app-icon" alt="" aria-hidden="true" />
+                <span>Operational Dashboard</span>
+                <span class="chip" v-text="range.toUpperCase()" />
+              </div>
+              <div class="hint appbar-meta">
+                <NcLoadingIcon v-if="isLoading" :size="16" />
+                <span v-text="uid" />
+                <span v-if="isTruncated" title="Results truncated for performance">· Partial data</span>
+              </div>
+            </div>
+
+            <div class="banner warn" v-if="isTruncated" :title="truncTooltip">
+              Showing partial data to keep things fast.
+              <template v-if="truncLimits && truncLimits.totalProcessed != null">
+                Processed {{ truncLimits.totalProcessed }} items.
+              </template>
+            </div>
+
+            <div class="cards">
+              <TimeSummaryCard
+                :summary="timeSummary"
+                :mode="activeDayMode"
+                @update:mode="setActiveDayMode"
+              />
+              <TimeTargetsCard
+                :summary="targetsSummary"
+                :config="targetsConfig"
+              />
+              <div class="card">
+                <div>Events</div>
+                <div class="value">{{ stats.events ?? 0 }}</div>
+                <div class="sub">
+                  <div v-if="stats.active_days != null">Active Days: {{ stats.active_days }}</div>
+                  <div v-if="stats.typical_start && stats.typical_end">Typical: {{ stats.typical_start }}–{{ stats.typical_end }}</div>
+                  <div v-if="stats.weekend_share != null">Weekend: {{ n1(stats.weekend_share) }}%</div>
+                  <div v-if="stats.evening_share != null">Evening: {{ n1(stats.evening_share) }}%</div>
+                </div>
+              </div>
+            </div>
+
+            <div class="tabs">
+              <a href="#" :class="{active: pane==='cal'}" @click.prevent="pane='cal'">By Calendar</a>
+              <a href="#" :class="{active: pane==='day'}" @click.prevent="pane='day'">By Day</a>
+              <a href="#" :class="{active: pane==='top'}" @click.prevent="pane='top'">Longest Tasks</a>
+              <a href="#" :class="{active: pane==='heat'}" @click.prevent="pane='heat'">Heatmap</a>
+            </div>
+
+            <div class="card full tab-panel" v-show="pane==='cal'">
+              <NcEmptyContent v-if="byCal.length===0" name="No data" description="Try changing the range or calendars" />
+              <template v-else>
+                <ByCalendarTable :rows="byCal" :n2="n2" :targets="currentTargets" />
+                <div class="grid2 mt-12">
+                  <div class="card"><PieChart :data="charts.pie" :colors-by-id="colorsById" :colors-by-name="colorsByName" /></div>
+                  <div class="card"><StackedBars :stacked="(charts as any).perDaySeries" :legacy="charts.perDay" :colors-by-id="colorsById" /></div>
+                </div>
+                <!-- Grouped charts: one card per used group (0-9), only if data exists -->
+                <GroupCharts :groups="groupList" :pie-all="charts.pie" :per-all="(charts as any).perDaySeries" :selected="selected" :groups-by-id="groupsById" :colors-by-id="colorsById" />
+              </template>
+            </div>
+
+            <div class="card full tab-panel" v-show="pane==='day'">
+              <NcEmptyContent v-if="byDay.length===0" name="No data" description="Try changing the range or calendars" />
+              <template v-else>
+                <ByDayTable :rows="byDay" :n2="n2" :link="calendarDayLink" />
+              </template>
+            </div>
+
+            <div class="card full tab-panel" v-show="pane==='top'">
+              <NcEmptyContent v-if="longest.length===0" name="No data" description="Try changing the range or calendars" />
+              <template v-else>
+                <TopEventsTable :rows="longest" :n2="n2" :details-index="detailsIndex" @toggle="toggleDetails" />
+              </template>
+            </div>
+
+            <div class="card full tab-panel" v-show="pane==='heat'">
+              <NcEmptyContent v-if="!charts.hod || !charts.hod.matrix || charts.hod.matrix.length===0" name="No data" description="Try changing the range or calendars" />
+              <template v-else>
+                <HeatmapCanvas :hod="charts.hod" />
+                <div class="hint">24×7 Heatmap: cumulated hours by weekday (rows) and hour (columns).</div>
+              </template>
+            </div>
+
+            <div class="hint footer">
+              Powered by <strong>Gellert Innovation</strong> • Built with <span class="mono">opsdash</span>
+              <template v-if="appVersion"> v{{ appVersion }}</template>
+              <template v-if="changelogUrl"> • <a :href="changelogUrl" target="_blank" rel="noreferrer noopener">Changelog</a></template>
+            </div>
           </div>
         </div>
       </div>
-
-      <div class="tabs">
-        <a href="#" :class="{active: pane==='cal'}" @click.prevent="pane='cal'">By Calendar</a>
-        <a href="#" :class="{active: pane==='day'}" @click.prevent="pane='day'">By Day</a>
-        <a href="#" :class="{active: pane==='top'}" @click.prevent="pane='top'">Longest Tasks</a>
-        <a href="#" :class="{active: pane==='heat'}" @click.prevent="pane='heat'">Heatmap</a>
-      </div>
-
-      <div class="card full tab-panel" v-show="pane==='cal'">
-        <NcEmptyContent v-if="byCal.length===0" name="No data" description="Try changing the range or calendars"/>
-        <template v-else>
-          <ByCalendarTable :rows="byCal" :n2="n2" :targets="currentTargets" />
-          <div class="grid2 mt-12">
-            <div class="card"><PieChart :data="charts.pie" :colors-by-id="colorsById" :colors-by-name="colorsByName" /></div>
-            <div class="card"><StackedBars :stacked="(charts as any).perDaySeries" :legacy="charts.perDay" :colors-by-id="colorsById" /></div>
-          </div>
-          <!-- Grouped charts: one card per used group (0-9), only if data exists -->
-          <GroupCharts :groups="groupList" :pie-all="charts.pie" :per-all="(charts as any).perDaySeries" :selected="selected" :groups-by-id="groupsById" :colors-by-id="colorsById" />
-        </template>
-      </div>
-
-      <div class="card full tab-panel" v-show="pane==='day'">
-        <NcEmptyContent v-if="byDay.length===0" name="No data" description="Try changing the range or calendars"/>
-        <template v-else>
-          <ByDayTable :rows="byDay" :n2="n2" :link="calendarDayLink" />
-        </template>
-      </div>
-
-      <div class="card full tab-panel" v-show="pane==='top'">
-        <NcEmptyContent v-if="longest.length===0" name="No data" description="Try changing the range or calendars"/>
-        <template v-else>
-          <TopEventsTable :rows="longest" :n2="n2" :details-index="detailsIndex" @toggle="toggleDetails" />
-        </template>
-      </div>
-
-      <div class="card full tab-panel" v-show="pane==='heat'">
-        <NcEmptyContent v-if="!charts.hod || !charts.hod.matrix || charts.hod.matrix.length===0" name="No data" description="Try changing the range or calendars"/>
-        <template v-else>
-          <HeatmapCanvas :hod="charts.hod" />
-          <div class="hint">24×7 Heatmap: cumulated hours by weekday (rows) and hour (columns).</div>
-        </template>
-      </div>
-
-        <div class="hint footer">
-          Powered by <strong>Gellert Innovation</strong> • Built with <span class="mono">opsdash</span>
-          <template v-if="appVersion"> v{{ appVersion }}</template>
-          <template v-if="changelogUrl"> • <a :href="changelogUrl" target="_blank" rel="noreferrer noopener">Changelog</a></template>
-        </div>
-      </div>
-    </div>
-  </NcAppContent>
+    </NcAppContent>
   </div>
 </template>
 
 <script setup lang="ts">
 import { NcAppContent, NcEmptyContent, NcLoadingIcon } from '@nextcloud/vue'
-import SidebarDock from './components/SidebarDock.vue'
 import PieChart from './components/PieChart.vue'
 import StackedBars from './components/StackedBars.vue'
 import GroupCharts from './components/GroupCharts.vue'
@@ -141,6 +157,7 @@ import ByDayTable from './components/ByDayTable.vue'
 import TopEventsTable from './components/TopEventsTable.vue'
 import TimeSummaryCard from './components/TimeSummaryCard.vue'
 import TimeTargetsCard from './components/TimeTargetsCard.vue'
+import Sidebar from './components/Sidebar.vue'
 import { createDefaultTargetsConfig, buildTargetsSummary, normalizeTargetsConfig, createEmptyTargetsSummary, type TargetsConfig } from './services/targets'
 // Lightweight notifications without @nextcloud/dialogs
 function notifySuccess(msg: string){
@@ -153,7 +170,8 @@ function notifyError(msg: string){
   if (w.OC?.Notification?.showTemporary) { w.OC.Notification.showTemporary(msg) }
   else { console.error('ERROR:', msg); alert(msg) }
 }
-import { onMounted, reactive, ref, watch, nextTick, computed } from 'vue'
+
+import { onMounted, reactive, ref, watch, nextTick, computed, onBeforeUnmount } from 'vue'
 // Ensure a visible version even if backend attrs are empty: use package.json as fallback
 // @ts-ignore
 import pkg from '../package.json'
@@ -164,6 +182,25 @@ type Charts = {
   dow?: { labels: string[]; data: number[] }
   hod?: { dows: string[]; hours: number[]; matrix: number[][] }
 }
+
+const SIDEBAR_STORAGE_KEY = 'opsdash.sidebarOpen'
+const navOpen = ref((() => {
+  if (typeof window === 'undefined') return true
+  const raw = window.localStorage.getItem(SIDEBAR_STORAGE_KEY)
+  return raw == null ? true : raw === '1'
+})())
+
+const toggleNav = () => {
+  navOpen.value = !navOpen.value
+}
+
+const navToggleLabel = computed(() => navOpen.value ? 'Hide sidebar' : 'Show sidebar')
+
+watch(navOpen, (open) => {
+  if (typeof window !== 'undefined') {
+    window.localStorage.setItem(SIDEBAR_STORAGE_KEY, open ? '1' : '0')
+  }
+})
 
 const pane = ref<'cal'|'day'|'top'|'heat'>('cal')
 const range = ref<'week'|'month'>('week')
@@ -890,7 +927,7 @@ function drawPerDay(){
     load().catch(err=>{ console.error(err); alert('Initial load failed') })
     // charts handled by components; no global resize wiring
   })
- 
+
   watch(range, () => { offset.value = 0; load().catch(console.error) })
   watch(pane, () => { scheduleDraw() })
   watch(calendars, () => { recomputeGroupList(); scheduleDraw() })

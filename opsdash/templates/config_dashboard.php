@@ -10,8 +10,6 @@ $chg = isset($changelog) ? (string)$changelog : '';
   <div class="fallback-msg">
     Operational Dashboard is loading… If this message stays,
     the JS bundle may be missing.
-    <div class="fallback-hint">
-      Expected: <code>/apps/opsdash/js/main47.js</code>
-    </div>
+    <div class="fallback-hint">Expected JS bundle (built via Vite manifest)</div>
   </div>
 </div>

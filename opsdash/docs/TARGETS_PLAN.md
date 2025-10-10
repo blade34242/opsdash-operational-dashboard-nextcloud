@@ -8,35 +8,37 @@ Goals
 - Support both weekly and monthly targets with transparent conversions.
 - Keep UI compact and readable on small screens.
 
-UI Additions (A/B toggleable via flags)
-- Percent + Status: show “X% of target” and a short label (On track / Behind / Exceeded) based on thresholds.
-- Remaining/Over: “Remaining: NNh” or “Over by: NNh” (signaled by color).
-- Pace Needed: “Needed pace: Hh/day to hit target” calculated from remaining days in period.
-- Projection: “Projected: Hh by period end” extrapolated from current avg/day.
-- Days Left: “Days left: N” contextualizes pace.
-- Progress Bar: thin bar with overflow marker; colored by status thresholds.
-- Source Hint: “Target basis: weekly (×4)” or “monthly (÷4)” next to the label.
+## Implemented (2025‑10)
+- Targets card shows percent, status chip, remaining/over delta, pace gap, and forecast range.
+- Days-left and need-per-day metrics surface per target and per category.
+- Weekly↔monthly conversions handled automatically in the sidebar with clear labels.
+- Targets card consumes the same aggregated data as the tables, avoiding drift.
 
-Per‑Calendar/Group (Phase 2)
-- Per‑calendar delta vs target (if defined) and per-group aggregate status.
-- Top contributor/deficit summary (e.g., “Top deficit: Team Ops −4.5h”).
+## Next Iterations
 
-Configuration
-- Thresholds (On track ≥ X%, Behind < X%, Exceeded > 100%).
-- Weekly↔Monthly conversion factor (default 4) for custom cadence.
-- Show/hide advanced lines (projection, pace) via settings.
+### Phase 2 — Deeper insights
+- Per-calendar and per-group deltas (if a target is defined).
+- Highlight top deficit/excess contributors (e.g., “Largest deficit: Ops −4.5 h”).
+- Optional chart overlays for progress vs. target.
 
-Backend Changes (minimal)
-- Include period metadata in `load` (days elapsed/remaining) to avoid client date math drift.
-- Optional: persist user settings for thresholds/visibility.
+### Phase 3 — Configuration UX
+- Allow custom status thresholds (On-track ≥ X %, At-risk ≥ Y %).
+- Adjustable week↔month conversion factor (default 4.0, allow decimal).
+- Toggle advanced lines (projection, pace) from the sidebar Targets tab.
+- Persist user preferences for thresholds/toggles via `/persist`.
 
-Testing
-- Empty targets (0): ensure UX shows “No target set” with CTA to set target.
-- Very small/large targets: formatting clamps and bar overflow.
-- Week/month boundaries, DST changes, leap years.
+### Phase 4 — Backend Enhancements
+- Return period metadata (`daysElapsed`, `daysRemaining`, `eligibleDays`) with `load()` to reduce duplicated date math.
+- Cache derived target summaries server-side for large tenant ranges.
 
-Rollout
-- Phase 1 (UI only): percent, remaining/over, days left, progress bar.
-- Phase 2: pace + projection; per‑group/ per‑calendar deltas.
-- Phase 3: settings UI + server persistence for preferences.
+## Testing Matrix
+- Empty targets: display “No target set” CTA, no divide-by-zero.
+- Extreme values: very small (≤ 0.25 h) and large (≥ 1000 h) targets, ensure formatting.
+- Range switches: week ↔ month conversions preserve entered values (×4 ÷4).
+- DST transitions, leap years, and negative offsets.
 
+## Rollout Checklist
+1. Feature toggle & migration (if new fields).
+2. Update API docs (`docs/API.md` targets section).
+3. Extend unit tests/Vitest coverage for new calculations.
+4. Update CHANGELOG and Troubleshooting for user-facing changes.

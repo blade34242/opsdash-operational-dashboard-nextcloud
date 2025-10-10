@@ -1,6 +1,7 @@
 <template>
   <!-- Sidebar: range controls, calendar selection + grouping, notes panel -->
   <NcAppNavigation>
+    <slot name="actions" />
     <div class="sb-title" title="Kalender filtern und gruppieren">Filter Calendars</div>
     <div class="rangebar" title="Time range">
       <div class="range-actions">
@@ -20,175 +21,219 @@
       <NcButton type="tertiary" :disabled="isLoading" @click="$emit('select-all', true)">All</NcButton>
       <NcButton type="tertiary" :disabled="isLoading" @click="$emit('select-all', false)">None</NcButton>
     </div>
-    <div class="sb-hints">
-      <div class="sb-title" style="margin:0">Per‑Calendar Settings</div>
-      <div class="sb-hintline" title="Gruppe 0 = keine Gruppe; 1–9 = benutzerdefinierte Gruppen"><strong>Group</strong>: 0 = none, 1–9 = custom</div>
-      <div class="sb-hintline" title="Zielstunden im aktuellen Bereich (Woche/Monat)"><strong>Target (h)</strong>: hours for current range (week/month)</div>
-      <div class="sb-hintline" title="Nur ausgewählte Kalender fließen in die Auswertung">Only selected calendars are used</div>
+    <div class="sb-tabs" role="tablist" aria-label="Sidebar sections">
+      <button
+        id="opsdash-sidebar-tab-calendars"
+        type="button"
+        class="sb-tab"
+        :class="{ active: activeTab === 'calendars' }"
+        role="tab"
+        :aria-selected="activeTab === 'calendars'"
+        aria-controls="opsdash-sidebar-pane-calendars"
+        @click="activeTab = 'calendars'"
+      >
+        Calendars
+      </button>
+      <button
+        id="opsdash-sidebar-tab-targets"
+        type="button"
+        class="sb-tab"
+        :class="{ active: activeTab === 'targets' }"
+        role="tab"
+        :aria-selected="activeTab === 'targets'"
+        aria-controls="opsdash-sidebar-pane-targets"
+        @click="activeTab = 'targets'"
+      >
+        Targets
+      </button>
     </div>
-    <div class="sb-list">
-      <div v-for="c in calendars" :key="c.id" class="cal-card">
-        <div class="cal-card-head" @click="$emit('toggle-calendar', c.id)" :aria-pressed="selected.includes(c.id)" role="button" tabindex="0">
-          <span class="color-dot" :style="{background:(c.color||'var(--brand)')}"></span>
-          <span class="cal-name">{{ c.displayname || c.id }}</span>
-          <span class="cal-state" :class="{ on: selected.includes(c.id) }">{{ selected.includes(c.id) ? 'Selected' : 'Hidden' }}</span>
+
+    <div
+      v-if="activeTab === 'calendars'"
+      id="opsdash-sidebar-pane-calendars"
+      class="sb-pane"
+      role="tabpanel"
+      aria-labelledby="opsdash-sidebar-tab-calendars"
+    >
+      <div class="sb-hints">
+        <div class="sb-title" style="margin:0">Per‑Calendar Settings</div>
+        <div class="sb-hintline" title="Gruppe 0 = keine Gruppe; 1–9 = benutzerdefinierte Gruppen"><strong>Group</strong>: 0 = none, 1–9 = custom</div>
+        <div class="sb-hintline" title="Zielstunden im aktuellen Bereich (Woche/Monat)"><strong>Target (h)</strong>: hours for current range (week/month)</div>
+        <div class="sb-hintline" title="Nur ausgewählte Kalender fließen in die Auswertung">Only selected calendars are used</div>
+      </div>
+      <div class="sb-list">
+        <div v-for="c in calendars" :key="c.id" class="cal-card">
+          <div class="cal-card-head" @click="$emit('toggle-calendar', c.id)" :aria-pressed="selected.includes(c.id)" role="button" tabindex="0">
+            <span class="color-dot" :style="{background:(c.color||'var(--brand)')}"></span>
+            <span class="cal-name">{{ c.displayname || c.id }}</span>
+            <span class="cal-state" :class="{ on: selected.includes(c.id) }">{{ selected.includes(c.id) ? 'Selected' : 'Hidden' }}</span>
+          </div>
+          <div class="cal-fields">
+            <label class="field">
+              <span class="label">Category</span>
+              <select :value="calendarCategoryId(c.id)"
+                      @change="(e:any)=> setCalendarCategory(c.id, e?.target?.value)">
+                <option value="">Unassigned</option>
+                <option v-for="cat in categoryOptions" :key="cat.id" :value="cat.id">{{ cat.label }}</option>
+              </select>
+            </label>
+            <label class="field">
+              <span class="label">Target (h)</span>
+              <input type="number"
+                     :value="getTarget(c.id)"
+                     min="0" max="10000" step="0.25" aria-label="Target hours"
+                     @input="(e:any)=> $emit('set-target', { id: c.id, h: e?.target?.value })"
+                     :title="`Target (${range==='week'?'week':'month'}) in hours`" class="target-input" />
+            </label>
+          </div>
         </div>
-        <div class="cal-fields">
+        <div class="hint mt-8">Selection is stored per user.</div>
+      </div>
+
+      <div class="sb-title">Notes</div>
+      <NotesPanel
+        :previous="notesPrev"
+        :model-value="notesCurrDraft"
+        :prev-label="notesLabelPrev"
+        :curr-label="notesLabelCurr"
+        :prev-title="notesLabelPrevTitle"
+        :curr-title="notesLabelCurrTitle"
+        :saving="isSavingNote"
+        @update:modelValue="(v:string)=> $emit('update:notes', v)"
+        @save="$emit('save-notes')"
+      />
+    </div>
+
+    <div
+      v-else
+      id="opsdash-sidebar-pane-targets"
+      class="sb-pane"
+      role="tabpanel"
+      aria-labelledby="opsdash-sidebar-tab-targets"
+    >
+      <div class="sb-title">Target Settings</div>
+      <div class="target-config">
+        <div class="field">
+          <span class="label">Total target (h)</span>
+          <input type="number"
+                 :value="targets.totalHours"
+                 min="0" max="1000" step="0.5"
+                 @input="onTotalTarget(($event.target as HTMLInputElement).value)" />
+        </div>
+        <div class="preset-buttons">
+          <NcButton type="tertiary" @click="applyPreset('work-week')">Preset: Work-Week</NcButton>
+          <NcButton type="tertiary" @click="applyPreset('balanced-life')">Preset: Balanced-Life</NcButton>
+        </div>
+        <div class="target-category" v-for="cat in categoryOptions" :key="cat.id">
+          <div class="cat-header">
+            <input class="cat-name" type="text" :value="cat.label"
+                   @input="setCategoryLabel(cat.id, ($event.target as HTMLInputElement).value)"
+                   placeholder="Category name" />
+            <button class="remove-cat" type="button" @click="removeCategory(cat.id)" :disabled="categoryOptions.length <= 1" title="Remove category">✕</button>
+          </div>
+          <div class="cat-fields">
+            <label class="field">
+              <span class="label">Target (h)</span>
+              <input type="number"
+                     :value="cat.targetHours"
+                     min="0" max="1000" step="0.5"
+                     @input="setCategoryTarget(cat.id, ($event.target as HTMLInputElement).value)" />
+            </label>
+            <label class="field checkbox">
+              <input type="checkbox"
+                     :checked="cat.includeWeekend"
+                     @change="setCategoryWeekend(cat.id, ($event.target as HTMLInputElement).checked)" />
+              <span>Weekend</span>
+            </label>
+          </div>
+        </div>
+        <NcButton type="tertiary" class="add-category" :disabled="!canAddCategory" @click="addCategory">Add category</NcButton>
+        <div class="target-section">
+          <div class="section-title">Pace</div>
+          <label class="field checkbox">
+            <input type="checkbox"
+                   :checked="targets.pace.includeWeekendTotal"
+                   @change="setIncludeWeekendTotal(($event.target as HTMLInputElement).checked)" />
+            <span>Count weekend in total pace</span>
+          </label>
           <label class="field">
-            <span class="label">Category</span>
-            <select :value="calendarCategoryId(c.id)"
-                    @change="(e:any)=> setCalendarCategory(c.id, e?.target?.value)">
-              <option value="">Unassigned</option>
-              <option v-for="cat in categoryOptions" :key="cat.id" :value="cat.id">{{ cat.label }}</option>
+            <span class="label">Mode</span>
+            <select :value="targets.pace.mode" @change="setPaceMode(($event.target as HTMLSelectElement).value)">
+              <option value="days_only">Days only</option>
+              <option value="time_aware">Time aware</option>
             </select>
           </label>
           <label class="field">
-            <span class="label">Target (h)</span>
+            <span class="label">On track ≥ gap (%)</span>
             <input type="number"
-                   :value="getTarget(c.id)"
-                   min="0" max="10000" step="0.25" aria-label="Target hours"
-                   @input="(e:any)=> $emit('set-target', { id: c.id, h: e?.target?.value })"
-                   :title="`Target (${range==='week'?'week':'month'}) in hours`" class="target-input" />
+                   :value="targets.pace.thresholds.onTrack"
+                   step="0.1"
+                   @input="setThreshold('onTrack', ($event.target as HTMLInputElement).value)" />
+          </label>
+          <label class="field">
+            <span class="label">At risk ≥ gap (%)</span>
+            <input type="number"
+                   :value="targets.pace.thresholds.atRisk"
+                   step="0.1"
+                   @input="setThreshold('atRisk', ($event.target as HTMLInputElement).value)" />
           </label>
         </div>
-      </div>
-      <div class="hint mt-8">Selection is stored per user.</div>
-    </div>
-
-    <div class="sb-title">Notes</div>
-    <NotesPanel
-      :previous="notesPrev"
-      :model-value="notesCurrDraft"
-      :prev-label="notesLabelPrev"
-      :curr-label="notesLabelCurr"
-      :prev-title="notesLabelPrevTitle"
-      :curr-title="notesLabelCurrTitle"
-      :saving="isSavingNote"
-      @update:modelValue="(v:string)=> $emit('update:notes', v)"
-      @save="$emit('save-notes')"
-    />
-    <div class="sb-title">Target Settings</div>
-    <div class="target-config">
-      <div class="field">
-        <span class="label">Total target (h)</span>
-        <input type="number"
-               :value="targets.totalHours"
-               min="0" max="1000" step="0.5"
-               @input="onTotalTarget(($event.target as HTMLInputElement).value)" />
-      </div>
-      <div class="preset-buttons">
-        <NcButton type="tertiary" @click="applyPreset('work-week')">Preset: Work-Week</NcButton>
-        <NcButton type="tertiary" @click="applyPreset('balanced-life')">Preset: Balanced-Life</NcButton>
-      </div>
-      <div class="target-category" v-for="cat in categoryOptions" :key="cat.id">
-        <div class="cat-header">
-          <input class="cat-name" type="text" :value="cat.label"
-                 @input="setCategoryLabel(cat.id, ($event.target as HTMLInputElement).value)"
-                 placeholder="Category name" />
-          <button class="remove-cat" type="button" @click="removeCategory(cat.id)" :disabled="categoryOptions.length <= 1" title="Remove category">✕</button>
-        </div>
-        <div class="cat-fields">
+        <div class="target-section">
+          <div class="section-title">Forecast</div>
           <label class="field">
-            <span class="label">Target (h)</span>
+            <span class="label">Padding (±h)</span>
             <input type="number"
-                   :value="cat.targetHours"
-                   min="0" max="1000" step="0.5"
-                   @input="setCategoryTarget(cat.id, ($event.target as HTMLInputElement).value)" />
+                   :value="targets.forecast.padding"
+                   min="0" step="0.1"
+                   @input="setForecastPadding(($event.target as HTMLInputElement).value)" />
+          </label>
+        </div>
+        <div class="target-section">
+          <div class="section-title">Display</div>
+          <label class="field checkbox">
+            <input type="checkbox"
+                   :checked="targets.ui.showTotalDelta"
+                   @change="setUiOption('showTotalDelta', ($event.target as HTMLInputElement).checked)" />
+            <span>Show total delta</span>
           </label>
           <label class="field checkbox">
             <input type="checkbox"
-                   :checked="cat.includeWeekend"
-                   @change="setCategoryWeekend(cat.id, ($event.target as HTMLInputElement).checked)" />
-            <span>Weekend</span>
+                   :checked="targets.ui.showNeedPerDay"
+                   @change="setUiOption('showNeedPerDay', ($event.target as HTMLInputElement).checked)" />
+            <span>Show need per day</span>
+          </label>
+          <label class="field checkbox">
+            <input type="checkbox"
+                   :checked="targets.ui.showCategoryBlocks"
+                   @change="setUiOption('showCategoryBlocks', ($event.target as HTMLInputElement).checked)" />
+            <span>Show categories</span>
+          </label>
+          <label class="field checkbox">
+            <input type="checkbox"
+                   :checked="targets.ui.badges"
+                   @change="setUiOption('badges', ($event.target as HTMLInputElement).checked)" />
+            <span>Status badges</span>
+          </label>
+          <label class="field checkbox">
+            <input type="checkbox"
+                   :checked="targets.ui.includeWeekendToggle"
+                   @change="setUiOption('includeWeekendToggle', ($event.target as HTMLInputElement).checked)" />
+            <span>Weekend toggle</span>
+          </label>
+          <label class="field checkbox">
+            <input type="checkbox"
+                   :checked="targets.includeZeroDaysInStats"
+                   @change="setIncludeZeroDays(($event.target as HTMLInputElement).checked)" />
+            <span>Include zero days in pace</span>
           </label>
         </div>
-      </div>
-      <NcButton type="tertiary" class="add-category" :disabled="!canAddCategory" @click="addCategory">Add category</NcButton>
-      <div class="target-section">
-        <div class="section-title">Pace</div>
-        <label class="field checkbox">
-          <input type="checkbox"
-                 :checked="targets.pace.includeWeekendTotal"
-                 @change="setIncludeWeekendTotal(($event.target as HTMLInputElement).checked)" />
-          <span>Count weekend in total pace</span>
-        </label>
-        <label class="field">
-          <span class="label">Mode</span>
-          <select :value="targets.pace.mode" @change="setPaceMode(($event.target as HTMLSelectElement).value)">
-            <option value="days_only">Days only</option>
-            <option value="time_aware">Time aware</option>
-          </select>
-        </label>
-        <label class="field">
-          <span class="label">On track ≥ gap (%)</span>
-          <input type="number"
-                 :value="targets.pace.thresholds.onTrack"
-                 step="0.1"
-                 @input="setThreshold('onTrack', ($event.target as HTMLInputElement).value)" />
-        </label>
-        <label class="field">
-          <span class="label">At risk ≥ gap (%)</span>
-          <input type="number"
-                 :value="targets.pace.thresholds.atRisk"
-                 step="0.1"
-                 @input="setThreshold('atRisk', ($event.target as HTMLInputElement).value)" />
-        </label>
-      </div>
-      <div class="target-section">
-        <div class="section-title">Forecast</div>
-        <label class="field">
-          <span class="label">Padding (±h)</span>
-          <input type="number"
-                 :value="targets.forecast.padding"
-                 min="0" step="0.1"
-                 @input="setForecastPadding(($event.target as HTMLInputElement).value)" />
-        </label>
-      </div>
-      <div class="target-section">
-        <div class="section-title">Display</div>
-        <label class="field checkbox">
-          <input type="checkbox"
-                 :checked="targets.ui.showTotalDelta"
-                 @change="setUiOption('showTotalDelta', ($event.target as HTMLInputElement).checked)" />
-          <span>Show total delta</span>
-        </label>
-        <label class="field checkbox">
-          <input type="checkbox"
-                 :checked="targets.ui.showNeedPerDay"
-                 @change="setUiOption('showNeedPerDay', ($event.target as HTMLInputElement).checked)" />
-          <span>Show need per day</span>
-        </label>
-        <label class="field checkbox">
-          <input type="checkbox"
-                 :checked="targets.ui.showCategoryBlocks"
-                 @change="setUiOption('showCategoryBlocks', ($event.target as HTMLInputElement).checked)" />
-          <span>Show categories</span>
-        </label>
-        <label class="field checkbox">
-          <input type="checkbox"
-                 :checked="targets.ui.badges"
-                 @change="setUiOption('badges', ($event.target as HTMLInputElement).checked)" />
-          <span>Status badges</span>
-        </label>
-        <label class="field checkbox">
-          <input type="checkbox"
-                 :checked="targets.ui.includeWeekendToggle"
-                 @change="setUiOption('includeWeekendToggle', ($event.target as HTMLInputElement).checked)" />
-          <span>Weekend toggle</span>
-        </label>
-        <label class="field checkbox">
-          <input type="checkbox"
-                 :checked="targets.includeZeroDaysInStats"
-                 @change="setIncludeZeroDays(($event.target as HTMLInputElement).checked)" />
-          <span>Include zero days in pace</span>
-        </label>
       </div>
     </div>
   </NcAppNavigation>
 </template>
 
 <script setup lang="ts">
-import { computed } from 'vue'
+import { computed, ref } from 'vue'
 import { NcAppNavigation, NcButton, NcCheckboxRadioSwitch } from '@nextcloud/vue'
 import { normalizeTargetsConfig, type TargetsConfig, type TargetsMode } from '../services/targets'
 import NotesPanel from './NotesPanel.vue'
@@ -219,6 +264,8 @@ const props = defineProps<{
 const emit = defineEmits([
   'load','update:range','update:offset','select-all','toggle-calendar','set-group','set-target','update:notes','save-notes','update:targets-config'
 ])
+
+const activeTab = ref<'calendars'|'targets'>('calendars')
 
 type TargetsPreset = 'work-week'|'balanced-life'
 

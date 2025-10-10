@@ -23,11 +23,13 @@ export default defineConfig({
       input: 'src/main.ts',
       output: {
         format: 'iife',
-        entryFileNames: 'main47.js',
-        chunkFileNames: 'chunks/[name].js',
+        entryFileNames: 'assets/[name]-[hash].js',
+        chunkFileNames: 'chunks/[name]-[hash].js',
         assetFileNames: (assetInfo) => {
-          if (assetInfo.name && assetInfo.name.endsWith('.css')) return '../css/[name][extname]'
-          return 'assets/[name][extname]'
+          if (assetInfo.name && assetInfo.name.endsWith('.css')) {
+            return '../css/[name]-[hash][extname]'
+          }
+          return 'assets/[name]-[hash][extname]'
         },
         name: 'OpsdashApp'
       }

@@ -3,19 +3,19 @@
 This checklist tracks what must be in place before submitting to the Nextcloud App Store, with priorities for incremental delivery.
 
 P0 — Must Have (blockers)
-- [ ] info.xml: correct `id`, `name`, `version (0.4.0)`, `category`, `<icon>app.svg</icon>`, `<bootstrap>`, and `<nextcloud min/max>` (currently 31–32).
-- [ ] Build & manifest: `npm run build` produces `js/.vite/manifest.json`; controller resolves entry.
+- [ ] `appinfo/info.xml`: correct `id` (`opsdash`), `name`, version (e.g., `4.0.x`), `<category>`, `<icon>app.svg</icon>`, `<bootstrap>`, and `<nextcloud min/max>`.
+- [ ] Build & manifest: `npm run build` produces `js/.vite/manifest.json`; controller resolves hashed entries.
 - [ ] Security: POST routes require CSRF; GET routes read-only; inputs clamped; no inline styles.
 - [ ] Packaging hygiene: stage runtime-only files; exclude dev content.
 - [ ] Code signing: sign staged app; signatures present under `appinfo/`.
 - [ ] Basic QA: nav works; app loads; charts render; targets CRUD; timezone bucketing sanity.
 
 P1 — Should Have (strongly recommended)
-- [ ] API docs updated (`docs/API.md` with targets; validation documented).
-- [ ] CHANGELOG/UPGRADE: version notes up to date; compatibility statement.
-- [ ] README: link to docs; requirements (NC version, Node for dev).
-- [ ] Seeding scripts documented (`docs/SEEDING.md`).
-- [ ] Favicon set to app.svg when app is open.
+- [ ] API docs (`docs/API.md`) reflect payloads (targets, notes, validation).
+- [ ] CHANGELOG/UPGRADE state compatibility and highlights for the release.
+- [ ] README references docs, dev requirements, and NC compatibility.
+- [ ] Seeding scripts documented (`docs/SEEDING.md` / `docs/CALENDAR_DEV_SETUP.md`).
+- [ ] Changelog URL configured (`occ config:app:set opsdash changelog_url ...`).
 
 P2 — Nice to Have / Post-publish
 - [ ] i18n: extract UI strings for translation; use Nextcloud l10n.
@@ -39,4 +39,3 @@ Verification Steps (each release)
 Notes
 - Keep `info.xml` and `package.json` aligned to avoid footer version mismatch during load.
 - For broader compatibility (e.g., NC 33), test and then update `max-version`.
-
