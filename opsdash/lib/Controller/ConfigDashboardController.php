@@ -299,6 +299,30 @@ final class ConfigDashboardController extends Controller {
 
         $targetsConfig = $this->readTargetsConfig($uid);
 
+        // Derive category metadata and group mapping for balance calculations
+        $categoryMeta = [];
+        $groupToCategory = [];
+        if (!empty($targetsConfig['categories']) && is_array($targetsConfig['categories'])) {
+            foreach ($targetsConfig['categories'] as $cat) {
+                if (!is_array($cat)) continue;
+                $catId = substr((string)($cat['id'] ?? ''), 0, 64);
+                if ($catId === '') continue;
+                $label = trim((string)($cat['label'] ?? '')) ?: ucfirst($catId);
+                $categoryMeta[$catId] = ['id'=>$catId, 'label'=>$label];
+                if (!empty($cat['groupIds']) && is_array($cat['groupIds'])) {
+                    foreach ($cat['groupIds'] as $gid) {
+                        $n = (int)$gid;
+                        if ($n < 0 || $n > self::MAX_GROUP) continue;
+                        $groupToCategory[$n] = $catId;
+                    }
+                }
+            }
+        }
+        $categoryMeta['__uncategorized__'] = ['id'=>'__uncategorized__', 'label'=>'Unassigned'];
+        if (!isset($targetsConfig['balance']) || !is_array($targetsConfig['balance'])) {
+            $targetsConfig['balance'] = $this->defaultBalanceConfig();
+        }
+
         // --- Aktuelle Periode einlesen/aggregieren ---
         $events = [];
         // Limits to prevent excessive processing
@@ -355,6 +379,24 @@ final class ConfigDashboardController extends Controller {
         $totalHours=0.0; $byCalMap=[]; $byDay=[]; $dow=array_fill_keys(['Mon','Tue','Wed','Thu','Fri','Sat','Sun'],0.0); $long=[]; $daysSeen=[];
         $perDayByCal = [];
         $dowByCal    = [];
+        $perDayByCat = [];
+        $dowByCatTotals = [];
+        $categoryTotals = [];
+        $categoryTotalsPrev = [];
+        foreach ($categoryMeta as $catId => $_meta) {
+            $categoryTotals[$catId] = 0.0;
+            $categoryTotalsPrev[$catId] = 0.0;
+        }
+        $categoryColors = array_fill_keys(array_keys($categoryMeta), null);
+        $dayIntervals = [];
+        $overlapCount = 0;
+        $mapCalToCategory = function(string $calId) use ($groupsById, $groupToCategory) {
+            $group = isset($groupsById[$calId]) ? (int)$groupsById[$calId] : 0;
+            return $groupToCategory[$group] ?? '__uncategorized__';
+        };
+        $earliestStartTs = null;
+        $latestEndTs = null;
+        $longestSessionHours = 0.0;
         // 24×7 Heatmap-Aggregation vorbereiten
         $dowOrder=['Mon','Tue','Wed','Thu','Fri','Sat','Sun'];
         $hod=[]; foreach($dowOrder as $d){ $hod[$d]=array_fill(0,24,0.0); }
@@ -366,6 +408,12 @@ final class ConfigDashboardController extends Controller {
             $byCalMap[$calId] = $byCalMap[$calId] ?? ['id'=>$calId,'calendar'=>$calName,'events_count'=>0,'total_hours'=>0.0];
             $byCalMap[$calId]['events_count']++; $byCalMap[$calId]['total_hours'] += $h;
 
+            $catId = $mapCalToCategory($calId);
+            $categoryTotals[$catId] = ($categoryTotals[$catId] ?? 0.0) + $h;
+            if ($categoryColors[$catId] === null && isset($colorsById[$calId])) {
+                $categoryColors[$catId] = $colorsById[$calId];
+            }
+
             // Parse start/end in their original tz (if provided), then convert to user tz
             $stStr=(string)($r['start']??''); $enStr=(string)($r['end']??'');
             $stTzName=(string)($r['startTz']??''); $enTzName=(string)($r['endTz']??'');
@@ -375,6 +423,54 @@ final class ConfigDashboardController extends Controller {
             $dtEnd   = $enStr !== '' ? new \DateTimeImmutable($enStr, $srcTzEnd)   : null;
             $dtStartUser = $dtStart?->setTimezone($userTz);
             $dtEndUser   = $dtEnd?->setTimezone($userTz);
+
+            if ($dtStartUser) {
+                $ts = $dtStartUser->getTimestamp();
+                if ($earliestStartTs === null || $ts < $earliestStartTs) {
+                    $earliestStartTs = $ts;
+                }
+            }
+            if ($dtEndUser) {
+                $te = $dtEndUser->getTimestamp();
+                if ($latestEndTs === null || $te > $latestEndTs) {
+                    $latestEndTs = $te;
+                }
+            }
+            if ($dtStartUser && $dtEndUser) {
+                $eventDur = max(0, ($dtEndUser->getTimestamp() - $dtStartUser->getTimestamp()) / 3600.0);
+                if ($eventDur > $longestSessionHours) {
+                    $longestSessionHours = $eventDur;
+                }
+            }
+
+            if ($dtStartUser && $dtEndUser && $dtEndUser > $dtStartUser) {
+                $segmentStart = $dtStartUser;
+                while ($segmentStart < $dtEndUser) {
+                    $dayKey = $segmentStart->format('Y-m-d');
+                    $dayEndCandidate = $segmentStart->setTime(23, 59, 59);
+                    if ($dayEndCandidate > $dtEndUser) {
+                        $dayEndCandidate = $dtEndUser;
+                    }
+                    $startTs = $segmentStart->getTimestamp();
+                    $endTs = $dayEndCandidate->getTimestamp();
+                    if ($endTs > $startTs) {
+                        if (!isset($dayIntervals[$dayKey])) {
+                            $dayIntervals[$dayKey] = [];
+                        }
+                        foreach ($dayIntervals[$dayKey] as $interval) {
+                            if ($startTs < $interval[1] && $endTs > $interval[0]) {
+                                $overlapCount++;
+                                break;
+                            }
+                        }
+                        $dayIntervals[$dayKey][] = [$startTs, $endTs];
+                    }
+                    if ($dayEndCandidate >= $dtEndUser) {
+                        break;
+                    }
+                    $segmentStart = $dayEndCandidate->modify('+1 second');
+                }
+            }
 
             // By-day: count event on start day; hours distributed below will adjust totals per day correctly
             if ($dtStartUser) {
@@ -415,6 +511,10 @@ final class ConfigDashboardController extends Controller {
                     $byDay[$dayKey] = $byDay[$dayKey] ?? ['date'=>$dayKey,'events_count'=>0,'total_hours'=>0.0];
                     $byDay[$dayKey]['total_hours'] += $dur;
                     $daysSeen[$dayKey]=true;
+                    if (!isset($perDayByCat[$dayKey])) $perDayByCat[$dayKey] = [];
+                    $perDayByCat[$dayKey][$catId] = ($perDayByCat[$dayKey][$catId] ?? 0) + $dur;
+                    if (!isset($dowByCatTotals[$dname])) $dowByCatTotals[$dname] = [];
+                    $dowByCatTotals[$dname][$catId] = ($dowByCatTotals[$dname][$catId] ?? 0) + $dur;
                     $cur = $slotEnd;
                 }
             }
@@ -539,12 +639,211 @@ final class ConfigDashboardController extends Controller {
             $rows = $this->parseRows($rawRows, (string)($cal->getDisplayName() ?: ($cal->getUri() ?? 'calendar')));
             foreach ($rows as $r){
                 $h=(float)($r['hours']??0); $prevTotal += $h; $prevEvents++;
+                $prevCalId = (string)($r['calendar_id'] ?? ($r['calendar'] ?? ''));
+                $prevCat = $mapCalToCategory($prevCalId);
+                $categoryTotalsPrev[$prevCat] = ($categoryTotalsPrev[$prevCat] ?? 0.0) + $h;
                 $d = substr((string)($r['start']??''),0,10); $prevDaysSeen[$d]=true;
             }
         }
         $prevDaysCount   = count($prevDaysSeen);
         $prevAvgPerDay   = $prevDaysCount   ? ($prevTotal / $prevDaysCount)   : 0;
         $prevAvgPerEvent = $prevEvents      ? ($prevTotal / $prevEvents)      : 0;
+
+        // Normalize category colors fallback
+        foreach ($categoryColors as $catId => $color) {
+            if (!$color) {
+                $categoryColors[$catId] = '#2563eb';
+            }
+        }
+
+        // Format earliest/latest timestamps
+        $earliestStart = $earliestStartTs !== null
+            ? (new \DateTimeImmutable('@'.$earliestStartTs))->setTimezone($userTz)->format('Y-m-d H:i')
+            : null;
+        $latestEnd = $latestEndTs !== null
+            ? (new \DateTimeImmutable('@'.$latestEndTs))->setTimezone($userTz)->format('Y-m-d H:i')
+            : null;
+        $longestSession = round($longestSessionHours, 2);
+
+        // Determine last day off / half day
+        $halfThreshold = 4.0; // hours
+        $lastDayOff = null;
+        $lastHalfDay = null;
+        $cursor = $to;
+        while ($cursor->getTimestamp() >= $from->getTimestamp()) {
+            $key = $cursor->format('Y-m-d');
+            $dayTotal = isset($byDay[$key]) ? (float)$byDay[$key]['total_hours'] : 0.0;
+            if ($lastDayOff === null && $dayTotal <= 0.01) {
+                $lastDayOff = $key;
+            }
+            if ($lastHalfDay === null && $dayTotal > 0.01 && $dayTotal <= $halfThreshold) {
+                $lastHalfDay = $key;
+            }
+            if ($lastDayOff !== null && $lastHalfDay !== null) {
+                break;
+            }
+            $nextCursor = $cursor->modify('-1 day');
+            if ($nextCursor->getTimestamp() === $cursor->getTimestamp()) {
+                break; // prevent infinite loop in case modify fails
+            }
+            $cursor = $nextCursor;
+        }
+
+        // Balance calculations
+        $balanceConfig = $targetsConfig['balance'];
+        $balanceCategories = [];
+        $categoryShares = [];
+        $categoryDelta = [];
+        foreach ($categoryMeta as $catId => $meta) {
+            $hours = $categoryTotals[$catId] ?? 0.0;
+            $share = $totalHours > 0 ? ($hours / $totalHours) : 0.0;
+            $prevShare = $prevTotal > 0 ? (($categoryTotalsPrev[$catId] ?? 0.0) / $prevTotal) : 0.0;
+            $deltaShare = ($share - $prevShare) * 100.0;
+            $categoryShares[$catId] = $share;
+            $categoryDelta[$catId] = $deltaShare;
+            $balanceCategories[] = [
+                'id' => $catId,
+                'label' => $meta['label'],
+                'hours' => round($hours, 2),
+                'share' => round($share * 100, (int)($balanceConfig['ui']['roundPercent'] ?? 1)),
+                'prevShare' => round($prevShare * 100, (int)($balanceConfig['ui']['roundPercent'] ?? 1)),
+                'delta' => round($deltaShare, 1),
+                'color' => $categoryColors[$catId] ?? '#2563eb',
+            ];
+        }
+        $balanceIndex = 0.0;
+        if (!empty($categoryShares)) {
+            $maxShare = max($categoryShares);
+            $minShare = min($categoryShares);
+            $balanceIndex = max(0.0, min(1.0, 1.0 - ($maxShare - $minShare)));
+        }
+
+        // Relations
+        $relations = [];
+        $relationMode = (string)($balanceConfig['relations']['displayMode'] ?? 'ratio');
+        $roundRatio = (int)($balanceConfig['ui']['roundRatio'] ?? 1);
+        $formatRatio = function(float $a, float $b) use ($relationMode, $roundRatio) {
+            if ($a <= 0.0001 && $b <= 0.0001) return '—';
+            if ($b <= 0.0001 && $a > 0.0001) return '∞ : 1';
+            if ($a <= 0.0001 && $b > 0.0001) return '0 : 1';
+            $ratio = $b > 0 ? ($a / $b) : 0.0;
+            if ($relationMode === 'factor') {
+                return sprintf('%.' . $roundRatio . 'f×', round($ratio, $roundRatio));
+            }
+            return sprintf('%.' . $roundRatio . 'f : 1', round($ratio, $roundRatio));
+        };
+        $balanceOrder = is_array($balanceConfig['categories'] ?? null) ? $balanceConfig['categories'] : [];
+        $workId = $balanceOrder[0] ?? null;
+        $hobbyId = $balanceOrder[1] ?? null;
+        $sportId = $balanceOrder[2] ?? null;
+        $workHours = $workId ? ($categoryTotals[$workId] ?? 0.0) : 0.0;
+        $hobbyHours = $hobbyId ? ($categoryTotals[$hobbyId] ?? 0.0) : 0.0;
+        $sportHours = $sportId ? ($categoryTotals[$sportId] ?? 0.0) : 0.0;
+        if ($workId && $hobbyId) {
+            $relations[] = ['label' => 'Work:Hobby', 'value' => $formatRatio($workHours, $hobbyHours)];
+        }
+        if ($workId && $sportId) {
+            $relations[] = ['label' => 'Work:Sport', 'value' => $formatRatio($workHours, $sportHours)];
+        }
+        if ($workId && $hobbyId && $sportId) {
+            $relations[] = ['label' => '(H+S):Work', 'value' => $formatRatio($hobbyHours + $sportHours, $workHours)];
+        }
+
+        // Trend badge
+        $trendEntries = [];
+        $maxDeltaAbs = 0.0; $maxDeltaLabel = '';
+        foreach ($categoryDelta as $catId => $deltaVal) {
+            $label = $categoryMeta[$catId]['label'] ?? $catId;
+            $trendEntries[] = ['id'=>$catId,'label'=>$label,'delta'=>round($deltaVal,1)];
+            if (abs($deltaVal) > $maxDeltaAbs) {
+                $maxDeltaAbs = abs($deltaVal);
+                $maxDeltaLabel = $deltaVal > 0 ? 'up:' . $label : 'down:' . $label;
+            }
+        }
+        $trendBadge = 'Balanced';
+        if ($maxDeltaAbs >= 3.0) {
+            if (strpos($maxDeltaLabel, 'up:') === 0) {
+                $trendBadge = 'Shifting to ' . substr($maxDeltaLabel, 3);
+            } else {
+                $trendBadge = 'Dropping ' . substr($maxDeltaLabel, 5);
+            }
+        }
+        $balanceTrend = ['delta'=>$trendEntries, 'badge'=>$trendBadge];
+
+        // Daily stacks per category
+        $balanceDaily = [];
+        $cursor = $from;
+        while ($cursor->getTimestamp() <= $to->getTimestamp()) {
+            $key = $cursor->format('Y-m-d');
+            $totals = $perDayByCat[$key] ?? [];
+            $dayTotal = array_sum($totals);
+            $cats = [];
+            foreach ($categoryMeta as $catId => $meta) {
+                $hours = $totals[$catId] ?? 0.0;
+                $share = $dayTotal > 0 ? round(($hours / $dayTotal) * 100, 1) : 0.0;
+                $cats[] = ['id'=>$catId,'label'=>$meta['label'],'hours'=>round($hours,2),'share'=>$share];
+            }
+            $balanceDaily[] = [
+                'date'=>$key,
+                'weekday'=>$cursor->format('D'),
+                'total_hours'=>round($dayTotal,2),
+                'categories'=>$cats,
+            ];
+            $cursor = $cursor->modify('+1 day');
+        }
+
+        // Insights & warnings
+        $balanceWarnings = [];
+        $balanceInsights = [];
+        $noticeThreshold = (float)($balanceConfig['thresholds']['noticeMaxShare'] ?? 0.65);
+        $warnThreshold   = (float)($balanceConfig['thresholds']['warnMaxShare'] ?? 0.75);
+        $warnIndex       = (float)($balanceConfig['thresholds']['warnIndex'] ?? 0.60);
+        $maxShareCat = null; $maxShareVal = -1.0;
+        foreach ($categoryShares as $catId => $shareVal) {
+            if ($shareVal > $maxShareVal) {
+                $maxShareVal = $shareVal;
+                $maxShareCat = $catId;
+            }
+        }
+        if ($maxShareCat !== null) {
+            $maxSharePct = round($maxShareVal * 100, 1);
+            $label = $categoryMeta[$maxShareCat]['label'] ?? $maxShareCat;
+            if ($maxShareVal >= $warnThreshold) {
+                $balanceWarnings[] = sprintf('%s accounts for %s%% of tracked hours.', $label, $maxSharePct);
+            } elseif ($maxShareVal >= $noticeThreshold) {
+                $balanceWarnings[] = sprintf('%s trending high at %s%%.', $label, $maxSharePct);
+            }
+        }
+        if ($balanceIndex < $warnIndex) {
+            $balanceWarnings[] = sprintf('Balance index low (%.2f).', $balanceIndex);
+        }
+
+        if (!empty($balanceConfig['ui']['showInsights'])) {
+            if ($maxShareCat && $maxShareVal >= $warnThreshold && isset($categoryMeta[$maxShareCat])) {
+                $balanceInsights[] = sprintf('%s dominates this week (%s%%).', $categoryMeta[$maxShareCat]['label'], round($maxShareVal * 100,1));
+            }
+            if ($workId && $hobbyId && $totalHours > 0) {
+                $hobbyShare = $categoryShares[$hobbyId] ?? 0;
+                if ($hobbyShare > 0 && $hobbyShare < 0.15) {
+                    $balanceInsights[] = sprintf('%s stays below 15%% — consider scheduling dedicated time.', $categoryMeta[$hobbyId]['label'] ?? 'Hobby');
+                }
+            }
+        }
+
+
+        if (count($balanceInsights) > 2) {
+            $balanceInsights = array_slice($balanceInsights, 0, 2);
+        }
+
+        $balanceOverview = [
+            'index' => round($balanceIndex, 3),
+            'categories' => $balanceCategories,
+            'relations' => $relations,
+            'trend' => $balanceTrend,
+            'daily' => $balanceDaily,
+            'insights' => $balanceInsights,
+            'warnings' => $balanceWarnings,
+        ];
 
         $delta = [
             'total_hours'   => round($totalHours - $prevTotal, 2),
@@ -598,13 +897,21 @@ final class ConfigDashboardController extends Controller {
                 'top_calendar'   => $topCal,        // {calendar, share}
 
                 // Rhythmus/Verfügbarkeit
-                'typical_start'  => $typStart,
-                'typical_end'    => $typEnd,
-                'weekend_share'  => $weekendShare,  // %
-                'evening_share'  => $eveningShare,  // %
+                'typical_start'   => $typStart,
+                'typical_end'     => $typEnd,
+                'earliest_start'  => $earliestStart,
+                'latest_end'      => $latestEnd,
+                'longest_session' => $longestSession,
+                'last_day_off'    => $lastDayOff,
+                'last_half_day_off' => $lastHalfDay,
+                'weekend_share'   => $weekendShare,  // %
+                'evening_share'   => $eveningShare,  // %
+                'overlap_events'  => $overlapCount,
 
                 // Δ vs. Vorperiode
                 'delta'          => $delta,
+                'balance_index'  => round($balanceIndex, 3),
+                'balance_overview' => $balanceOverview,
             ],
             'byCal'     => $byCalList,
             'byDay'     => array_values($byDay),
@@ -1044,8 +1351,58 @@ final class ConfigDashboardController extends Controller {
                 'showCategoryBlocks' => true,
                 'badges' => true,
                 'includeWeekendToggle' => true,
+                'showCalendarCharts' => true,
+                'showCategoryCharts' => true,
             ],
+            'timeSummary' => [
+                'showTotal' => true,
+                'showAverage' => true,
+                'showMedian' => true,
+                'showBusiest' => true,
+                'showWorkday' => true,
+                'showWeekend' => true,
+                'showWeekendShare' => true,
+                'showCalendarSummary' => true,
+                'showTopCategory' => true,
+                'showBalance' => true,
+            ],
+            'activityCard' => $this->defaultActivityCardConfig(),
+            'balance' => $this->defaultBalanceConfig(),
             'includeZeroDaysInStats' => false,
+        ];
+    }
+
+    private function defaultActivityCardConfig(): array {
+        return [
+            'showWeekendShare' => true,
+            'showEveningShare' => true,
+            'showEarliestLatest' => true,
+            'showOverlaps' => true,
+            'showLongestSession' => true,
+            'showLastDayOff' => true,
+            'showHint' => true,
+        ];
+    }
+
+    private function defaultBalanceConfig(): array {
+        return [
+            'categories' => ['work', 'hobby', 'sport'],
+            'useCategoryMapping' => true,
+            'index' => ['method' => 'simple_range'],
+            'thresholds' => [
+                'noticeMaxShare' => 0.65,
+                'warnMaxShare' => 0.75,
+                'warnIndex' => 0.60,
+            ],
+            'relations' => ['displayMode' => 'ratio'],
+            'trend' => ['lookbackWeeks' => 1],
+            'dayparts' => ['enabled' => false],
+            'ui' => [
+                'roundPercent' => 1,
+                'roundRatio' => 1,
+                'showDailyStacks' => false,
+                'showInsights' => true,
+            ],
         ];
     }
 
@@ -1102,6 +1459,9 @@ final class ConfigDashboardController extends Controller {
             }
         }
 
+        $out['activityCard'] = $this->cleanActivityCardConfig($cfg['activityCard'] ?? null);
+        $out['balance'] = $this->cleanBalanceConfig($cfg['balance'] ?? null, $out['categories']);
+
         if (isset($cfg['pace']) && is_array($cfg['pace'])) {
             $pace = $cfg['pace'];
             $out['pace']['includeWeekendTotal'] = !empty($pace['includeWeekendTotal']);
@@ -1120,7 +1480,7 @@ final class ConfigDashboardController extends Controller {
 
         if (isset($cfg['forecast']) && is_array($cfg['forecast'])) {
             $forecast = $cfg['forecast'];
-            $out['forecast']['methodPrimary'] = 'linear';
+            $out['forecast']['methodPrimary'] = (isset($forecast['methodPrimary']) && (string)$forecast['methodPrimary'] === 'momentum') ? 'momentum' : 'linear';
             if (isset($forecast['momentumLastNDays'])) {
                 $n = (int)$forecast['momentumLastNDays'];
                 if ($n < 1) $n = 1; if ($n > 14) $n = 14;
@@ -1135,7 +1495,16 @@ final class ConfigDashboardController extends Controller {
             $ui = $cfg['ui'];
             foreach ($out['ui'] as $key => $val) {
                 if (array_key_exists($key, $ui)) {
-                    $out['ui'][$key] = !empty($ui[$key]);
+                    $out['ui'][$key] = (bool)$ui[$key];
+                }
+            }
+        }
+
+        if (isset($cfg['timeSummary']) && is_array($cfg['timeSummary'])) {
+            $ts = $cfg['timeSummary'];
+            foreach ($out['timeSummary'] as $key => $val) {
+                if (array_key_exists($key, $ts)) {
+                    $out['timeSummary'][$key] = (bool)$ts[$key];
                 }
             }
         }
@@ -1145,6 +1514,115 @@ final class ConfigDashboardController extends Controller {
         }
 
         return $out;
+    }
+
+    /**
+     * @param mixed $cfg
+     * @param array<int,array<string,mixed>> $categories
+     */
+    private function cleanActivityCardConfig($cfg): array {
+        $base = $this->defaultActivityCardConfig();
+        if (!is_array($cfg)) {
+            return $base;
+        }
+        $keys = array_keys($base);
+        $result = $base;
+        foreach ($keys as $key) {
+            if (array_key_exists($key, $cfg)) {
+                $result[$key] = !empty($cfg[$key]);
+            }
+        }
+        return $result;
+    }
+
+    private function cleanBalanceConfig($cfg, array $categories): array {
+        $base = $this->defaultBalanceConfig();
+        $result = $base;
+
+        $available = [];
+        foreach ($categories as $cat) {
+            if (!is_array($cat)) continue;
+            $id = substr((string)($cat['id'] ?? ''), 0, 64);
+            if ($id !== '') {
+                $available[] = $id;
+            }
+        }
+
+        if (!is_array($cfg)) {
+            if (!empty($available)) {
+                $result['categories'] = array_slice($available, 0, count($result['categories']));
+            }
+            return $result;
+        }
+
+        $orderSource = isset($cfg['categories']) && is_array($cfg['categories']) ? $cfg['categories'] : $base['categories'];
+        $order = [];
+        foreach ($orderSource as $rawId) {
+            $id = substr((string)$rawId, 0, 64);
+            if ($id === '') continue;
+            if (!empty($available) && !in_array($id, $available, true)) continue;
+            if (!in_array($id, $order, true)) {
+                $order[] = $id;
+            }
+        }
+        if (empty($order)) {
+            $order = !empty($available) ? array_slice($available, 0, count($base['categories'])) : $base['categories'];
+        }
+        $result['categories'] = $order;
+        $result['useCategoryMapping'] = !empty($cfg['useCategoryMapping']);
+
+        $method = (string)($cfg['index']['method'] ?? $base['index']['method']);
+        $result['index']['method'] = $method === 'shannon_evenness' ? 'shannon_evenness' : 'simple_range';
+
+        if (isset($cfg['thresholds']) && is_array($cfg['thresholds'])) {
+            $thr = $cfg['thresholds'];
+            if (isset($thr['noticeMaxShare'])) {
+                $result['thresholds']['noticeMaxShare'] = round($this->clampFloat((float)$thr['noticeMaxShare'], 0.0, 1.0), 2);
+            }
+            if (isset($thr['warnMaxShare'])) {
+                $result['thresholds']['warnMaxShare'] = round($this->clampFloat((float)$thr['warnMaxShare'], 0.0, 1.0), 2);
+            }
+            if (isset($thr['warnIndex'])) {
+                $result['thresholds']['warnIndex'] = round($this->clampFloat((float)$thr['warnIndex'], 0.0, 1.0), 2);
+            }
+        }
+
+        $displayMode = (string)($cfg['relations']['displayMode'] ?? $base['relations']['displayMode']);
+        $result['relations']['displayMode'] = $displayMode === 'factor' ? 'factor' : 'ratio';
+
+        if (isset($cfg['trend']) && is_array($cfg['trend'])) {
+            $lookback = (int)($cfg['trend']['lookbackWeeks'] ?? $base['trend']['lookbackWeeks']);
+            if ($lookback < 1) $lookback = 1;
+            if ($lookback > 12) $lookback = 12;
+            $result['trend']['lookbackWeeks'] = $lookback;
+        }
+
+        if (isset($cfg['dayparts']) && is_array($cfg['dayparts'])) {
+            $result['dayparts']['enabled'] = !empty($cfg['dayparts']['enabled']);
+        }
+
+        if (isset($cfg['ui']) && is_array($cfg['ui'])) {
+            if (isset($cfg['ui']['roundPercent'])) {
+                $rp = (int)$cfg['ui']['roundPercent'];
+                if ($rp < 0) $rp = 0;
+                if ($rp > 3) $rp = 3;
+                $result['ui']['roundPercent'] = $rp;
+            }
+            if (isset($cfg['ui']['roundRatio'])) {
+                $rr = (int)$cfg['ui']['roundRatio'];
+                if ($rr < 0) $rr = 0;
+                if ($rr > 3) $rr = 3;
+                $result['ui']['roundRatio'] = $rr;
+            }
+            if (array_key_exists('showDailyStacks', $cfg['ui'])) {
+                $result['ui']['showDailyStacks'] = !empty($cfg['ui']['showDailyStacks']);
+            }
+            if (array_key_exists('showInsights', $cfg['ui'])) {
+                $result['ui']['showInsights'] = !empty($cfg['ui']['showInsights']);
+            }
+        }
+
+        return $result;
     }
 
     private function clampFloat(float $value, float $min, float $max): float {

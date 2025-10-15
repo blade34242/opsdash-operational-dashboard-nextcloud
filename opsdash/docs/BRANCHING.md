@@ -5,10 +5,10 @@ Purpose: keep releases stable per Nextcloud major while allowing main to move fa
 Branches
 - `main` → current line for NC 32 (later 33)
   - Version line: 0.5.x
-  - App id: `opsdash`, route `/dashboard` (same id/route as 0.4.x)
+  - App id: `opsdash`, route `/config_dashboard` (same id/route as 0.4.x)
 - `support/0.4.x` → maintenance line for NC 30–31
   - Version line: 0.4.x
-  - App id: `opsdash`, route `/dashboard`
+  - App id: `opsdash`, route `/config_dashboard`
   - No big refactors; only bug fixes
 
 Compatibility windows

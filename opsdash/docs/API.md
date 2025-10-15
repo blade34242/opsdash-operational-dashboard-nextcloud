@@ -3,7 +3,7 @@
 Base path: `/apps/opsdash`
 
 ## Load Statistics (read-only)
-- Method: GET `/dashboard/load`
+- Method: GET `/config_dashboard/load`
 - Query params:
   - `range`: `week` | `month` (default: `week`)
   - `offset`: integer −24..24 (default: 0)
@@ -32,33 +32,34 @@ Base path: `/apps/opsdash`
 ```
 
 ## Persist Selection (save)
-- Method: POST `/dashboard/persist`
+- Method: POST `/config_dashboard/persist`
 - Body: JSON `{ cals: string[]; groups?: Record<string,number>; targets_week?: Record<string,number>; targets_month?: Record<string,number> }`
+- Optional: include `targets_config` (mirrors the structure returned by `/load`, covering `categories`, `pace`, `forecast`, `ui`, `timeSummary`, `activityCard`, `balance`).
 - CSRF: required (`window.oc_requesttoken`)
 - Response: `{ ok, saved, read, groups_saved?, groups_read?, targets_week_saved?, targets_week_read?, targets_month_saved?, targets_month_read? }`
 
 Validation
 - `cals`: intersected with user’s calendars; unknown ids ignored.
-- `groups`: per-calendar 0..9; missing ids default to 0.
+- `groups`: per-calendar 0..9; missing ids default to 0 (the UI sets these automatically when a category is chosen).
 - `targets_*`: per-calendar hours clamped to [0..10000], decimals allowed; unknown ids ignored.
 
 ## Save Selection (legacy)
-- Method: POST `/dashboard/save`
+- Method: POST `/config_dashboard/save`
 - Body: JSON `{ cals: string[]; groups?: Record<string,number> }`
 - CSRF: required
 - Response: `{ ok, saved }`
 
 ## Notes (read)
-- Method: GET `/dashboard/notes`
+- Method: GET `/config_dashboard/notes`
 - Query: `range`, `offset` as above
 - Response: `{ ok, period: { type, current_from, previous_from }, notes: { current, previous } }`
 
 ## Notes (save)
-- Method: POST `/dashboard/notes`
+- Method: POST `/config_dashboard/notes`
 - Body: `{ range: 'week'|'month', offset: number, content: string }` (max 32k)
 - CSRF: required
 - Response: `{ ok: true }`
 
 ## Ping (health)
-- Method: GET `/dashboard/ping`
+- Method: GET `/config_dashboard/ping`
 - Response: `{ ok, app, ts }`

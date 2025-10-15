@@ -18,7 +18,7 @@ export interface TargetsConfig {
     thresholds: { onTrack: number; atRisk: number }
   }
   forecast: {
-    methodPrimary: 'linear'
+    methodPrimary: 'linear' | 'momentum'
     momentumLastNDays: number
     padding: number
   }
@@ -28,8 +28,54 @@ export interface TargetsConfig {
     showCategoryBlocks: boolean
     badges: boolean
     includeWeekendToggle: boolean
+    showCalendarCharts: boolean
+    showCategoryCharts: boolean
   }
+  timeSummary: {
+    showTotal: boolean
+    showAverage: boolean
+    showMedian: boolean
+    showBusiest: boolean
+    showWorkday: boolean
+    showWeekend: boolean
+    showWeekendShare: boolean
+    showCalendarSummary: boolean
+    showTopCategory: boolean
+    showBalance: boolean
+  }
+  activityCard: ActivityCardConfig
+  balance: BalanceConfig
   includeZeroDaysInStats: boolean
+}
+
+export interface ActivityCardConfig {
+  showWeekendShare: boolean
+  showEveningShare: boolean
+  showEarliestLatest: boolean
+  showOverlaps: boolean
+  showLongestSession: boolean
+  showLastDayOff: boolean
+  showHint: boolean
+}
+
+export interface BalanceConfig {
+  categories: string[]
+  useCategoryMapping: boolean
+  index: { method: 'simple_range' | 'shannon_evenness' }
+  thresholds: {
+    noticeMaxShare: number
+    warnMaxShare: number
+    warnIndex: number
+  }
+  relations: { displayMode: 'ratio' | 'factor' }
+  trend: { lookbackWeeks: number }
+  dayparts: { enabled: boolean }
+  ui: {
+    roundPercent: number
+    roundRatio: number
+    showDailyStacks: boolean
+    showInsights: boolean
+  }
 }
 
 export interface TargetsProgress {
@@ -59,6 +105,10 @@ export interface TargetsSummary {
     low: number
     high: number
     text: string
+    primaryMethod: 'linear' | 'momentum'
+    primary: number
+    bandLow: number
+    bandHigh: number
   }
 }
 
@@ -97,6 +147,10 @@ export function createEmptyTargetsSummary(config?: TargetsConfig): TargetsSummar
       low: 0,
       high: 0,
       text: '~0–0 h',
+      primaryMethod: cfg.forecast.methodPrimary,
+      primary: 0,
+      bandLow: 0,
+      bandHigh: 0,
     },
   }
 }
@@ -110,6 +164,40 @@ export interface BuildTargetsSummaryInput {
   range: 'week' | 'month'
   from: string
   to: string
+}
+
+export function createDefaultBalanceConfig(): BalanceConfig {
+  return {
+    categories: ['work', 'hobby', 'sport'],
+    useCategoryMapping: true,
+    index: { method: 'simple_range' },
+    thresholds: {
+      noticeMaxShare: 0.65,
+      warnMaxShare: 0.75,
+      warnIndex: 0.60,
+    },
+    relations: { displayMode: 'ratio' },
+    trend: { lookbackWeeks: 1 },
+    dayparts: { enabled: false },
+    ui: {
+      roundPercent: 1,
+      roundRatio: 1,
+      showDailyStacks: false,
+      showInsights: true,
+    },
+  }
+}
+
+export function createDefaultActivityCardConfig(): ActivityCardConfig {
+  return {
+    showWeekendShare: true,
+    showEveningShare: true,
+    showEarliestLatest: true,
+    showOverlaps: true,
+    showLongestSession: true,
+    showLastDayOff: true,
+    showHint: true,
+  }
 }
 
 const DAY_MS = 24 * 60 * 60 * 1000
@@ -138,7 +226,23 @@ export function createDefaultTargetsConfig(): TargetsConfig {
       showCategoryBlocks: true,
       badges: true,
       includeWeekendToggle: true,
+      showCalendarCharts: true,
+      showCategoryCharts: true,
     },
+    timeSummary: {
+      showTotal: true,
+      showAverage: true,
+      showMedian: true,
+      showBusiest: true,
+      showWorkday: true,
+      showWeekend: true,
+      showWeekendShare: true,
+      showCalendarSummary: true,
+      showTopCategory: true,
+      showBalance: true,
+    },
+    activityCard: createDefaultActivityCardConfig(),
+    balance: createDefaultBalanceConfig(),
     includeZeroDaysInStats: false,
   }
 }
@@ -245,9 +349,11 @@ export function normalizeTargetsConfig(cfg: TargetsConfig | string | null | unde
     return { id, label, targetHours, includeWeekend, paceMode, groupIds }
   })
 
+  const resolvedCategories = sanitizedCategories.length ? sanitizedCategories : base.categories
+
   const result: TargetsConfig = {
     totalHours: clampNumber(clone.totalHours, 0, 10000),
-    categories: sanitizedCategories.length ? sanitizedCategories : base.categories,
+    categories: resolvedCategories,
     pace: {
       includeWeekendTotal: !!(clone.pace?.includeWeekendTotal ?? base.pace.includeWeekendTotal),
       mode: clone.pace?.mode === 'time_aware' ? 'time_aware' : base.pace.mode,
@@ -257,7 +363,7 @@ export function normalizeTargetsConfig(cfg: TargetsConfig | string | null | unde
       },
     },
     forecast: {
-      methodPrimary: 'linear',
+      methodPrimary: clone.forecast?.methodPrimary === 'momentum' ? 'momentum' : 'linear',
       momentumLastNDays: (() => {
         const n = Math.round(clone.forecast?.momentumLastNDays ?? base.forecast.momentumLastNDays)
         return Math.min(14, Math.max(1, Number.isFinite(n) ? n : base.forecast.momentumLastNDays))
@@ -270,7 +376,23 @@ export function normalizeTargetsConfig(cfg: TargetsConfig | string | null | unde
       showCategoryBlocks: !!(clone.ui?.showCategoryBlocks ?? base.ui.showCategoryBlocks),
       badges: !!(clone.ui?.badges ?? base.ui.badges),
       includeWeekendToggle: !!(clone.ui?.includeWeekendToggle ?? base.ui.includeWeekendToggle),
+      showCalendarCharts: clone.ui?.showCalendarCharts === undefined ? base.ui.showCalendarCharts : !!clone.ui.showCalendarCharts,
+      showCategoryCharts: clone.ui?.showCategoryCharts === undefined ? base.ui.showCategoryCharts : !!clone.ui.showCategoryCharts,
     },
+    timeSummary: {
+      showTotal: clone.timeSummary?.showTotal === undefined ? base.timeSummary.showTotal : !!clone.timeSummary.showTotal,
+      showAverage: clone.timeSummary?.showAverage === undefined ? base.timeSummary.showAverage : !!clone.timeSummary.showAverage,
+      showMedian: clone.timeSummary?.showMedian === undefined ? base.timeSummary.showMedian : !!clone.timeSummary.showMedian,
+      showBusiest: clone.timeSummary?.showBusiest === undefined ? base.timeSummary.showBusiest : !!clone.timeSummary.showBusiest,
+      showWorkday: clone.timeSummary?.showWorkday === undefined ? base.timeSummary.showWorkday : !!clone.timeSummary.showWorkday,
+      showWeekend: clone.timeSummary?.showWeekend === undefined ? base.timeSummary.showWeekend : !!clone.timeSummary.showWeekend,
+      showWeekendShare: clone.timeSummary?.showWeekendShare === undefined ? base.timeSummary.showWeekendShare : !!clone.timeSummary.showWeekendShare,
+      showCalendarSummary: clone.timeSummary?.showCalendarSummary === undefined ? base.timeSummary.showCalendarSummary : !!clone.timeSummary.showCalendarSummary,
+      showTopCategory: clone.timeSummary?.showTopCategory === undefined ? base.timeSummary.showTopCategory : !!clone.timeSummary.showTopCategory,
+      showBalance: clone.timeSummary?.showBalance === undefined ? base.timeSummary.showBalance : !!clone.timeSummary.showBalance,
+    },
+    activityCard: normalizeActivityCardConfig(clone.activityCard, base.activityCard),
+    balance: normalizeBalanceConfig(clone.balance, resolvedCategories, base.balance),
     includeZeroDaysInStats: !!(clone.includeZeroDaysInStats ?? base.includeZeroDaysInStats),
   }
 
@@ -286,6 +408,81 @@ function clampNumber(value: any, min: number, max: number): number {
   const num = Number(value)
   if (!Number.isFinite(num)) return min
   return Math.min(max, Math.max(min, Math.round(num * 100) / 100))
+}
+
+function clampInt(value: any, min: number, max: number): number {
+  const num = Number(value)
+  if (!Number.isFinite(num)) return min
+  const rounded = Math.round(num)
+  if (rounded < min) return min
+  if (rounded > max) return max
+  return rounded
+}
+
+function normalizeActivityCardConfig(input: any, base: ActivityCardConfig): ActivityCardConfig {
+  const result: ActivityCardConfig = { ...base }
+  if (!input || typeof input !== 'object') {
+    return result
+  }
+  ;(Object.keys(base) as Array<keyof ActivityCardConfig>).forEach((key) => {
+    if (Object.prototype.hasOwnProperty.call(input, key)) {
+      result[key] = !!input[key]
+    }
+  })
+  return result
+}
+
+function normalizeBalanceConfig(input: any, categories: TargetCategoryConfig[], base: BalanceConfig): BalanceConfig {
+  const available = categories.map((cat) => cat.id)
+  const allowed = new Set([...available, '__uncategorized__'])
+  const orderSource = Array.isArray(input?.categories) ? input.categories : base.categories
+  const order: string[] = []
+  for (const rawId of orderSource) {
+    const id = typeof rawId === 'string' ? rawId.trim() : String(rawId ?? '').trim()
+    if (!id) continue
+    if (allowed.size && !allowed.has(id)) continue
+    if (!order.includes(id)) {
+      order.push(id)
+    }
+  }
+  if (!order.length) {
+    if (available.length) {
+      order.push(...available.slice(0, base.categories.length))
+    } else {
+      order.push(...base.categories)
+    }
+  }
+
+  const thresholds = input?.thresholds ?? {}
+  const ui = input?.ui ?? {}
+
+  return {
+    categories: order,
+    useCategoryMapping: !!(input?.useCategoryMapping ?? base.useCategoryMapping),
+    index: {
+      method: input?.index?.method === 'shannon_evenness' ? 'shannon_evenness' : base.index.method,
+    },
+    thresholds: {
+      noticeMaxShare: clampNumber(thresholds.noticeMaxShare ?? base.thresholds.noticeMaxShare, 0, 1),
+      warnMaxShare: clampNumber(thresholds.warnMaxShare ?? base.thresholds.warnMaxShare, 0, 1),
+      warnIndex: clampNumber(thresholds.warnIndex ?? base.thresholds.warnIndex, 0, 1),
+    },
+    relations: {
+      displayMode: input?.relations?.displayMode === 'factor' ? 'factor' : base.relations.displayMode,
+    },
+    trend: {
+      lookbackWeeks: clampInt(input?.trend?.lookbackWeeks ?? base.trend.lookbackWeeks, 1, 12),
+    },
+    dayparts: {
+      enabled: !!(input?.dayparts?.enabled ?? base.dayparts.enabled),
+    },
+    ui: {
+      roundPercent: clampInt(ui.roundPercent ?? base.ui.roundPercent, 0, 3),
+      roundRatio: clampInt(ui.roundRatio ?? base.ui.roundRatio, 0, 3),
+      showDailyStacks: !!(ui.showDailyStacks ?? base.ui.showDailyStacks),
+      showInsights: !!(ui.showInsights ?? base.ui.showInsights),
+    },
+  }
 }
 
 function computeCategoryActual(cat: TargetCategoryConfig, byCal: any[], groupsById: Record<string, number>): number {
@@ -435,12 +632,21 @@ function computeForecast(opts: {
   const momentum = opts.totalProgress.actualHours + averageLastN * remainingDays
   const low = Math.max(0, Math.min(linear, momentum) - opts.config.forecast.padding)
   const high = Math.max(linear, momentum) + opts.config.forecast.padding
+  const primaryMethod: 'linear' | 'momentum' = opts.config.forecast.methodPrimary === 'momentum' ? 'momentum' : 'linear'
+  const primaryValue = primaryMethod === 'momentum' ? momentum : linear
+  const bandLow = Math.max(0, primaryValue - opts.config.forecast.padding)
+  const bandHigh = Math.max(0, primaryValue + opts.config.forecast.padding)
+  const label = primaryMethod === 'momentum' ? 'Momentum' : 'Linear'
   return {
     linear: round2(linear),
     momentum: round2(momentum),
     low: round2(Math.max(0, low)),
     high: round2(Math.max(0, high)),
-    text: `~${formatHours(low)}–${formatHours(high)} h`,
+    text: `${label} ±${formatHours(opts.config.forecast.padding)}h ≈ ${formatHours(bandLow)}–${formatHours(bandHigh)} h`,
+    primaryMethod,
+    primary: round2(primaryValue),
+    bandLow: round2(bandLow),
+    bandHigh: round2(bandHigh),
   }
 }
 

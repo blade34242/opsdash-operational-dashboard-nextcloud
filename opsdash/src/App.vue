@@ -22,6 +22,7 @@
           :notes-label-prev-title="notesLabelPrevTitle"
           :notes-label-curr-title="notesLabelCurrTitle"
           :is-saving-note="isSavingNote"
+          :active-day-mode="activeDayMode"
           @load="load"
           @update:range="(v)=>{ range=v as any; offset=0; load() }"
           @update:offset="(v)=>{ offset=v as number; load() }"
@@ -32,6 +33,7 @@
           @update:notes="(v:string)=> notesCurrDraft = v"
           @save-notes="saveNotes"
           @update:targets-config="updateTargetsConfig"
+          @update:active-mode="setActiveDayMode"
         />
       </template>
 
@@ -74,22 +76,24 @@
               <TimeSummaryCard
                 :summary="timeSummary"
                 :mode="activeDayMode"
-                @update:mode="setActiveDayMode"
+                :config="targetsConfig.timeSummary"
               />
               <TimeTargetsCard
                 :summary="targetsSummary"
                 :config="targetsConfig"
+                :groups="calendarGroups"
               />
-              <div class="card">
-                <div>Events</div>
-                <div class="value">{{ stats.events ?? 0 }}</div>
-                <div class="sub">
-                  <div v-if="stats.active_days != null">Active Days: {{ stats.active_days }}</div>
-                  <div v-if="stats.typical_start && stats.typical_end">Typical: {{ stats.typical_start }}–{{ stats.typical_end }}</div>
-                  <div v-if="stats.weekend_share != null">Weekend: {{ n1(stats.weekend_share) }}%</div>
-                  <div v-if="stats.evening_share != null">Evening: {{ n1(stats.evening_share) }}%</div>
-                </div>
-              </div>
+              <ActivityScheduleCard
+                :summary="activitySummary"
+                :range-label="rangeLabel"
+                :category-hint="categoryMappingHint"
+                :config="activityCardConfig"
+              />
+              <BalanceOverviewCard
+                :overview="balanceOverview"
+                :range-label="rangeLabel"
+                :config="balanceCardConfig"
+              />
             </div>
 
             <div class="tabs">
@@ -102,13 +106,44 @@
             <div class="card full tab-panel" v-show="pane==='cal'">
               <NcEmptyContent v-if="byCal.length===0" name="No data" description="Try changing the range or calendars" />
               <template v-else>
-                <ByCalendarTable :rows="byCal" :n2="n2" :targets="currentTargets" />
-                <div class="grid2 mt-12">
-                  <div class="card"><PieChart :data="charts.pie" :colors-by-id="colorsById" :colors-by-name="colorsByName" /></div>
-                  <div class="card"><StackedBars :stacked="(charts as any).perDaySeries" :legacy="charts.perDay" :colors-by-id="colorsById" /></div>
+                <ByCalendarTable :rows="byCal" :n2="n2" :targets="currentTargets" :groups="calendarGroups" />
+                <div class="chart-section" v-if="targetsConfig.ui.showCalendarCharts && (calendarChartData.pie || calendarChartData.stacked)">
+                  <h3 class="section-title">Calendars (all)</h3>
+                  <div class="grid2 mt-12">
+                    <div class="card chart-card">
+                      <div class="chart-card__title">Distribution by calendar</div>
+                      <PieChart :data="calendarChartData.pie" :colors-by-id="colorsById" :colors-by-name="colorsByName" />
+                    </div>
+                    <div class="card chart-card">
+                      <div class="chart-card__title">Hours per day</div>
+                      <StackedBars :stacked="calendarChartData.stacked" :legacy="charts.perDay" :colors-by-id="colorsById" />
+                    </div>
+                  </div>
                 </div>
-                <!-- Grouped charts: one card per used group (0-9), only if data exists -->
-                <GroupCharts :groups="groupList" :pie-all="charts.pie" :per-all="(charts as any).perDaySeries" :selected="selected" :groups-by-id="groupsById" :colors-by-id="colorsById" />
+                <div class="chart-section" v-if="targetsConfig.ui.showCategoryCharts && calendarGroups.length">
+                  <h3 class="section-title">Categories</h3>
+                  <template v-for="group in calendarGroups" :key="'cat-charts-' + group.id">
+                    <div
+                      v-if="categoryChartsById[group.id]?.pie || categoryChartsById[group.id]?.stacked"
+                      class="category-chart-block"
+                    >
+                      <div class="category-chart-header">
+                        <span class="dot" :style="{ background: categoryColorMap[group.id] || 'var(--brand)' }"></span>
+                        <span class="name">{{ group.label }}</span>
+                      </div>
+                      <div class="grid2 mt-8">
+                        <div class="card chart-card">
+                          <div class="chart-card__title">Calendar share</div>
+                          <PieChart :data="categoryChartsById[group.id]?.pie" :colors-by-id="colorsById" :colors-by-name="colorsByName" />
+                        </div>
+                        <div class="card chart-card">
+                          <div class="chart-card__title">Hours per day</div>
+                          <StackedBars :stacked="categoryChartsById[group.id]?.stacked" :legacy="null" :colors-by-id="colorsById" />
+                        </div>
+                      </div>
+                    </div>
+                  </template>
+                </div>
               </template>
             </div>
 
@@ -150,15 +185,16 @@
 import { NcAppContent, NcEmptyContent, NcLoadingIcon } from '@nextcloud/vue'
 import PieChart from './components/PieChart.vue'
 import StackedBars from './components/StackedBars.vue'
-import GroupCharts from './components/GroupCharts.vue'
 import HeatmapCanvas from './components/HeatmapCanvas.vue'
 import ByCalendarTable from './components/ByCalendarTable.vue'
 import ByDayTable from './components/ByDayTable.vue'
 import TopEventsTable from './components/TopEventsTable.vue'
 import TimeSummaryCard from './components/TimeSummaryCard.vue'
 import TimeTargetsCard from './components/TimeTargetsCard.vue'
+import ActivityScheduleCard from './components/ActivityScheduleCard.vue'
+import BalanceOverviewCard from './components/BalanceOverviewCard.vue'
 import Sidebar from './components/Sidebar.vue'
-import { createDefaultTargetsConfig, buildTargetsSummary, normalizeTargetsConfig, createEmptyTargetsSummary, type TargetsConfig } from './services/targets'
+import { createDefaultTargetsConfig, buildTargetsSummary, normalizeTargetsConfig, createEmptyTargetsSummary, createDefaultActivityCardConfig, createDefaultBalanceConfig, type ActivityCardConfig, type BalanceConfig, type TargetsConfig, type TargetsProgress } from './services/targets'
 // Lightweight notifications without @nextcloud/dialogs
 function notifySuccess(msg: string){
   const w:any = window as any
@@ -183,6 +219,42 @@ type Charts = {
   hod?: { dows: string[]; hours: number[]; matrix: number[][] }
 }
 
+type ActivityCardSummary = {
+  rangeLabel: string
+  events: number
+  activeDays: number | null
+  typicalStart: string | null
+  typicalEnd: string | null
+  weekendShare: number | null
+  eveningShare: number | null
+  earliestStart: string | null
+  latestEnd: string | null
+  overlapEvents: number | null
+  longestSession: number | null
+  lastDayOff: string | null
+  lastHalfDayOff: string | null
+}
+
+type BalanceCategorySummary = {
+  id: string
+  label: string
+  hours: number
+  share: number
+  prevShare: number
+  delta: number
+  color?: string
+}
+
+type BalanceOverviewSummary = {
+  index: number
+  categories: BalanceCategorySummary[]
+  relations: { label: string; value: string }[]
+  trend: { delta: Array<{ id: string; label: string; delta: number }>; badge: string }
+  daily: Array<{ date: string; weekday: string; total_hours: number; categories: Array<{ id: string; label: string; hours: number; share: number }> }>
+  insights: string[]
+  warnings: string[]
+} | null
+
 const SIDEBAR_STORAGE_KEY = 'opsdash.sidebarOpen'
 const navOpen = ref((() => {
   if (typeof window === 'undefined') return true
@@ -199,6 +271,9 @@ const navToggleLabel = computed(() => navOpen.value ? 'Hide sidebar' : 'Show sid
 watch(navOpen, (open) => {
   if (typeof window !== 'undefined') {
     window.localStorage.setItem(SIDEBAR_STORAGE_KEY, open ? '1' : '0')
+    nextTick(() => {
+      window.dispatchEvent(new Event('resize'))
+    })
   }
 })
 
@@ -339,7 +414,7 @@ const topCalendarsSummary = computed(()=>{
   return ''
 })
 const balanceIndex = computed(()=>{
-  const raw = (stats as any)?.balance_index ?? (stats as any)?.balanceIndex
+  const raw = (stats as any)?.balance_index ?? (stats as any)?.balanceIndex ?? (stats as any)?.balance_overview?.index
   const num = Number(raw)
   return Number.isFinite(num) ? num : null
 })
@@ -357,8 +432,36 @@ const timeSummary = computed(() => ({
   weekendShare: (stats as any)?.weekend_share ?? null,
   activeCalendars: activeCalendarsCount.value,
   calendarSummary: topCalendarsSummary.value,
-  balanceIndex: balanceIndex.value
+  balanceIndex: balanceIndex.value,
+  topCategory: topCategory.value ? {
+    label: topCategory.value.label,
+    actualHours: topCategory.value.summary.actualHours,
+    targetHours: topCategory.value.summary.targetHours,
+    percent: topCategory.value.summary.percent,
+    statusLabel: topCategory.value.summary.statusLabel,
+    status: topCategory.value.summary.status,
+    color: topCategory.value.color,
+  } : null,
 }))
+
+const activitySummary = computed<ActivityCardSummary>(() => {
+  const raw: any = stats
+  return {
+    rangeLabel: rangeLabel.value,
+    events: safeInt(raw.events),
+    activeDays: numOrNull(raw.active_days),
+    typicalStart: stringOrNull(raw.typical_start),
+    typicalEnd: stringOrNull(raw.typical_end),
+    weekendShare: numOrNull(raw.weekend_share),
+    eveningShare: numOrNull(raw.evening_share),
+    earliestStart: stringOrNull(raw.earliest_start),
+    latestEnd: stringOrNull(raw.latest_end),
+    overlapEvents: numOrNull(raw.overlap_events),
+    longestSession: numOrNull(raw.longest_session),
+    lastDayOff: stringOrNull(raw.last_day_off),
+    lastHalfDayOff: stringOrNull(raw.last_half_day_off),
+  }
+})
 
 const targetsConfig = ref<TargetsConfig>(normalizeTargetsConfig(createDefaultTargetsConfig()))
 const targetsSummary = computed(() => {
@@ -379,10 +482,372 @@ const targetsSummary = computed(() => {
   }
 })
 
-// Targets per calendar (hours)
 const targetsWeek = ref<Record<string, number>>({})
 const targetsMonth = ref<Record<string, number>>({})
-const currentTargets = computed(()=> range.value==='month' ? targetsMonth.value : targetsWeek.value)
+const currentTargets = computed(() => range.value === 'month' ? targetsMonth.value : targetsWeek.value)
+
+const activityCardConfig = computed<ActivityCardConfig>(() => {
+  return { ...createDefaultActivityCardConfig(), ...(targetsConfig.value?.activityCard ?? {}) }
+})
+
+const balanceConfigFull = computed<BalanceConfig>(() => {
+  const base = createDefaultBalanceConfig()
+  const cfg = targetsConfig.value?.balance ?? base
+  return {
+    ...base,
+    ...cfg,
+    thresholds: { ...base.thresholds, ...(cfg.thresholds ?? {}) },
+    relations: { ...base.relations, ...(cfg.relations ?? {}) },
+    trend: { ...base.trend, ...(cfg.trend ?? {}) },
+    dayparts: { ...base.dayparts, ...(cfg.dayparts ?? {}) },
+    ui: { ...base.ui, ...(cfg.ui ?? {}) },
+  }
+})
+
+const balanceCardConfig = computed(() => ({
+  showInsights: !!balanceConfigFull.value.ui.showInsights,
+  showDailyStacks: !!balanceConfigFull.value.ui.showDailyStacks,
+}))
+
+const balanceOverview = computed<BalanceOverviewSummary>(() => {
+  const raw: any = (stats as any)?.balance_overview
+  if (!raw || typeof raw !== 'object') {
+    return null
+  }
+  const categories = Array.isArray(raw.categories)
+    ? raw.categories.map((cat: any) => ({
+        id: String(cat?.id ?? ''),
+        label: String(cat?.label ?? ''),
+        hours: numOrNull(cat?.hours) ?? 0,
+        share: numOrNull(cat?.share) ?? 0,
+        prevShare: numOrNull(cat?.prevShare) ?? 0,
+        delta: numOrNull(cat?.delta) ?? 0,
+        color: typeof cat?.color === 'string' ? cat.color : undefined,
+      }))
+    : []
+  const relations = Array.isArray(raw.relations)
+    ? raw.relations
+        .filter((rel: any) => rel && rel.label && rel.value)
+        .map((rel: any) => ({ label: String(rel.label), value: String(rel.value) }))
+    : []
+  const trendRaw = raw.trend && typeof raw.trend === 'object' ? raw.trend : {}
+  const trend = {
+    delta: Array.isArray(trendRaw.delta)
+      ? trendRaw.delta.map((item: any) => ({
+          id: String(item?.id ?? ''),
+          label: String(item?.label ?? ''),
+          delta: numOrNull(item?.delta) ?? 0,
+        }))
+      : [],
+    badge: String(trendRaw.badge ?? ''),
+  }
+  const daily = Array.isArray(raw.daily)
+    ? raw.daily.map((day: any) => ({
+        date: String(day?.date ?? ''),
+        weekday: String(day?.weekday ?? ''),
+        total_hours: numOrNull(day?.total_hours) ?? 0,
+        categories: Array.isArray(day?.categories)
+          ? day.categories.map((cat: any) => ({
+              id: String(cat?.id ?? ''),
+              label: String(cat?.label ?? ''),
+              hours: numOrNull(cat?.hours) ?? 0,
+              share: numOrNull(cat?.share) ?? 0,
+            }))
+          : [],
+      }))
+    : []
+  const insightsRaw = Array.isArray(raw.insights) ? raw.insights.map((s: any) => String(s)) : []
+  const warnings = Array.isArray(raw.warnings) ? raw.warnings.map((s: any) => String(s)) : []
+  const indexVal = numOrNull(raw.index) ?? 0
+  const filteredInsights = balanceCardConfig.value.showInsights ? insightsRaw : []
+  return {
+    index: indexVal,
+    categories,
+    relations,
+    trend,
+    daily,
+    insights: filteredInsights,
+    warnings,
+  }
+})
+
+const UNCATEGORIZED_ID = '__uncategorized__'
+const UNCATEGORIZED_LABEL = 'Unassigned'
+
+const categoryConfigList = computed(() => Array.isArray(targetsConfig.value?.categories) ? targetsConfig.value.categories : [])
+const categoryLabelById = computed<Record<string, string>>(() => {
+  const map: Record<string, string> = {}
+  categoryConfigList.value.forEach(cat => { map[String(cat.id)] = cat.label || String(cat.id) })
+  return map
+})
+const categoryProgressById = computed(() => {
+  const map = new Map<string, TargetsProgress>()
+  const cats = targetsSummary.value?.categories || []
+  cats.forEach(cat => map.set(String(cat.id), cat))
+  return map
+})
+const categoryIdByGroup = computed(() => {
+  const map = new Map<number, string>()
+  categoryConfigList.value.forEach(cat => {
+    const groups = Array.isArray(cat.groupIds) ? cat.groupIds : []
+    groups.forEach(g => {
+      const num = Math.max(0, Math.min(9, Math.trunc(Number(g) || 0)))
+      map.set(num, String(cat.id))
+    })
+  })
+  return map
+})
+const calendarMetaById = computed(() => {
+  const raw = calendars.value
+  if (!Array.isArray(raw)) {
+    if (isDbg()) console.warn('[opsdash] calendars not array', raw)
+    return {}
+  }
+  const map: Record<string, { name: string; color?: string }> = {}
+  raw.forEach((cal: any) => {
+    const id = String(cal?.id ?? '')
+    if (!id) return
+    const color = (colorsById.value && colorsById.value[id]) || String(cal?.color || '')
+    map[id] = {
+      name: String(cal?.displayname || cal?.name || cal?.calendar || id),
+      color: color || undefined,
+    }
+  })
+  return map
+})
+const calendarCategoryMap = computed<Record<string, string>>(() => {
+  const map: Record<string, string> = {}
+  const categoryByGroup = categoryIdByGroup.value
+  const groupMap = groupsById.value || {}
+  const assignCategory = (calId: string) => {
+    const raw = groupMap?.[calId]
+    const group = Math.max(0, Math.min(9, Math.trunc(Number(raw) || 0)))
+    const resolved = categoryByGroup.get(group)
+    map[calId] = resolved || (group === 0 ? UNCATEGORIZED_ID : UNCATEGORIZED_ID)
+  }
+  const raw = calendars.value
+  if (!Array.isArray(raw)) {
+    if (isDbg()) console.warn('[opsdash] calendarCategoryMap: calendars not array', raw)
+    return map
+  }
+  raw.forEach((cal: any) => {
+    const id = String(cal?.id ?? '')
+    if (!id) return
+    assignCategory(id)
+  })
+  // Ensure selected calendars also have an assignment
+  ;(selected.value || []).forEach((id: any) => {
+    const calId = String(id ?? '')
+    if (!calId) return
+    if (!map[calId]) assignCategory(calId)
+  })
+  return map
+})
+const categoryColorMap = computed<Record<string, string>>(() => {
+  const palette = ['#60a5fa', '#f59e0b', '#ef4444', '#10b981', '#a78bfa', '#fb7185', '#22d3ee', '#f97316']
+  const map: Record<string, string> = {}
+  let paletteIdx = 0
+  const ensureColor = (catId: string) => {
+    if (map[catId]) return map[catId]
+    // Attempt to pick first calendar color assigned to this category
+    const calendarsForCat = Object.entries(calendarCategoryMap.value)
+      .filter(([, cid]) => cid === catId)
+      .map(([calId]) => calId)
+    for (const calId of calendarsForCat) {
+      const meta = calendarMetaById.value[calId]
+      if (meta?.color) {
+        map[catId] = meta.color
+        return meta.color
+      }
+    }
+    const color = palette[paletteIdx % palette.length]
+    paletteIdx += 1
+    map[catId] = color
+    return color
+  }
+  categoryConfigList.value.forEach(cat => ensureColor(String(cat.id)))
+  if (Object.values(calendarCategoryMap.value || {}).some(cid => cid === UNCATEGORIZED_ID)) {
+    ensureColor(UNCATEGORIZED_ID)
+  }
+  return map
+})
+
+const categoryMappingHint = computed(() => {
+  if (!activityCardConfig.value.showHint) return ''
+  const cfg: any = targetsConfig.value as any
+  const order: any[] = Array.isArray(cfg?.balance?.categories) ? cfg.balance.categories : []
+  const labels = order
+    .map((raw) => {
+      const id = String(raw ?? '').trim()
+      if (!id) return ''
+      const label = categoryLabelById.value[id]
+      return label ? label : id.toUpperCase()
+    })
+    .filter((label) => label)
+  if (!labels.length) return ''
+  return `Mapping via Sidebar – ${labels.join(' / ')}`
+})
+
+function aggregateCategoryRows(): Array<{
+  id: string
+  label: string
+  rows: any[]
+  summary: TargetsProgress
+  color?: string
+}> {
+  const result: Array<{
+    id: string
+    label: string
+    rows: any[]
+    summary: TargetsProgress
+    color?: string
+  }> = []
+  const assignments = calendarCategoryMap.value
+  const summaryMap = categoryProgressById.value
+  const byCat = new Map<string, any[]>()
+  const rowsSource = byCal.value
+  if (!Array.isArray(rowsSource)) {
+    if (isDbg()) console.warn('[opsdash] aggregateCategoryRows: byCal not array', rowsSource)
+    return result
+  }
+  rowsSource.forEach((row: any) => {
+    const rawId = String(row?.id ?? row?.calendar_id ?? row?.calendar ?? '')
+    if (!rawId) return
+    const catId = assignments[rawId] || UNCATEGORIZED_ID
+    if (!byCat.has(catId)) byCat.set(catId, [])
+    byCat.get(catId)!.push({ ...row, calendarId: rawId })
+  })
+  if (isDbg()) {
+    console.log('[opsdash] aggregateCategoryRows', {
+      rowsSourceIsArray: Array.isArray(rowsSource),
+      rowsSourceLength: Array.isArray(rowsSource) ? rowsSource.length : null,
+      rowsSource,
+      byCat,
+      assignments,
+    })
+  }
+
+  const totalDaysLeft = targetsSummary.value?.total?.daysLeft ?? 0
+  const pacePercent = targetsSummary.value?.total?.calendarPercent ?? 0
+  const paceMode = targetsSummary.value?.total?.paceMode ?? targetsConfig.value?.pace?.mode ?? 'days_only'
+
+  const makeFallbackSummary = (catId: string, label: string, rows: any[]): TargetsProgress => {
+    const targetHours = rows.reduce((sum, row) => {
+      const tMap = currentTargets.value || {}
+      const tRaw = Number((tMap as any)[row.calendarId] ?? 0)
+      return Number.isFinite(tRaw) ? sum + Math.max(0, tRaw) : sum
+    }, 0)
+    const actualHours = rows.reduce((sum, row) => {
+      const val = Number(row?.total_hours ?? row?.hours ?? 0)
+      return Number.isFinite(val) ? sum + Math.max(0, val) : sum
+    }, 0)
+    const percent = targetHours > 0 ? Math.max(0, Math.min(100, (actualHours / targetHours) * 100)) : 0
+    const delta = actualHours - targetHours
+    const remaining = Math.max(0, targetHours - actualHours)
+    const status = targetHours <= 0 ? 'none' : (percent >= 100 ? 'done' : (delta >= 0 ? 'on_track' : 'behind'))
+    const statusLabel = status === 'done' ? 'Done' : status === 'on_track' ? 'On Track' : status === 'behind' ? 'Behind' : '—'
+    const needPerDay = totalDaysLeft > 0 ? remaining / totalDaysLeft : 0
+    return {
+      id: catId,
+      label,
+      actualHours: Math.round(actualHours * 100) / 100,
+      targetHours: Math.round(targetHours * 100) / 100,
+      percent,
+      deltaHours: Math.round(delta * 100) / 100,
+      remainingHours: Math.round(remaining * 100) / 100,
+      needPerDay: Math.round(needPerDay * 100) / 100,
+      daysLeft: totalDaysLeft,
+      calendarPercent: Math.max(0, Math.min(100, pacePercent)),
+      gap: Math.round((percent - pacePercent) * 100) / 100,
+      status: status as TargetsProgress['status'],
+      statusLabel,
+      includeWeekend: true,
+      paceMode: paceMode,
+    }
+  }
+
+  const orderedIds = categoryConfigList.value.map(cat => String(cat.id))
+  orderedIds.forEach(catId => {
+    const label = categoryLabelById.value[catId] || catId
+    const rows = byCat.get(catId) || []
+    const summary = summaryMap.get(catId) || makeFallbackSummary(catId, label, rows)
+    result.push({
+      id: catId,
+      label,
+      rows,
+      summary,
+      color: categoryColorMap.value[catId],
+    })
+  })
+
+  if (byCat.has(UNCATEGORIZED_ID)) {
+    const rows = byCat.get(UNCATEGORIZED_ID) || []
+    result.push({
+      id: UNCATEGORIZED_ID,
+      label: UNCATEGORIZED_LABEL,
+      rows,
+      summary: makeFallbackSummary(UNCATEGORIZED_ID, UNCATEGORIZED_LABEL, rows),
+      color: categoryColorMap.value[UNCATEGORIZED_ID],
+    })
+  }
+  return result
+}
+
+const calendarGroups = computed(() => aggregateCategoryRows())
+
+const calendarChartData = computed(() => ({
+  pie: charts.value?.pie || null,
+  stacked: (charts.value as any)?.perDaySeries || null,
+}))
+
+const categoryChartsById = computed<Record<string, { pie: any | null; stacked: any | null }>>(() => {
+  const result: Record<string, { pie: any | null; stacked: any | null }> = {}
+  const pieAll: any = charts.value?.pie
+  const stackedAll: any = (charts.value as any)?.perDaySeries
+  const hasPie = pieAll && Array.isArray(pieAll.data) && Array.isArray(pieAll.ids)
+  const hasStacked = stackedAll && Array.isArray(stackedAll.series) && Array.isArray(stackedAll.labels)
+  const assignments = calendarCategoryMap.value
+  const ids: string[] = hasPie ? (pieAll.ids || []).map((id: any) => String(id ?? '')) : []
+  const labels: string[] = hasPie ? (pieAll.labels || []).map((label: any) => String(label ?? '')) : []
+  const data: number[] = hasPie ? (pieAll.data || []).map((val: any) => Number(val) || 0) : []
+  const colorsAll: string[] = hasPie ? (pieAll.colors || []) : []
+
+  const stackedSeries: any[] = hasStacked ? stackedAll.series : []
+
+  calendarGroups.value.forEach((group) => {
+    const pieIndices: number[] = []
+    if (hasPie) {
+      ids.forEach((id, idx) => {
+        if (assignments[id] === group.id) {
+          pieIndices.push(idx)
+        }
+      })
+    }
+    const pieData = pieIndices.length ? {
+      ids: pieIndices.map(idx => ids[idx]),
+      labels: pieIndices.map(idx => labels[idx]),
+      data: pieIndices.map(idx => data[idx]),
+      colors: pieIndices.map(idx => colorsAll[idx] || colorsById.value?.[ids[idx]] || '#60a5fa'),
+    } : null
+
+    const stackedSeriesForCat = hasStacked ? stackedSeries.filter((series: any) => assignments[String(series?.id ?? '')] === group.id) : []
+    const stackedData = stackedSeriesForCat.length ? {
+      labels: stackedAll.labels,
+      series: stackedSeriesForCat,
+    } : null
+
+    result[group.id] = { pie: pieData, stacked: stackedData }
+  })
+  return result
+})
+
+const topCategory = computed(() => {
+  const groups = calendarGroups.value || []
+  if (!groups.length) return null
+  const ranked = [...groups].sort((a, b) => (b.summary.actualHours || 0) - (a.summary.actualHours || 0))
+  return ranked[0] || null
+})
+
 const detailsIndex = ref<number|null>(null)
 function toggleDetails(i:number){ detailsIndex.value = detailsIndex.value===i ? null : i }
 function calendarDayLink(dateStr: string){
@@ -443,6 +908,21 @@ const notesLabelCurrTitle = computed(()=> range.value==='month' ? 'Notes for cur
 function n1(v:any){ return Number(v ?? 0).toFixed(1) }
 function n2(v:any){ return Number(v ?? 0).toFixed(2) }
 function arrow(v:number){ return v>0?'▲':(v<0?'▼':'—') }
+
+function numOrNull(value: any): number | null {
+  const num = Number(value)
+  return Number.isFinite(num) ? num : null
+}
+function safeInt(value: any): number {
+  const num = Number(value)
+  if (!Number.isFinite(num)) return 0
+  return Math.round(num)
+}
+function stringOrNull(value: any): string | null {
+  if (value === undefined || value === null) return null
+  const str = String(value).trim()
+  return str === '' ? null : str
+}
 
 // ---- Workdays vs Weekend stats (median and average per day) ----
 function avg(arr: number[]): number { if (!arr.length) return 0; return arr.reduce((a,b)=>a+b,0)/arr.length }
@@ -677,85 +1157,6 @@ function ctxFor(c: HTMLCanvasElement | null){
 
 function drawAll(){ /* charts handled by components */ }
 
-// ---- Grouped charts (per-group Pie + Stacked) ----
-const groupList = ref<number[]>([])
-const groupPieRefs = ref<Record<number, HTMLCanvasElement|null>>({})
-const groupBarRefs = ref<Record<number, HTMLCanvasElement|null>>({})
-function setGroupRef(kind:'pie'|'bar', g:number, el:HTMLCanvasElement|null){
-  // Avoid replacing the whole object during render (can cause re-render loops)
-  if (kind==='pie') {
-    if (groupPieRefs.value[g] !== el) groupPieRefs.value[g] = el
-  } else {
-    if (groupBarRefs.value[g] !== el) groupBarRefs.value[g] = el
-  }
-}
-function recomputeGroupList(){
-  // Show a group if at least one selected calendar is assigned to it (1..9)
-  const sel = new Set(selected.value||[])
-  const gmap = groupsById.value||{}
-  const present = new Set<number>()
-  Object.entries(gmap).forEach(([id, n]) => {
-    const grp = Math.max(0, Math.min(9, Math.trunc(Number(n)||0)))
-    if (grp>=1 && grp<=9 && sel.has(String(id))) present.add(grp)
-  })
-  groupList.value = Array.from(present).sort((a,b)=>a-b)
-}
-watch([groupsById, selected], ()=>{ recomputeGroupList(); scheduleDraw() })
-
-function drawGroups(){
-  const pieAll:any = charts.value?.pie || {}
-  const perAll:any = (charts.value as any).perDaySeries
-  if (!pieAll || (!perAll || !Array.isArray(perAll.series))) return
-  const sel = new Set(selected.value||[])
-  const gmap = groupsById.value||{}
-  // Draw per used group
-  for (const g of groupList.value){
-    // Pie
-    const cvp = groupPieRefs.value[g] || null
-    if (cvp){
-      const ctx = ctxFor(cvp); if (ctx){
-        const idsAll:string[] = pieAll.ids || []
-        const labelsAll:string[] = pieAll.labels || []
-        const dataAll:number[] = (pieAll.data||[]).map((x:any)=>Number(x)||0)
-        const idx:number[] = []
-        for (let i=0;i<idsAll.length;i++){ const id=String(idsAll[i]||''); if (sel.has(id) && (gmap[id]||0)===g && dataAll[i]>0) idx.push(i) }
-        const subIds = idx.map(i=>idsAll[i])
-        const sub = { ids: subIds, labels: idx.map(i=>labelsAll[i]), data: idx.map(i=>dataAll[i]), colors: subIds.map((id:any, j:number)=> colorsById.value[String(id)] || '#60a5fa') }
-        // draw minimal donut
-        const W=cvp.clientWidth,H=cvp.clientHeight,cx=W/2,cy=H/2,r=Math.min(W,H)*0.35
-        ctx.clearRect(0,0,W,H)
-        if (sub.data.length){
-          const total=sub.data.reduce((a,b)=>a+Math.max(0,b),0)||1; let ang=-Math.PI/2
-          ctx.lineWidth=1; ctx.strokeStyle=getComputedStyle(document.documentElement).getPropertyValue('--line').trim()||'#e5e7eb'
-          sub.data.forEach((v,i)=>{ const f=Math.max(0,v)/total; const a2=ang+f*2*Math.PI; ctx.beginPath(); ctx.moveTo(cx,cy); ctx.arc(cx,cy,r,ang,a2); ctx.closePath(); ctx.fillStyle=sub.colors[i]||'#60a5fa'; ctx.fill(); ctx.stroke(); ang=a2 })
-        }
-      }
-    }
-    // Stacked bar
-    const cvb = groupBarRefs.value[g] || null
-    if (cvb){
-      const ctx = ctxFor(cvb); if (ctx){
-        const labels:string[] = perAll.labels||[]
-        const series:any[] = (perAll.series||[]).filter((s:any)=> sel.has(String(s.id)) && (gmap[String(s.id)]||0)===g )
-        const totals = labels.map((_,i)=> series.reduce((a,s)=>a+Math.max(0, Number(s.data?.[i]||0)),0))
-        const W=cvb.clientWidth,H=cvb.clientHeight,pad=28,x0=pad*1.4,y0=H-pad,x1=W-pad
-        const line=getComputedStyle(document.documentElement).getPropertyValue('--line').trim()||'#e5e7eb'
-        const fg=getComputedStyle(document.documentElement).getPropertyValue('--fg').trim()||'#0f172a'
-        ctx.clearRect(0,0,W,H)
-        ctx.strokeStyle=line; ctx.lineWidth=1
-        ctx.beginPath(); ctx.moveTo(x0,y0); ctx.lineTo(x1,y0); ctx.moveTo(x0,y0); ctx.lineTo(x0,pad); ctx.stroke()
-        const max = Math.max(1, ...totals)
-        const n=labels.length||1, ggap=8, bw=Math.max(6,(x1-x0-ggap*(n+1))/n), scale=(y0-pad)/max
-        labels.forEach((_,i)=>{
-          let y=y0
-          series.forEach(s=>{ const v=Math.max(0,Number(s.data?.[i]||0)); const h=v*scale; const x=x0+ggap+i*(bw+ggap); y=y-h; ctx.fillStyle=(colorsById.value[String(s.id)]||s.color||'#93c5fd'); if (h>0.5) ctx.fillRect(x,y,bw,h) })
-          ctx.fillStyle=fg; ctx.font='12px ui-sans-serif,system-ui'
-          const t=String(labels[i]||''); if (bw>26){ const tw=ctx.measureText(t).width; ctx.fillText(t, x0+ggap+i*(bw+ggap)+bw/2-tw/2, y0+14) }
-        })
-      }
-    }
-  }
-}
 
 function hexToRgb(hex:string){ const m = /^#?([\da-f]{2})([\da-f]{2})([\da-f]{2})$/i.exec(hex||''); if(!m) return null; return {r:parseInt(m[1],16), g:parseInt(m[2],16), b:parseInt(m[3],16)} }
   function rgbToHex(r:number,g:number,b:number){ const c=(n:number)=>('0'+Math.max(0,Math.min(255,Math.round(n))).toString(16)).slice(-2); return '#'+c(r)+c(g)+c(b) }
@@ -929,8 +1330,6 @@ function drawPerDay(){
   })
 
   watch(range, () => { offset.value = 0; load().catch(console.error) })
-  watch(pane, () => { scheduleDraw() })
-  watch(calendars, () => { recomputeGroupList(); scheduleDraw() })
 </script>
 
 <!-- styles moved to global css/style.css to satisfy strict CSP -->

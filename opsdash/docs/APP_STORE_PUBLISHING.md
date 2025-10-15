@@ -8,10 +8,10 @@ This document explains how we satisfy Nextcloud’s expectations for app publish
 - Store delivery is filtered by the client’s server version. This is the supported, standard mechanism.
 
 Planned lines
-- 0.4.x → NC 30–31 (app id `opsdash`, route `/dashboard`)
+- 0.4.x → NC 30–31 (app id `opsdash`, route `/config_dashboard`)
   - `info.xml`: `<nextcloud min-version="30" max-version="31"/>`
   - Purpose: keep 31/30 users on a stable line with bug-fix backports only.
-- 0.5.x → NC 32 (and optionally 33 after test) (app id `opsdash`, route `/dashboard`)
+- 0.5.x → NC 32 (and optionally 33 after test) (app id `opsdash`, route `/config_dashboard`)
   - `info.xml`: `<nextcloud min-version="32" max-version="32"/>` (later `33`)
   - Purpose: current development line with new features.
 

@@ -19,6 +19,10 @@ No usage metrics are collected or configurable.
 - The docked sidebar stores user preferences (calendar selection, notes, targets) in the Nextcloud config backend via `POST /persist`.
 - Targets configuration includes:
   - Total goal (week/month specific via sidebar range)
-  - Per-category targets with weekend inclusion, category labels, and automatic grouping
+  - Per-category targets with weekend inclusion, category labels, and automatic grouping (calendars take the group id of the selected category; users no longer edit group numbers)
   - Pacing thresholds, forecast padding, and display toggles
 - Sidebar open/closed state is persisted in `localStorage` so the dock reopens in the last used position.
+
+## Card Settings (Sidebar ➜ Cards tab)
+- **Activity & Schedule card** — show/hide: weekend share, evening share, earliest/late times, overlaps, longest session, last day off, and the category-mapping hint.
+- **Balance Overview card** — configure share/index thresholds, relation display mode (ratio/factor), trend lookback window, insight toggle, optional daily stacks, and rounding precision for percentages/ratios.

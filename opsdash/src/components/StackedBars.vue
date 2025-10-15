@@ -10,6 +10,19 @@ import { ctxFor } from '../services/charts'
 const props = defineProps<{ stacked?: any, legacy?: any, colorsById: Record<string,string> }>()
 const cv = ref<HTMLCanvasElement|null>(null)
 
+function drawOutlinedText(ctx: CanvasRenderingContext2D, text: string, x: number, y: number, options?: { align?: CanvasTextAlign; baseline?: CanvasTextBaseline; font?: string }) {
+  ctx.save()
+  if (options?.font) ctx.font = options.font
+  if (options?.align) ctx.textAlign = options.align
+  if (options?.baseline) ctx.textBaseline = options.baseline
+  ctx.lineWidth = 3
+  ctx.strokeStyle = 'rgba(0,0,0,0.55)'
+  ctx.strokeText(text, x, y)
+  ctx.fillStyle = '#ffffff'
+  ctx.fillText(text, x, y)
+  ctx.restore()
+}
+
 function hexToRgb(hex:string){ const m=/^#?([\da-f]{2})([\da-f]{2})([\da-f]{2})$/i.exec(hex||''); if(!m) return null; return {r:parseInt(m[1],16), g:parseInt(m[2],16), b:parseInt(m[3],16)} }
 function textColorFor(bg:string, fallback:string): string {
   const rgb = hexToRgb(bg)
@@ -66,12 +79,20 @@ function draw(){
       if (bw>26){ const tw=ctx.measureText(t).width; ctx.fillText(t, x0+g+i*(bw+g)+bw/2-tw/2, y0+14) }
       if (colTotal>0.01) {
         const x = x0+g+i*(bw+g)
-        const labelT = String((Math.round(colTotal*100)/100).toFixed(1))
-        ctx.fillStyle = fg
-        ctx.font = '11px ui-sans-serif,system-ui'
-        const twT = ctx.measureText(labelT).width
-        ctx.fillText(labelT, x + bw/2 - twT/2, y - 4)
+        const labelT = `${(Math.round(colTotal*100)/100).toFixed(1)}h`
+        drawOutlinedText(ctx, labelT, x + bw/2, Math.max(pad + 4, y - 2), {
+          align: 'center',
+          baseline: 'bottom',
+          font: '11px ui-sans-serif,system-ui',
+        })
       }
+    })
+    const overall = totals.reduce((sum, v)=> sum + v, 0)
+    const totalLabel = `${(Math.round(overall*100)/100).toFixed(1)}h total`
+    drawOutlinedText(ctx, totalLabel, x1 - 4, pad + 4, {
+      align: 'right',
+      baseline: 'top',
+      font: '12px ui-sans-serif,system-ui',
     })
     return
   }
@@ -98,12 +119,20 @@ function draw(){
     const t=weekday(String(labelsL[i]||''))
     if (bw>26){ const tw=ctx.measureText(t).width; ctx.fillText(t, x+bw/2-tw/2, y0+14) }
     if (v>0.01) {
-      const labelT = String((Math.round(v*100)/100).toFixed(1))
-      ctx.fillStyle = fg
-      ctx.font = '11px ui-sans-serif,system-ui'
-      const twT = ctx.measureText(labelT).width
-      ctx.fillText(labelT, x + bw/2 - twT/2, y - 4)
+      const labelT = `${(Math.round(v*100)/100).toFixed(1)}h`
+      drawOutlinedText(ctx, labelT, x + bw/2, Math.max(pad + 4, y - 2), {
+        align: 'center',
+        baseline: 'bottom',
+        font: '11px ui-sans-serif,system-ui',
+      })
     }
+  })
+  const legacyTotal = data.reduce((sum:number, v:any)=> sum + Math.max(0, Number(v)||0), 0)
+  const legacyLabel = `${(Math.round(legacyTotal*100)/100).toFixed(1)}h total`
+  drawOutlinedText(ctx, legacyLabel, x1 - 4, pad + 4, {
+    align: 'right',
+    baseline: 'top',
+    font: '12px ui-sans-serif,system-ui',
   })
 }
 

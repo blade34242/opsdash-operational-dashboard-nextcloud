@@ -195,9 +195,33 @@
 }
 #opsdash .cards{
   display:grid;
-  grid-template-columns:repeat(auto-fit, minmax(220px, 1fr));
-  gap:12px;
+  gap:14px;
   margin:10px 0;
+  grid-auto-rows:1fr;
+  grid-template-columns:repeat(4, minmax(0,1fr));
+}
+#opsdash .cards>.card{
+  display:flex;
+  flex-direction:column;
+  height:100%;
+}
+@media (max-width: 1280px){
+  #opsdash .cards{
+    grid-template-columns:repeat(3, minmax(0,1fr));
+  }
+}
+@media (max-width: 960px){
+  #opsdash .cards{
+    grid-template-columns:repeat(2, minmax(0,1fr));
+  }
+}
+@media (max-width: 640px){
+  #opsdash .cards{
+    grid-template-columns:repeat(2, minmax(0,1fr));
+  }
+  #opsdash .cards>.card{
+    min-width:0;
+  }
 }
 #opsdash .card{
   background:var(--card);
@@ -414,6 +438,12 @@
   gap:8px;
   margin:12px 0;
 }
+#opsdash .sb-tabs--primary{ margin-bottom:8px; }
+#opsdash .sb-tabs--secondary{
+  margin-top:0;
+  margin-bottom:16px;
+}
+#opsdash .sb-tabs--secondary .sb-tab{ flex:1 1 auto; }
 #opsdash .sb-tab{
   flex:1 1 auto;
   padding:6px 10px;
@@ -451,6 +481,10 @@
   font-weight:700;
   margin-bottom:8px;
   text-align:center;
+}
+#opsdash .mt-8{ margin-top:8px; }
+#opsdash .card-divider{
+  margin-top:16px;
 }
 #opsdash .sb-hints{
   font-size:12px;
@@ -548,6 +582,11 @@
   gap:8px;
   padding:8px 0;
 }
+#opsdash .toggle-grid{
+  display:grid;
+  grid-template-columns:repeat(auto-fit, minmax(160px, 1fr));
+  gap:8px 10px;
+}
 #opsdash .target-config .field{
   display:flex;
   flex-direction:column;
@@ -557,6 +596,82 @@
   flex-direction:row;
   align-items:center;
   gap:6px;
+}
+#opsdash .target-config .field.checkbox.toggle-field{
+  padding:6px 10px;
+  border-radius:8px;
+  border:1px solid color-mix(in oklab, var(--line), transparent 20%);
+  background:color-mix(in oklab, var(--card), transparent 10%);
+  gap:8px;
+}
+#opsdash .target-config .field.checkbox.toggle-field:hover{
+  border-color:color-mix(in oklab, var(--brand), transparent 70%);
+}
+#opsdash .target-config .section-title{
+  font-weight:700;
+  margin-bottom:4px;
+  text-align:left;
+  flex:0 0 auto;
+  display:inline-flex;
+  align-items:center;
+}
+#opsdash .target-config .section-title-row{
+  display:flex;
+  align-items:center;
+  gap:4px;
+  flex-wrap:nowrap;
+  margin-bottom:4px;
+}
+#opsdash .target-config .section-subtitle{
+  font-weight:600;
+  font-size:12px;
+  text-transform:uppercase;
+  letter-spacing:.04em;
+  color:var(--muted);
+  flex:0 0 auto;
+  display:inline-flex;
+  align-items:center;
+}
+#opsdash .target-config .subtitle{ margin-bottom:0; }
+#opsdash .info-button{
+  width:16px;
+  height:16px;
+  border-radius:4px;
+  border:none;
+  background:transparent;
+  color:color-mix(in oklab, var(--brand), transparent 20%);
+  font-size:11px;
+  font-weight:600;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  cursor:pointer;
+  transition:color .15s ease;
+  flex:0 0 auto;
+  padding:0;
+}
+#opsdash .info-button span{
+  display:inline-block;
+  width:100%;
+  text-align:center;
+}
+#opsdash .info-button:hover,
+#opsdash .info-button:focus-visible{
+  color:var(--brand);
+}
+#opsdash .info-button:focus-visible{
+  outline:2px solid color-mix(in oklab, var(--brand), transparent 60%);
+  outline-offset:1px;
+}
+#opsdash .target-config .section-hint{
+  margin:0 0 6px 0;
+  font-size:12px;
+  color:var(--muted);
+}
+#opsdash .field-grid{
+  display:grid;
+  grid-template-columns:repeat(auto-fit, minmax(160px, 1fr));
+  gap:8px 10px;
 }
 #opsdash .target-config .field .label{
   font-size:12px;
@@ -621,6 +736,57 @@
 }
 #opsdash .target-config .field.checkbox input[type="checkbox"]{
   margin:0;
+}
+#opsdash .summary-mode-toggle{
+  display:flex;
+  gap:6px;
+  flex-wrap:wrap;
+}
+#opsdash .chart-section{
+  margin-top:24px;
+  display:flex;
+  flex-direction:column;
+  gap:16px;
+}
+#opsdash .chart-section .section-title{
+  font-size:16px;
+  font-weight:700;
+  color:var(--fg);
+}
+#opsdash .chart-card{
+  display:flex;
+  flex-direction:column;
+  gap:12px;
+  min-height:220px;
+}
+#opsdash .chart-card__title{
+  font-size:12px;
+  font-weight:600;
+  color:var(--muted);
+  text-transform:uppercase;
+  letter-spacing:.08em;
+}
+#opsdash .category-chart-block{
+  border:1px solid var(--line);
+  border-radius:12px;
+  padding:14px;
+  display:flex;
+  flex-direction:column;
+  gap:12px;
+  background:color-mix(in srgb, var(--card) 94%, var(--brand) 6%);
+}
+#opsdash .category-chart-header{
+  display:flex;
+  align-items:center;
+  gap:8px;
+  font-weight:600;
+  color:var(--fg);
+}
+#opsdash .category-chart-header .dot{
+  width:10px;
+  height:10px;
+  border-radius:50%;
+  box-shadow:0 0 0 1px color-mix(in srgb, var(--fg) 12%, transparent);
 }
 #opsdash .mt-12{
   margin-top:12px;

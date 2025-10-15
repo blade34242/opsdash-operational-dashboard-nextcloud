@@ -1,44 +1,37 @@
-# Production Readiness Checklist (opsdash 4.0.1)
+# Production Readiness — opsdash 0.4.2
 
-Scope: Nextcloud 31–32 (info.xml min=31, max=32).
+Target platform: Nextcloud 30–31 (per `appinfo/info.xml`).
 
-Essentials
-- Versions aligned: `appinfo/info.xml` and `package.json` = 4.0.1.
-- Dependencies: Frontend built (`npm ci && npm run build`), manifest present.
-- App ID and folder: `opsdash` under a configured `apps_paths`.
-- Icons: `img/app.svg` and `img/app-dark.svg` only; no root overrides.
-- Routes: canonical under `/apps/opsdash/config_dashboard/*`.
-- Security: POST endpoints require CSRF; `load`/`notes` GETs require user session.
+## Essentials
+- ✅ Versions match (`appinfo/info.xml`, `package.json`, footer) — 0.4.2.
+- ✅ Build pipeline: `npm ci && npm run build` refreshes `js/.vite/manifest.json` and hashed bundles under `js/assets/`.
+- ✅ App folder `opsdash` lives inside a configured `apps_paths`; icons limited to `img/app.svg` and `img/app-dark.svg`.
+- ✅ Routes confined to `/apps/opsdash/config_dashboard/*`; POST routes enforce CSRF via `window.oc_requesttoken`.
+- ✅ Backend aggregates per-user selection safely (clamped range/offset, category mapping, target bounds).
 
-Code Hygiene
-- No legacy `appinfo/app.php` (IBootstrap warning eliminated).
-- Navigation via `navigation.xml` (runtime add tolerated, remain idempotent).
-- No favicon override in production code.
-- Frontend debug logs behind a flag (defaults off).
+## Code & UX Checks
+- Navigation registered through `navigation.xml`; no legacy `appinfo/app.php`.
+- Frontend cards render in a responsive 4→3→2 grid; charts fall back to deterministic colors if DAV data is missing.
+- Sidebar stores calendar selection, category targets, and notes; calendars default to “Unassigned” until a category is set.
+- Heatmap and per-day stats are timezone-aware; aggregation caps protect heavy accounts (see `docs/PERFORMANCE.md`).
 
-Performance & UX
-- Full-width layout on large screens; empty-state remains full-height and scrollable.
-- Charts render with server colors or DAV fallback.
-- Targets card communicates status; room for incremental enhancements (see TARGETS_PLAN.md).
+## Packaging
+1. `npm ci && npm run build`
+2. Copy release payload: `appinfo/`, `lib/`, `templates/`, `img/`, `css/`, `js/`, `README.md`, `docs/`
+3. Sign: `occ integrity:sign-app --path <app-root> --privateKey ... --certificate ...`
+4. Verify: `occ app:check-code opsdash` (informational) and install on NC 30 & 31 staging nodes
 
-Docs & Ops
-- Docs updated to opsdash (install, routes, APIs, seeding).
-- Seeding scripts are dev-only; exclude `tools/` and `src/` from release tarball.
-- Changelog and UPGRADE updated for 4.0.1.
+## Validation
+- Static assets respond: `curl -I https://host/apps-extra/opsdash/img/app.svg`
+- Authenticated load: `/index.php/apps/opsdash/config_dashboard`
+- API smoke: `/apps/opsdash/config_dashboard/load?range=week&offset=0`
+- UI flow: toggle calendars, edit targets/categories, add notes, confirm summary/balance cards update
+- Notes persistence: POST `/notes` with request token
 
-Packaging & Signing
-- Build: `npm ci && npm run build`.
-- Stage: copy only `appinfo/`, `lib/`, `templates/`, `img/`, `css/`, `js/`, `README.md`, `docs/` (optional).
-- Sign: `occ integrity:sign-app --path <app-root> --privateKey <key> --certificate <crt>`.
-- Verify: `occ app:check-code opsdash` (informational), install on NC 31 & 32 test nodes.
+## Remaining Work Before App Store Submission
+- Add Vitest coverage for `targets.ts` helpers and balance calculations.
+- Improve accessibility: tab order in sidebar, aria labels for charts/cards.
+- Localise strings via Nextcloud l10n once copy stabilises.
+- Test against Nextcloud 32; bump `<nextcloud max-version>` after verification.
 
-Validation
-- Static: `curl -I /apps-extra/opsdash/js/mainXX.js`, `/img/app.svg` → 200.
-- Auth: `/index.php/apps/opsdash/config_dashboard` after login.
-- API: `/config_dashboard/ping`, `load?range=week|month&offset=0`.
-- UI: navigation entry, load/save/persist/notes, charts, targets; full width at default zoom.
-
-Release
-- Tag repo as `v4.0.1`, attach signed tarball, publish notes (CHANGELOG extract).
-- Monitor logs and feedback; follow-up patches per TARGETS_PLAN.
-
+When the checklist above is green and the follow-ups addressed, the build can move to release (tag `v0.4.2`, attach signed tarball, include `docs/CHANGELOG.md` excerpt).

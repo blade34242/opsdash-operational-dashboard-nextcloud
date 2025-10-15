@@ -18,8 +18,8 @@ This app provides a Calendar Dashboard for Nextcloud. It consists of:
 3. Server aggregates calendar stats and returns JSON with:
    - `stats`, `byCal`, `byDay`, `longest`, `charts`
    - `meta` with `from`, `to`, and optional `truncated` caps
-   - `colors` and `groups` for client styling/grouping
-4. User changes selection/groups → client POSTs to `persist` (CSRF); reloads data.
+   - `colors` and `groups` (categories map to group ids internally; UI exposes only category selectors)
+4. User adjusts selection/targets → client POSTs to `persist` (CSRF); reloads data.
 5. Notes are fetched and saved per period via `GET/POST /notes`.
 
 ## Backend Modules

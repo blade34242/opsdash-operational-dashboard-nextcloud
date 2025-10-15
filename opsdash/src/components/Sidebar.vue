@@ -17,11 +17,7 @@
         <NcButton class="nav-btn" type="tertiary" :disabled="isLoading" @click="$emit('update:offset', offset+1)" title="Next">▶</NcButton>
       </div>
     </div>
-    <div class="sb-actions">
-      <NcButton type="tertiary" :disabled="isLoading" @click="$emit('select-all', true)">All</NcButton>
-      <NcButton type="tertiary" :disabled="isLoading" @click="$emit('select-all', false)">None</NcButton>
-    </div>
-    <div class="sb-tabs" role="tablist" aria-label="Sidebar sections">
+    <div class="sb-tabs sb-tabs--primary" role="tablist" aria-label="Sidebar sections">
       <button
         id="opsdash-sidebar-tab-calendars"
         type="button"
@@ -46,6 +42,56 @@
       >
         Targets
       </button>
+      <button
+        id="opsdash-sidebar-tab-summary"
+        type="button"
+        class="sb-tab"
+        :class="{ active: activeTab === 'summary' }"
+        role="tab"
+        :aria-selected="activeTab === 'summary'"
+        aria-controls="opsdash-sidebar-pane-summary"
+        @click="activeTab = 'summary'"
+      >
+        Summary
+      </button>
+    </div>
+    <div class="sb-tabs sb-tabs--secondary" role="tablist" aria-label="Detail settings">
+      <button
+        id="opsdash-sidebar-tab-activity"
+        type="button"
+        class="sb-tab"
+        :class="{ active: activeTab === 'activity' }"
+        role="tab"
+        :aria-selected="activeTab === 'activity'"
+        aria-controls="opsdash-sidebar-pane-activity"
+        @click="activeTab = 'activity'"
+      >
+        Activity &amp; Schedule
+      </button>
+      <button
+        id="opsdash-sidebar-tab-balance"
+        type="button"
+        class="sb-tab"
+        :class="{ active: activeTab === 'balance' }"
+        role="tab"
+        :aria-selected="activeTab === 'balance'"
+        aria-controls="opsdash-sidebar-pane-balance"
+        @click="activeTab = 'balance'"
+      >
+        Balance
+      </button>
+      <button
+        id="opsdash-sidebar-tab-notes"
+        type="button"
+        class="sb-tab"
+        :class="{ active: activeTab === 'notes' }"
+        role="tab"
+        :aria-selected="activeTab === 'notes'"
+        aria-controls="opsdash-sidebar-pane-notes"
+        @click="activeTab = 'notes'"
+      >
+        Notes
+      </button>
     </div>
 
     <div
@@ -55,11 +101,15 @@
       role="tabpanel"
       aria-labelledby="opsdash-sidebar-tab-calendars"
     >
+      <div class="sb-actions">
+        <NcButton type="tertiary" :disabled="isLoading" @click="$emit('select-all', true)">All</NcButton>
+        <NcButton type="tertiary" :disabled="isLoading" @click="$emit('select-all', false)">None</NcButton>
+      </div>
       <div class="sb-hints">
         <div class="sb-title" style="margin:0">Per‑Calendar Settings</div>
-        <div class="sb-hintline" title="Gruppe 0 = keine Gruppe; 1–9 = benutzerdefinierte Gruppen"><strong>Group</strong>: 0 = none, 1–9 = custom</div>
-        <div class="sb-hintline" title="Zielstunden im aktuellen Bereich (Woche/Monat)"><strong>Target (h)</strong>: hours for current range (week/month)</div>
-        <div class="sb-hintline" title="Nur ausgewählte Kalender fließen in die Auswertung">Only selected calendars are used</div>
+        <div class="sb-hintline" title="Use categories to drive targets, balance, and summaries."><strong>Category</strong>: choose how this calendar contributes to targets &amp; balance.</div>
+        <div class="sb-hintline" title="Define weekly/monthly goals per calendar. Values sync between ranges."><strong>Target (h)</strong>: goal hours for the active range (week ↔ month converts automatically).</div>
+        <div class="sb-hintline" title="Only calendars marked Selected contribute to dashboards and KPIs.">Toggle calendars to include or exclude them from stats.</div>
       </div>
       <div class="sb-list">
         <div v-for="c in calendars" :key="c.id" class="cal-card">
@@ -90,22 +140,10 @@
         <div class="hint mt-8">Selection is stored per user.</div>
       </div>
 
-      <div class="sb-title">Notes</div>
-      <NotesPanel
-        :previous="notesPrev"
-        :model-value="notesCurrDraft"
-        :prev-label="notesLabelPrev"
-        :curr-label="notesLabelCurr"
-        :prev-title="notesLabelPrevTitle"
-        :curr-title="notesLabelCurrTitle"
-        :saving="isSavingNote"
-        @update:modelValue="(v:string)=> $emit('update:notes', v)"
-        @save="$emit('save-notes')"
-      />
     </div>
 
     <div
-      v-else
+      v-else-if="activeTab === 'targets'"
       id="opsdash-sidebar-pane-targets"
       class="sb-pane"
       role="tabpanel"
@@ -138,6 +176,13 @@
                      :value="cat.targetHours"
                      min="0" max="1000" step="0.5"
                      @input="setCategoryTarget(cat.id, ($event.target as HTMLInputElement).value)" />
+            </label>
+            <label class="field">
+              <span class="label">Pace mode</span>
+              <select :value="cat.paceMode || targets.pace.mode" @change="setCategoryPaceMode(cat.id, ($event.target as HTMLSelectElement).value)">
+                <option value="days_only">Days only</option>
+                <option value="time_aware">Time aware</option>
+              </select>
             </label>
             <label class="field checkbox">
               <input type="checkbox"
@@ -181,6 +226,20 @@
         <div class="target-section">
           <div class="section-title">Forecast</div>
           <label class="field">
+            <span class="label">Primary method</span>
+            <select :value="targets.forecast.methodPrimary" @change="setForecastMethod(($event.target as HTMLSelectElement).value)">
+              <option value="linear">Linear</option>
+              <option value="momentum">Momentum</option>
+            </select>
+          </label>
+          <label class="field">
+            <span class="label">Momentum window (days)</span>
+            <input type="number"
+                   :value="targets.forecast.momentumLastNDays"
+                   min="1" max="14" step="1"
+                   @input="setForecastMomentum(($event.target as HTMLInputElement).value)" />
+          </label>
+          <label class="field">
             <span class="label">Padding (±h)</span>
             <input type="number"
                    :value="targets.forecast.padding"
@@ -190,6 +249,18 @@
         </div>
         <div class="target-section">
           <div class="section-title">Display</div>
+          <label class="field checkbox">
+            <input type="checkbox"
+                   :checked="targets.ui.showCalendarCharts"
+                   @change="setUiOption('showCalendarCharts', ($event.target as HTMLInputElement).checked)" />
+            <span>Show calendar charts</span>
+          </label>
+          <label class="field checkbox">
+            <input type="checkbox"
+                   :checked="targets.ui.showCategoryCharts"
+                   @change="setUiOption('showCategoryCharts', ($event.target as HTMLInputElement).checked)" />
+            <span>Show category charts</span>
+          </label>
           <label class="field checkbox">
             <input type="checkbox"
                    :checked="targets.ui.showTotalDelta"
@@ -229,13 +300,253 @@
         </div>
       </div>
     </div>
+
+    <div
+      v-else-if="activeTab === 'summary'"
+      id="opsdash-sidebar-pane-summary"
+      class="sb-pane"
+      role="tabpanel"
+      aria-labelledby="opsdash-sidebar-tab-summary"
+    >
+      <div class="sb-title">Time Summary</div>
+      <div class="target-config">
+        <div class="field">
+          <span class="label">Average mode</span>
+          <div class="summary-mode-toggle">
+            <NcCheckboxRadioSwitch type="radio" name="summary-mode-active" :checked="activeDayMode==='active'" @update:checked="val => { if (val) emitActiveMode('active') }">Active days</NcCheckboxRadioSwitch>
+            <NcCheckboxRadioSwitch type="radio" name="summary-mode-all" :checked="activeDayMode==='all'" @update:checked="val => { if (val) emitActiveMode('all') }">All days</NcCheckboxRadioSwitch>
+          </div>
+        </div>
+        <div class="target-section">
+          <div class="section-title">Display</div>
+          <label class="field checkbox">
+            <input type="checkbox"
+                   :checked="summaryOptions.showTotal"
+                   @change="setSummaryOption('showTotal', ($event.target as HTMLInputElement).checked)" />
+            <span>Total hours</span>
+          </label>
+          <label class="field checkbox">
+            <input type="checkbox"
+                   :checked="summaryOptions.showAverage"
+                   @change="setSummaryOption('showAverage', ($event.target as HTMLInputElement).checked)" />
+            <span>Average per day</span>
+          </label>
+          <label class="field checkbox">
+            <input type="checkbox"
+                   :checked="summaryOptions.showMedian"
+                   @change="setSummaryOption('showMedian', ($event.target as HTMLInputElement).checked)" />
+            <span>Median per day</span>
+          </label>
+          <label class="field checkbox">
+            <input type="checkbox"
+                   :checked="summaryOptions.showBusiest"
+                   @change="setSummaryOption('showBusiest', ($event.target as HTMLInputElement).checked)" />
+            <span>Busiest day</span>
+          </label>
+          <label class="field checkbox">
+            <input type="checkbox"
+                   :checked="summaryOptions.showWorkday"
+                   @change="setSummaryOption('showWorkday', ($event.target as HTMLInputElement).checked)" />
+            <span>Workdays row</span>
+          </label>
+          <label class="field checkbox">
+            <input type="checkbox"
+                   :checked="summaryOptions.showWeekend"
+                   @change="setSummaryOption('showWeekend', ($event.target as HTMLInputElement).checked)" />
+            <span>Weekend row</span>
+          </label>
+          <label class="field checkbox">
+            <input type="checkbox"
+                   :checked="summaryOptions.showWeekendShare"
+                   @change="setSummaryOption('showWeekendShare', ($event.target as HTMLInputElement).checked)" />
+            <span>Weekend share</span>
+          </label>
+          <label class="field checkbox">
+            <input type="checkbox"
+                   :checked="summaryOptions.showCalendarSummary"
+                   @change="setSummaryOption('showCalendarSummary', ($event.target as HTMLInputElement).checked)" />
+            <span>Top calendars</span>
+          </label>
+          <label class="field checkbox">
+            <input type="checkbox"
+                   :checked="summaryOptions.showTopCategory"
+                   @change="setSummaryOption('showTopCategory', ($event.target as HTMLInputElement).checked)" />
+            <span>Top category</span>
+          </label>
+          <label class="field checkbox">
+            <input type="checkbox"
+                   :checked="summaryOptions.showBalance"
+                   @change="setSummaryOption('showBalance', ($event.target as HTMLInputElement).checked)" />
+            <span>Balance index</span>
+          </label>
+        </div>
+      </div>
+    </div>
+
+    <div
+      v-else-if="activeTab === 'activity'"
+      id="opsdash-sidebar-pane-activity"
+      class="sb-pane"
+      role="tabpanel"
+      aria-labelledby="opsdash-sidebar-tab-activity"
+    >
+      <div class="section-title-row">
+        <div class="section-title">Activity &amp; Schedule</div>
+        <button type="button" class="info-button" :aria-expanded="helpState.activity" aria-label="Activity &amp; Schedule help"
+                @click="helpState.activity = !helpState.activity">
+          <span>?</span>
+        </button>
+      </div>
+      <p class="section-hint" v-if="helpState.activity">Choose which metrics appear on the Activity &amp; Schedule card.</p>
+      <div class="target-section toggle-grid">
+        <label class="field checkbox toggle-field" v-for="([key, label]) in activityToggles" :key="key">
+          <input type="checkbox"
+                 :checked="activitySettings[key]"
+                 @change="setActivityOption(key, ($event.target as HTMLInputElement).checked)" />
+          <span>{{ label }}</span>
+        </label>
+      </div>
+    </div>
+
+    <div
+      v-else-if="activeTab === 'balance'"
+      id="opsdash-sidebar-pane-balance"
+      class="sb-pane"
+      role="tabpanel"
+      aria-labelledby="opsdash-sidebar-tab-balance"
+    >
+      <div class="section-title-row">
+        <div class="section-title subtitle">Balance Overview</div>
+        <button type="button" class="info-button" :aria-expanded="helpState.balanceThresholds || helpState.balanceTrend || helpState.balanceDisplay"
+                aria-label="Balance Overview help" @click="helpState.balanceThresholds = helpState.balanceTrend = helpState.balanceDisplay = !helpState.balanceThresholds">
+          <span>?</span>
+        </button>
+      </div>
+      <div class="target-section">
+        <div class="section-title-row">
+          <div class="section-subtitle subtitle">Thresholds</div>
+          <button type="button" class="info-button" :aria-expanded="helpState.balanceThresholds" aria-label="Thresholds help"
+                  @click="helpState.balanceThresholds = !helpState.balanceThresholds">
+            <span>?</span>
+          </button>
+        </div>
+        <p class="section-hint" v-if="helpState.balanceThresholds">Set the share/index limits that trigger balance warnings.</p>
+        <div class="field-grid">
+          <label class="field">
+            <span class="label">Notice max share</span>
+            <input type="number" min="0" max="1" step="0.01"
+                   :value="balanceSettings.thresholds.noticeMaxShare"
+                   @input="setBalanceThreshold('noticeMaxShare', ($event.target as HTMLInputElement).value)" />
+          </label>
+          <label class="field">
+            <span class="label">Warn max share</span>
+            <input type="number" min="0" max="1" step="0.01"
+                   :value="balanceSettings.thresholds.warnMaxShare"
+                   @input="setBalanceThreshold('warnMaxShare', ($event.target as HTMLInputElement).value)" />
+          </label>
+          <label class="field">
+            <span class="label">Warn index</span>
+            <input type="number" min="0" max="1" step="0.01"
+                   :value="balanceSettings.thresholds.warnIndex"
+                   @input="setBalanceThreshold('warnIndex', ($event.target as HTMLInputElement).value)" />
+          </label>
+        </div>
+      </div>
+      <div class="target-section">
+        <div class="section-title-row">
+          <div class="section-subtitle subtitle">Trend &amp; Relations</div>
+          <button type="button" class="info-button" :aria-expanded="helpState.balanceTrend" aria-label="Trend help"
+                  @click="helpState.balanceTrend = !helpState.balanceTrend">
+            <span>?</span>
+          </button>
+        </div>
+        <p class="section-hint" v-if="helpState.balanceTrend">Control the comparison window and how ratios are expressed.</p>
+        <div class="field-grid">
+          <label class="field">
+            <span class="label">Relation display</span>
+            <select :value="balanceSettings.relations.displayMode"
+                    @change="setBalanceRelation(($event.target as HTMLSelectElement).value)">
+              <option value="ratio">Ratio (A : B)</option>
+              <option value="factor">Factor (A×)</option>
+            </select>
+          </label>
+          <label class="field">
+            <span class="label">Trend lookback (weeks)</span>
+            <input type="number" min="1" max="12" step="1"
+                   :value="balanceSettings.trend.lookbackWeeks"
+                   @input="setBalanceLookback(($event.target as HTMLInputElement).value)" />
+          </label>
+        </div>
+      </div>
+      <div class="target-section">
+        <div class="section-title-row">
+          <div class="section-subtitle subtitle">Display</div>
+          <button type="button" class="info-button" :aria-expanded="helpState.balanceDisplay" aria-label="Display help"
+                  @click="helpState.balanceDisplay = !helpState.balanceDisplay">
+            <span>?</span>
+          </button>
+        </div>
+        <p class="section-hint" v-if="helpState.balanceDisplay">Toggle optional insights and adjust rounding for the card values.</p>
+        <div class="toggle-grid">
+          <label class="field checkbox toggle-field">
+            <input type="checkbox"
+                   :checked="balanceSettings.ui.showInsights"
+                   @change="setBalanceUiToggle('showInsights', ($event.target as HTMLInputElement).checked)" />
+            <span>Insights</span>
+          </label>
+          <label class="field checkbox toggle-field">
+            <input type="checkbox"
+                   :checked="balanceSettings.ui.showDailyStacks"
+                   @change="setBalanceUiToggle('showDailyStacks', ($event.target as HTMLInputElement).checked)" />
+            <span>Daily mix (experimental)</span>
+          </label>
+        </div>
+        <div class="field-grid mt-8">
+          <label class="field">
+            <span class="label">Percent precision</span>
+            <select :value="balanceSettings.ui.roundPercent"
+                    @change="setBalanceUiPrecision('roundPercent', ($event.target as HTMLSelectElement).value)">
+              <option v-for="n in roundingOptions" :key="`round-percent-${n}`" :value="n">{{ n }}</option>
+            </select>
+          </label>
+          <label class="field">
+            <span class="label">Ratio precision</span>
+            <select :value="balanceSettings.ui.roundRatio"
+                    @change="setBalanceUiPrecision('roundRatio', ($event.target as HTMLSelectElement).value)">
+              <option v-for="n in roundingOptions" :key="`round-ratio-${n}`" :value="n">{{ n }}</option>
+            </select>
+          </label>
+        </div>
+      </div>
+    </div>
+
+    <div
+      v-else-if="activeTab === 'notes'"
+      id="opsdash-sidebar-pane-notes"
+      class="sb-pane"
+      role="tabpanel"
+      aria-labelledby="opsdash-sidebar-tab-notes"
+    >
+      <div class="sb-title">Notes</div>
+      <NotesPanel
+        :previous="notesPrev"
+        :model-value="notesCurrDraft"
+        :prev-label="notesLabelPrev"
+        :curr-label="notesLabelCurr"
+        :prev-title="notesLabelPrevTitle"
+        :curr-title="notesLabelCurrTitle"
+        :saving="isSavingNote"
+        @update:modelValue="(v:string)=> $emit('update:notes', v)"
+        @save="$emit('save-notes')"
+      />
+    </div>
   </NcAppNavigation>
 </template>
 
 <script setup lang="ts">
-import { computed, ref } from 'vue'
+import { computed, ref, reactive } from 'vue'
 import { NcAppNavigation, NcButton, NcCheckboxRadioSwitch } from '@nextcloud/vue'
-import { normalizeTargetsConfig, type TargetsConfig, type TargetsMode } from '../services/targets'
+import { normalizeTargetsConfig, createDefaultActivityCardConfig, createDefaultBalanceConfig, type ActivityCardConfig, type BalanceConfig, type TargetsConfig, type TargetsMode } from '../services/targets'
 import NotesPanel from './NotesPanel.vue'
 
 const props = defineProps<{
@@ -259,19 +570,71 @@ const props = defineProps<{
   notesLabelCurrTitle: string
   isSavingNote: boolean
   targetsConfig: TargetsConfig
+  activeDayMode: 'active' | 'all'
 }>()
 
 const emit = defineEmits([
-  'load','update:range','update:offset','select-all','toggle-calendar','set-group','set-target','update:notes','save-notes','update:targets-config'
+  'load','update:range','update:offset','select-all','toggle-calendar','set-group','set-target','update:notes','save-notes','update:targets-config','update:active-mode'
 ])
 
-const activeTab = ref<'calendars'|'targets'>('calendars')
+const activeTab = ref<'calendars'|'targets'|'summary'|'activity'|'balance'|'notes'>('calendars')
 
 type TargetsPreset = 'work-week'|'balanced-life'
 
 const targets = computed(() => props.targetsConfig)
 const categoryOptions = computed(() => targets.value?.categories ?? [])
 const canAddCategory = computed(() => nextGroupId() !== null)
+const summaryOptions = computed(() => targets.value?.timeSummary ?? {
+  showTotal: true,
+  showAverage: true,
+  showMedian: true,
+  showBusiest: true,
+  showWorkday: true,
+  showWeekend: true,
+  showWeekendShare: true,
+  showCalendarSummary: true,
+  showTopCategory: true,
+  showBalance: true,
+})
+
+const activitySettings = computed<ActivityCardConfig>(() => {
+  return { ...createDefaultActivityCardConfig(), ...(targets.value?.activityCard ?? {}) }
+})
+
+const activityLabels: Record<keyof ActivityCardConfig, string> = {
+  showWeekendShare: 'Weekend share',
+  showEveningShare: 'Evening share',
+  showEarliestLatest: 'Earliest/Late times',
+  showOverlaps: 'Overlaps',
+  showLongestSession: 'Longest session',
+  showLastDayOff: 'Last day off',
+  showHint: 'Show mapping hint',
+}
+
+const activityToggles = computed(() => Object.entries(activityLabels) as Array<[keyof ActivityCardConfig, string]>)
+
+const balanceSettings = computed<BalanceConfig>(() => {
+  const base = createDefaultBalanceConfig()
+  const cfg = targets.value?.balance ?? base
+  return {
+    ...base,
+    ...cfg,
+    thresholds: { ...base.thresholds, ...(cfg.thresholds ?? {}) },
+    relations: { ...base.relations, ...(cfg.relations ?? {}) },
+    trend: { ...base.trend, ...(cfg.trend ?? {}) },
+    dayparts: { ...base.dayparts, ...(cfg.dayparts ?? {}) },
+    ui: { ...base.ui, ...(cfg.ui ?? {}) },
+  }
+})
+
+const roundingOptions = [0, 1, 2, 3]
+
+const helpState = reactive({
+  activity: false,
+  balanceThresholds: false,
+  balanceTrend: false,
+  balanceDisplay: false,
+})
 
 function nextGroupId(): number | null {
   const used = new Set<number>()
@@ -364,6 +727,34 @@ function setCategoryWeekend(id: string, checked: boolean){
   updateCategory(id, cat => { cat.includeWeekend = checked })
 }
 
+function emitActiveMode(mode: 'active' | 'all'){
+  if (props.activeDayMode === mode) return
+  emit('update:active-mode', mode)
+}
+
+function setSummaryOption(key: keyof TargetsConfig['timeSummary'], checked: boolean){
+  updateConfig(cfg => {
+    if (!cfg.timeSummary) {
+      cfg.timeSummary = JSON.parse(JSON.stringify(summaryOptions.value))
+    }
+    cfg.timeSummary[key] = checked
+  })
+}
+
+function setActivityOption(key: keyof ActivityCardConfig, checked: boolean){
+  updateConfig(cfg => {
+    if (!cfg.activityCard) {
+      cfg.activityCard = createDefaultActivityCardConfig()
+    }
+    cfg.activityCard[key] = checked
+  })
+}
+
+function setCategoryPaceMode(id: string, mode: string){
+  if (mode !== 'days_only' && mode !== 'time_aware') return
+  updateCategory(id, cat => { cat.paceMode = mode as TargetsMode })
+}
+
 function setIncludeWeekendTotal(checked: boolean){
   updateConfig(cfg => { cfg.pace.includeWeekendTotal = checked })
 }
@@ -376,6 +767,57 @@ function setPaceMode(mode: string){
 function setThreshold(which: 'onTrack'|'atRisk', value: string){
   const num = clampNumber(value, -100, 100, 0.1)
   updateConfig(cfg => { cfg.pace.thresholds[which] = num })
+}
+
+function setBalanceThreshold(which: 'noticeMaxShare' | 'warnMaxShare' | 'warnIndex', value: string){
+  const num = clampNumber(value, 0, 1, 0.01)
+  updateConfig(cfg => {
+    cfg.balance.thresholds[which] = Number(num.toFixed(2))
+  })
+}
+
+function setBalanceRelation(mode: string){
+  const resolved = mode === 'factor' ? 'factor' : 'ratio'
+  updateConfig(cfg => {
+    cfg.balance.relations.displayMode = resolved
+  })
+}
+
+function setBalanceLookback(value: string){
+  let num = Number(value)
+  if (!Number.isFinite(num)) num = balanceSettings.value.trend.lookbackWeeks
+  num = Math.round(num)
+  num = Math.max(1, Math.min(12, num))
+  updateConfig(cfg => {
+    cfg.balance.trend.lookbackWeeks = num
+  })
+}
+
+function setBalanceUiToggle(key: 'showInsights' | 'showDailyStacks', checked: boolean){
+  updateConfig(cfg => {
+    cfg.balance.ui[key] = checked
+  })
+}
+
+function setBalanceUiPrecision(key: 'roundPercent' | 'roundRatio', value: string){
+  let num = Number(value)
+  if (!Number.isFinite(num)) num = balanceSettings.value.ui[key]
+  num = Math.max(0, Math.min(3, Math.round(num)))
+  updateConfig(cfg => {
+    cfg.balance.ui[key] = num
+  })
+}
+
+function setForecastMethod(value: string){
+  const method = value === 'momentum' ? 'momentum' : 'linear'
+  updateConfig(cfg => { cfg.forecast.methodPrimary = method })
+}
+
+function setForecastMomentum(value: string){
+  const raw = Number(value)
+  const n = Number.isFinite(raw) ? Math.round(raw) : targets.value.forecast.momentumLastNDays
+  const clamped = Math.min(14, Math.max(1, n))
+  updateConfig(cfg => { cfg.forecast.momentumLastNDays = clamped })
 }
 
 function setForecastPadding(value: string){
@@ -407,6 +849,8 @@ function applyPreset(preset: TargetsPreset){
       cfg.forecast.momentumLastNDays = 2
       cfg.forecast.padding = 1.5
       cfg.includeZeroDaysInStats = false
+      cfg.ui.showCalendarCharts = true
+      cfg.ui.showCategoryCharts = true
     } else if (preset === 'balanced-life'){
       cfg.totalHours = 48
       cfg.categories = [
@@ -421,6 +865,8 @@ function applyPreset(preset: TargetsPreset){
       cfg.forecast.momentumLastNDays = 2
       cfg.forecast.padding = 1.5
       cfg.includeZeroDaysInStats = false
+      cfg.ui.showCalendarCharts = true
+      cfg.ui.showCategoryCharts = true
     }
   })
 }

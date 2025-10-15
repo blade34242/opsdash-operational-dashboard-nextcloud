@@ -10,8 +10,8 @@ Living backlog for hardening and extending the Operational Dashboard.
 
 ## P0 — Confidence & Maintenance
 - Add Vitest coverage around `buildTargetsSummary`, `computePaceInfo`, and sidebar tab state.
-- Document curl flows for `/dashboard/persist` and `/dashboard/notes` (with CSRF header examples).
-- Remove the legacy `/dashboard/save` endpoint once consumers confirm the `/persist` JSON shape.
+- Document curl flows for `/config_dashboard/persist` and `/config_dashboard/notes` (with CSRF header examples).
+- Remove the legacy `/config_dashboard/save` endpoint once consumers confirm the `/persist` JSON shape.
 
 ## P1 — Frontend Structure
 - Extract remaining logic from `App.vue` into composables (`useStats`, `useTargets`, `useCharts`).
