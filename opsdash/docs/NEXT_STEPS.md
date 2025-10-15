@@ -22,6 +22,7 @@ Living backlog for hardening and extending the Operational Dashboard.
 - Optionally buffer `load` responses with `OCP\ICacheFactory` (keyed by user + range + selection, TTL ≈ 60 s).
 - Normalize heatmap bucketing to the user’s timezone (see `docs/KNOWN_ISSUES.md`).
 - Profile aggregation paths and break out larger routines into services for targeted optimization.
+- Rework seeding scripts to create realistic mixed-day schedules (08:00–19:00 focus with occasional evening events, category-aware tagging, varied weekday/weekend density).
 
 ## P3 — UX & Platform
 - Integrate Nextcloud l10n to prepare UI strings for translation.
