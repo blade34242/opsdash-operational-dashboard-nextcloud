@@ -11,7 +11,7 @@ Living backlog for hardening and extending the Operational Dashboard.
 ## Execution Order (Lean + Tested)
 1. Lock requirements for onboarding, targets, theming (answer open questions) — ✅ decisions captured in `docs/ONBOARDING_WORKFLOW.md` and `docs/LIGHT_DARK_THEMING.md` (2025-03).
 2. Establish testing infrastructure (PHPUnit + Vitest) and add baseline coverage.
-3. Implement shared validation helpers with inline feedback — ✅ numeric validation helper extracted (2025-10); next: surface structured 400 responses.
+3. Implement shared validation helpers with inline feedback — ✅ numeric validation helper extracted (2025-10); structured 400 responses + full localisation wiring (2025-11).
 4. Execute architecture refactor (split App/Sidebar/targets/services) — 🔄 `App.vue` trimmed; sidebar panes/composables in place; continue carving persistence.
 5. Build onboarding wizard + strategy profiles.
 6. Roll out theming, collapsed controls, keyboard shortcuts overlay.
@@ -23,7 +23,7 @@ Living backlog for hardening and extending the Operational Dashboard.
 - Add Vitest coverage around `buildTargetsSummary`, `computePaceInfo`, sidebar/balance tabs, and chart helpers. — ✅ covered (2025-03); expand to chart rendering + keyboard shortcuts in upcoming work.
 - Document curl flows for `/config_dashboard/persist` and `/config_dashboard/notes` (with CSRF header examples). — ✅ exemples added (2025-03).
 - Remove the legacy `/config_dashboard/save` endpoint once consumers confirm the `/persist` JSON shape. — ✅ removed in favour of `/persist` (2025-03).
-- Establish shared client/server validation helpers and inline feedback per `docs/INPUT_VALIDATION_PLAN.md`. — ✅ numeric inputs funnel through shared helpers on client/server (2025-03); next focus: structured 400 responses + localization.
+- Establish shared client/server validation helpers and inline feedback per `docs/INPUT_VALIDATION_PLAN.md`. — ✅ numeric inputs funnel through shared helpers on client/server (2025-03); structured 400 responses + localisation delivered (2025-11); keep translation files updated alongside feature work.
 - Implement unified testing strategy (`docs/TESTING_STRATEGY.md`): add PHPUnit service/controller tests and Vitest component/composable coverage. — ✅ baseline suites for validators, controller sanitisation, dashboard tabs/pacing/charts now in place; plan coverage for keyboard shortcuts & charts in render mode.
 
 ## P1 — Frontend Structure
@@ -41,7 +41,7 @@ Living backlog for hardening and extending the Operational Dashboard.
 - Rework seeding scripts to create realistic mixed-day schedules (08:00–19:00 focus with occasional evening events, category-aware tagging, varied weekday/weekend density).
 
 ## P3 — UX & Platform
-- Integrate Nextcloud l10n to prepare UI strings for translation.
+- Maintain Nextcloud l10n coverage for new UI strings; keep translation files in sync with feature work.
 - Run an accessibility sweep: keyboard navigation in the sidebar, contrast on status chips, aria annotations for charts.
 - Improve error UX for CalDAV color discovery (non-blocking toast/banner when DAV fails).
 - Roll out light/dark theming in phases as outlined in `docs/LIGHT_DARK_THEMING.md`,

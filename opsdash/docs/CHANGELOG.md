@@ -8,6 +8,7 @@ All notable changes to this project are documented here. This file is served loc
 - Refactor: wrapped notes handling in `SidebarNotesPane` for parity with other panes.
 - Tests: added Vitest coverage for charts and the new sidebar panes to lock down emitted events/validation.
 - Docs: refreshed architecture and refactor plans to reflect the composable-driven structure; bumped default prompts and testing docs.
+- Localisation: routed server/SPA strings through Nextcloud l10n helpers; translation files cover all current UI copy (en,de).
 
 ## [0.4.2] - 2025-10-12 (NC 30–31 line)
 - UI: Sidebar dock with persistent open/close state; main content spans full width when collapsed.

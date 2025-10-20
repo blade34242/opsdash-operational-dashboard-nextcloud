@@ -59,7 +59,7 @@ isn’t consistent, provides little feedback, and makes it hard to extend forms.
    - Coordinate with onboarding and theming timelines so validation changes
      land before or alongside new forms.
    - Kick off with shared validator skeletons (TS + PHP) wired into at least one sidebar input to unblock incremental adoption.
-   - Status (2025-10): Sidebar numeric inputs run through the shared validator + `sidebar/validation.ts`; controller sanitisation mirrors the same constraints. Next step: surface structured 400 responses and localise user-facing messages.
+   - Status (2025-11): Sidebar numeric inputs run through the shared validator + `sidebar/validation.ts`; controller sanitisation mirrors the same constraints. Structured 400 responses and client toasts/tooltips use Nextcloud l10n; keep locale files updated as new inputs ship.
 
 ## Open Questions
 - Provide localisation for error messages out of the box?

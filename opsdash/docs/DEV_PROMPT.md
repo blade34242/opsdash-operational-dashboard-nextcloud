@@ -19,6 +19,7 @@ Always do after code changes:
 Day-to-day reminders:
 - Persist selection solely via `/config_dashboard/persist`; `/save` was removed.
 - Reuse existing composables/helpers (dashboard/notes/categories/summaries/balance + sidebar validation) instead of adding new state inside `App.vue` or panes.
+- Reuse `services/i18n.ts` (`t`, `n`) for any new user-facing strings so localisation stays complete.
 - Use `BASE=http://localhost:8088 USER=admin PASS=admin ./tools/seed_opsdash_demo.sh` to seed demo data.
 - Record runtime errors (Vue console) in docs if you hit them, and keep `docs/NEXT_STEPS.md` updated.
 - Notes and dashboard loads are async; allow for DAV color fallback when testing calendar palette issues.
