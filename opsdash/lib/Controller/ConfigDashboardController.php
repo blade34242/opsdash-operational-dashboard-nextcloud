@@ -14,6 +14,8 @@ use OCP\IUserSession;
 use OCP\IConfig;
 use OCP\Calendar\IManager;
 use Psr\Log\LoggerInterface;
+use OCA\Opsdash\Service\Validation\NumberConstraints;
+use OCA\Opsdash\Service\Validation\NumberValidator;
 
 use DateInterval;
 use DateTimeImmutable;
@@ -929,59 +931,6 @@ final class ConfigDashboardController extends Controller {
     }
 
     #[NoAdminRequired]
-    public function save(): DataResponse {
-        $uid = (string)($this->userSession->getUser()?->getUID() ?? '');
-        if ($uid === '') return new DataResponse(['message' => 'unauthorized'], Http::STATUS_UNAUTHORIZED);
-
-        $method = strtoupper((string)($_SERVER['REQUEST_METHOD'] ?? 'GET'));
-        if ($method !== 'POST') {
-            return new DataResponse(['message' => 'method not allowed'], Http::STATUS_METHOD_NOT_ALLOWED);
-        }
-        $raw  = file_get_contents('php://input') ?: '';
-        $tmp  = json_decode($raw, true);
-        if (!is_array($tmp)) return new DataResponse(['message' => 'invalid json'], Http::STATUS_BAD_REQUEST);
-        $data = $tmp;
-
-        $original = $data['cals'] ?? [];
-        if (is_string($original)) {
-            $original = array_values(array_filter(array_map(fn($x)=>substr((string)$x,0,128), explode(',', $original)), fn($x)=>$x!==''));
-        }
-        $cals = is_array($original) ? $original : [];
-        $cals = array_values(array_unique(array_filter(array_map(fn($x)=>substr((string)$x,0,128), $cals), fn($x)=>$x!=='')));
-        // Intersect with user's calendars
-        $allowedIds = [];
-        foreach ($this->getCalendarsFor($uid) as $cal) { $allowedIds[] = (string)($cal->getUri() ?? spl_object_id($cal)); }
-        $allowedSet = array_flip($allowedIds);
-        $filtered = array_values(array_filter($cals, fn($id)=>isset($allowedSet[$id])));
-        $rejected = array_values(array_diff($cals, $filtered));
-        if (!empty($rejected) && $this->isDebugEnabled()) {
-            $this->logger->debug('save selection filtered ids', ['app'=>$this->appName, 'rejected'=>$rejected]);
-        }
-        $cals = $filtered;
-
-        // Optionally save calendar groups mapping if provided
-        if (isset($data['groups']) && is_array($data['groups'])) {
-            $gclean = [];
-            foreach ($data['groups'] as $k=>$v) {
-                $id = substr((string)$k, 0, 128);
-                if (!isset($allowedSet[$id])) continue;
-                $n = (int)$v; if ($n < 0) $n = 0; if ($n > 9) $n = 9;
-                $gclean[$id] = $n;
-            }
-            try { $this->config->setUserValue($uid, $this->appName, 'cal_groups', json_encode($gclean)); }
-            catch (\Throwable $e) { $this->logger->error('save groups failed: '.$e->getMessage(), ['app'=>$this->appName]); }
-        }
-
-        try {
-            $this->config->setUserValue($uid, $this->appName, 'selected_cals', implode(',', $cals));
-            return new DataResponse(['ok'=>true, 'saved'=>$cals], Http::STATUS_OK);
-        } catch (\Throwable $e) {
-            $this->logger->error('save prefs failed: '.$e->getMessage(), ['app'=>$this->appName]);
-            return new DataResponse(['message'=>'error'], Http::STATUS_INTERNAL_SERVER_ERROR);
-        }
-    }
-
-    #[NoAdminRequired]
     public function persist(): DataResponse {
         $uid = (string)($this->userSession->getUser()?->getUID() ?? '');
         if ($uid === '') return new DataResponse(['message' => 'unauthorized'], Http::STATUS_UNAUTHORIZED);
@@ -1416,7 +1365,11 @@ final class ConfigDashboardController extends Controller {
         $out = $base;
 
         if (isset($cfg['totalHours'])) {
-            $out['totalHours'] = round($this->clampFloat((float)$cfg['totalHours'], 0, self::MAX_TARGET_HOURS), 2);
+            $out['totalHours'] = $this->sanitizeNumberOrDefault(
+                $cfg['totalHours'],
+                new NumberConstraints(0.0, self::MAX_TARGET_HOURS, 0.5, 2),
+                $out['totalHours']
+            );
         }
 
         if (isset($cfg['categories']) && is_array($cfg['categories'])) {
@@ -1431,14 +1384,23 @@ final class ConfigDashboardController extends Controller {
                 if ($label === '') {
                     $label = ucfirst($id);
                 }
-                $target = round($this->clampFloat((float)($cat['targetHours'] ?? 0), 0, self::MAX_TARGET_HOURS), 2);
+                $target = $this->sanitizeNumberOrDefault(
+                    $cat['targetHours'] ?? null,
+                    new NumberConstraints(0.0, self::MAX_TARGET_HOURS, 0.5, 2),
+                    0.0
+                );
                 $includeWeekend = !empty($cat['includeWeekend']);
                 $paceMode = ((string)($cat['paceMode'] ?? '') === 'time_aware') ? 'time_aware' : 'days_only';
                 $groupIds = [];
                 if (isset($cat['groupIds']) && is_array($cat['groupIds'])) {
                     foreach ($cat['groupIds'] as $gid) {
+                        if (!is_numeric($gid)) {
+                            continue;
+                        }
                         $n = (int)$gid;
-                        if ($n < 0 || $n > self::MAX_GROUP) continue;
+                        if ($n < 0 || $n > self::MAX_GROUP) {
+                            continue;
+                        }
                         if (!in_array($n, $groupIds, true)) {
                             $groupIds[] = $n;
                         }
@@ -1470,10 +1432,18 @@ final class ConfigDashboardController extends Controller {
             if (isset($pace['thresholds']) && is_array($pace['thresholds'])) {
                 $thr = $pace['thresholds'];
                 if (isset($thr['onTrack'])) {
-                    $out['pace']['thresholds']['onTrack'] = round($this->clampFloat((float)$thr['onTrack'], -100, 100), 2);
+                    $out['pace']['thresholds']['onTrack'] = $this->sanitizeNumberOrDefault(
+                        $thr['onTrack'],
+                        new NumberConstraints(-100.0, 100.0, 0.1, 1),
+                        $out['pace']['thresholds']['onTrack']
+                    );
                 }
                 if (isset($thr['atRisk'])) {
-                    $out['pace']['thresholds']['atRisk'] = round($this->clampFloat((float)$thr['atRisk'], -100, 100), 2);
+                    $out['pace']['thresholds']['atRisk'] = $this->sanitizeNumberOrDefault(
+                        $thr['atRisk'],
+                        new NumberConstraints(-100.0, 100.0, 0.1, 1),
+                        $out['pace']['thresholds']['atRisk']
+                    );
                 }
             }
         }
@@ -1482,12 +1452,19 @@ final class ConfigDashboardController extends Controller {
             $forecast = $cfg['forecast'];
             $out['forecast']['methodPrimary'] = (isset($forecast['methodPrimary']) && (string)$forecast['methodPrimary'] === 'momentum') ? 'momentum' : 'linear';
             if (isset($forecast['momentumLastNDays'])) {
-                $n = (int)$forecast['momentumLastNDays'];
-                if ($n < 1) $n = 1; if ($n > 14) $n = 14;
-                $out['forecast']['momentumLastNDays'] = $n;
+                $mom = $this->sanitizeNumberOrDefault(
+                    $forecast['momentumLastNDays'],
+                    new NumberConstraints(1.0, 14.0, 1.0, 0),
+                    (float)$out['forecast']['momentumLastNDays']
+                );
+                $out['forecast']['momentumLastNDays'] = (int)round($mom);
             }
             if (isset($forecast['padding'])) {
-                $out['forecast']['padding'] = round($this->clampFloat((float)$forecast['padding'], 0, 100), 2);
+                $out['forecast']['padding'] = $this->sanitizeNumberOrDefault(
+                    $forecast['padding'],
+                    new NumberConstraints(0.0, 100.0, 0.1, 1),
+                    $out['forecast']['padding']
+                );
             }
         }
 
@@ -1577,13 +1554,25 @@ final class ConfigDashboardController extends Controller {
         if (isset($cfg['thresholds']) && is_array($cfg['thresholds'])) {
             $thr = $cfg['thresholds'];
             if (isset($thr['noticeMaxShare'])) {
-                $result['thresholds']['noticeMaxShare'] = round($this->clampFloat((float)$thr['noticeMaxShare'], 0.0, 1.0), 2);
+                $result['thresholds']['noticeMaxShare'] = $this->sanitizeNumberOrDefault(
+                    $thr['noticeMaxShare'],
+                    new NumberConstraints(0.0, 1.0, 0.01, 2),
+                    $result['thresholds']['noticeMaxShare']
+                );
             }
             if (isset($thr['warnMaxShare'])) {
-                $result['thresholds']['warnMaxShare'] = round($this->clampFloat((float)$thr['warnMaxShare'], 0.0, 1.0), 2);
+                $result['thresholds']['warnMaxShare'] = $this->sanitizeNumberOrDefault(
+                    $thr['warnMaxShare'],
+                    new NumberConstraints(0.0, 1.0, 0.01, 2),
+                    $result['thresholds']['warnMaxShare']
+                );
             }
             if (isset($thr['warnIndex'])) {
-                $result['thresholds']['warnIndex'] = round($this->clampFloat((float)$thr['warnIndex'], 0.0, 1.0), 2);
+                $result['thresholds']['warnIndex'] = $this->sanitizeNumberOrDefault(
+                    $thr['warnIndex'],
+                    new NumberConstraints(0.0, 1.0, 0.01, 2),
+                    $result['thresholds']['warnIndex']
+                );
             }
         }
 
@@ -1591,10 +1580,12 @@ final class ConfigDashboardController extends Controller {
         $result['relations']['displayMode'] = $displayMode === 'factor' ? 'factor' : 'ratio';
 
         if (isset($cfg['trend']) && is_array($cfg['trend'])) {
-            $lookback = (int)($cfg['trend']['lookbackWeeks'] ?? $base['trend']['lookbackWeeks']);
-            if ($lookback < 1) $lookback = 1;
-            if ($lookback > 12) $lookback = 12;
-            $result['trend']['lookbackWeeks'] = $lookback;
+            $lookback = $this->sanitizeNumberOrDefault(
+                $cfg['trend']['lookbackWeeks'] ?? null,
+                new NumberConstraints(1.0, 12.0, 1.0, 0),
+                (float)$result['trend']['lookbackWeeks']
+            );
+            $result['trend']['lookbackWeeks'] = (int)round($lookback);
         }
 
         if (isset($cfg['dayparts']) && is_array($cfg['dayparts'])) {
@@ -1603,16 +1594,20 @@ final class ConfigDashboardController extends Controller {
 
         if (isset($cfg['ui']) && is_array($cfg['ui'])) {
             if (isset($cfg['ui']['roundPercent'])) {
-                $rp = (int)$cfg['ui']['roundPercent'];
-                if ($rp < 0) $rp = 0;
-                if ($rp > 3) $rp = 3;
-                $result['ui']['roundPercent'] = $rp;
+                $rp = $this->sanitizeNumberOrDefault(
+                    $cfg['ui']['roundPercent'],
+                    new NumberConstraints(0.0, 3.0, 1.0, 0),
+                    (float)$result['ui']['roundPercent']
+                );
+                $result['ui']['roundPercent'] = (int)round($rp);
             }
             if (isset($cfg['ui']['roundRatio'])) {
-                $rr = (int)$cfg['ui']['roundRatio'];
-                if ($rr < 0) $rr = 0;
-                if ($rr > 3) $rr = 3;
-                $result['ui']['roundRatio'] = $rr;
+                $rr = $this->sanitizeNumberOrDefault(
+                    $cfg['ui']['roundRatio'],
+                    new NumberConstraints(0.0, 3.0, 1.0, 0),
+                    (float)$result['ui']['roundRatio']
+                );
+                $result['ui']['roundRatio'] = (int)round($rr);
             }
             if (array_key_exists('showDailyStacks', $cfg['ui'])) {
                 $result['ui']['showDailyStacks'] = !empty($cfg['ui']['showDailyStacks']);
@@ -1635,14 +1630,27 @@ final class ConfigDashboardController extends Controller {
     }
 
     // ---- Validation helpers ----
+    private function sanitizeNumberOrDefault(mixed $value, NumberConstraints $constraints, float $default): float {
+        $result = NumberValidator::validate($value, $constraints);
+        if ($result->hasErrors()) {
+            return $default;
+        }
+        $sanitized = $result->getValue();
+        return $sanitized === null ? $default : $sanitized;
+    }
+
     /** @param array<string,mixed> $src @param array<string,int> $allowedSet */
     private function cleanTargets(array $src, array $allowedSet): array {
+        $constraints = new NumberConstraints(0.0, self::MAX_TARGET_HOURS, 0.25);
         $out = [];
         foreach ($src as $k=>$v) {
             $id = substr((string)$k, 0, 128);
             if (!isset($allowedSet[$id])) continue;
-            $n = (float)$v; if (!is_finite($n)) continue; if ($n < 0) $n = 0; if ($n > self::MAX_TARGET_HOURS) $n = self::MAX_TARGET_HOURS;
-            $out[$id] = $n;
+            $result = NumberValidator::validate($v, $constraints);
+            if ($result->hasErrors()) continue;
+            $value = $result->getValue();
+            if ($value === null) continue;
+            $out[$id] = $value;
         }
         return $out;
     }
@@ -1652,10 +1660,16 @@ final class ConfigDashboardController extends Controller {
         foreach ($src as $k=>$v) {
             $id = substr((string)$k, 0, 128);
             if (!isset($allowedSet[$id])) continue;
-            $n = (int)$v; if ($n < 0) $n = 0; if ($n > self::MAX_GROUP) $n = self::MAX_GROUP;
+            if (!is_numeric($v)) continue;
+            $n = (int)$v;
+            if ($n < 0 || $n > self::MAX_GROUP) continue;
             $out[$id] = $n;
         }
-        foreach ($allIds as $id) { if (!isset($out[$id])) $out[$id] = 0; }
+        foreach ($allIds as $id) {
+            if (!isset($out[$id])) {
+                $out[$id] = 0;
+            }
+        }
         return $out;
     }
 }

@@ -51,6 +51,15 @@ Examples:
 - `BASE=http://localhost:8090 USER=admin PASS=admin ./tools/seed_month_multi.sh`
 - `BASE=http://localhost:8090 USER=admin PASS=admin CAL_COUNT=10 PREFIX=seed-cal TOTAL=250 ./tools/seed_month_multi.sh`
 
+## Realistic Demo Dataset (recommended)
+- Script: `tools/seed_opsdash_demo.sh`
+- Creates six calendars (deep work, meetings, personal, recovery, sport, learning) with a realistic weekday/weekend mix.
+- Seeds four consecutive weeks starting from the current week; events include evening/recovery slots for dashboard balance testing.
+
+Examples:
+- `BASE=http://localhost:8088 USER=admin PASS=admin ./tools/seed_opsdash_demo.sh`
+- Override week count: `BASE=http://localhost:8088 USER=admin PASS=admin WEEKS=6 ./tools/seed_opsdash_demo.sh`
+
 ## Verify Data
 - Calendar UI: `BASE/index.php/apps/calendar/`
 - Dashboard API:

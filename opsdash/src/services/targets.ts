@@ -202,6 +202,32 @@ export function createDefaultActivityCardConfig(): ActivityCardConfig {
 
 const DAY_MS = 24 * 60 * 60 * 1000
 
+export function clampTarget(value: number): number {
+  const num = Number(value)
+  if (!Number.isFinite(num)) return 0
+  const clamped = Math.min(10000, Math.max(0, num))
+  return Number(clamped.toFixed(2))
+}
+
+export function convertWeekToMonth(value: number): number {
+  return clampTarget(Number(value) * 4)
+}
+
+export function convertMonthToWeek(value: number): number {
+  return clampTarget(Number(value) / 4)
+}
+
+export function progressPercent(actual: number, target: number): number {
+  const tgt = Number(target)
+  if (!Number.isFinite(tgt) || tgt <= 0) return 0
+  const act = Number(actual)
+  if (!Number.isFinite(act)) return 0
+  const ratio = (act / tgt) * 100
+  if (!Number.isFinite(ratio)) return 0
+  const bounded = Math.max(0, Math.min(100, ratio))
+  return Math.round(bounded * 100) / 100
+}
+
 export function createDefaultTargetsConfig(): TargetsConfig {
   return {
     totalHours: 48,
@@ -245,6 +271,10 @@ export function createDefaultTargetsConfig(): TargetsConfig {
     balance: createDefaultBalanceConfig(),
     includeZeroDaysInStats: false,
   }
+}
+
+export function cloneTargetsConfig(config: TargetsConfig): TargetsConfig {
+  return JSON.parse(JSON.stringify(normalizeTargetsConfig(config)))
 }
 
 export function buildTargetsSummary(input: BuildTargetsSummaryInput): TargetsSummary {
@@ -555,14 +585,14 @@ function statusLabel(status: TargetsProgress['status']): string {
   }
 }
 
-interface PaceInfo {
+export interface PaceInfo {
   totalEligible: number
   elapsedEligible: number
   daysLeft: number
   calendarPercent: number
 }
 
-function computePaceInfo(opts: {
+export function computePaceInfo(opts: {
   includeWeekend: boolean
   mode: TargetsMode
   includeZeroDays: boolean

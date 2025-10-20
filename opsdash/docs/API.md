@@ -38,16 +38,24 @@ Base path: `/apps/opsdash`
 - CSRF: required (`window.oc_requesttoken`)
 - Response: `{ ok, saved, read, groups_saved?, groups_read?, targets_week_saved?, targets_week_read?, targets_month_saved?, targets_month_read? }`
 
+Example (replace cookie + token with values from your browser session):
+```bash
+BASE="http://localhost:8088"
+TOKEN="OcQ7.../Aa=="                 # from window.oc_requesttoken
+COOKIES="oc_sessionPassphrase=k...; oc8abcd123ef=2...; NC_CSRF_TOKEN=$TOKEN"
+
+curl -sS "${BASE}/index.php/apps/opsdash/config_dashboard/persist" \
+  -X POST \
+  -H "Content-Type: application/json" \
+  -H "requesttoken: ${TOKEN}" \
+  -H "Cookie: ${COOKIES}" \
+  -d '{"cals":["cal-1","cal-2"],"targets_week":{"cal-1":24,"cal-2":12}}' | jq
+```
+
 Validation
 - `cals`: intersected with user’s calendars; unknown ids ignored.
 - `groups`: per-calendar 0..9; missing ids default to 0 (the UI sets these automatically when a category is chosen).
 - `targets_*`: per-calendar hours clamped to [0..10000], decimals allowed; unknown ids ignored.
-
-## Save Selection (legacy)
-- Method: POST `/config_dashboard/save`
-- Body: JSON `{ cals: string[]; groups?: Record<string,number> }`
-- CSRF: required
-- Response: `{ ok, saved }`
 
 ## Notes (read)
 - Method: GET `/config_dashboard/notes`
@@ -59,6 +67,20 @@ Validation
 - Body: `{ range: 'week'|'month', offset: number, content: string }` (max 32k)
 - CSRF: required
 - Response: `{ ok: true }`
+
+Example:
+```bash
+BASE="http://localhost:8088"
+TOKEN="OcQ7.../Aa=="
+COOKIES="oc_sessionPassphrase=k...; oc8abcd123ef=2...; NC_CSRF_TOKEN=$TOKEN"
+
+curl -sS "${BASE}/index.php/apps/opsdash/config_dashboard/notes" \
+  -X POST \
+  -H "Content-Type: application/json" \
+  -H "requesttoken: ${TOKEN}" \
+  -H "Cookie: ${COOKIES}" \
+  -d '{"range":"week","offset":0,"content":"Updated via curl ✔"}' | jq
+```
 
 ## Ping (health)
 - Method: GET `/config_dashboard/ping`

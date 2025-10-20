@@ -2,6 +2,13 @@
 
 All notable changes to this project are documented here. This file is served locally for development.
 
+## [0.4.3] - 2025-10-30 (NC 30–31 line)
+- Refactor: split the sidebar into dedicated pane components (calendars, targets, summary, activity, balance, notes) to keep the parent shell lean.
+- Refactor: extracted shared composables (`useCategories`, `useCharts`, `useSummaries`, `useBalance`) and a reusable validation helper so panes share mutations.
+- Refactor: wrapped notes handling in `SidebarNotesPane` for parity with other panes.
+- Tests: added Vitest coverage for charts and the new sidebar panes to lock down emitted events/validation.
+- Docs: refreshed architecture and refactor plans to reflect the composable-driven structure; bumped default prompts and testing docs.
+
 ## [0.4.2] - 2025-10-12 (NC 30–31 line)
 - UI: Sidebar dock with persistent open/close state; main content spans full width when collapsed.
 - UI: Sidebar calendars/targets split into tabs; each pane scrolls independently.

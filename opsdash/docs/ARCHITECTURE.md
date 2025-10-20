@@ -24,7 +24,7 @@ This app provides a Calendar Dashboard for Nextcloud. It consists of:
 
 ## Backend Modules
 
-- Controller/ConfigDashboardController.php: endpoints `index`, `load`, `save`, `persist`, `notes`, `notesSave`.
+- Controller/ConfigDashboardController.php: endpoints `index`, `load`, `persist`, `notes`, `notesSave`.
 - No admin settings; no usage metrics are collected.
 
 Guiding principles:
@@ -37,7 +37,11 @@ Guiding principles:
 - `src/App.vue`: hosts the content area, wires data to the docked sidebar and summary cards.
 - `src/main.ts`: bootstraps the app.
 - `src/components/SidebarDock.vue`: dockable container that persists open/close state and manages the global padding when the sidebar is hidden.
-- `src/components/Sidebar.vue`: calendar selection, per-calendar targets, notes, and the targets configuration UI (categories, pacing, forecast, display).
+- `src/components/Sidebar.vue`: orchestrates the sidebar shell and delegates to pane components under `src/components/sidebar/` (calendars, targets, summary, activity, balance, notes).
+- `composables/useNotes.ts`: encapsulates period-aware notes fetch/persist (range, offset, CSRF wiring).
+- `composables/useDashboard.ts`: centralises dashboard load (calendars, stats, targets, DAV color reconciliation) while persistence still originates in `App.vue`.
+- `composables/useCategories.ts`, `useCharts.ts`, `useSummaries.ts`, `useBalance.ts`: share mapping, chart shaping, summary math, and balance transformations across panes and cards.
+- `src/components/sidebar/validation.ts`: shared numeric validation helper used by pane mutations and tests.
 - `src/components/TimeSummaryCard.vue` / `TimeTargetsCard.vue`: summary cards rendered in the main panel.
 - `src/components/By*` + chart components: tables and charts rendered inside the tab panels.
 - `src/services/targets.ts`: shared calculator for total/category progress, pace, and forecasts.
