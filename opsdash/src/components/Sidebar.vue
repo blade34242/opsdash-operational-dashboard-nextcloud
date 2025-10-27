@@ -196,9 +196,12 @@
       v-else-if="activeTab === 'activity'"
       :activity-settings="activitySettings"
       :activity-toggles="activityToggles"
+      :forecast-mode="activitySettings.forecastMode"
+      :forecast-options="activityForecastOptions"
       :help-open="helpState.activity"
       @toggle-help="toggleActivityHelp"
       @toggle-option="handleActivityOption"
+      @update-forecast-mode="setActivityForecastMode"
     />
 
     <SidebarBalancePane
@@ -322,7 +325,9 @@ const activitySettings = computed<ActivityCardConfig>(() => {
   return { ...createDefaultActivityCardConfig(), ...(targets.value?.activityCard ?? {}) }
 })
 
-const activityLabels: Record<keyof ActivityCardConfig, string> = {
+type ActivityToggleKey = Exclude<keyof ActivityCardConfig, 'forecastMode'>
+
+const activityLabels: Record<ActivityToggleKey, string> = {
   showWeekendShare: 'Weekend share',
   showEveningShare: 'Evening share',
   showEarliestLatest: 'Earliest/Late times',
@@ -332,7 +337,14 @@ const activityLabels: Record<keyof ActivityCardConfig, string> = {
   showHint: 'Show mapping hint',
 }
 
-const activityToggles = computed(() => Object.entries(activityLabels) as Array<[keyof ActivityCardConfig, string]>)
+const activityToggles = computed(() => Object.entries(activityLabels) as Array<[ActivityToggleKey, string]>)
+
+const activityForecastOptions: Array<{ value: ActivityCardConfig['forecastMode']; label: string; description: string }> = [
+  { value: 'off', label: 'Do not project future days', description: 'Keep charts empty until events occur.' },
+  { value: 'total', label: 'Distribute remaining total target', description: 'Split leftover total target hours evenly across future days using current calendar mix.' },
+  { value: 'calendar', label: 'Respect calendar targets', description: 'Use per-calendar targets for the current range and spread remaining hours across future days.' },
+  { value: 'category', label: 'Respect category targets', description: 'Allocate remaining category targets across future days according to current mappings.' },
+]
 
 const balanceSettings = computed<BalanceConfig>(() => {
   const base = createDefaultBalanceConfig()
@@ -462,8 +474,20 @@ function handleSummaryOption(payload: { key: keyof TargetsConfig['timeSummary'];
   setSummaryOption(payload.key, payload.value)
 }
 
-function handleActivityOption(payload: { key: keyof ActivityCardConfig; value: boolean }) {
+function handleActivityOption(payload: { key: ActivityToggleKey; value: boolean }) {
   setActivityOption(payload.key, payload.value)
+}
+
+function setActivityForecastMode(mode: ActivityCardConfig['forecastMode']) {
+  if (mode !== 'off' && mode !== 'total' && mode !== 'calendar' && mode !== 'category') {
+    return
+  }
+  updateConfig(cfg => {
+    if (!cfg.activityCard) {
+      cfg.activityCard = createDefaultActivityCardConfig()
+    }
+    cfg.activityCard.forecastMode = mode
+  })
 }
 
 function toggleActivityHelp() {
@@ -564,7 +588,7 @@ function setSummaryOption(key: keyof TargetsConfig['timeSummary'], checked: bool
   })
 }
 
-function setActivityOption(key: keyof ActivityCardConfig, checked: boolean){
+function setActivityOption(key: ActivityToggleKey, checked: boolean){
   updateConfig(cfg => {
     if (!cfg.activityCard) {
       cfg.activityCard = createDefaultActivityCardConfig()

@@ -28,6 +28,7 @@
 
 <script setup lang="ts">
 import { computed } from 'vue'
+import { createDefaultActivityCardConfig, type ActivityCardConfig } from '../services/targets'
 
 type ActivitySummary = {
   rangeLabel: string
@@ -45,25 +46,7 @@ type ActivitySummary = {
   lastHalfDayOff: string | null
 }
 
-type ActivityCardConfig = {
-  showWeekendShare: boolean
-  showEveningShare: boolean
-  showEarliestLatest: boolean
-  showOverlaps: boolean
-  showLongestSession: boolean
-  showLastDayOff: boolean
-  showHint: boolean
-}
-
-const defaultConfig: ActivityCardConfig = {
-  showWeekendShare: true,
-  showEveningShare: true,
-  showEarliestLatest: true,
-  showOverlaps: true,
-  showLongestSession: true,
-  showLastDayOff: true,
-  showHint: true,
-}
+const defaultConfig: ActivityCardConfig = createDefaultActivityCardConfig()
 
 const props = defineProps<{
   summary: ActivitySummary

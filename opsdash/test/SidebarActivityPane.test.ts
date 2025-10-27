@@ -1,25 +1,23 @@
 import { describe, it, expect, vi } from 'vitest'
 import { mount } from '@vue/test-utils'
 import SidebarActivityPane from '../src/components/sidebar/SidebarActivityPane.vue'
+import { createDefaultActivityCardConfig, type ActivityCardConfig } from '../src/services/targets'
 
 vi.mock('@nextcloud/vue', () => ({}))
 
 describe('SidebarActivityPane', () => {
-  const toggles: Array<[keyof ReturnType<typeof defaultActivitySettings>, string]> = [
+  const toggles: Array<[keyof ActivityCardConfig, string]> = [
     ['showWeekendShare', 'Weekend share'],
     ['showEveningShare', 'Evening share'],
   ]
 
-  function defaultActivitySettings() {
-    return {
-      showWeekendShare: true,
-      showEveningShare: true,
-      showEarliestLatest: true,
-      showOverlaps: true,
-      showLongestSession: true,
-      showLastDayOff: true,
-      showHint: true,
-    }
+  const forecastOptions = [
+    { value: 'off', label: 'Off' },
+    { value: 'total', label: 'Total' },
+  ] as const
+
+  function defaultActivitySettings(): ActivityCardConfig {
+    return createDefaultActivityCardConfig()
   }
 
   it('emits toggle-option when checkbox toggled', async () => {
@@ -27,6 +25,8 @@ describe('SidebarActivityPane', () => {
       props: {
         activitySettings: defaultActivitySettings(),
         activityToggles: toggles,
+        forecastMode: 'total',
+        forecastOptions,
         helpOpen: false,
       },
     })
@@ -42,6 +42,8 @@ describe('SidebarActivityPane', () => {
       props: {
         activitySettings: defaultActivitySettings(),
         activityToggles: toggles,
+        forecastMode: 'total',
+        forecastOptions,
         helpOpen: false,
       },
     })

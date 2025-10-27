@@ -32,23 +32,79 @@
         <span>{{ label }}</span>
       </label>
     </div>
+    <div class="forecast-block">
+      <div class="section-title">Bar chart projection</div>
+      <label class="field">
+        <span class="label">Projection mode</span>
+        <select
+          :value="forecastMode"
+          @change="onForecastModeChange(($event.target as HTMLSelectElement).value)"
+        >
+          <option
+            v-for="option in forecastOptions"
+            :key="option.value"
+            :value="option.value"
+          >
+            {{ option.label }}
+          </option>
+        </select>
+      </label>
+      <p v-if="forecastDescription" class="section-hint forecast-hint">
+        {{ forecastDescription }}
+      </p>
+    </div>
   </div>
 </template>
 
 <script setup lang="ts">
-import { toRefs } from 'vue'
-import type { ActivityCardConfig } from '../../services/targets'
+import { computed, toRefs } from 'vue'
+import type { ActivityCardConfig, ActivityForecastMode } from '../../services/targets'
+
+type ActivityToggleKey = Exclude<keyof ActivityCardConfig, 'forecastMode'>
+type ForecastOption = { value: ActivityForecastMode; label: string; description?: string }
 
 const rawProps = defineProps<{
   activitySettings: ActivityCardConfig
-  activityToggles: Array<[keyof ActivityCardConfig, string]>
+  activityToggles: Array<[ActivityToggleKey, string]>
+  forecastMode: ActivityForecastMode
+  forecastOptions: ForecastOption[]
   helpOpen: boolean
 }>()
 
 const emit = defineEmits<{
   (e: 'toggle-help'): void
-  (e: 'toggle-option', payload: { key: keyof ActivityCardConfig; value: boolean }): void
+  (e: 'toggle-option', payload: { key: ActivityToggleKey; value: boolean }): void
+  (e: 'update-forecast-mode', mode: ActivityForecastMode): void
 }>()
 
-const { activitySettings, activityToggles, helpOpen } = toRefs(rawProps)
+const { activitySettings, activityToggles, forecastMode, forecastOptions, helpOpen } = toRefs(rawProps)
+
+const forecastDescription = computed(() => {
+  const selected = forecastOptions.value?.find((opt) => opt.value === forecastMode.value)
+  return selected?.description ?? ''
+})
+
+function onForecastModeChange(mode: string) {
+  if (mode === 'off' || mode === 'total' || mode === 'calendar' || mode === 'category') {
+    emit('update-forecast-mode', mode)
+  }
+}
 </script>
+
+<style scoped>
+.forecast-block {
+  margin-top: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.forecast-block .field {
+  max-width: 100%;
+}
+.forecast-block select {
+  width: 100%;
+}
+.forecast-hint {
+  margin: 0;
+}
+</style>

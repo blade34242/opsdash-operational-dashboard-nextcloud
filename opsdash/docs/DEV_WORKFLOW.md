@@ -6,6 +6,7 @@ This checklist ensures changes show up reliably in a Nextcloud dev container.
 - Build: `npm ci && npm run build` (outputs hashed JS under `js/assets/` and updates `js/.vite/manifest.json`).
 - Restart + re-enable app to flush opcache: `docker restart <container>` then `occ app:disable/enable opsdash`.
 - Verify bundle via the manifest (`cat js/.vite/manifest.json`) and hard-reload the browser with cache disabled.
+- Run `npm test -- --run` after config/chart changes. Forecast logic, sidebar toggles, and server sanitizers have Vitest coverage (`test/useCharts.test.ts`, `test/SidebarActivityPane.test.ts`, …); keeping those tests green ensures load/save/preset symmetry.
 
 ## Footer version + Changelog
 - Version sources (fallback chain): template → ping → package.json.

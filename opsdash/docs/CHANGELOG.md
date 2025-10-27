@@ -12,6 +12,10 @@ All notable changes to this project are documented here. This file is served loc
 - Fix: restored all-day event detection when using the structured calendar query, matching ICS behaviour, and introduced a configurable “all-day hours per day” target setting that feeds both aggregation and the dashboard UI.
 - UI: Added a “Presets” tab to the sidebar to save/load entire configurations (calendars, groups, targets) by name; includes server-side validation with warnings for missing calendars.
 - Fix: Week/Month toggle now swaps the entire targets stack (summary card, categories, charts) to month metrics, converting weekly definitions on the fly when no explicit monthly targets are stored.
+- UI: Stacked bar charts now layer forecasted hours for future days with a slim, dashed overlay instead of a full-width tint; projection behaviour is configurable (“Bar chart projection” in the Activity & Schedule tab).
+- Targets: Introduced `activityCard.forecastMode` (`off` | `total` | `calendar` | `category`) so chart forecasts can respect remaining total hours, per-calendar goals, or per-category targets.
+- Tests: Added Vitest coverage for the chart projection logic to ensure each mode distributes hours as expected.
+- Docs: Configuration and API references updated with the new projection control and payload field.
 
 ## [0.4.2] - 2025-10-12 (NC 30–31 line)
 - UI: Sidebar dock with persistent open/close state; main content spans full width when collapsed.

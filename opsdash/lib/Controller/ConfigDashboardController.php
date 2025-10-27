@@ -738,6 +738,23 @@ final class ConfigDashboardController extends Controller {
         usort($byCalList,fn($a,$b)=>$b['total_hours']<=>$a['total_hours']);
         ksort($byDay);
 
+        $rangeLabels = [];
+        $cursor = clone $from;
+        while ($cursor <= $to) {
+            $dayKey = $cursor->format('Y-m-d');
+            if (!isset($byDay[$dayKey])) {
+                $byDay[$dayKey] = ['date' => $dayKey, 'events_count' => 0, 'total_hours' => 0.0];
+            }
+            if (!isset($perDayByCal[$dayKey])) {
+                $perDayByCal[$dayKey] = [];
+            }
+            if (!isset($perDayByCat[$dayKey])) {
+                $perDayByCat[$dayKey] = [];
+            }
+            $rangeLabels[] = $dayKey;
+            $cursor = $cursor->add(new \DateInterval('P1D'));
+        }
+
         $eventsCount = count($events);
         $daysCount   = count($daysSeen);
         $avgPerDay   = $daysCount   ? ($totalHours / $daysCount)      : 0;
@@ -755,7 +772,7 @@ final class ConfigDashboardController extends Controller {
         $pieLabels= array_map(fn($id)=>$idToName[$id] ?? $id, $pieIds);
         $pieData  = array_map(fn($id)=>isset($byCalMap[$id]) ? round((float)$byCalMap[$id]['total_hours'],2) : 0.0, $pieIds);
         $pieColors= array_map(fn($id)=>$colorsById[$id] ?? '#60a5fa', $pieIds);
-        $barLabels=array_keys($byDay);
+        $barLabels=$rangeLabels;
         $barData=array_map(fn($x)=>round($x['total_hours'],2),array_values($byDay));
         $dowLabels=$dowOrder;
         $dowData=array_map(fn($k)=>round((float)($dow[$k]??0),2), $dowOrder);
@@ -1760,6 +1777,7 @@ final class ConfigDashboardController extends Controller {
             'showLongestSession' => true,
             'showLastDayOff' => true,
             'showHint' => true,
+            'forecastMode' => 'total',
         ];
     }
 
@@ -2100,9 +2118,24 @@ final class ConfigDashboardController extends Controller {
         }
         $keys = array_keys($base);
         $result = $base;
-        foreach ($keys as $key) {
+        $booleanKeys = [
+            'showWeekendShare',
+            'showEveningShare',
+            'showEarliestLatest',
+            'showOverlaps',
+            'showLongestSession',
+            'showLastDayOff',
+            'showHint',
+        ];
+        foreach ($booleanKeys as $key) {
             if (array_key_exists($key, $cfg)) {
                 $result[$key] = !empty($cfg[$key]);
+            }
+        }
+        if (isset($cfg['forecastMode'])) {
+            $mode = strtolower((string)$cfg['forecastMode']);
+            if (in_array($mode, ['off', 'total', 'calendar', 'category'], true)) {
+                $result['forecastMode'] = $mode;
             }
         }
         return $result;

@@ -36,5 +36,6 @@ No usage metrics are collected or configurable.
   - `DELETE /config_dashboard/presets/{name}` → remove.
 
 ## Card Settings (Sidebar ➜ Cards tab)
-- **Activity & Schedule card** — show/hide: weekend share, evening share, earliest/late times, overlaps, longest session, last day off, and the category-mapping hint.
+- **Activity & Schedule card** — show/hide: weekend share, evening share, earliest/late times, overlaps, longest session, last day off, and the category-mapping hint. A “Bar chart projection” selector controls how empty future days are visualised in the stacked charts (`Off`, distribute the remaining total target, respect per-calendar targets, or respect category targets).
+  - The selected projection mode is stored in `targets_config.activityCard.forecastMode` and travels through `/persist`, presets, and the SPA state. When you add new toggles under `activityCard`, remember to update both the client normaliser and the backend cleaners so load/save stays symmetrical.
 - **Balance Overview card** — configure share/index thresholds, relation display mode (ratio/factor), trend lookback window, insight toggle, optional daily stacks, and rounding precision for percentages/ratios.

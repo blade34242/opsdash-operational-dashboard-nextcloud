@@ -596,6 +596,9 @@ const { calendarChartData, categoryChartsById } = useCharts({
   colorsByName,
   calendarGroups,
   calendarCategoryMap,
+  targetsConfig: targetsConfigForRange,
+  currentTargets,
+  activityCardConfig,
 })
 
 const topCategory = computed(() => {

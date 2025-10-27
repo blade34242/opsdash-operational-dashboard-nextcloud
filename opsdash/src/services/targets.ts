@@ -49,6 +49,8 @@ export interface TargetsConfig {
   includeZeroDaysInStats: boolean
 }
 
+export type ActivityForecastMode = 'off' | 'total' | 'calendar' | 'category'
+
 export interface ActivityCardConfig {
   showWeekendShare: boolean
   showEveningShare: boolean
@@ -57,6 +59,7 @@ export interface ActivityCardConfig {
   showLongestSession: boolean
   showLastDayOff: boolean
   showHint: boolean
+  forecastMode: ActivityForecastMode
 }
 
 export interface BalanceConfig {
@@ -198,6 +201,7 @@ export function createDefaultActivityCardConfig(): ActivityCardConfig {
     showLongestSession: true,
     showLastDayOff: true,
     showHint: true,
+    forecastMode: 'total',
   }
 }
 
@@ -457,11 +461,30 @@ function normalizeActivityCardConfig(input: any, base: ActivityCardConfig): Acti
   if (!input || typeof input !== 'object') {
     return result
   }
-  ;(Object.keys(base) as Array<keyof ActivityCardConfig>).forEach((key) => {
+
+  const booleanKeys: Array<keyof ActivityCardConfig> = [
+    'showWeekendShare',
+    'showEveningShare',
+    'showEarliestLatest',
+    'showOverlaps',
+    'showLongestSession',
+    'showLastDayOff',
+    'showHint',
+  ]
+  booleanKeys.forEach((key) => {
     if (Object.prototype.hasOwnProperty.call(input, key)) {
       result[key] = !!input[key]
     }
   })
+
+  const modeRaw = input?.forecastMode
+  if (typeof modeRaw === 'string') {
+    const lowered = modeRaw.toLowerCase()
+    if (lowered === 'off' || lowered === 'total' || lowered === 'calendar' || lowered === 'category') {
+      result.forecastMode = lowered as ActivityForecastMode
+    }
+  }
+
   return result
 }
 

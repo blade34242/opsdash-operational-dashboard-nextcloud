@@ -31,6 +31,56 @@ function textColorFor(bg:string, fallback:string): string {
   return lum < 0.55 ? '#ffffff' : fallback
 }
 
+function formatHours(value: number): string {
+  const normalized = Math.max(0, Number(value) || 0)
+  return (Math.round(normalized * 10) / 10).toFixed(1)
+}
+
+function lightenColor(hex: string, factor = 0.5): string {
+  const rgb = hexToRgb(hex)
+  if (!rgb) return hex
+  const mix = Math.max(0, Math.min(1, factor))
+  const r = Math.round(rgb.r + (255 - rgb.r) * mix)
+  const g = Math.round(rgb.g + (255 - rgb.g) * mix)
+  const b = Math.round(rgb.b + (255 - rgb.b) * mix)
+  return `rgb(${r},${g},${b})`
+}
+
+function darkenColor(hex: string, factor = 0.5): string {
+  const rgb = hexToRgb(hex)
+  if (!rgb) return hex
+  const mix = Math.max(0, Math.min(1, factor))
+  const r = Math.round(rgb.r * (1 - mix))
+  const g = Math.round(rgb.g * (1 - mix))
+  const b = Math.round(rgb.b * (1 - mix))
+  return `rgb(${r},${g},${b})`
+}
+
+function drawForecastOverlay(
+  ctx: CanvasRenderingContext2D,
+  opts: { x: number; y: number; width: number; height: number; baseColor: string },
+) {
+  const { x, y, width, height, baseColor } = opts
+  const inset = Math.min(width * 0.25, 6)
+  const innerX = x + inset
+  const innerWidth = Math.max(2, width - inset * 2)
+  const fillColor = lightenColor(baseColor, 0.4)
+  const strokeColor = darkenColor(baseColor, 0.35)
+
+  ctx.save()
+  ctx.fillStyle = fillColor
+  ctx.globalAlpha = 0.18
+  ctx.fillRect(innerX, y, innerWidth, height)
+  ctx.restore()
+
+  ctx.save()
+  ctx.strokeStyle = strokeColor
+  ctx.lineWidth = 1.5
+  ctx.setLineDash([4, 3])
+  ctx.strokeRect(innerX, y, innerWidth, height)
+  ctx.restore()
+}
+
 function draw(){
   const cvEl = cv.value; if (!cvEl) return
   const ctx = ctxFor(cvEl); if(!ctx) return
@@ -49,46 +99,80 @@ function draw(){
     const reordered = reorderToMonday(labels, series)
     labels = reordered.labels
     series = reordered.series
-    const totals = labels.map((_,i)=> series.reduce((a,s)=>a+Math.max(0, Number(s.data?.[i]||0)),0))
-    const max = Math.max(1, ...totals)
-    const n=labels.length||1, g=8, bw=Math.max(6,(x1-x0-g*(n+1))/n), scale=(y0-pad)/max
+    const actualTotals = labels.map((_,i)=> series.reduce((a,s)=>a+Math.max(0, Number(s.data?.[i]||0)),0))
+    const forecastTotals = labels.map((_,i)=> series.reduce((a,s)=>a+Math.max(0, Number(s.forecast?.[i]||0)),0))
+    const combinedTotals = actualTotals.map((val, idx)=> val + forecastTotals[idx])
+    const max = Math.max(1, ...combinedTotals)
+    const n=labels.length||1
+    const g=8
+    const bw=Math.max(6,(x1-x0-g*(n+1))/n)
+    const scale=(y0-pad)/max
+    let sumActual = 0
+    let sumForecast = 0
     labels.forEach((_,i)=>{
+      const x = x0+g+i*(bw+g)
       let y=y0
-      let colTotal = 0
-      series.forEach(s=>{
+      let colActual = 0
+      series.forEach((s)=>{
         const v = Math.max(0, Number(s.data?.[i]||0))
         const h = v*scale
-        const x = x0+g+i*(bw+g)
-        y = y - h
+        y -= h
         const col = props.colorsById[s.id] || s.color || '#93c5fd'
-        ctx.fillStyle = col
         if (h>0.5) {
+          ctx.fillStyle = col
           ctx.fillRect(x, y, bw, h)
           if (h>14 && bw>22 && v>0.01) {
-            const label = String((Math.round(v*100)/100).toFixed(1))
+            const label = formatHours(v)
             ctx.fillStyle = textColorFor(col, fg)
             ctx.font = '11px ui-sans-serif,system-ui'
             const tw = ctx.measureText(label).width
             ctx.fillText(label, x + bw/2 - tw/2, y + h/2 + 4)
           }
         }
-        colTotal += v
+        colActual += v
       })
+      const yAfterActual = y
+      let yForecast = yAfterActual
+      let colForecast = 0
+      series.forEach((s)=>{
+        const vf = Math.max(0, Number(s.forecast?.[i] || 0))
+        if (vf <= 0) return
+        const hf = vf * scale
+        yForecast -= hf
+        colForecast += vf
+        if (hf <= 0.5) {
+          return
+        }
+        const baseCol = props.colorsById[s.id] || s.color || '#93c5fd'
+        drawForecastOverlay(ctx, {
+          x,
+          y: yForecast,
+          width: bw,
+          height: hf,
+          baseColor: baseCol,
+        })
+      })
+      sumActual += colActual
+      sumForecast += colForecast
       ctx.fillStyle=fg; ctx.font='12px ui-sans-serif,system-ui'
       const t=weekday(String(labels[i]||''))
-      if (bw>26){ const tw=ctx.measureText(t).width; ctx.fillText(t, x0+g+i*(bw+g)+bw/2-tw/2, y0+14) }
-      if (colTotal>0.01) {
-        const x = x0+g+i*(bw+g)
-        const labelT = `${(Math.round(colTotal*100)/100).toFixed(1)}h`
-        drawOutlinedText(ctx, labelT, x + bw/2, Math.max(pad + 4, y - 2), {
+      if (bw>26){ const tw=ctx.measureText(t).width; ctx.fillText(t, x+bw/2-tw/2, y0+14) }
+      const labelValue = colForecast>0.01
+        ? `~${formatHours(colActual + colForecast)}h`
+        : colActual>0.01
+          ? `${formatHours(colActual)}h`
+          : ''
+      if (labelValue) {
+        drawOutlinedText(ctx, labelValue, x + bw/2, Math.max(pad + 4, yForecast - 2), {
           align: 'center',
           baseline: 'bottom',
           font: '11px ui-sans-serif,system-ui',
         })
       }
     })
-    const overall = totals.reduce((sum, v)=> sum + v, 0)
-    const totalLabel = `${(Math.round(overall*100)/100).toFixed(1)}h total`
+    const totalLabel = sumForecast>0.01
+      ? `~${formatHours(sumActual + sumForecast)}h expected`
+      : `${formatHours(sumActual)}h total`
     drawOutlinedText(ctx, totalLabel, x1 - 4, pad + 4, {
       align: 'right',
       baseline: 'top',
@@ -168,7 +252,17 @@ function reorderToMonday(labels: string[], series: any[]): { labels: string[]; s
   if (!want.every(v=> v in idxByIso)) return { labels, series }
   const perm = want.map(v=> idxByIso[v])
   const labelsR = perm.map(i=> labels[i])
-  const seriesR = (series||[]).map(s=> ({ ...s, data: (s.data||[]).map((_:any, i:number)=> (s.data||[])[perm[i]] ) }))
+  const seriesR = (series || []).map((s) => {
+    const dataSrc = Array.isArray(s.data) ? s.data : []
+    const forecastSrc = Array.isArray((s as any).forecast) ? (s as any).forecast : null
+    const data = perm.map((idx) => dataSrc[idx] ?? 0)
+    const forecast = forecastSrc ? perm.map((idx) => forecastSrc[idx] ?? 0) : undefined
+    const next: any = { ...s, data }
+    if (forecast) {
+      next.forecast = forecast
+    }
+    return next
+  })
   return { labels: labelsR, series: seriesR }
 }
 
