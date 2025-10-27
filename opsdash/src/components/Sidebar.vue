@@ -109,6 +109,21 @@
       </button>
     </div>
 
+    <div class="sb-tabs sb-tabs--secondary" role="tablist" aria-label="Advanced configuration">
+      <button
+        id="opsdash-sidebar-tab-config"
+        type="button"
+        class="sb-tab"
+        :class="{ active: activeTab === 'config' }"
+        role="tab"
+        :aria-selected="activeTab === 'config'"
+        aria-controls="opsdash-sidebar-pane-config"
+        @click="activeTab = 'config'"
+      >
+        Config
+      </button>
+    </div>
+
     <SidebarCalendarsPane
       v-if="activeTab === 'calendars'"
       :calendars="calendars"
@@ -161,6 +176,20 @@
       :active-day-mode="activeDayMode"
       @update:activeMode="emitActiveMode"
       @toggle-option="handleSummaryOption"
+    />
+
+    <SidebarConfigPane
+      v-else-if="activeTab === 'config'"
+      :presets="presetsList"
+      :is-loading="props.presetsLoading"
+      :is-saving="props.presetSaving"
+      :is-applying="props.presetApplying"
+      :warnings="props.presetWarnings"
+      @save="(name: string) => emit('save-preset', name)"
+      @load="(name: string) => emit('load-preset', name)"
+      @delete="(name: string) => emit('delete-preset', name)"
+      @refresh="() => emit('refresh-presets')"
+      @clear-warnings="() => emit('clear-preset-warnings')"
     />
 
     <SidebarActivityPane
@@ -223,6 +252,7 @@ import SidebarSummaryPane from './sidebar/SidebarSummaryPane.vue'
 import SidebarActivityPane from './sidebar/SidebarActivityPane.vue'
 import SidebarBalancePane from './sidebar/SidebarBalancePane.vue'
 import SidebarNotesPane from './sidebar/SidebarNotesPane.vue'
+import SidebarConfigPane from './sidebar/SidebarConfigPane.vue'
 import { applyNumericUpdate, type InputMessage } from './sidebar/validation'
 
 const props = defineProps<{
@@ -249,18 +279,24 @@ const props = defineProps<{
   activeDayMode: 'active' | 'all'
   navToggleLabel: string
   navToggleIcon: string
+  presets: Array<{ name: string; createdAt?: string | null; updatedAt?: string | null; selectedCount: number; calendarCount: number }>
+  presetsLoading: boolean
+  presetSaving: boolean
+  presetApplying: boolean
+  presetWarnings: string[]
 }>()
 
 const emit = defineEmits([
-  'load','update:range','update:offset','select-all','toggle-calendar','set-group','set-target','update:notes','save-notes','update:targets-config','update:active-mode','toggle-nav'
+  'load','update:range','update:offset','select-all','toggle-calendar','set-group','set-target','update:notes','save-notes','update:targets-config','update:active-mode','toggle-nav','save-preset','load-preset','delete-preset','refresh-presets','clear-preset-warnings'
 ])
 
-const activeTab = ref<'calendars'|'targets'|'summary'|'activity'|'balance'|'notes'>('calendars')
+const activeTab = ref<'calendars'|'targets'|'summary'|'activity'|'balance'|'notes'|'config'>('calendars')
 
 type TargetsPreset = 'work-week'|'balanced-life'
 
 const targets = computed(() => props.targetsConfig)
 const categoryOptions = computed(() => targets.value?.categories ?? [])
+const presetsList = computed(() => props.presets ?? [])
 
 function updateConfig(mutator: (cfg: TargetsConfig)=>void){
   const next = normalizeTargetsConfig(JSON.parse(JSON.stringify(props.targetsConfig || {})) as TargetsConfig)

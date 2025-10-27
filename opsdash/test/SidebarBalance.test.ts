@@ -79,6 +79,13 @@ function mountSidebar() {
       isSavingNote: false,
       targetsConfig,
       activeDayMode: 'active',
+      navToggleLabel: 'Toggle sidebar',
+      navToggleIcon: '⟨',
+      presets: [],
+      presetsLoading: false,
+      presetSaving: false,
+      presetApplying: false,
+      presetWarnings: [],
     },
   })
 }
@@ -129,4 +136,3 @@ describe('Sidebar balance controls', () => {
     expect(updatedConfig?.balance?.trend?.lookbackWeeks).toBe(5)
   })
 })
-

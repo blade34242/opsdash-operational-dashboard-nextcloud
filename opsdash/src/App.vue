@@ -25,6 +25,11 @@
           :active-day-mode="activeDayMode"
           :nav-toggle-label="navToggleLabel"
           :nav-toggle-icon="navToggleIcon"
+          :presets="presets"
+          :presets-loading="presetsLoading"
+          :preset-saving="presetSaving"
+          :preset-applying="presetApplying"
+          :preset-warnings="presetWarnings"
           @load="load"
           @update:range="(v)=>{ range=v as any; offset=0; load() }"
           @update:offset="(v)=>{ offset=v as number; load() }"
@@ -37,6 +42,11 @@
           @update:targets-config="updateTargetsConfig"
           @update:active-mode="setActiveDayMode"
           @toggle-nav="toggleNav"
+          @save-preset="savePreset"
+          @load-preset="loadPreset"
+          @delete-preset="deletePreset"
+          @refresh-presets="refreshPresets"
+          @clear-preset-warnings="clearPresetWarnings"
         />
       </template>
 
@@ -290,6 +300,14 @@ type BalanceOverviewSummary = {
   warnings: string[]
 } | null
 
+type PresetSummary = {
+  name: string
+  createdAt?: string | null
+  updatedAt?: string | null
+  selectedCount: number
+  calendarCount: number
+}
+
 const SIDEBAR_STORAGE_KEY = 'opsdash.sidebarOpen'
 const navOpen = ref((() => {
   if (typeof window === 'undefined') return true
@@ -322,6 +340,13 @@ const rangeDateLabel = computed(() => {
   if (!from.value || !to.value) return ''
   return `${from.value} – ${to.value}`
 })
+
+const presets = ref<PresetSummary[]>([])
+const presetsLoading = ref(false)
+const presetSaving = ref(false)
+const presetApplying = ref(false)
+const presetWarnings = ref<string[]>([])
+const lastLoadedPreset = ref<string | null>(null)
 
 function loadCurrent(){
   load().catch(console.error)
@@ -645,14 +670,19 @@ function getRoot(){ const w:any=window as any; return (w.OC && (w.OC.webroot || 
 function qs(params: Record<string, any>): string { const u=new URLSearchParams(); Object.entries(params).forEach(([k,v])=>{ if(Array.isArray(v)) v.forEach(x=>u.append(k,String(x))); else if(v!==undefined&&v!==null) u.set(k,String(v)) }); return u.toString() }
 async function getJson(url: string, params: any){ const q=qs(params||{}); const u=q?(url+(url.includes('?')?'&':'?')+q):url; const res=await fetch(u,{method:'GET',credentials:'same-origin'}); if(!res.ok) throw new Error('HTTP '+res.status); return await res.json() }
 async function postJson(url: string, body: any){ const w:any=window as any; const rt=(w.OC?.requestToken)||(w.oc_requesttoken)||''; const headers:any={'Content-Type':'application/json'}; if(rt) headers['requesttoken']=rt; const res=await fetch(url,{method:'POST',credentials:'same-origin',headers,body:JSON.stringify(body||{})}); if(!res.ok) throw new Error('HTTP '+res.status); return await res.json() }
+async function deleteJson(url: string){ const w:any=window as any; const rt=(w.OC?.requestToken)||(w.oc_requesttoken)||''; const headers:any={}; if(rt) headers['requesttoken']=rt; const res=await fetch(url,{method:'DELETE',credentials:'same-origin',headers}); if(!res.ok) throw new Error('HTTP '+res.status); const text = await res.text(); return text ? JSON.parse(text) : {}; }
 
-function route(name: string){
+function route(name: string, param?: string){
   const w:any = window as any
   if (w.OC && typeof w.OC.generateUrl === 'function') {
     if (name === 'load')    return w.OC.generateUrl('/apps/opsdash/config_dashboard/load')
     if (name === 'persist') return w.OC.generateUrl('/apps/opsdash/config_dashboard/persist')
     if (name === 'notes')   return w.OC.generateUrl('/apps/opsdash/config_dashboard/notes')
     if (name === 'notesSave') return w.OC.generateUrl('/apps/opsdash/config_dashboard/notes')
+    if (name === 'presetsList')   return w.OC.generateUrl('/apps/opsdash/config_dashboard/presets')
+    if (name === 'presetsSave')   return w.OC.generateUrl('/apps/opsdash/config_dashboard/presets')
+    if (name === 'presetsLoad')   return w.OC.generateUrl('/apps/opsdash/config_dashboard/presets/' + encodeURIComponent(String(param ?? '')))
+    if (name === 'presetsDelete') return w.OC.generateUrl('/apps/opsdash/config_dashboard/presets/' + encodeURIComponent(String(param ?? '')))
     return w.OC.generateUrl('/apps/opsdash/config_dashboard')
   }
   const base = getRoot() + '/apps/opsdash/config_dashboard'
@@ -660,7 +690,118 @@ function route(name: string){
   if (name === 'persist') return base + '/persist'
   if (name === 'notes')   return base + '/notes'
   if (name === 'notesSave') return base + '/notes'
+  if (name === 'presetsList') return base + '/presets'
+  if (name === 'presetsSave') return base + '/presets'
+  if (name === 'presetsLoad') return base + '/presets/' + encodeURIComponent(param ?? '')
+  if (name === 'presetsDelete') return base + '/presets/' + encodeURIComponent(param ?? '')
   return getRoot() + '/apps/opsdash/config_dashboard'
+}
+
+async function refreshPresets(){
+  presetsLoading.value = true
+  try {
+    const res = await getJson(route('presetsList'), {})
+    presets.value = Array.isArray(res?.presets) ? res.presets : []
+  } catch (error) {
+    console.error(error)
+    notifyError('Failed to load presets')
+  } finally {
+    presetsLoading.value = false
+  }
+}
+
+async function savePreset(name: string){
+  const trimmed = name.trim()
+  if (trimmed === '') {
+    notifyError('Enter a preset name.')
+    return
+  }
+  presetSaving.value = true
+  try {
+    const payload = {
+      name: trimmed,
+      selected: selected.value,
+      groups: groupsById.value,
+      targets_week: targetsWeek.value,
+      targets_month: targetsMonth.value,
+      targets_config: targetsConfig.value,
+    }
+    const res = await postJson(route('presetsSave'), payload)
+    presets.value = Array.isArray(res?.presets) ? res.presets : presets.value
+    const warnings = Array.isArray(res?.warnings) ? res.warnings : []
+    presetWarnings.value = warnings
+    lastLoadedPreset.value = trimmed
+    notifySuccess(`Profile "${trimmed}" saved`)
+  } catch (error) {
+    console.error(error)
+    notifyError('Failed to save preset')
+  } finally {
+    presetSaving.value = false
+  }
+}
+
+function applyPresetData(preset: any) {
+  const sel = Array.isArray(preset?.selected) ? preset.selected.map((id: any) => String(id)) : []
+  selected.value = sel
+  const groups = preset?.groups && typeof preset.groups === 'object' ? preset.groups : {}
+  groupsById.value = { ...groups }
+  targetsWeek.value = preset?.targets_week && typeof preset.targets_week === 'object' ? preset.targets_week : {}
+  targetsMonth.value = preset?.targets_month && typeof preset.targets_month === 'object' ? preset.targets_month : {}
+  const cfg = preset?.targets_config && typeof preset.targets_config === 'object'
+    ? normalizeTargetsConfig(preset.targets_config as TargetsConfig)
+    : cloneTargetsConfig(targetsConfig.value)
+  targetsConfig.value = cfg
+  userChangedSelection.value = false
+}
+
+async function loadPreset(name: string){
+  const trimmed = name.trim()
+  if (trimmed === '') return
+  presetApplying.value = true
+  try {
+    const res = await getJson(route('presetsLoad', trimmed), {})
+    const preset = res?.preset ?? {}
+    const warnings = Array.isArray(preset?.warnings) ? preset.warnings : (Array.isArray(res?.warnings) ? res.warnings : [])
+    if (warnings.length) {
+      const message = `Some items in the saved profile are no longer available:\n\n${warnings.map((w: string) => `• ${w}`).join('\n')}\n\nApply the remaining values?`
+      if (!window.confirm(message)) {
+        presetWarnings.value = warnings
+        presetApplying.value = false
+        return
+      }
+    }
+    applyPresetData(preset)
+    presetWarnings.value = warnings
+    lastLoadedPreset.value = trimmed
+    notifySuccess(`Profile "${trimmed}" applied`)
+    queueSave(true)
+    refreshPresets().catch(err => console.warn('[opsdash] refresh presets after load failed', err))
+  } catch (error) {
+    console.error(error)
+    notifyError('Failed to load preset')
+  } finally {
+    presetApplying.value = false
+  }
+}
+
+async function deletePreset(name: string){
+  const trimmed = name.trim()
+  if (trimmed === '') return
+  try {
+    const res = await deleteJson(route('presetsDelete', trimmed))
+    presets.value = Array.isArray(res?.presets) ? res.presets : presets.value
+    notifySuccess(`Profile "${trimmed}" deleted`)
+    if (lastLoadedPreset.value === trimmed) {
+      lastLoadedPreset.value = null
+    }
+  } catch (error) {
+    console.error(error)
+    notifyError('Failed to delete preset')
+  }
+}
+
+function clearPresetWarnings(){
+  presetWarnings.value = []
 }
 
 function selectAll(v:boolean){
@@ -703,6 +844,7 @@ function setActiveDayMode(mode:'active'|'all'){
   onMounted(() => {
     console.info('[opsdash] start')
     load().catch(err=>{ console.error(err); alert('Initial load failed') })
+    refreshPresets().catch(err => console.warn('[opsdash] presets fetch failed', err))
     // charts handled by components; no global resize wiring
   })
 

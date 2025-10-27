@@ -116,3 +116,20 @@ curl -sS "${BASE}/index.php/apps/opsdash/config_dashboard/notes" \
 ## Ping (health)
 - Method: GET `/config_dashboard/ping`
 - Response: `{ ok, app, ts }`
+
+## Presets
+- List summaries
+  - Method: GET `/config_dashboard/presets`
+  - Response: `{ ok, presets: Array<{ name, createdAt, updatedAt, selectedCount, calendarCount }> }`
+- Save/overwrite preset
+  - Method: POST `/config_dashboard/presets`
+  - Body: `{ name: string, selected: string[], groups: Record<string,number>, targets_week: Record<string,number>, targets_month: Record<string,number>, targets_config: TargetsConfig }`
+  - Response: `{ ok, preset: { name, createdAt, updatedAt }, presets: [...], warnings?: string[] }`
+  - Notes: payload is sanitised against the user’s current calendars; unknown ids are dropped with a warning.
+- Load preset
+  - Method: GET `/config_dashboard/presets/{name}`
+  - Response: `{ ok, preset: { name, createdAt, updatedAt, selected, groups, targets_week, targets_month, targets_config, warnings?: string[] }, warnings?: string[] }`
+  - The response already includes a sanitised payload; if warnings are present the client should surface them (and ideally ask for confirmation) before applying the result.
+- Delete preset
+  - Method: DELETE `/config_dashboard/presets/{name}`
+  - Response: `{ ok, presets: [...] }`

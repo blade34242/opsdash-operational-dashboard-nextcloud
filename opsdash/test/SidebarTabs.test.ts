@@ -79,6 +79,13 @@ function mountSidebar() {
       isSavingNote: false,
       targetsConfig,
       activeDayMode: 'active',
+      navToggleLabel: 'Toggle sidebar',
+      navToggleIcon: '⟨',
+      presets: [],
+      presetsLoading: false,
+      presetSaving: false,
+      presetApplying: false,
+      presetWarnings: [],
     },
   })
 }
@@ -109,4 +116,3 @@ describe('Sidebar tabs', () => {
     expect(wrapper.find('#opsdash-sidebar-pane-summary').exists()).toBe(false)
   })
 })
-

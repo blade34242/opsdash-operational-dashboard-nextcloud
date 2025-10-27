@@ -28,6 +28,9 @@ final class ConfigDashboardController extends Controller {
     private const MAX_GROUP = 9;
     private const MAX_AGG_PER_CAL = 2000;
     private const MAX_AGG_TOTAL   = 5000;
+    private const MAX_PRESETS = 20;
+    private const PRESET_NAME_MAX_LEN = 80;
+    private const PRESETS_KEY = 'targets_presets';
     public function __construct(
         string $appName,
         IRequest $request,
@@ -144,6 +147,131 @@ final class ConfigDashboardController extends Controller {
             'version' => $version,
             'changelog' => $changelog,
             'ts' => time(),
+        ], Http::STATUS_OK);
+    }
+
+    #[NoAdminRequired]
+    #[NoCSRFRequired]
+    public function presetsList(): DataResponse {
+        $uid = (string)($this->userSession->getUser()?->getUID() ?? '');
+        if ($uid === '') {
+            return new DataResponse(['message' => 'unauthorized'], Http::STATUS_UNAUTHORIZED);
+        }
+        $presets = $this->readPresets($uid);
+        return new DataResponse([
+            'ok' => true,
+            'presets' => $this->formatPresetList($presets),
+        ], Http::STATUS_OK);
+    }
+
+    #[NoAdminRequired]
+    #[NoCSRFRequired]
+    public function presetsSave(): DataResponse {
+        $uid = (string)($this->userSession->getUser()?->getUID() ?? '');
+        if ($uid === '') {
+            return new DataResponse(['message' => 'unauthorized'], Http::STATUS_UNAUTHORIZED);
+        }
+        $raw = file_get_contents('php://input') ?: '';
+        $data = json_decode($raw, true);
+        if (!is_array($data)) {
+            return new DataResponse(['message' => 'invalid json'], Http::STATUS_BAD_REQUEST);
+        }
+        $name = $this->sanitizePresetName((string)($data['name'] ?? ''));
+        if ($name === '') {
+            return new DataResponse(['message' => 'missing name'], Http::STATUS_BAD_REQUEST);
+        }
+        $calendars = $this->getCalendarsFor($uid);
+        $allowedIds = [];
+        foreach ($calendars as $cal) {
+            $allowedIds[] = (string)($cal->getUri() ?? spl_object_id($cal));
+        }
+        $allowedSet = array_flip($allowedIds);
+        $sanitized = $this->sanitizePresetPayload($data, $allowedSet, $allowedIds);
+        $payload = $sanitized['payload'];
+        $warnings = $sanitized['warnings'];
+
+        $presets = $this->readPresets($uid);
+        $now = (new DateTimeImmutable('now'))->format(DateTimeInterface::ATOM);
+        $existing = $presets[$name] ?? null;
+        $presets[$name] = [
+            'created_at' => is_array($existing) && isset($existing['created_at']) ? (string)$existing['created_at'] : $now,
+            'updated_at' => $now,
+            'payload' => $payload,
+        ];
+        if (count($presets) > self::MAX_PRESETS) {
+            $presets = $this->trimPresets($presets);
+        }
+        $this->writePresets($uid, $presets);
+
+        return new DataResponse([
+            'ok' => true,
+            'preset' => [
+                'name' => $name,
+                'createdAt' => $presets[$name]['created_at'] ?? null,
+                'updatedAt' => $presets[$name]['updated_at'] ?? null,
+            ],
+            'presets' => $this->formatPresetList($presets),
+            'warnings' => $warnings,
+        ], Http::STATUS_OK);
+    }
+
+    #[NoAdminRequired]
+    #[NoCSRFRequired]
+    public function presetsLoad(string $name): DataResponse {
+        $uid = (string)($this->userSession->getUser()?->getUID() ?? '');
+        if ($uid === '') {
+            return new DataResponse(['message' => 'unauthorized'], Http::STATUS_UNAUTHORIZED);
+        }
+        $decodedName = $this->sanitizePresetName(urldecode($name));
+        if ($decodedName === '') {
+            return new DataResponse(['message' => 'not found'], Http::STATUS_NOT_FOUND);
+        }
+        $presets = $this->readPresets($uid);
+        if (!isset($presets[$decodedName])) {
+            return new DataResponse(['message' => 'not found'], Http::STATUS_NOT_FOUND);
+        }
+        $entry = $presets[$decodedName];
+        $storedPayload = is_array($entry['payload'] ?? null) ? $entry['payload'] : [];
+
+        $sanitized = $this->sanitizePresetPayload($storedPayload, $allowedSet, $allowedIds);
+        $payload = $sanitized['payload'];
+        $warnings = $sanitized['warnings'];
+
+        $presets[$decodedName]['payload'] = $payload;
+        $this->writePresets($uid, $presets);
+
+        return new DataResponse([
+            'ok' => true,
+            'preset' => array_merge($payload, [
+                'name' => $decodedName,
+                'createdAt' => $entry['created_at'] ?? null,
+                'updatedAt' => $entry['updated_at'] ?? null,
+                'warnings' => $warnings,
+            ]),
+            'warnings' => $warnings,
+        ], Http::STATUS_OK);
+    }
+
+    #[NoAdminRequired]
+    #[NoCSRFRequired]
+    public function presetsDelete(string $name): DataResponse {
+        $uid = (string)($this->userSession->getUser()?->getUID() ?? '');
+        if ($uid === '') {
+            return new DataResponse(['message' => 'unauthorized'], Http::STATUS_UNAUTHORIZED);
+        }
+        $decodedName = $this->sanitizePresetName(urldecode($name));
+        if ($decodedName === '') {
+            return new DataResponse(['message' => 'not found'], Http::STATUS_NOT_FOUND);
+        }
+        $presets = $this->readPresets($uid);
+        if (!isset($presets[$decodedName])) {
+            return new DataResponse(['message' => 'not found'], Http::STATUS_NOT_FOUND);
+        }
+        unset($presets[$decodedName]);
+        $this->writePresets($uid, $presets);
+        return new DataResponse([
+            'ok' => true,
+            'presets' => $this->formatPresetList($presets),
         ], Http::STATUS_OK);
     }
 
@@ -1658,6 +1786,196 @@ final class ConfigDashboardController extends Controller {
     }
 
     /** @param mixed $cfg */
+    private function readPresets(string $uid): array {
+        try {
+            $raw = (string)$this->config->getUserValue($uid, $this->appName, self::PRESETS_KEY, '');
+            if ($raw === '') {
+                return [];
+            }
+            $decoded = json_decode($raw, true);
+            if (!is_array($decoded)) {
+                return [];
+            }
+            $out = [];
+            foreach ($decoded as $name => $entry) {
+                if (!is_string($name) || $name === '' || !is_array($entry)) {
+                    continue;
+                }
+                $out[$name] = $entry;
+            }
+            return $out;
+        } catch (\Throwable $e) {
+            $this->logger->error('read presets failed: '.$e->getMessage(), ['app'=>$this->appName]);
+            return [];
+        }
+    }
+
+    private function writePresets(string $uid, array $presets): void {
+        try {
+            $encoded = json_encode($presets, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE);
+            if ($encoded === false) {
+                throw new \RuntimeException('json encode failed');
+            }
+            $this->config->setUserValue($uid, $this->appName, self::PRESETS_KEY, $encoded);
+        } catch (\Throwable $e) {
+            $this->logger->error('write presets failed: '.$e->getMessage(), ['app'=>$this->appName]);
+            throw $e;
+        }
+    }
+
+    private function sanitizePresetName(string $name): string {
+        $clean = trim(preg_replace('/\s+/', ' ', $name) ?? '');
+        if ($clean === '') {
+            return '';
+        }
+        if (mb_strlen($clean) > self::PRESET_NAME_MAX_LEN) {
+            $clean = mb_substr($clean, 0, self::PRESET_NAME_MAX_LEN);
+        }
+        return $clean;
+    }
+
+    /**
+     * @param array<string,mixed> $data
+     * @param array<string,int> $allowedSet
+     * @param string[] $allIds
+     */
+    private function sanitizePresetPayload(array $data, array $allowedSet, array $allIds): array {
+        $warnings = [];
+
+        $selectedRaw = isset($data['selected']) && is_array($data['selected']) ? $data['selected'] : [];
+        $removedSelected = [];
+        $selected = $this->cleanSelectionList($selectedRaw, $allowedSet, $removedSelected);
+        if (!empty($removedSelected)) {
+            $warnings[] = 'Skipped unknown calendars: ' . implode(', ', array_map('strval', $removedSelected));
+        }
+
+        $groupsRaw = isset($data['groups']) && is_array($data['groups']) ? $data['groups'] : [];
+        $removedGroups = [];
+        foreach ($groupsRaw as $key => $_) {
+            $id = substr((string)$key, 0, 128);
+            if (!isset($allowedSet[$id])) {
+                $removedGroups[] = $id;
+            }
+        }
+        $groups = $this->cleanGroups($groupsRaw, $allowedSet, $allIds);
+        if (!empty($removedGroups)) {
+            $warnings[] = 'Removed calendar mappings for unknown calendars: ' . implode(', ', $removedGroups);
+        }
+
+        $targetsWeekRaw = isset($data['targets_week']) && is_array($data['targets_week']) ? $data['targets_week'] : [];
+        $removedWeekTargets = [];
+        foreach ($targetsWeekRaw as $key => $_) {
+            $id = substr((string)$key, 0, 128);
+            if (!isset($allowedSet[$id])) {
+                $removedWeekTargets[] = $id;
+            }
+        }
+        $targetsWeek = $this->cleanTargets($targetsWeekRaw, $allowedSet);
+        if (!empty($removedWeekTargets)) {
+            $warnings[] = 'Removed weekly targets for unknown calendars: ' . implode(', ', $removedWeekTargets);
+        }
+
+        $targetsMonthRaw = isset($data['targets_month']) && is_array($data['targets_month']) ? $data['targets_month'] : [];
+        $removedMonthTargets = [];
+        foreach ($targetsMonthRaw as $key => $_) {
+            $id = substr((string)$key, 0, 128);
+            if (!isset($allowedSet[$id])) {
+                $removedMonthTargets[] = $id;
+            }
+        }
+        $targetsMonth = $this->cleanTargets($targetsMonthRaw, $allowedSet);
+        if (!empty($removedMonthTargets)) {
+            $warnings[] = 'Removed monthly targets for unknown calendars: ' . implode(', ', $removedMonthTargets);
+        }
+
+        $targetsConfigRaw = $data['targets_config'] ?? null;
+        $targetsConfig = $targetsConfigRaw !== null ? $this->cleanTargetsConfig($targetsConfigRaw) : $this->defaultTargetsConfig();
+        if (is_array($targetsConfigRaw) && isset($targetsConfigRaw['categories']) && is_array($targetsConfigRaw['categories'])) {
+            $rawCatCount = count($targetsConfigRaw['categories']);
+            $cleanCatCount = count($targetsConfig['categories']);
+            if ($cleanCatCount < $rawCatCount) {
+                $warnings[] = 'Some target categories were normalised or removed due to invalid configuration.';
+            }
+        }
+
+        return [
+            'payload' => [
+                'selected' => $selected,
+                'groups' => $groups,
+                'targets_week' => $targetsWeek,
+                'targets_month' => $targetsMonth,
+                'targets_config' => $targetsConfig,
+            ],
+            'warnings' => $warnings,
+        ];
+    }
+
+    /**
+     * @param array<string,array<string,mixed>> $presets
+     * @return array<string,array<string,mixed>>
+     */
+    private function trimPresets(array $presets): array {
+        if (count($presets) <= self::MAX_PRESETS) {
+            return $presets;
+        }
+        uasort($presets, function ($a, $b) {
+            $at = isset($a['updated_at']) ? (string)$a['updated_at'] : '';
+            $bt = isset($b['updated_at']) ? (string)$b['updated_at'] : '';
+            return strcmp($bt, $at);
+        });
+        return array_slice($presets, 0, self::MAX_PRESETS, true);
+    }
+
+    /**
+     * @param array<string,array<string,mixed>> $presets
+     * @return array<int,array<string,mixed>>
+     */
+    private function formatPresetList(array $presets): array {
+        $list = [];
+        foreach ($presets as $name => $entry) {
+            $payload = is_array($entry['payload'] ?? null) ? $entry['payload'] : [];
+            $selected = isset($payload['selected']) && is_array($payload['selected']) ? $payload['selected'] : [];
+            $groups = isset($payload['groups']) && is_array($payload['groups']) ? $payload['groups'] : [];
+            $list[] = [
+                'name' => $name,
+                'createdAt' => $entry['created_at'] ?? null,
+                'updatedAt' => $entry['updated_at'] ?? null,
+                'selectedCount' => count($selected),
+                'calendarCount' => count($groups),
+            ];
+        }
+        usort($list, function ($a, $b) {
+            $au = (string)($a['updatedAt'] ?? '');
+            $bu = (string)($b['updatedAt'] ?? '');
+            if ($au === $bu) {
+                return strcmp((string)$a['name'], (string)$b['name']);
+            }
+            return strcmp($bu, $au);
+        });
+        return $list;
+    }
+
+    /**
+     * @param array<int,mixed> $raw
+     * @param array<string,int> $allowedSet
+     * @param array<int,string> $removed
+     */
+    private function cleanSelectionList(array $raw, array $allowedSet, array &$removed = []): array {
+        $out = [];
+        $removed = [];
+        foreach ($raw as $item) {
+            $id = substr((string)$item, 0, 128);
+            if (!isset($allowedSet[$id])) {
+                $removed[] = $id;
+                continue;
+            }
+            if (!in_array($id, $out, true)) {
+                $out[] = $id;
+            }
+        }
+        return $out;
+    }
+
     private function cleanTargetsConfig($cfg): array {
         $base = $this->defaultTargetsConfig();
         if (!is_array($cfg)) {
