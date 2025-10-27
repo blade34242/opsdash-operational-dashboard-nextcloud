@@ -272,6 +272,7 @@ function notifyError(msg: string){
 import { onMounted, ref, watch, nextTick, computed } from 'vue'
 import { useNotes } from '../composables/useNotes'
 import { useDashboard } from '../composables/useDashboard'
+import { useDashboardPersistence } from '../composables/useDashboardPersistence'
 import { useCharts } from '../composables/useCharts'
 import { useCategories } from '../composables/useCategories'
 import { useSummaries } from '../composables/useSummaries'
@@ -412,20 +413,30 @@ const {
   targetsMonth,
   targetsConfig,
   load,
-  queueSave,
 } = useDashboard({
   range,
   offset,
   userChangedSelection,
   route: (name) => route(name),
   getJson,
-  postJson,
   notifyError,
-  notifySuccess,
   scheduleDraw,
   fetchNotes,
   isDebug: isDbg,
   fetchDavColors,
+})
+
+const { queueSave } = useDashboardPersistence({
+  route: (name) => route(name),
+  postJson,
+  notifyError,
+  notifySuccess,
+  onReload: () => load(),
+  selected,
+  groupsById,
+  targetsWeek,
+  targetsMonth,
+  targetsConfig,
 })
 
 function isSelected(id: string) {

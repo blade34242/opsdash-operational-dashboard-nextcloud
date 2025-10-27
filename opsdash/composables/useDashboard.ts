@@ -1,6 +1,5 @@
 import { nextTick, reactive, ref, type Ref } from 'vue'
 import {
-  cloneTargetsConfig,
   createDefaultTargetsConfig,
   normalizeTargetsConfig,
   type TargetsConfig,
@@ -13,12 +12,10 @@ interface DashboardDeps {
   route: (name: 'load') => string
   getJson: (url: string, params: Record<string, unknown>) => Promise<any>
   notifyError: (message: string) => void
-  notifySuccess: (message: string) => void
   scheduleDraw: () => void
   fetchNotes: () => Promise<void>
   isDebug?: () => boolean
   fetchDavColors?: (uid: string, ids: string[]) => Promise<Record<string, string>>
-  postJson: (url: string, body: Record<string, unknown>) => Promise<any>
 }
 
 export function useDashboard(deps: DashboardDeps) {
@@ -46,9 +43,6 @@ export function useDashboard(deps: DashboardDeps) {
   const targetsConfig = ref<TargetsConfig>(normalizeTargetsConfig(createDefaultTargetsConfig()))
 
   let loadSeq = 0
-  let saveTimer: ReturnType<typeof setTimeout> | null = null
-  const isSaving = ref(false)
-
   async function load() {
     const currentSeq = ++loadSeq
     isLoading.value = true
@@ -185,49 +179,6 @@ export function useDashboard(deps: DashboardDeps) {
     }
   }
 
-  function queueSave(reload = true) {
-    if (saveTimer) {
-      clearTimeout(saveTimer)
-    }
-    saveTimer = setTimeout(async () => {
-      try {
-        isSaving.value = true
-        const result = await deps.postJson(deps.route('persist'), {
-          cals: selected.value,
-          groups: groupsById.value,
-          targets_week: targetsWeek.value,
-          targets_month: targetsMonth.value,
-          targets_config: cloneTargetsConfig(targetsConfig.value),
-        })
-
-        if (Array.isArray(result.read)) {
-          selected.value = result.read.map((id: any) => String(id))
-        } else if (Array.isArray(result.saved)) {
-          selected.value = result.saved.map((id: any) => String(id))
-        }
-
-        const cfgRead = result.targets_config_read as TargetsConfig | undefined
-        const cfgSaved = result.targets_config_saved as TargetsConfig | undefined
-        if (cfgRead) {
-          targetsConfig.value = normalizeTargetsConfig(cfgRead)
-        } else if (cfgSaved) {
-          targetsConfig.value = normalizeTargetsConfig(cfgSaved)
-        }
-
-        if (reload) {
-          await load()
-        }
-
-        deps.notifySuccess('Selection saved')
-      } catch (error) {
-        console.error(error)
-        deps.notifyError('Failed to save selection')
-      } finally {
-        isSaving.value = false
-      }
-    }, 250)
-  }
-
   return {
     calendars,
     colorsByName,
@@ -249,7 +200,5 @@ export function useDashboard(deps: DashboardDeps) {
     targetsMonth,
     targetsConfig,
     load,
-    queueSave,
-    isSaving,
   }
 }

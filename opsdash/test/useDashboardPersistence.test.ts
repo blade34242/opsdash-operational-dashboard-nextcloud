@@ -1,0 +1,133 @@
+import { ref } from 'vue'
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
+
+import { useDashboardPersistence } from '../composables/useDashboardPersistence'
+import { createDefaultTargetsConfig } from '../src/services/targets'
+
+function createPersistence(overrides: Partial<Parameters<typeof useDashboardPersistence>[0]> = {}) {
+  const selected = ref<string[]>([])
+  const groupsById = ref<Record<string, number>>({})
+  const targetsWeek = ref<Record<string, number>>({})
+  const targetsMonth = ref<Record<string, number>>({})
+  const targetsConfig = ref(createDefaultTargetsConfig())
+
+  const route = vi.fn<(name: 'persist') => string>().mockReturnValue('/persist')
+  const postJson = vi.fn().mockResolvedValue({})
+  const notifyError = vi.fn()
+  const notifySuccess = vi.fn()
+  const onReload = vi.fn().mockResolvedValue(undefined)
+
+  const persistence = useDashboardPersistence({
+    route,
+    postJson,
+    notifyError,
+    notifySuccess,
+    onReload,
+    selected,
+    groupsById,
+    targetsWeek,
+    targetsMonth,
+    targetsConfig,
+    ...overrides,
+  })
+
+  return {
+    route,
+    postJson,
+    notifyError,
+    notifySuccess,
+    onReload,
+    selected,
+    groupsById,
+    targetsWeek,
+    targetsMonth,
+    targetsConfig,
+    ...persistence,
+  }
+}
+
+describe('useDashboardPersistence', () => {
+  beforeEach(() => {
+    vi.useFakeTimers()
+  })
+
+  afterEach(() => {
+    vi.runOnlyPendingTimers()
+    vi.useRealTimers()
+    vi.clearAllMocks()
+  })
+
+  it('posts current payload and updates selection + config', async () => {
+    const persistedConfig = createDefaultTargetsConfig()
+    persistedConfig.totalHours = 99
+
+    const postJson = vi.fn().mockResolvedValue({
+      read: ['cal-1', 'cal-2'],
+      targets_config_read: persistedConfig,
+    })
+    const notifySuccess = vi.fn()
+    const notifyError = vi.fn()
+    const onReload = vi.fn().mockResolvedValue(undefined)
+
+    const {
+      queueSave,
+      selected,
+      groupsById,
+      targetsWeek,
+      targetsMonth,
+      targetsConfig,
+      isSaving,
+    } = createPersistence({
+      postJson,
+      notifySuccess,
+      notifyError,
+      onReload,
+    })
+
+    selected.value = ['cal-1']
+    groupsById.value = { 'cal-1': 2 }
+    targetsWeek.value = { 'cal-1': 12 }
+    targetsMonth.value = { 'cal-1': 48 }
+    targetsConfig.value.totalHours = 64
+    const configSnapshot = targetsConfig.value
+
+    queueSave(true)
+    expect(isSaving.value).toBe(false)
+    await vi.runOnlyPendingTimersAsync()
+
+    expect(postJson).toHaveBeenCalledWith('/persist', expect.objectContaining({
+      cals: ['cal-1'],
+      groups: { 'cal-1': 2 },
+      targets_week: { 'cal-1': 12 },
+      targets_month: { 'cal-1': 48 },
+    }))
+    const sentConfig = postJson.mock.calls[0][1]?.targets_config
+    expect(sentConfig).toEqual(configSnapshot)
+    expect(sentConfig).not.toBe(configSnapshot)
+
+    expect(selected.value).toEqual(['cal-1', 'cal-2'])
+    expect(targetsConfig.value.totalHours).toBe(99)
+    expect(isSaving.value).toBe(false)
+    expect(notifySuccess).toHaveBeenCalledWith('Selection saved')
+    expect(notifyError).not.toHaveBeenCalled()
+    expect(onReload).toHaveBeenCalledTimes(1)
+  })
+
+  it('debounces rapid queueSave calls', async () => {
+    const postJson = vi.fn().mockResolvedValue({})
+    const notifySuccess = vi.fn()
+
+    const { queueSave } = createPersistence({
+      postJson,
+      notifySuccess,
+    })
+
+    queueSave(false)
+    vi.advanceTimersByTime(200)
+    queueSave(false)
+    await vi.runOnlyPendingTimersAsync()
+
+    expect(postJson).toHaveBeenCalledTimes(1)
+    expect(notifySuccess).toHaveBeenCalledTimes(1)
+  })
+})

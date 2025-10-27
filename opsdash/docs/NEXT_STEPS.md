@@ -14,7 +14,7 @@ Living backlog for hardening and extending the Operational Dashboard.
 1. Lock requirements for onboarding, targets, theming (answer open questions) — ✅ decisions captured in `docs/ONBOARDING_WORKFLOW.md` and `docs/LIGHT_DARK_THEMING.md` (2025-03).
 2. Establish testing infrastructure (PHPUnit + Vitest) and add baseline coverage.
 3. Implement shared validation helpers with inline feedback — ✅ numeric validation helper extracted (2025-10); structured 400 responses + full localisation wiring (2025-11).
-4. Execute architecture refactor (split App/Sidebar/targets/services) — 🔄 `App.vue` trimmed; sidebar panes/composables in place; continue carving persistence.
+4. Execute architecture refactor (split App/Sidebar/targets/services) — 🔄 `App.vue` trimmed; sidebar panes/composables in place; persistence queue now lives in `useDashboardPersistence`; continue carving remaining state helpers.
 5. Build onboarding wizard + strategy profiles.
 6. Roll out theming, collapsed controls, keyboard shortcuts overlay.
 7. Update endpoints/docs (rename to `/overview/`) and polish copy (balance card). — ✅ routes + docs migrated to `/overview/*`; copy polish pending follow-up (2025-11).
