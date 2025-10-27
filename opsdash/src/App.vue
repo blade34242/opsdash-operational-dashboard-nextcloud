@@ -276,6 +276,8 @@ import { useDashboardPersistence } from '../composables/useDashboardPersistence'
 import { useDashboardSelection } from '../composables/useDashboardSelection'
 import { useDashboardPresets } from '../composables/useDashboardPresets'
 import { useChartScheduler } from '../composables/useChartScheduler'
+import { useOcHttp } from '../composables/useOcHttp'
+import { useAppMeta } from '../composables/useAppMeta'
 import { useCharts } from '../composables/useCharts'
 import { useCategories } from '../composables/useCategories'
 import { useSummaries } from '../composables/useSummaries'
@@ -370,6 +372,8 @@ const truncTooltip = computed(()=>{
 const userChangedSelection = ref(false)
 
 const { scheduleDraw } = useChartScheduler()
+
+const { route, getJson, postJson, deleteJson, root } = useOcHttp()
 
 const notes = useNotes({
   range,
@@ -622,39 +626,16 @@ function calendarDayLink(dateStr: string){
   if (w.OC && typeof w.OC.generateUrl === 'function'){
     return w.OC.generateUrl('/apps/calendar/timeGridDay/' + dateStr)
   }
-  return getRoot() + '/index.php/apps/calendar/timeGridDay/' + dateStr
+  return `${root.value}/index.php/apps/calendar/timeGridDay/${dateStr}`
 }
 function isDbg(){ return false }
-// App icon resolution (works across apps/apps-extra/apps-writable)
-const iconIdx = ref(0)
-const iconCandidates = computed(() => {
-  const w:any = window as any
-  const out:string[] = []
-  try { if (w.OC?.imagePath) { const p = w.OC.imagePath('opsdash','app.svg'); if (p) out.push(p) } } catch {}
-  const root = getRoot()
-  out.push(root + '/apps/opsdash/img/app.svg')
-  out.push(root + '/apps-extra/opsdash/img/app.svg')
-  out.push(root + '/apps-writable/opsdash/img/app.svg')
-  return out
+
+const { iconSrc, onIconError, appVersion, changelogUrl } = useAppMeta({
+  pingUrl: () => route('ping'),
+  getJson,
+  pkgVersion: pkg?.version ? String(pkg.version) : '',
+  root,
 })
-const iconSrc = computed(() => iconCandidates.value[Math.min(iconIdx.value, iconCandidates.value.length-1)] || '')
-function onIconError(){ if (iconIdx.value + 1 < iconCandidates.value.length) iconIdx.value++ }
-
-// Version + changelog from template data attributes
-function readDataAttr(name:string){ const el=document.getElementById('app'); return (el && (el as any).dataset ? ((el as any).dataset as any)[name] : '') || '' }
-const appVersion = ref<string>(readDataAttr('opsdashVersion') || (pkg?.version ? String(pkg.version) : ''))
-const changelogUrl = ref<string>(readDataAttr('opsdashChangelog'))
-
-// Fallback: query ping endpoint to populate version/link if missing
-async function ensureMeta(){
-  if (appVersion.value && changelogUrl.value) return
-  try {
-    const res = await getJson(route('load').replace('/overview/load','/overview/ping'), {})
-    if (!appVersion.value && typeof res?.version === 'string') appVersion.value = res.version
-    if (!changelogUrl.value && typeof res?.changelog === 'string') changelogUrl.value = res.changelog
-  } catch {}
-}
-ensureMeta()
 
 const notesLabelPrev = computed(()=> range.value==='month' ? 'Last month' : 'Last week')
 const notesLabelCurr = computed(()=> range.value==='month' ? 'This month' : 'This week')
@@ -664,38 +645,6 @@ const notesLabelCurrTitle = computed(()=> range.value==='month' ? 'Notes for cur
 function n1(v:any){ return Number(v ?? 0).toFixed(1) }
 function n2(v:any){ return Number(v ?? 0).toFixed(2) }
 function arrow(v:number){ return v>0?'▲':(v<0?'▼':'—') }
-
-function getRoot(){ const w:any=window as any; return (w.OC && (w.OC.webroot || w.OC.getRootPath?.())) || (w._oc_webroot) || '' }
-function qs(params: Record<string, any>): string { const u=new URLSearchParams(); Object.entries(params).forEach(([k,v])=>{ if(Array.isArray(v)) v.forEach(x=>u.append(k,String(x))); else if(v!==undefined&&v!==null) u.set(k,String(v)) }); return u.toString() }
-async function getJson(url: string, params: any){ const q=qs(params||{}); const u=q?(url+(url.includes('?')?'&':'?')+q):url; const res=await fetch(u,{method:'GET',credentials:'same-origin'}); if(!res.ok) throw new Error('HTTP '+res.status); return await res.json() }
-async function postJson(url: string, body: any){ const w:any=window as any; const rt=(w.OC?.requestToken)||(w.oc_requesttoken)||''; const headers:any={'Content-Type':'application/json'}; if(rt) headers['requesttoken']=rt; const res=await fetch(url,{method:'POST',credentials:'same-origin',headers,body:JSON.stringify(body||{})}); if(!res.ok) throw new Error('HTTP '+res.status); return await res.json() }
-async function deleteJson(url: string){ const w:any=window as any; const rt=(w.OC?.requestToken)||(w.oc_requesttoken)||''; const headers:any={}; if(rt) headers['requesttoken']=rt; const res=await fetch(url,{method:'DELETE',credentials:'same-origin',headers}); if(!res.ok) throw new Error('HTTP '+res.status); const text = await res.text(); return text ? JSON.parse(text) : {}; }
-
-function route(name: string, param?: string){
-  const w:any = window as any
-  if (w.OC && typeof w.OC.generateUrl === 'function') {
-    if (name === 'load')    return w.OC.generateUrl('/apps/opsdash/overview/load')
-    if (name === 'persist') return w.OC.generateUrl('/apps/opsdash/overview/persist')
-    if (name === 'notes')   return w.OC.generateUrl('/apps/opsdash/overview/notes')
-    if (name === 'notesSave') return w.OC.generateUrl('/apps/opsdash/overview/notes')
-    if (name === 'presetsList')   return w.OC.generateUrl('/apps/opsdash/overview/presets')
-    if (name === 'presetsSave')   return w.OC.generateUrl('/apps/opsdash/overview/presets')
-    if (name === 'presetsLoad')   return w.OC.generateUrl('/apps/opsdash/overview/presets/' + encodeURIComponent(String(param ?? '')))
-    if (name === 'presetsDelete') return w.OC.generateUrl('/apps/opsdash/overview/presets/' + encodeURIComponent(String(param ?? '')))
-    return w.OC.generateUrl('/apps/opsdash/overview')
-  }
-  const base = getRoot() + '/apps/opsdash/overview'
-  if (name === 'load') return base + '/load'
-  if (name === 'persist') return base + '/persist'
-  if (name === 'notes')   return base + '/notes'
-  if (name === 'notesSave') return base + '/notes'
-  if (name === 'presetsList') return base + '/presets'
-  if (name === 'presetsSave') return base + '/presets'
-  if (name === 'presetsLoad') return base + '/presets/' + encodeURIComponent(param ?? '')
-  if (name === 'presetsDelete') return base + '/presets/' + encodeURIComponent(param ?? '')
-  return getRoot() + '/apps/opsdash/overview'
-}
-
 
 function setActiveDayMode(mode:'active'|'all'){
   if (activeDayMode.value !== mode) {
@@ -707,11 +656,11 @@ function setActiveDayMode(mode:'active'|'all'){
     const out: Record<string,string> = {}
     if (!uid) return out
     const rt = (window as any).OC?.requestToken || (window as any).oc_requesttoken || ''
-    const root = getRoot()
+    const base = root.value
     // Try each id separately to avoid parsing large multistatus
     for (const id of ids){
       try{
-        const url = `${root}/remote.php/dav/calendars/${encodeURIComponent(uid)}/${encodeURIComponent(id)}/`
+        const url = `${base}/remote.php/dav/calendars/${encodeURIComponent(uid)}/${encodeURIComponent(id)}/`
         const body = `<?xml version="1.0" encoding="UTF-8"?>\n<d:propfind xmlns:d="DAV:" xmlns:ical="http://apple.com/ns/ical/">\n  <d:prop><ical:calendar-color/></d:prop>\n</d:propfind>`
         if (isDbg()) console.log('[opsdash] PROPFIND', {url, id})
         const res = await fetch(url, { method:'PROPFIND', credentials:'same-origin', headers:{'Depth':'0','Content-Type':'application/xml','requesttoken': rt}, body })

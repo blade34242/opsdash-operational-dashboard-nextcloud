@@ -14,7 +14,7 @@ Living backlog for hardening and extending the Operational Dashboard.
 1. Lock requirements for onboarding, targets, theming (answer open questions) — ✅ decisions captured in `docs/ONBOARDING_WORKFLOW.md` and `docs/LIGHT_DARK_THEMING.md` (2025-03).
 2. Establish testing infrastructure (PHPUnit + Vitest) and add baseline coverage.
 3. Implement shared validation helpers with inline feedback — ✅ numeric validation helper extracted (2025-10); structured 400 responses + full localisation wiring (2025-11).
-4. Execute architecture refactor (split App/Sidebar/targets/services) — 🔄 `App.vue` trimmed; sidebar panes/composables in place; persistence queue now lives in `useDashboardPersistence`; selection/target mutators moved into `useDashboardSelection`; presets handled by `useDashboardPresets`; chart resize scheduling lives in `useChartScheduler`; next carve route/HTTP + shell boot helpers.
+4. Execute architecture refactor (split App/Sidebar/targets/services) — 🔄 `App.vue` trimmed; sidebar panes/composables in place; persistence queue now lives in `useDashboardPersistence`; selection/target mutators moved into `useDashboardSelection`; presets handled by `useDashboardPresets`; route/fetch utilities + icon/meta boot now live in `useOcHttp` and `useAppMeta`; next carve remaining shell helpers (calendar deep links + DAV colour fetch) before moving to onboarding work.
 5. Build onboarding wizard + strategy profiles.
 6. Roll out theming, collapsed controls, keyboard shortcuts overlay.
 7. Update endpoints/docs (rename to `/overview/`) and polish copy (balance card). — ✅ routes + docs migrated to `/overview/*`; copy polish pending follow-up (2025-11).
@@ -29,7 +29,7 @@ Living backlog for hardening and extending the Operational Dashboard.
 - Implement unified testing strategy (`docs/TESTING_STRATEGY.md`): add PHPUnit service/controller tests and Vitest component/composable coverage. — ✅ baseline suites for validators, controller sanitisation, dashboard tabs/pacing/charts now in place; plan coverage for keyboard shortcuts & charts in render mode.
 
 ## P1 — Frontend Structure
-- Extract remaining logic from `App.vue` into composables (route helpers, fetch wrappers, icon/meta boot still live in `App.vue`).
+- Extract remaining logic from `App.vue` into composables (calendar deep links + DAV colour helper still embedded).
 - Consolidate chart drawing helpers under `src/services/charts.ts` with explicit typing.
 - Add component tests for chart color mapping, status chips, and tab focus/keyboard behaviour. — ✅ initial chart + pane coverage added (2025-10); extend to keyboard shortcuts.
 - Implement onboarding wizard per `docs/ONBOARDING_WORKFLOW.md`, including strategy
