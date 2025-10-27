@@ -22,6 +22,7 @@ active (total, category, calendar) and pre-populates sensible defaults.
 ### Cross-cutting Behaviour
 - All strategies respect week ↔ month conversion logic.
 - All strategies share the global all-day event hour budget (default 8 h/day) so calendar aggregation and progress bars stay aligned; onboarding should surface the control when strategy editing touches the Targets pane.
+- Monthly targets can be stored explicitly per strategy; if absent, the UI derives them from weekly definitions when the user switches to Month, keeping the Targets card and charts coherent without extra input.
 - Users can change strategy later; switching should prompt confirmation and 
   optionally re-run onboarding to avoid unintended data loss.
 - When downgrading (e.g., from `full_granular` to `total_only`), retain existing 

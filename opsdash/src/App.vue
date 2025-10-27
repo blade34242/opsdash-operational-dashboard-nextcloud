@@ -246,7 +246,7 @@ import TimeTargetsCard from './components/TimeTargetsCard.vue'
 import ActivityScheduleCard from './components/ActivityScheduleCard.vue'
 import BalanceOverviewCard from './components/BalanceOverviewCard.vue'
 import Sidebar from './components/Sidebar.vue'
-import { buildTargetsSummary, normalizeTargetsConfig, createEmptyTargetsSummary, createDefaultActivityCardConfig, createDefaultBalanceConfig, type ActivityCardConfig, type BalanceConfig, type TargetsConfig } from './services/targets'
+import { buildTargetsSummary, normalizeTargetsConfig, createEmptyTargetsSummary, createDefaultActivityCardConfig, createDefaultBalanceConfig, cloneTargetsConfig, convertWeekToMonth, type ActivityCardConfig, type BalanceConfig, type TargetsConfig } from './services/targets'
 // Lightweight notifications without @nextcloud/dialogs
 function notifySuccess(msg: string){
   const w:any = window as any
@@ -457,10 +457,23 @@ function updateTargetsConfig(next: TargetsConfig){
 const activeDayMode = ref<'active'|'all'>('active')
 const rangeLabel = computed(()=> range.value === 'month' ? 'Month' : 'Week')
 
+const targetsConfigForRange = computed(() => {
+  const base = cloneTargetsConfig(targetsConfig.value)
+  if (range.value === 'month') {
+    base.totalHours = convertWeekToMonth(base.totalHours)
+    base.categories = base.categories.map((cat) => ({
+      ...cat,
+      targetHours: convertWeekToMonth(cat.targetHours),
+    }))
+  }
+  return base
+})
+
 const targetsSummary = computed(() => {
+  const cfg = targetsConfigForRange.value
   try {
     return buildTargetsSummary({
-      config: targetsConfig.value,
+      config: cfg,
       stats,
       byDay: byDay.value || [],
       byCal: byCal.value || [],
@@ -471,11 +484,28 @@ const targetsSummary = computed(() => {
     })
   } catch (e) {
     console.error('[opsdash] targets summary failed', e)
-    return createEmptyTargetsSummary(targetsConfig.value)
+    return createEmptyTargetsSummary(cfg)
   }
 })
 
-const currentTargets = computed(() => range.value === 'month' ? targetsMonth.value : targetsWeek.value)
+const currentTargets = computed<Record<string, number>>(() => {
+  if (range.value === 'month') {
+    const monthMap = targetsMonth.value || {}
+    if (monthMap && Object.keys(monthMap).length > 0) {
+      return monthMap
+    }
+    const weekMap = targetsWeek.value || {}
+    const converted: Record<string, number> = {}
+    Object.entries(weekMap).forEach(([id, value]) => {
+      const num = Number(value)
+      if (Number.isFinite(num)) {
+        converted[id] = convertWeekToMonth(num)
+      }
+    })
+    return converted
+  }
+  return targetsWeek.value || {}
+})
 
 const activityCardConfig = computed<ActivityCardConfig>(() => {
   return { ...createDefaultActivityCardConfig(), ...(targetsConfig.value?.activityCard ?? {}) }
@@ -505,7 +535,7 @@ const { categoryLabelById, categoryColorMap, calendarCategoryMap, calendarGroups
   selected,
   groupsById,
   colorsById,
-  targetsConfig,
+  targetsConfig: targetsConfigForRange,
   targetsSummary,
   byCal,
   currentTargets,

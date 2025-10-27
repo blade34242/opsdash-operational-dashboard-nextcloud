@@ -7,6 +7,7 @@ Living backlog for hardening and extending the Operational Dashboard.
 - Sidebar panes live in dedicated components with shared validation helpers; target summary derives from aggregated `byCal` data.
 - `computePaceInfo` reads `opts.dailyHours`, resolving the zeroed Targets card regression.
 - All-day calendar events are normalised server-side (structured query + ICS fallback) and use the configurable “All-day event (h per day)” slider in the Targets pane; charts now show a single-day column for all-day entries.
+- Targets card, category blocks, and per-calendar stacks now respect the Week/Month toggle by loading monthly targets (with automatic week→month conversion when needed) so KPIs stay aligned with the selected range.
 - Core docs (Architecture, API, Configuration, Dev Workflow, Packaging, Troubleshooting) reflect the latest flow.
 
 ## Execution Order (Lean + Tested)

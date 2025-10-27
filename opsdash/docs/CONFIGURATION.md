@@ -22,6 +22,7 @@ No usage metrics are collected or configurable.
   - Per-category targets with weekend inclusion, category labels, and automatic grouping (calendars take the group id of the selected category; users no longer edit group numbers)
   - Pacing thresholds, forecast padding, and display toggles
   - A global “All-day event hours” control (0–24 h) that defines how many hours a multi-day all-day event contributes per day; the value is shared across server aggregation and the dashboard UI.
+- Switching the range (Week⇄Month) recalculates the entire Targets stack on the fly: monthly totals are derived from their weekly definitions (×4) when no explicit monthly values exist, and the summary/forecast cards automatically swap to the selected range’s data.
 - Sidebar open/closed state is persisted in `localStorage` so the dock reopens in the last used position.
 
 ## Card Settings (Sidebar ➜ Cards tab)

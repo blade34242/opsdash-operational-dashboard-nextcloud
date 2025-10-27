@@ -10,6 +10,7 @@ All notable changes to this project are documented here. This file is served loc
 - Docs: refreshed architecture and refactor plans to reflect the composable-driven structure; bumped default prompts and testing docs.
 - Localisation: routed server/SPA strings through Nextcloud l10n helpers; translation files cover all current UI copy (en,de).
 - Fix: restored all-day event detection when using the structured calendar query, matching ICS behaviour, and introduced a configurable “all-day hours per day” target setting that feeds both aggregation and the dashboard UI.
+- Fix: Week/Month toggle now swaps the entire targets stack (summary card, categories, charts) to month metrics, converting weekly definitions on the fly when no explicit monthly targets are stored.
 
 ## [0.4.2] - 2025-10-12 (NC 30–31 line)
 - UI: Sidebar dock with persistent open/close state; main content spans full width when collapsed.
