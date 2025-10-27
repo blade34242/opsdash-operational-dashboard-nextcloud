@@ -22,7 +22,7 @@ use JsonException;
 use Sabre\VObject\Reader;
 // use Sabre\VObject\Reader; // removed to avoid parsing raw ICS in NC32
 
-final class ConfigDashboardController extends Controller {
+final class OverviewController extends Controller {
     private const MAX_OFFSET = 24;
     private const MAX_TARGET_HOURS = 10000;
     private const MAX_GROUP = 9;
@@ -71,7 +71,7 @@ final class ConfigDashboardController extends Controller {
         try {
             $changelog = (string)$this->config->getAppValue($this->appName, 'changelog_url', '');
         } catch (\Throwable) { }
-        return new TemplateResponse($this->appName, 'config_dashboard', [
+        return new TemplateResponse($this->appName, 'overview', [
             'version' => $version,
             'changelog' => $changelog,
         ]);

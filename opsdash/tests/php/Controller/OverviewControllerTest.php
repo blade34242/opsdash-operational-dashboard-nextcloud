@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace OCA\Opsdash\Tests\Controller;
 
-use OCA\Opsdash\Controller\ConfigDashboardController;
+use OCA\Opsdash\Controller\OverviewController;
 use OCP\Calendar\IManager;
 use OCP\IConfig;
 use OCP\IRequest;
@@ -12,12 +12,12 @@ use OCP\IUserSession;
 use PHPUnit\Framework\TestCase;
 use Psr\Log\LoggerInterface;
 
-class ConfigDashboardControllerTest extends TestCase {
-  private ConfigDashboardController $controller;
+class OverviewControllerTest extends TestCase {
+  private OverviewController $controller;
 
   protected function setUp(): void {
     parent::setUp();
-    $this->controller = new ConfigDashboardController(
+    $this->controller = new OverviewController(
       'opsdash',
       $this->createMock(IRequest::class),
       $this->createMock(IManager::class),
@@ -28,7 +28,7 @@ class ConfigDashboardControllerTest extends TestCase {
   }
 
   public function testCleanTargetsClampsAndSkipsInvalidValues(): void {
-    $method = new \ReflectionMethod(ConfigDashboardController::class, 'cleanTargets');
+    $method = new \ReflectionMethod(OverviewController::class, 'cleanTargets');
     $method->setAccessible(true);
 
     $allowed = ['wk' => 1, 'ok' => 1, 'max' => 1];
@@ -49,7 +49,7 @@ class ConfigDashboardControllerTest extends TestCase {
   }
 
   public function testCleanGroupsSanitisesValues(): void {
-    $method = new \ReflectionMethod(ConfigDashboardController::class, 'cleanGroups');
+    $method = new \ReflectionMethod(OverviewController::class, 'cleanGroups');
     $method->setAccessible(true);
 
     $allowed = ['cal' => 1, 'max' => 1];
@@ -67,7 +67,7 @@ class ConfigDashboardControllerTest extends TestCase {
   }
 
   public function testCleanTargetsConfigSanitisesNumericFields(): void {
-    $method = new \ReflectionMethod(ConfigDashboardController::class, 'cleanTargetsConfig');
+    $method = new \ReflectionMethod(OverviewController::class, 'cleanTargetsConfig');
     $method->setAccessible(true);
 
     /** @var array<string,mixed> $result */

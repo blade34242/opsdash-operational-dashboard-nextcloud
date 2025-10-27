@@ -653,7 +653,7 @@ const changelogUrl = ref<string>(readDataAttr('opsdashChangelog'))
 async function ensureMeta(){
   if (appVersion.value && changelogUrl.value) return
   try {
-    const res = await getJson(route('load').replace('/config_dashboard/load','/config_dashboard/ping'), {})
+    const res = await getJson(route('load').replace('/overview/load','/overview/ping'), {})
     if (!appVersion.value && typeof res?.version === 'string') appVersion.value = res.version
     if (!changelogUrl.value && typeof res?.changelog === 'string') changelogUrl.value = res.changelog
   } catch {}
@@ -678,17 +678,17 @@ async function deleteJson(url: string){ const w:any=window as any; const rt=(w.O
 function route(name: string, param?: string){
   const w:any = window as any
   if (w.OC && typeof w.OC.generateUrl === 'function') {
-    if (name === 'load')    return w.OC.generateUrl('/apps/opsdash/config_dashboard/load')
-    if (name === 'persist') return w.OC.generateUrl('/apps/opsdash/config_dashboard/persist')
-    if (name === 'notes')   return w.OC.generateUrl('/apps/opsdash/config_dashboard/notes')
-    if (name === 'notesSave') return w.OC.generateUrl('/apps/opsdash/config_dashboard/notes')
-    if (name === 'presetsList')   return w.OC.generateUrl('/apps/opsdash/config_dashboard/presets')
-    if (name === 'presetsSave')   return w.OC.generateUrl('/apps/opsdash/config_dashboard/presets')
-    if (name === 'presetsLoad')   return w.OC.generateUrl('/apps/opsdash/config_dashboard/presets/' + encodeURIComponent(String(param ?? '')))
-    if (name === 'presetsDelete') return w.OC.generateUrl('/apps/opsdash/config_dashboard/presets/' + encodeURIComponent(String(param ?? '')))
-    return w.OC.generateUrl('/apps/opsdash/config_dashboard')
+    if (name === 'load')    return w.OC.generateUrl('/apps/opsdash/overview/load')
+    if (name === 'persist') return w.OC.generateUrl('/apps/opsdash/overview/persist')
+    if (name === 'notes')   return w.OC.generateUrl('/apps/opsdash/overview/notes')
+    if (name === 'notesSave') return w.OC.generateUrl('/apps/opsdash/overview/notes')
+    if (name === 'presetsList')   return w.OC.generateUrl('/apps/opsdash/overview/presets')
+    if (name === 'presetsSave')   return w.OC.generateUrl('/apps/opsdash/overview/presets')
+    if (name === 'presetsLoad')   return w.OC.generateUrl('/apps/opsdash/overview/presets/' + encodeURIComponent(String(param ?? '')))
+    if (name === 'presetsDelete') return w.OC.generateUrl('/apps/opsdash/overview/presets/' + encodeURIComponent(String(param ?? '')))
+    return w.OC.generateUrl('/apps/opsdash/overview')
   }
-  const base = getRoot() + '/apps/opsdash/config_dashboard'
+  const base = getRoot() + '/apps/opsdash/overview'
   if (name === 'load') return base + '/load'
   if (name === 'persist') return base + '/persist'
   if (name === 'notes')   return base + '/notes'
@@ -697,7 +697,7 @@ function route(name: string, param?: string){
   if (name === 'presetsSave') return base + '/presets'
   if (name === 'presetsLoad') return base + '/presets/' + encodeURIComponent(param ?? '')
   if (name === 'presetsDelete') return base + '/presets/' + encodeURIComponent(param ?? '')
-  return getRoot() + '/apps/opsdash/config_dashboard'
+  return getRoot() + '/apps/opsdash/overview'
 }
 
 async function refreshPresets(){

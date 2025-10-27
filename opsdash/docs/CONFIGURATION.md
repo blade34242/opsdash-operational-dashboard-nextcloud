@@ -30,10 +30,10 @@ No usage metrics are collected or configurable.
 - Presets are stored per user in Nextcloud config and can be reloaded with a single click; applying a preset persists the new state via `/persist` and refreshes the dashboard.
 - When older presets reference calendars or fields that no longer exist, the server sanitises the payload, reports the skipped entries as warnings, and applies the remaining configuration once the user confirms.
 - API endpoints:
-  - `GET /config_dashboard/presets` → list summaries.
-  - `POST /config_dashboard/presets` → save/overwrite a preset.
-  - `GET /config_dashboard/presets/{name}` → load (returns warnings + sanitised payload).
-  - `DELETE /config_dashboard/presets/{name}` → remove.
+  - `GET /overview/presets` → list summaries.
+  - `POST /overview/presets` → save/overwrite a preset.
+  - `GET /overview/presets/{name}` → load (returns warnings + sanitised payload).
+  - `DELETE /overview/presets/{name}` → remove.
 
 ## Card Settings (Sidebar ➜ Cards tab)
 - **Activity & Schedule card** — show/hide: weekend share, evening share, earliest/late times, overlaps, longest session, last day off, and the category-mapping hint. A “Bar chart projection” selector controls how empty future days are visualised in the stacked charts (`Off`, distribute the remaining total target, respect per-calendar targets, or respect category targets).

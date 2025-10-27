@@ -28,7 +28,7 @@ All notable changes to this project are documented here. This file is served loc
 
 ## [0.4.1] - 2025-10-04 (NC 30–31 line)
 - Rename finalized: app id `opsdash`, display name “Operational Dashboard”
-- Routing: unified canonical endpoints under `/apps/opsdash/config_dashboard/*`; navigation points to index
+- Routing: unified canonical endpoints under `/apps/opsdash/overview/*`; navigation points to index
 - Bootstrap: removed legacy `appinfo/app.php` (IBootstrap warning fixed); nav added in `Application::boot()`
 - Icons: ensured `img/app.svg` and `img/app-dark.svg` are used consistently; removed duplicate root `app.svg`; favicon resolution fixed
 - Layout: full-width cards/tabs/tables; empty state remains full-height and scrollable; defensive NC shell width overrides

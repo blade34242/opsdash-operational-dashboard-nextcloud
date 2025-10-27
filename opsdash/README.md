@@ -15,7 +15,7 @@ Operational Dashboard surfaces week/month calendar activity inside Nextcloud: su
    npm run build
    ```
 3. Enable the app: `occ app:enable opsdash`
-4. Visit `/index.php/apps/opsdash/config_dashboard`
+4. Visit `/index.php/apps/opsdash/overview`
 
 Hot reload is available with `npm run dev`, but production-like flows should always run `npm run build` to refresh `js/.vite/manifest.json` and `js/assets/*`.
 
@@ -30,7 +30,7 @@ Hot reload is available with `npm run dev`, but production-like flows should alw
 - **Main analysis tabs** – By Calendar, By Day, Longest Tasks, and Heatmap give you the drill-down, backed by consistent chart colouring and automatic resizing.
 
 ## Routing & Assets
-- Primary controller endpoints live under `/apps/opsdash/config_dashboard/*`:
+- Primary controller endpoints live under `/apps/opsdash/overview/*`:
   - `GET /load?range=week|month&offset=0`
   - `POST /persist` (selection + targets)
   - `POST /notes`

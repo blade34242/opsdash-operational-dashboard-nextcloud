@@ -45,9 +45,9 @@ opsdash/
     AppInfo/
       Application.php
     Controller/
-      ConfigDashboardController.php
+      OverviewController.php
   templates/
-    config_dashboard.php
+    overview.php
   README.md
   LICENSE
 ```

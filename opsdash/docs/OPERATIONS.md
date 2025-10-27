@@ -13,7 +13,7 @@
     - `occ app:disable opsdash && occ app:enable opsdash`
 4. Verify assets and route:
    - `curl -I http://<host>/apps-extra/opsdash/js/mainXX.js` → 200 (or any new filename)
-    - `curl -I http://<host>/index.php/apps/opsdash/config_dashboard` → 200 after login
+    - `curl -I http://<host>/index.php/apps/opsdash/overview` → 200 after login
 5. In browser: disable cache in DevTools and hard-reload.
 
 ## Logs
@@ -37,7 +37,7 @@
 ## Version and Changelog in Footer
 - Version sources (order):
   1. Installed app version via `OC_App::getAppVersion()` (template data attributes)
-  2. Fallback ping: `GET /apps/opsdash/config_dashboard/ping` returns `{version, changelog}`
+  2. Fallback ping: `GET /apps/opsdash/overview/ping` returns `{version, changelog}`
   3. Build fallback: `package.json` version is shown until (1)/(2) resolve
 - Keep `appinfo/info.xml` and `package.json` versions aligned to avoid a temporary mismatch in the footer text (the build fallback may render first).
 - Configure changelog URL (dev example):

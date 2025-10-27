@@ -6,7 +6,7 @@
   - Backend sends initial colors with the first `load` response (from available calendar metadata or a deterministic fallback).
   - Client then performs a CalDAV PROPFIND to retrieve each calendar’s `calendar-color` for users/calendars where the server did not provide a color. When these arrive, the client recomputes chart colors and redraws, producing a short visual color change.
 - Code references:
-  - Initial colors and chart data: `lib/Controller/ConfigDashboardController.php` (keys: `colors.byId`, `charts.pie.colors`, `perDaySeries.series[].color`).
+  - Initial colors and chart data: `lib/Controller/OverviewController.php` (keys: `colors.byId`, `charts.pie.colors`, `perDaySeries.series[].color`).
   - Client-side DAV fetch + recomputation: `src/App.vue` inside `load()` (look for `fetchDavColors` then recompute `pie.colors` and `perDaySeries` colors).
   - Chart components applying colors: `src/components/PieChart.vue`, `src/components/StackedBars.vue`.
 - Mitigations (operational):
@@ -48,8 +48,8 @@
 - Expected behaviour: Card titles should focus on the metric (“Activity & Schedule”), relying on the global range indicator to communicate Week/Month state.
 - Next steps: Remove the range suffix from card titles during the planned top-card polish pass; ensure the global range indicator remains prominent.
 
-## Endpoint naming inconsistency (`config_dashboard`)
-- Symptom: Routes live under `/apps/opsdash/config_dashboard/...`, exposing the old “config_dashboard” label, which no longer reflects the product naming.
+## Endpoint naming inconsistency (`overview`)
+- Symptom: Routes live under `/apps/opsdash/overview/...`, exposing the old “overview” label, which no longer reflects the product naming.
 - Impact: API consumers and docs see an outdated endpoint; hard to remember and not user-friendly.
 - Expected behaviour: Consolidate endpoints under a cleaner URI (e.g., `/apps/opsdash/overview/...` or `/apps/opsdash/api/...`), replacing the old path entirely (no redirects) so we avoid naming collisions with the Nextcloud Dashboard feature.
 - Notes: Documented so we plan a rename (server routes + JS references). Should be paired with API doc updates and changelog entry.

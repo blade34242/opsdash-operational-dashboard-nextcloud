@@ -27,7 +27,7 @@ class Application extends App implements IBootstrap {
                     $url = $server->getURLGenerator();
                     $l10nFactory = $server->getL10NFactory();
                     $l = $l10nFactory->get('opsdash');
-                    $route = $url->linkToRoute('opsdash.config_dashboard.index');
+                    $route = $url->linkToRoute('opsdash.overview.index');
                     // Use explicit SVG name for NC31/32 compatibility (Nextcloud resolves to img/app.svg)
                     $icon  = $url->imagePath('opsdash', 'app.svg');
                     // Version-sensitive fallback (NC 32 navigation quirks)

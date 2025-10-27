@@ -14,7 +14,7 @@ This app provides a Calendar Dashboard for Nextcloud. It consists of:
 ## Request Flow
 
 1. User opens the app navigation entry → PHP controller loads CSS + JS and template.
-2. Frontend boots and calls `GET /config_dashboard/load` with `range` + `offset`.
+2. Frontend boots and calls `GET /overview/load` with `range` + `offset`.
 3. Server aggregates calendar stats and returns JSON with:
    - `stats`, `byCal`, `byDay`, `longest`, `charts`
    - `meta` with `from`, `to`, and optional `truncated` caps
@@ -24,7 +24,7 @@ This app provides a Calendar Dashboard for Nextcloud. It consists of:
 
 ## Backend Modules
 
-- Controller/ConfigDashboardController.php: endpoints `index`, `load`, `persist`, `notes`, `notesSave`.
+- Controller/OverviewController.php: endpoints `index`, `load`, `persist`, `notes`, `notesSave`.
 - No admin settings; no usage metrics are collected.
 
 Guiding principles:

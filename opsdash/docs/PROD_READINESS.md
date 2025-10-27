@@ -6,7 +6,7 @@ Target platform: Nextcloud 30–31 (per `appinfo/info.xml`).
 - ✅ Versions match (`appinfo/info.xml`, `package.json`, footer) — 0.4.3.
 - ✅ Build pipeline: `npm ci && npm run build` refreshes `js/.vite/manifest.json` and hashed bundles under `js/assets/`.
 - ✅ App folder `opsdash` lives inside a configured `apps_paths`; icons limited to `img/app.svg` and `img/app-dark.svg`.
-- ✅ Routes confined to `/apps/opsdash/config_dashboard/*`; POST routes enforce CSRF via `window.oc_requesttoken`.
+- ✅ Routes confined to `/apps/opsdash/overview/*`; POST routes enforce CSRF via `window.oc_requesttoken`.
 - ✅ Backend aggregates per-user selection safely (clamped range/offset, category mapping, target bounds).
 
 ## Code & UX Checks
@@ -23,8 +23,8 @@ Target platform: Nextcloud 30–31 (per `appinfo/info.xml`).
 
 ## Validation
 - Static assets respond: `curl -I https://host/apps-extra/opsdash/img/app.svg`
-- Authenticated load: `/index.php/apps/opsdash/config_dashboard`
-- API smoke: `/apps/opsdash/config_dashboard/load?range=week&offset=0`
+- Authenticated load: `/index.php/apps/opsdash/overview`
+- API smoke: `/apps/opsdash/overview/load?range=week&offset=0`
 - UI flow: toggle calendars, edit targets/categories, add notes, confirm summary/balance cards update
 - Notes persistence: POST `/notes` with request token
 

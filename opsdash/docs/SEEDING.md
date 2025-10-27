@@ -63,8 +63,8 @@ Examples:
 ## Verify Data
 - Calendar UI: `BASE/index.php/apps/calendar/`
 - Dashboard API:
-  - Week: `BASE/index.php/apps/opsdash/config_dashboard/load?range=week&offset=0`
-  - Month: `BASE/index.php/apps/opsdash/config_dashboard/load?range=month&offset=0`
+  - Week: `BASE/index.php/apps/opsdash/overview/load?range=week&offset=0`
+  - Month: `BASE/index.php/apps/opsdash/overview/load?range=month&offset=0`
 
 ## Notes
 - Times are saved in UTC (`Z`) to avoid timezone ambiguity. Adjust `START_*`, `EVT_MIN`, `GAP_MIN` via environment variables as needed.

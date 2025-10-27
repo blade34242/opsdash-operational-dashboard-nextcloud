@@ -3,7 +3,7 @@
 Base path: `/apps/opsdash`
 
 ## Load Statistics (read-only)
-- Method: GET `/config_dashboard/load`
+- Method: GET `/overview/load`
 - Query params:
   - `range`: `week` | `month` (default: `week`)
   - `offset`: integer −24..24 (default: 0)
@@ -39,7 +39,7 @@ Base path: `/apps/opsdash`
 ```
 
 ## Persist Selection (save)
-- Method: POST `/config_dashboard/persist`
+- Method: POST `/overview/persist`
 - Body: JSON `{ cals: string[]; groups?: Record<string,number>; targets_week?: Record<string,number>; targets_month?: Record<string,number> }`
 - Optional: include `targets_config` (mirrors the structure returned by `/load`, covering `categories`, `pace`, `forecast`, `ui`, `timeSummary`, `activityCard`, `balance`). The `activityCard` payload now carries a `forecastMode` field (`off` | `total` | `calendar` | `category`) which drives the per-day projection overlay in the stacked charts.
 - CSRF: required (`window.oc_requesttoken`)
@@ -82,7 +82,7 @@ BASE="http://localhost:8088"
 TOKEN="OcQ7.../Aa=="                 # from window.oc_requesttoken
 COOKIES="oc_sessionPassphrase=k...; oc8abcd123ef=2...; NC_CSRF_TOKEN=$TOKEN"
 
-curl -sS "${BASE}/index.php/apps/opsdash/config_dashboard/persist" \
+curl -sS "${BASE}/index.php/apps/opsdash/overview/persist" \
   -X POST \
   -H "Content-Type: application/json" \
   -H "requesttoken: ${TOKEN}" \
@@ -96,12 +96,12 @@ Validation
 - `targets_*`: per-calendar hours clamped to [0..10000], decimals allowed; unknown ids ignored.
 
 ## Notes (read)
-- Method: GET `/config_dashboard/notes`
+- Method: GET `/overview/notes`
 - Query: `range`, `offset` as above
 - Response: `{ ok, period: { type, current_from, previous_from }, notes: { current, previous } }`
 
 ## Notes (save)
-- Method: POST `/config_dashboard/notes`
+- Method: POST `/overview/notes`
 - Body: `{ range: 'week'|'month', offset: number, content: string }` (max 32k)
 - CSRF: required
 - Response: `{ ok: true }`
@@ -112,7 +112,7 @@ BASE="http://localhost:8088"
 TOKEN="OcQ7.../Aa=="
 COOKIES="oc_sessionPassphrase=k...; oc8abcd123ef=2...; NC_CSRF_TOKEN=$TOKEN"
 
-curl -sS "${BASE}/index.php/apps/opsdash/config_dashboard/notes" \
+curl -sS "${BASE}/index.php/apps/opsdash/overview/notes" \
   -X POST \
   -H "Content-Type: application/json" \
   -H "requesttoken: ${TOKEN}" \
@@ -121,22 +121,22 @@ curl -sS "${BASE}/index.php/apps/opsdash/config_dashboard/notes" \
 ```
 
 ## Ping (health)
-- Method: GET `/config_dashboard/ping`
+- Method: GET `/overview/ping`
 - Response: `{ ok, app, ts }`
 
 ## Presets
 - List summaries
-  - Method: GET `/config_dashboard/presets`
+  - Method: GET `/overview/presets`
   - Response: `{ ok, presets: Array<{ name, createdAt, updatedAt, selectedCount, calendarCount }> }`
 - Save/overwrite preset
-  - Method: POST `/config_dashboard/presets`
+  - Method: POST `/overview/presets`
   - Body: `{ name: string, selected: string[], groups: Record<string,number>, targets_week: Record<string,number>, targets_month: Record<string,number>, targets_config: TargetsConfig }`
   - Response: `{ ok, preset: { name, createdAt, updatedAt }, presets: [...], warnings?: string[] }`
   - Notes: payload is sanitised against the user’s current calendars; unknown ids are dropped with a warning.
 - Load preset
-  - Method: GET `/config_dashboard/presets/{name}`
+  - Method: GET `/overview/presets/{name}`
   - Response: `{ ok, preset: { name, createdAt, updatedAt, selected, groups, targets_week, targets_month, targets_config, warnings?: string[] }, warnings?: string[] }`
   - The response already includes a sanitised payload; if warnings are present the client should surface them (and ideally ask for confirmation) before applying the result.
 - Delete preset
-  - Method: DELETE `/config_dashboard/presets/{name}`
+  - Method: DELETE `/overview/presets/{name}`
   - Response: `{ ok, presets: [...] }`

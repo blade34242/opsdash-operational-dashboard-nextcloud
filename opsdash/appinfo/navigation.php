@@ -10,7 +10,7 @@ $url = \OC::$server->getURLGenerator();
 return [[
     'id' => 'opsdash',
     'order' => 10,
-    'href' => $url->linkToRoute('opsdash.config_dashboard.index'),
+    'href' => $url->linkToRoute('opsdash.overview.index'),
     'icon' => $url->imagePath('opsdash', 'app.svg'),
     'name' => 'Operational Dashboard',
     'type' => 'link',

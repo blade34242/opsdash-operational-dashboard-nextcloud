@@ -8,7 +8,7 @@ You are working in the Nextcloud Opsdash app located at /home/thewestboi/Documen
 Core context:
 - SPA lives in `opsdash/src/App.vue`; persistence/composables reside under `opsdash/composables/` (`useDashboard`, `useNotes`, `useCategories`, `useCharts`, `useSummaries`, `useBalance`).
 - Sidebar panes live in `opsdash/src/components/sidebar/` (Calendars, Targets, Summary, Activity, Balance, Notes) and share helpers via `sidebar/validation.ts`.
-- Server entry point `lib/Controller/ConfigDashboardController.php`; PHP helper classes under `lib/Service/`.
+- Server entry point `lib/Controller/OverviewController.php`; PHP helper classes under `lib/Service/`.
 - Routes defined via `opsdash/appinfo/routes.php`; assets built with Vite.
 
 Always do after code changes:
@@ -17,7 +17,7 @@ Always do after code changes:
 - `composer test`
 
 Day-to-day reminders:
-- Persist selection solely via `/config_dashboard/persist`; `/save` was removed.
+- Persist selection solely via `/overview/persist`; `/save` was removed.
 - Reuse existing composables/helpers (dashboard/notes/categories/summaries/balance + sidebar validation) instead of adding new state inside `App.vue` or panes.
 - Reuse `services/i18n.ts` (`t`, `n`) for any new user-facing strings so localisation stays complete.
 - Use `BASE=http://localhost:8088 USER=admin PASS=admin ./tools/seed_opsdash_demo.sh` to seed demo data.

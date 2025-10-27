@@ -17,14 +17,14 @@ Living backlog for hardening and extending the Operational Dashboard.
 4. Execute architecture refactor (split App/Sidebar/targets/services) — 🔄 `App.vue` trimmed; sidebar panes/composables in place; continue carving persistence.
 5. Build onboarding wizard + strategy profiles.
 6. Roll out theming, collapsed controls, keyboard shortcuts overlay.
-7. Update endpoints/docs (rename to `/overview/`) and polish copy (balance card).
+7. Update endpoints/docs (rename to `/overview/`) and polish copy (balance card). — ✅ routes + docs migrated to `/overview/*`; copy polish pending follow-up (2025-11).
 8. Keep tests green after every milestone, add cases as features land.
 - When refactoring Sidebar → composables, ship helpers behind opt-in flags and smoke-test in the Nextcloud instance first. A direct swap to `useTargets` caused a runtime `ReferenceError: useTargets is not defined` (sidebar rendered empty). Reattempt once the helper is fully exported/bundled.
 
 ## P0 — Confidence & Maintenance
 - Add Vitest coverage around `buildTargetsSummary`, `computePaceInfo`, sidebar/balance tabs, and chart helpers. — ✅ covered (2025-03); expand to chart rendering + keyboard shortcuts in upcoming work.
-- Document curl flows for `/config_dashboard/persist` and `/config_dashboard/notes` (with CSRF header examples). — ✅ exemples added (2025-03).
-- Remove the legacy `/config_dashboard/save` endpoint once consumers confirm the `/persist` JSON shape. — ✅ removed in favour of `/persist` (2025-03).
+- Document curl flows for `/overview/persist` and `/overview/notes` (with CSRF header examples). — ✅ exemples added (2025-03).
+- Remove the legacy `/overview/save` endpoint once consumers confirm the `/persist` JSON shape. — ✅ removed in favour of `/persist` (2025-03).
 - Establish shared client/server validation helpers and inline feedback per `docs/INPUT_VALIDATION_PLAN.md`. — ✅ numeric inputs funnel through shared helpers on client/server (2025-03); structured 400 responses + localisation delivered (2025-11); keep translation files updated alongside feature work.
 - Implement unified testing strategy (`docs/TESTING_STRATEGY.md`): add PHPUnit service/controller tests and Vitest component/composable coverage. — ✅ baseline suites for validators, controller sanitisation, dashboard tabs/pacing/charts now in place; plan coverage for keyboard shortcuts & charts in render mode.
 
@@ -55,7 +55,7 @@ Living backlog for hardening and extending the Operational Dashboard.
 
 ## Validation Checklist
 - `npm run build` produces fresh hashed bundles; the HTML references `/apps-extra/opsdash/js/assets/...`.
-- `GET /apps/opsdash/config_dashboard/load` returns expected stats/targets for seeded data.
+- `GET /apps/opsdash/overview/load` returns expected stats/targets for seeded data.
 - Sidebar tab selection persists across reloads; Targets card displays current totals/percentages.
 - Docs (CHANGELOG, DEV_WORKFLOW, TROUBLESHOOTING, PACKAGING) align with the release artefacts.
 

@@ -11,7 +11,7 @@ shared utilities so the codebase becomes easier to maintain, test, and extend.
   configuration, balance/activity settings, validation, and persistence hooks.
 - `src/services/targets.ts` (~650 lines) covers defaults, normalization, progress
   math, forecast logic, and helper utilities in one file.
-- `lib/Controller/ConfigDashboardController.php` (~1.6k lines) handles routing,
+- `lib/Controller/OverviewController.php` (~1.6k lines) handles routing,
   persistence, sanitisation, DAV color fallback, and config normalization.
 - Theme/branding hooks (e.g. favicon + theme detection) live inside `src/main.ts`.
 - Inputs clamp values ad-hoc; no shared validation or user feedback pattern.
@@ -34,7 +34,7 @@ shared utilities so the codebase becomes easier to maintain, test, and extend.
 
 4. **Server Layer Reorganisation**
    - Create services (e.g. `CalendarService`, `TargetsService`, `NotesService`)
-     and move logic out of `ConfigDashboardController`. Keep controller focused
+     and move logic out of `OverviewController`. Keep controller focused
      on routing + responses per Nextcloud best practices.
 
 5. **Validation & Feedback**

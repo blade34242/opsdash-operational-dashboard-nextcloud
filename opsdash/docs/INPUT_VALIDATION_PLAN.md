@@ -14,7 +14,7 @@ isn’t consistent, provides little feedback, and makes it hard to extend forms.
 ## Current Gaps
 - **Client:** Inputs silently ignore invalid numbers; no error states or helper
   text. Each field implements its own clamp logic.
-- **Server:** `ConfigDashboardController` sanitises payloads but lacks schema
+- **Server:** `OverviewController` sanitises payloads but lacks schema
   definitions or structured error responses.
 - **Docs:** No guidance for contributors on adding inputs safely.
 
