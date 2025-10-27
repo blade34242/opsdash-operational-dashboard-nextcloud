@@ -5,7 +5,22 @@
     <div class="sb-title" title="Kalender filtern und gruppieren">Filter Calendars</div>
     <div class="rangebar" title="Time range">
       <div class="range-actions">
-        <NcButton class="nav-btn" type="primary" :disabled="isLoading" @click="$emit('load')">Load</NcButton>
+        <button
+          class="sidebar-action-btn"
+          type="button"
+          :disabled="isLoading"
+          @click="$emit('load')"
+        >
+          Refresh
+        </button>
+        <button
+          class="sidebar-action-btn sidebar-action-btn--icon"
+          type="button"
+          @click="$emit('toggle-nav')"
+          :aria-label="navToggleLabel"
+        >
+          {{ navToggleIcon }}
+        </button>
       </div>
       <div class="range-toggle">
         <NcCheckboxRadioSwitch type="radio" name="range-week" :checked="range==='week'" @update:checked="val => { if (val) $emit('update:range','week') }">Week</NcCheckboxRadioSwitch>
@@ -115,6 +130,7 @@
       :targets="targets"
       :category-options="categoryOptions"
       :total-target-message="totalTargetMessage"
+      :all-day-hours-message="allDayHoursMessage"
       :category-target-messages="categoryTargetMessages"
       :pace-threshold-messages="paceThresholdMessages"
       :forecast-momentum-message="forecastMomentumMessage"
@@ -122,6 +138,7 @@
       :can-add-category="canAddCategory"
       @total-target-input="onTotalTarget"
       @apply-preset="applyPreset"
+      @set-all-day-hours="setAllDayHours"
       @set-category-label="({ id, label }) => setCategoryLabel(id, label)"
       @remove-category="removeCategory"
       @set-category-target="({ id, value }) => setCategoryTarget(id, value)"
@@ -230,10 +247,12 @@ const props = defineProps<{
   isSavingNote: boolean
   targetsConfig: TargetsConfig
   activeDayMode: 'active' | 'all'
+  navToggleLabel: string
+  navToggleIcon: string
 }>()
 
 const emit = defineEmits([
-  'load','update:range','update:offset','select-all','toggle-calendar','set-group','set-target','update:notes','save-notes','update:targets-config','update:active-mode'
+  'load','update:range','update:offset','select-all','toggle-calendar','set-group','set-target','update:notes','save-notes','update:targets-config','update:active-mode','toggle-nav'
 ])
 
 const activeTab = ref<'calendars'|'targets'|'summary'|'activity'|'balance'|'notes'>('calendars')
@@ -305,6 +324,7 @@ const helpState = reactive({
 const calendarTargetMessages = reactive<Record<string, InputMessage | null>>({})
 const categoryTargetMessages = reactive<Record<string, InputMessage | null>>({})
 const totalTargetMessage = ref<InputMessage | null>(null)
+const allDayHoursMessage = ref<InputMessage | null>(null)
 const paceThresholdMessages = reactive<{ onTrack: InputMessage | null; atRisk: InputMessage | null }>({ onTrack: null, atRisk: null })
 const balanceThresholdMessages = reactive<{ noticeMaxShare: InputMessage | null; warnMaxShare: InputMessage | null; warnIndex: InputMessage | null }>({
   noticeMaxShare: null,
@@ -467,6 +487,16 @@ function onTotalTarget(value: string){
   )
 }
 
+function setAllDayHours(value: string){
+  applyNumericUpdate(
+    value,
+    { min: 0, max: 24, step: 0.25, decimals: 2 },
+    (message) => { allDayHoursMessage.value = message },
+    (num) => updateConfig(cfg => { cfg.allDayHours = num }),
+    '0–24 hours per day',
+  )
+}
+
 function setCategoryTarget(id: string, value: string){
   applyNumericUpdate(
     value,
@@ -612,6 +642,7 @@ function applyPreset(preset: TargetsPreset){
         { id:'hobby', label:'Hobby', targetHours:6, includeWeekend:true, paceMode:'days_only', groupIds:[2] },
         { id:'sport', label:'Sport', targetHours:4, includeWeekend:true, paceMode:'days_only', groupIds:[3] },
       ]
+      cfg.allDayHours = 8
       cfg.pace.includeWeekendTotal = true
       cfg.pace.mode = 'days_only'
       cfg.pace.thresholds = { onTrack: -2, atRisk: -10 }
@@ -628,6 +659,7 @@ function applyPreset(preset: TargetsPreset){
         { id:'hobby', label:'Hobby', targetHours:8, includeWeekend:true, paceMode:'time_aware', groupIds:[2] },
         { id:'sport', label:'Sport', targetHours:6, includeWeekend:true, paceMode:'time_aware', groupIds:[3] },
       ]
+      cfg.allDayHours = 8
       cfg.pace.includeWeekendTotal = true
       cfg.pace.mode = 'time_aware'
       cfg.pace.thresholds = { onTrack: -2, atRisk: -10 }

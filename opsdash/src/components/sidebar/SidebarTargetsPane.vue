@@ -22,6 +22,21 @@
           {{ totalTargetMessage?.text }}
         </div>
       </div>
+      <div class="field">
+        <span class="label">All-day event (h per day)</span>
+        <input
+          type="number"
+          :value="targets.allDayHours"
+          min="0"
+          max="24"
+          step="0.25"
+          :aria-invalid="!!allDayHoursMessage"
+          @input="$emit('set-all-day-hours', ($event.target as HTMLInputElement).value)"
+        />
+        <div v-if="allDayHoursMessage" :class="['input-message', allDayHoursMessage?.tone]">
+          {{ allDayHoursMessage?.text }}
+        </div>
+      </div>
       <div class="preset-buttons">
         <NcButton type="tertiary" @click="$emit('apply-preset', 'work-week')">Preset: Work-Week</NcButton>
         <NcButton type="tertiary" @click="$emit('apply-preset', 'balanced-life')">Preset: Balanced-Life</NcButton>
@@ -268,6 +283,7 @@ defineProps<{
     paceMode?: string
   }>
   totalTargetMessage: InputMessage | null
+  allDayHoursMessage: InputMessage | null
   categoryTargetMessages: Record<string, InputMessage | null>
   paceThresholdMessages: { onTrack: InputMessage | null; atRisk: InputMessage | null }
   forecastMomentumMessage: InputMessage | null
@@ -278,6 +294,7 @@ defineProps<{
 defineEmits<{
   (e: 'total-target-input', value: string): void
   (e: 'apply-preset', preset: string): void
+  (e: 'set-all-day-hours', value: string): void
   (e: 'set-category-label', payload: { id: string; label: string }): void
   (e: 'remove-category', id: string): void
   (e: 'set-category-target', payload: { id: string; value: string }): void

@@ -9,6 +9,7 @@ All notable changes to this project are documented here. This file is served loc
 - Tests: added Vitest coverage for charts and the new sidebar panes to lock down emitted events/validation.
 - Docs: refreshed architecture and refactor plans to reflect the composable-driven structure; bumped default prompts and testing docs.
 - Localisation: routed server/SPA strings through Nextcloud l10n helpers; translation files cover all current UI copy (en,de).
+- Fix: restored all-day event detection when using the structured calendar query, matching ICS behaviour, and introduced a configurable “all-day hours per day” target setting that feeds both aggregation and the dashboard UI.
 
 ## [0.4.2] - 2025-10-12 (NC 30–31 line)
 - UI: Sidebar dock with persistent open/close state; main content spans full width when collapsed.

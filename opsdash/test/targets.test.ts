@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { clampTarget, convertMonthToWeek, convertWeekToMonth, progressPercent } from '../src/services/targets'
+import { clampTarget, convertMonthToWeek, convertWeekToMonth, normalizeTargetsConfig, progressPercent } from '../src/services/targets'
 
 describe('targets helpers', () => {
   it('clamps targets to [0..10000] and rounds to 2 decimals', () => {
@@ -24,5 +24,13 @@ describe('targets helpers', () => {
     expect(progressPercent(30, 20)).toBe(100)
     expect(progressPercent(-5 as unknown as number, 10)).toBe(0)
   })
-})
 
+  it('clamps all-day hours to 0–24 and keeps defaults', () => {
+    const cfg = normalizeTargetsConfig({ allDayHours: 42 } as any)
+    expect(cfg.allDayHours).toBe(24)
+    const cfgNeg = normalizeTargetsConfig({ allDayHours: -5 } as any)
+    expect(cfgNeg.allDayHours).toBe(0)
+    const cfgDefault = normalizeTargetsConfig(undefined)
+    expect(cfgDefault.allDayHours).toBeGreaterThan(0)
+  })
+})

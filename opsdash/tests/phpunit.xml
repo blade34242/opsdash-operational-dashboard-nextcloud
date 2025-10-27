@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<phpunit bootstrap="php/bootstrap.php"
+         colors="true"
+         beStrictAboutTestsThatDoNotTestAnything="false"
+         beStrictAboutOutputDuringTests="true">
+	<testsuites>
+		<testsuite name="Opsdash Unit Tests">
+			<directory suffix="Test.php">php</directory>
+		</testsuite>
+	</testsuites>
+</phpunit>

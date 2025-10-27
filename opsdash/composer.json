@@ -1,0 +1,23 @@
+{
+  "name": "gellertinnovation/opsdash",
+  "description": "Operational dashboard Nextcloud app",
+  "type": "project",
+  "license": "agpl-3.0-or-later",
+  "require": {},
+  "require-dev": {
+    "phpunit/phpunit": "^9.6"
+  },
+  "autoload": {
+    "psr-4": {
+      "OCA\\Opsdash\\": "lib/"
+    }
+  },
+  "autoload-dev": {
+    "psr-4": {
+      "OCA\\Opsdash\\Tests\\": "tests/php/"
+    }
+  },
+  "scripts": {
+    "test": "phpunit -c tests/phpunit.xml"
+  }
+}

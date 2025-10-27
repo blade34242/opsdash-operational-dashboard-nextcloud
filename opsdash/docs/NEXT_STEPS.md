@@ -6,6 +6,7 @@ Living backlog for hardening and extending the Operational Dashboard.
 - Build artefacts are manifest-driven (`npm run build` ⇒ `js/.vite/manifest.json` + hashed files in `js/assets/`).
 - Sidebar panes live in dedicated components with shared validation helpers; target summary derives from aggregated `byCal` data.
 - `computePaceInfo` reads `opts.dailyHours`, resolving the zeroed Targets card regression.
+- All-day calendar events are normalised server-side (structured query + ICS fallback) and use the configurable “All-day event (h per day)” slider in the Targets pane; charts now show a single-day column for all-day entries.
 - Core docs (Architecture, API, Configuration, Dev Workflow, Packaging, Troubleshooting) reflect the latest flow.
 
 ## Execution Order (Lean + Tested)

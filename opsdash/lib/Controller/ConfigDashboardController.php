@@ -372,6 +372,9 @@ final class ConfigDashboardController extends Controller {
                     'method'=>$used,
                     'mode'=>$mode,
                     'rows'=>is_array($rawRows)?count($rawRows):0,
+                    'sample_raw'=>isset($rawRows[0]) ? $this->debugSanitizeSample($rawRows[0]) : null,
+                    'sample_parsed'=>isset($rows[0]) ? $rows[0] : null,
+                    'sample_detect_allday'=>isset($rawRows[0]) ? $this->debugDetectAllDay($rawRows[0]) : null,
                 ];
             }
         }
@@ -400,16 +403,19 @@ final class ConfigDashboardController extends Controller {
         // 24×7 Heatmap-Aggregation vorbereiten
         $dowOrder=['Mon','Tue','Wed','Thu','Fri','Sat','Sun'];
         $hod=[]; foreach($dowOrder as $d){ $hod[$d]=array_fill(0,24,0.0); }
+        $allDayHours = isset($targetsConfig['allDayHours']) ? max(0.0, min(24.0, (float)$targetsConfig['allDayHours'])) : 8.0;
 
         foreach ($events as $r) {
-            $h=(float)($r['hours']??0); $totalHours+=$h;
+            $isAllDayEvent = !empty($r['allday']);
+            $h=(float)($r['hours']??0);
             $calName=(string)($r['calendar']??'');
             $calId = (string)($r['calendar_id'] ?? $calName);
             $byCalMap[$calId] = $byCalMap[$calId] ?? ['id'=>$calId,'calendar'=>$calName,'events_count'=>0,'total_hours'=>0.0];
-            $byCalMap[$calId]['events_count']++; $byCalMap[$calId]['total_hours'] += $h;
 
             $catId = $mapCalToCategory($calId);
-            $categoryTotals[$catId] = ($categoryTotals[$catId] ?? 0.0) + $h;
+            if (!isset($categoryTotals[$catId])) {
+                $categoryTotals[$catId] = 0.0;
+            }
             if ($categoryColors[$catId] === null && isset($colorsById[$calId])) {
                 $categoryColors[$catId] = $colorsById[$calId];
             }
@@ -424,6 +430,17 @@ final class ConfigDashboardController extends Controller {
             $dtStartUser = $dtStart?->setTimezone($userTz);
             $dtEndUser   = $dtEnd?->setTimezone($userTz);
 
+            if ($isAllDayEvent && $dtStartUser) {
+                $dtStartUser = $dtStartUser->setTime(0, 0, 0);
+            }
+            if ($isAllDayEvent) {
+                if ($dtEndUser) {
+                    $dtEndUser = $dtEndUser->setTime(0, 0, 0);
+                }
+                if (!$dtEndUser && $dtStartUser) {
+                    $dtEndUser = $dtStartUser->modify('+1 day');
+                }
+            }
             if ($dtStartUser) {
                 $ts = $dtStartUser->getTimestamp();
                 if ($earliestStartTs === null || $ts < $earliestStartTs) {
@@ -436,11 +453,74 @@ final class ConfigDashboardController extends Controller {
                     $latestEndTs = $te;
                 }
             }
+
+            $daysSpanned = 1;
             if ($dtStartUser && $dtEndUser) {
-                $eventDur = max(0, ($dtEndUser->getTimestamp() - $dtStartUser->getTimestamp()) / 3600.0);
-                if ($eventDur > $longestSessionHours) {
-                    $longestSessionHours = $eventDur;
+                $eventDurSeconds = max(0, $dtEndUser->getTimestamp() - $dtStartUser->getTimestamp());
+                if ($isAllDayEvent) {
+                    if ($eventDurSeconds <= 0) {
+                        $eventDurSeconds = 86400;
+                    }
+                    $daysSpanned = max(1, (int)ceil($eventDurSeconds / 86400));
+                } else {
+                    $eventDur = $eventDurSeconds / 3600.0;
+                    if ($eventDur > $longestSessionHours) {
+                        $longestSessionHours = $eventDur;
+                    }
                 }
+            }
+            if ($isAllDayEvent) {
+                if ($allDayHours > $longestSessionHours) {
+                    $longestSessionHours = $allDayHours;
+                }
+            }
+
+            $eventHours = $isAllDayEvent ? ($allDayHours * $daysSpanned) : $h;
+            $totalHours += $eventHours;
+            $byCalMap[$calId]['events_count']++;
+            $byCalMap[$calId]['total_hours'] += $eventHours;
+            $categoryTotals[$catId] = ($categoryTotals[$catId] ?? 0.0) + $eventHours;
+
+            if ($isAllDayEvent && $dtStartUser) {
+                $perDayContribution = $allDayHours;
+                $perHourContribution = $allDayHours / 24.0;
+                $currentDay = $dtStartUser;
+                for ($i = 0; $i < $daysSpanned; $i++) {
+                    $dayKey = $currentDay->format('Y-m-d');
+                    $byDay[$dayKey] = $byDay[$dayKey] ?? ['date'=>$dayKey,'events_count'=>0,'total_hours'=>0.0];
+                    if ($i === 0) {
+                        $byDay[$dayKey]['events_count']++;
+                    }
+                    $byDay[$dayKey]['total_hours'] += $perDayContribution;
+                    $daysSeen[$dayKey] = true;
+                    $dname = $currentDay->format('D');
+                    if (!isset($perDayByCal[$dayKey])) $perDayByCal[$dayKey] = [];
+                    $perDayByCal[$dayKey][$calId] = ($perDayByCal[$dayKey][$calId] ?? 0) + $perDayContribution;
+                    if (!isset($perDayByCat[$dayKey])) $perDayByCat[$dayKey] = [];
+                    $perDayByCat[$dayKey][$catId] = ($perDayByCat[$dayKey][$catId] ?? 0) + $perDayContribution;
+                    if (!isset($dowByCal[$dname])) $dowByCal[$dname] = [];
+                    $dowByCal[$dname][$calId] = ($dowByCal[$dname][$calId] ?? 0) + $perDayContribution;
+                    if (!isset($dowByCatTotals[$dname])) $dowByCatTotals[$dname] = [];
+                    $dowByCatTotals[$dname][$catId] = ($dowByCatTotals[$dname][$catId] ?? 0) + $perDayContribution;
+                    if ($perHourContribution > 0) {
+                        for ($hour = 0; $hour < 24; $hour++) {
+                            if (isset($hod[$dname][$hour])) {
+                                $hod[$dname][$hour] += $perHourContribution;
+                            }
+                        }
+                    }
+                    $currentDay = $currentDay->modify('+1 day');
+                }
+
+                $long[] = [
+                    'calendar'=>$calName,
+                    'summary'=>(string)($r['title']??''),
+                    'duration_h'=>$eventHours,
+                    'start'=>(string)($r['start']??''),
+                    'desc'=>(string)($r['desc']??''),
+                    'allday'=>true,
+                ];
+                continue;
             }
 
             if ($dtStartUser && $dtEndUser && $dtEndUser > $dtStartUser) {
@@ -483,9 +563,10 @@ final class ConfigDashboardController extends Controller {
             $long[]=[
                 'calendar'=>$calName,
                 'summary'=>(string)($r['title']??''),
-                'duration_h'=>$h,
+                'duration_h'=>$eventHours,
                 'start'=>(string)($r['start']??''),
-                'desc'=>(string)($r['desc']??'')
+                'desc'=>(string)($r['desc']??''),
+                'allday'=>false,
             ];
 
             // ---- 24×7 Heatmap and per-day/per-DOW stacks in USER TZ ----
@@ -638,11 +719,64 @@ final class ConfigDashboardController extends Controller {
             }
             $rows = $this->parseRows($rawRows, (string)($cal->getDisplayName() ?: ($cal->getUri() ?? 'calendar')));
             foreach ($rows as $r){
-                $h=(float)($r['hours']??0); $prevTotal += $h; $prevEvents++;
+                $isAllDayPrev = !empty($r['allday']);
+                $eventHours = (float)($r['hours'] ?? 0.0);
+                if ($eventHours < 0) {
+                    $eventHours = 0.0;
+                }
                 $prevCalId = (string)($r['calendar_id'] ?? ($r['calendar'] ?? ''));
                 $prevCat = $mapCalToCategory($prevCalId);
-                $categoryTotalsPrev[$prevCat] = ($categoryTotalsPrev[$prevCat] ?? 0.0) + $h;
-                $d = substr((string)($r['start']??''),0,10); $prevDaysSeen[$d]=true;
+
+                $startStr = (string)($r['start'] ?? '');
+                $endStr   = (string)($r['end'] ?? '');
+                $startTzName = (string)($r['startTz'] ?? '');
+                $endTzName   = (string)($r['endTz'] ?? '');
+
+                $dtStartUser = null;
+                $dtEndUser = null;
+
+                if ($isAllDayPrev) {
+                    try { $srcTzStart = new \DateTimeZone($startTzName ?: 'UTC'); } catch (\Throwable) { $srcTzStart = new \DateTimeZone('UTC'); }
+                    try { $srcTzEnd   = new \DateTimeZone($endTzName ?: 'UTC'); } catch (\Throwable) { $srcTzEnd   = new \DateTimeZone('UTC'); }
+                    $dtStart = $startStr !== '' ? new \DateTimeImmutable($startStr, $srcTzStart) : null;
+                    $dtEnd   = $endStr !== '' ? new \DateTimeImmutable($endStr, $srcTzEnd) : null;
+                    $dtStartUser = $dtStart?->setTimezone($userTz);
+                    $dtEndUser   = $dtEnd?->setTimezone($userTz);
+                    if ($dtStartUser) {
+                        $dtStartUser = $dtStartUser->setTime(0, 0, 0);
+                    }
+                    if ($dtEndUser) {
+                        $dtEndUser = $dtEndUser->setTime(0, 0, 0);
+                    }
+                    if (!$dtEndUser && $dtStartUser) {
+                        $dtEndUser = $dtStartUser->modify('+1 day');
+                    }
+                    $daysSpannedPrev = 1;
+                    if ($dtStartUser && $dtEndUser) {
+                        $eventDurSecondsPrev = max(0, $dtEndUser->getTimestamp() - $dtStartUser->getTimestamp());
+                        if ($eventDurSecondsPrev <= 0) {
+                            $eventDurSecondsPrev = 86400;
+                        }
+                        $daysSpannedPrev = max(1, (int)ceil($eventDurSecondsPrev / 86400));
+                    }
+                    $eventHours = $allDayHours * $daysSpannedPrev;
+                    if ($dtStartUser) {
+                        $currentDayPrev = $dtStartUser;
+                        for ($i = 0; $i < $daysSpannedPrev; $i++) {
+                            $prevDaysSeen[$currentDayPrev->format('Y-m-d')] = true;
+                            $currentDayPrev = $currentDayPrev->modify('+1 day');
+                        }
+                    }
+                } else {
+                    $dayKeyPrev = substr($startStr, 0, 10);
+                    if ($dayKeyPrev !== '') {
+                        $prevDaysSeen[$dayKeyPrev] = true;
+                    }
+                }
+
+                $prevTotal += $eventHours;
+                $prevEvents++;
+                $categoryTotalsPrev[$prevCat] = ($categoryTotalsPrev[$prevCat] ?? 0.0) + $eventHours;
             }
         }
         $prevDaysCount   = count($prevDaysSeen);
@@ -1165,7 +1299,26 @@ final class ConfigDashboardController extends Controller {
         $out=[]; $count=0; $MAX=5000; $MAX_ICS_BYTES=200000; $icsParsed=false; $icsSkipped=0;
         foreach ($raw as $row) {
             if (++$count > $MAX) break;
-            $obj0=(is_array($row['objects']??null) && isset($row['objects'][0]) && is_array($row['objects'][0])) ? $row['objects'][0] : null;
+            $obj0=null;
+            if (isset($row['objects'])) {
+                $objects = $row['objects'];
+                if ($objects instanceof \ArrayObject) {
+                    $objects = $objects->getArrayCopy();
+                }
+                if (is_array($objects) && isset($objects[0])) {
+                    $candidate = $objects[0];
+                    if ($candidate instanceof \ArrayObject) {
+                        $candidate = $candidate->getArrayCopy();
+                    }
+                    if ($candidate instanceof \stdClass) {
+                        $candidate = (array)$candidate;
+                    }
+                    if (is_array($candidate)) {
+                        $obj0 = $candidate;
+                    }
+                }
+            }
+            $isAllDay = isset($row['allday']) ? (bool)$row['allday'] : false;
             if ($obj0===null) {
                 // Guarded ICS fallback
                 $ics=null;
@@ -1184,6 +1337,10 @@ final class ConfigDashboardController extends Controller {
                                     else { $dtEnd=(clone $dtStart)->modify('+1 hour'); }
                                 }
                                 $hours=($dtStart&&$dtEnd)?(($dtEnd->getTimestamp()-$dtStart->getTimestamp())/3600):null;
+                                $evtAllDay = $isAllDay;
+                                if (!$evtAllDay && isset($vevent->DTSTART) && method_exists($vevent->DTSTART, 'hasTime')) {
+                                    $evtAllDay = !$vevent->DTSTART->hasTime();
+                                }
                     $out[]=[
                         'calendar'=>$calendarName,
                         'calendar_id'=>$calendarId,
@@ -1193,6 +1350,7 @@ final class ConfigDashboardController extends Controller {
                                     'end'=>$this->fmt($dtEnd),
                                     'endTz'=>$tzEnd,
                                     'hours'=>$hours!==null?round($hours,2):null,
+                                    'allday'=>$evtAllDay,
                                     'status'=>(string)($vevent->STATUS?->getValue() ?? ''),
                                     'location'=>(string)($vevent->LOCATION?->getValue() ?? ''),
                                     'desc'=>$this->shorten((string)($vevent->DESCRIPTION?->getValue() ?? ''),160)
@@ -1209,6 +1367,30 @@ final class ConfigDashboardController extends Controller {
             $get=function(string $name) use ($obj0):array{ $val=$obj0[$name][0]??null; $par=$obj0[$name][1]??[]; return [$val,is_array($par)?$par:[]]; };
 
             [$dtStart,$pStart]=$get('DTSTART'); [$dtEnd,$pEnd]=$get('DTEND'); [$sum]= $get('SUMMARY'); [$status]=$get('STATUS'); [$loc]=$get('LOCATION'); [$desc]=$get('DESCRIPTION');
+            if (!$isAllDay && isset($obj0['allday'])) {
+                $rawAllDay = $obj0['allday'];
+                if ($rawAllDay instanceof \stdClass) {
+                    $rawAllDay = (array)$rawAllDay;
+                }
+                if (is_array($rawAllDay)) {
+                    $isAllDay = (bool)($rawAllDay[0] ?? false);
+                } else {
+                    $isAllDay = (bool)$rawAllDay;
+                }
+            }
+        $pStartParams = $pStart instanceof \stdClass ? (array)$pStart : $pStart;
+        if (!$isAllDay && is_array($pStartParams) && array_key_exists('VALUE', $pStartParams)) {
+            $valueType = $pStartParams['VALUE'];
+            if (is_array($valueType)) {
+                $valueType = reset($valueType);
+            }
+            if (is_object($valueType) && method_exists($valueType, '__toString')) {
+                $valueType = (string)$valueType;
+            }
+            if (is_string($valueType) && strtoupper($valueType) === 'DATE') {
+                $isAllDay = true;
+            }
+        }
             if (!$dtEnd && $dtStart && isset($obj0['DURATION'][0])) { try{$dtEnd=(clone $dtStart)->add(new DateInterval((string)$obj0['DURATION'][0]));}catch(\Throwable){$dtEnd=(clone $dtStart)->modify('+1 hour');} }
             elseif (!$dtEnd && $dtStart) { $dtEnd=(clone $dtStart)->modify('+1 hour'); }
             $hours=($dtEnd instanceof DateTimeInterface && $dtStart instanceof DateTimeInterface)?($dtEnd->getTimestamp()-$dtStart->getTimestamp())/3600:null;
@@ -1218,12 +1400,80 @@ final class ConfigDashboardController extends Controller {
                 'title'=>$this->text($sum),'start'=>$this->fmt($dtStart),'startTz'=>$this->tzid($pStart,$dtStart),
                 'end'=>$this->fmt($dtEnd),'endTz'=>$this->tzid($pEnd,$dtEnd),'hours'=>$hours!==null?round($hours,2):null,
                 'status'=>$this->text($status),'location'=>$this->text($loc),'desc'=>$this->shorten($this->text($desc)??'',160),
+                'allday'=>$isAllDay,
             ];
         }
         if (($icsParsed || $icsSkipped>0) && $this->isDebugEnabled()) {
             $this->logger->debug('parseRows ICS fallback', ['app'=>$this->appName,'calendar'=>$calendarName,'icsParsed'=>$icsParsed,'icsSkipped'=>$icsSkipped]);
         }
         return $out;
+    }
+
+    private function debugSanitizeSample($row): array {
+        return $row;
+    }
+
+    private function debugDetectAllDay(array $row): array {
+        $flag = isset($row['allday']) ? (bool)$row['allday'] : false;
+        $reason = $flag ? 'row.allday' : null;
+        $obj = null;
+        if (isset($row['objects'])) {
+            $objects = $row['objects'];
+            if ($objects instanceof \ArrayObject) {
+                $objects = $objects->getArrayCopy();
+            }
+            if (is_array($objects) && isset($objects[0])) {
+                $obj = $objects[0];
+                if ($obj instanceof \ArrayObject) {
+                    $obj = $obj->getArrayCopy();
+                }
+                if ($obj instanceof \stdClass) {
+                    $obj = (array)$obj;
+                }
+            }
+        }
+        $details = [
+            'objects_type' => isset($row['objects']) ? gettype($row['objects']) : null,
+        ];
+        if (is_array($obj)) {
+            if (!$flag && isset($obj['allday'])) {
+                $raw = $obj['allday'];
+                if ($raw instanceof \stdClass) {
+                    $raw = (array)$raw;
+                }
+                $flag = is_array($raw) ? (bool)($raw[0] ?? false) : (bool)$raw;
+                if ($flag) {
+                    $reason = 'object.allday';
+                }
+            }
+            if (!$flag && isset($obj['DTSTART'][1])) {
+                $params = $obj['DTSTART'][1];
+                $details['dtstart_type'] = gettype($params);
+                if ($params instanceof \stdClass) {
+                    $params = (array)$params;
+                }
+                $details['params'] = $params;
+                $details['has_value_param'] = is_array($params) && array_key_exists('VALUE', $params);
+                if (is_array($params) && array_key_exists('VALUE', $params)) {
+                    $valueType = $params['VALUE'];
+                    $details['value_type'] = $valueType;
+                    if (is_array($valueType)) {
+                        $valueType = reset($valueType);
+                    }
+                    if (is_object($valueType) && method_exists($valueType, '__toString')) {
+                        $valueType = (string)$valueType;
+                    }
+                    $details['value_type_upper'] = is_string($valueType) ? strtoupper($valueType) : null;
+                    if (is_string($valueType) && strtoupper($valueType) === 'DATE') {
+                        $flag = true;
+                        $reason = 'VALUE=DATE';
+                    }
+                }
+            }
+        }
+        $details['allday'] = $flag;
+        $details['reason'] = $reason;
+        return $details;
     }
 
     private function isDebugEnabled(): bool {
@@ -1354,6 +1604,7 @@ final class ConfigDashboardController extends Controller {
                 'showCalendarCharts' => true,
                 'showCategoryCharts' => true,
             ],
+            'allDayHours' => 8.0,
             'timeSummary' => [
                 'showTotal' => true,
                 'showAverage' => true,
@@ -1511,6 +1762,10 @@ final class ConfigDashboardController extends Controller {
 
         if (isset($cfg['includeZeroDaysInStats'])) {
             $out['includeZeroDaysInStats'] = !empty($cfg['includeZeroDaysInStats']);
+        }
+
+        if (isset($cfg['allDayHours'])) {
+            $out['allDayHours'] = round($this->clampFloat((float)$cfg['allDayHours'], 0, 24), 2);
         }
 
         return $out;

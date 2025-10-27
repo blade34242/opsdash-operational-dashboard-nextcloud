@@ -23,6 +23,8 @@
           :notes-label-curr-title="notesLabelCurrTitle"
           :is-saving-note="isSavingNote"
           :active-day-mode="activeDayMode"
+          :nav-toggle-label="navToggleLabel"
+          :nav-toggle-icon="navToggleIcon"
           @load="load"
           @update:range="(v)=>{ range=v as any; offset=0; load() }"
           @update:offset="(v)=>{ offset=v as number; load() }"
@@ -34,24 +36,74 @@
           @save-notes="saveNotes"
           @update:targets-config="updateTargetsConfig"
           @update:active-mode="setActiveDayMode"
+          @toggle-nav="toggleNav"
         />
       </template>
 
-      <div class="app-shell">
-        <button
-          class="nav-toggle"
-          type="button"
-          @click="toggleNav"
-          :aria-expanded="navOpen"
-          aria-controls="opsdash-sidebar"
-          :aria-label="navToggleLabel"
-        >
-          <span v-if="navOpen">⟨</span>
-          <span v-else>⟩</span>
-        </button>
+      <template #sidebar-toggle>
+        <NcAppSidebarToggle :open="navOpen" @toggle="toggleNav" />
+      </template>
 
+      <div class="app-shell">
         <div class="app-main">
           <div class="app-container">
+            <div
+              v-if="showCollapsedRangeControls"
+              class="range-toolbar"
+              role="toolbar"
+              aria-label="Collapsed range controls"
+            >
+              <button
+                class="range-toolbar__btn"
+                type="button"
+                @click="toggleNav"
+                :aria-expanded="navOpen"
+                aria-controls="opsdash-sidebar"
+                :aria-label="navToggleLabel"
+              >
+                {{ navToggleIcon }}
+              </button>
+              <button
+                class="range-toolbar__btn"
+                type="button"
+                :disabled="isLoading"
+                @click="loadCurrent"
+              >
+                Refresh
+              </button>
+              <div class="range-toolbar__divider" aria-hidden="true" />
+              <button
+                class="range-toolbar__btn"
+                type="button"
+                :disabled="isLoading"
+                @click="toggleRangeCollapsed"
+                :aria-pressed="range === 'month'"
+              >
+                {{ rangeToggleLabel }}
+              </button>
+              <div class="range-toolbar__group" role="group" aria-label="Navigate periods">
+                <button
+                  class="range-toolbar__btn"
+                  type="button"
+                  :disabled="isLoading"
+                  @click="goPrevious"
+                >
+                  ◀
+                </button>
+                <span class="range-toolbar__label" :title="rangeDateLabel">
+                  {{ rangeDateLabel }}
+                </span>
+                <button
+                  class="range-toolbar__btn"
+                  type="button"
+                  :disabled="isLoading"
+                  @click="goNext"
+                >
+                  ▶
+                </button>
+              </div>
+            </div>
+
             <div class="appbar">
               <div class="title">
                 <img :src="iconSrc" @error="onIconError" class="app-icon" alt="" aria-hidden="true" />
@@ -250,6 +302,7 @@ const toggleNav = () => {
 }
 
 const navToggleLabel = computed(() => navOpen.value ? 'Hide sidebar' : 'Show sidebar')
+const navToggleIcon = computed(() => navOpen.value ? '⟨' : '⟩')
 
 watch(navOpen, (open) => {
   if (typeof window !== 'undefined') {
@@ -263,6 +316,33 @@ watch(navOpen, (open) => {
 const pane = ref<'cal'|'day'|'top'|'heat'>('cal')
 const range = ref<'week'|'month'>('week')
 const offset = ref<number>(0)
+const showCollapsedRangeControls = computed(() => !navOpen.value)
+const rangeToggleLabel = computed(() => range.value === 'week' ? 'Switch to month' : 'Switch to week')
+const rangeDateLabel = computed(() => {
+  if (!from.value || !to.value) return ''
+  return `${from.value} – ${to.value}`
+})
+
+function loadCurrent(){
+  load().catch(console.error)
+}
+
+function toggleRangeCollapsed(){
+  range.value = range.value === 'week' ? 'month' : 'week'
+  offset.value = 0
+  load().catch(console.error)
+}
+
+function goPrevious(){
+  offset.value = (offset.value || 0) - 1
+  load().catch(console.error)
+}
+
+function goNext(){
+  offset.value = (offset.value || 0) + 1
+  load().catch(console.error)
+}
+
 const truncTooltip = computed(()=>{
   const l:any = truncLimits.value
   if (!l) return 'Partial data due to caps'

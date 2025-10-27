@@ -13,6 +13,7 @@ Goals
 - Days-left and need-per-day metrics surface per target and per category.
 - Weekly↔monthly conversions handled automatically in the sidebar with clear labels.
 - Targets card consumes the same aggregated data as the tables, avoiding drift.
+- All-day events respect a configurable “hours per day” slider in the Targets sidebar; server aggregation uses the same value to apportion multi-day all-day events without double-counting.
 
 ## Next Iterations
 

@@ -31,6 +31,7 @@ export interface TargetsConfig {
     showCalendarCharts: boolean
     showCategoryCharts: boolean
   }
+  allDayHours: number
   timeSummary: {
     showTotal: boolean
     showAverage: boolean
@@ -255,6 +256,7 @@ export function createDefaultTargetsConfig(): TargetsConfig {
       showCalendarCharts: true,
       showCategoryCharts: true,
     },
+    allDayHours: 8,
     timeSummary: {
       showTotal: true,
       showAverage: true,
@@ -409,6 +411,7 @@ export function normalizeTargetsConfig(cfg: TargetsConfig | string | null | unde
       showCalendarCharts: clone.ui?.showCalendarCharts === undefined ? base.ui.showCalendarCharts : !!clone.ui.showCalendarCharts,
       showCategoryCharts: clone.ui?.showCategoryCharts === undefined ? base.ui.showCategoryCharts : !!clone.ui.showCategoryCharts,
     },
+    allDayHours: clampNumber(clone.allDayHours ?? base.allDayHours, 0, 24),
     timeSummary: {
       showTotal: clone.timeSummary?.showTotal === undefined ? base.timeSummary.showTotal : !!clone.timeSummary.showTotal,
       showAverage: clone.timeSummary?.showAverage === undefined ? base.timeSummary.showAverage : !!clone.timeSummary.showAverage,
