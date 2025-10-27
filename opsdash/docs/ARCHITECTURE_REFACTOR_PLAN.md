@@ -21,8 +21,8 @@ shared utilities so the codebase becomes easier to maintain, test, and extend.
 1. **Introduce Composables**
    - Extract data loading, persistence, and derived metrics into dedicated
      composables (`useLoad`, `useTargets`, `useCharts`, `useNotes`).
-   - Status (2025-11): `useDashboard`, `useCategories`, `useCharts`, `useSummaries`, and `useBalance` now concentrate the dashboard data flow and derived metrics. `useDashboardPersistence` owns the debounced save queue with dedicated Vitest coverage, keeping `App.vue` focused on orchestration.
-   - Next slice: continue carving remaining state mutations (e.g. calendar selection helpers) into focused composables so the root stays declarative.
+   - Status (2025-11): `useDashboard`, `useCategories`, `useCharts`, `useSummaries`, and `useBalance` now concentrate the dashboard data flow and derived metrics. `useDashboardPersistence` handles the save queue, `useDashboardSelection` wraps calendar/target mutation helpers, `useDashboardPresets` owns profile CRUD, and `useChartScheduler` centralises resize scheduling — leaving `App.vue` as an orchestration shell.
+   - Next slice: migrate the remaining shell helpers (`route`/HTTP utilities, icon/meta boot) into dedicated modules so the root stays declarative.
    - Keep `App.vue` as a thin presentation shell.
 
 2. **Sidebar Decomposition**

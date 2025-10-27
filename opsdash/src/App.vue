@@ -273,6 +273,9 @@ import { onMounted, ref, watch, nextTick, computed } from 'vue'
 import { useNotes } from '../composables/useNotes'
 import { useDashboard } from '../composables/useDashboard'
 import { useDashboardPersistence } from '../composables/useDashboardPersistence'
+import { useDashboardSelection } from '../composables/useDashboardSelection'
+import { useDashboardPresets } from '../composables/useDashboardPresets'
+import { useChartScheduler } from '../composables/useChartScheduler'
 import { useCharts } from '../composables/useCharts'
 import { useCategories } from '../composables/useCategories'
 import { useSummaries } from '../composables/useSummaries'
@@ -300,14 +303,6 @@ type BalanceOverviewSummary = {
   insights: string[]
   warnings: string[]
 } | null
-
-type PresetSummary = {
-  name: string
-  createdAt?: string | null
-  updatedAt?: string | null
-  selectedCount: number
-  calendarCount: number
-}
 
 const SIDEBAR_STORAGE_KEY = 'opsdash.sidebarOpen'
 const navOpen = ref((() => {
@@ -342,13 +337,6 @@ const rangeDateLabel = computed(() => {
   return `${from.value} – ${to.value}`
 })
 
-const presets = ref<PresetSummary[]>([])
-const presetsLoading = ref(false)
-const presetSaving = ref(false)
-const presetApplying = ref(false)
-const presetWarnings = ref<string[]>([])
-const lastLoadedPreset = ref<string | null>(null)
-
 function loadCurrent(){
   load().catch(console.error)
 }
@@ -380,6 +368,8 @@ const truncTooltip = computed(()=>{
 })
 
 const userChangedSelection = ref(false)
+
+const { scheduleDraw } = useChartScheduler()
 
 const notes = useNotes({
   range,
@@ -439,56 +429,51 @@ const { queueSave } = useDashboardPersistence({
   targetsConfig,
 })
 
-function isSelected(id: string) {
-  return selected.value.includes(id)
-}
-function setSelected(id: string, checked: boolean) {
-  const set = new Set(selected.value)
-  if (checked) {
-    set.add(id)
-  } else {
-    set.delete(id)
-  }
-  selected.value = Array.from(set)
-}
-function toggleCalendar(id: string) {
-  setSelected(id, !isSelected(id))
-  userChangedSelection.value = true
-  queueSave()
-}
+const {
+  isSelected,
+  toggleCalendar,
+  setGroup,
+  setTarget,
+  updateTargetsConfig,
+  selectAll,
+} = useDashboardSelection({
+  calendars,
+  selected,
+  groupsById,
+  targetsWeek,
+  targetsMonth,
+  targetsConfig,
+  range,
+  queueSave,
+  userChangedSelection,
+})
 
-function getGroup(id: string){ const n = groupsById.value?.[id]; return (typeof n==='number' && isFinite(n)) ? Math.max(0, Math.min(9, Math.trunc(n))) : 0 }
-function setGroup(id: string, n: number){
-  const v = Math.max(0, Math.min(9, Math.trunc(Number(n)||0)))
-  if (!groupsById.value) groupsById.value = {}
-  groupsById.value = { ...groupsById.value, [id]: v }
-  // Persist groups without forcing a data reload to avoid loops
-  queueSave(false)
-}
-
-function setTarget(id: string, h: any){
-  const num = Number(h)
-  if (!isFinite(num) || num < 0) return
-  const v = Math.min(10000, Math.round(num*100)/100)
-  if (range.value === 'month') {
-    // Set monthly and convert weekly = month/4
-    const weekConv = Math.min(10000, Math.round((v/4)*100)/100)
-    targetsMonth.value = { ...(targetsMonth.value||{}), [id]: v }
-    targetsWeek.value  = { ...(targetsWeek.value||{}),  [id]: weekConv }
-  } else {
-    // Set weekly and convert monthly = week*4
-    const monthConv = Math.min(10000, Math.round((v*4)*100)/100)
-    targetsWeek.value  = { ...(targetsWeek.value||{}),  [id]: v }
-    targetsMonth.value = { ...(targetsMonth.value||{}), [id]: monthConv }
-  }
-  // Persist silently without reload
-  queueSave(false)
-}
-
-function updateTargetsConfig(next: TargetsConfig){
-  targetsConfig.value = normalizeTargetsConfig(next)
-  queueSave(false)
-}
+const {
+  presets,
+  presetsLoading,
+  presetSaving,
+  presetApplying,
+  presetWarnings,
+  refreshPresets,
+  savePreset,
+  loadPreset,
+  deletePreset,
+  clearPresetWarnings,
+} = useDashboardPresets({
+  route: (name, param) => route(name, param),
+  getJson,
+  postJson,
+  deleteJson,
+  notifyError,
+  notifySuccess,
+  queueSave,
+  selected,
+  groupsById,
+  targetsWeek,
+  targetsMonth,
+  targetsConfig,
+  userChangedSelection,
+})
 
 const activeDayMode = ref<'active'|'all'>('active')
 const rangeLabel = computed(()=> range.value === 'month' ? 'Month' : 'Week')
@@ -711,116 +696,6 @@ function route(name: string, param?: string){
   return getRoot() + '/apps/opsdash/overview'
 }
 
-async function refreshPresets(){
-  presetsLoading.value = true
-  try {
-    const res = await getJson(route('presetsList'), {})
-    presets.value = Array.isArray(res?.presets) ? res.presets : []
-  } catch (error) {
-    console.error(error)
-    notifyError('Failed to load presets')
-  } finally {
-    presetsLoading.value = false
-  }
-}
-
-async function savePreset(name: string){
-  const trimmed = name.trim()
-  if (trimmed === '') {
-    notifyError('Enter a preset name.')
-    return
-  }
-  presetSaving.value = true
-  try {
-    const payload = {
-      name: trimmed,
-      selected: selected.value,
-      groups: groupsById.value,
-      targets_week: targetsWeek.value,
-      targets_month: targetsMonth.value,
-      targets_config: targetsConfig.value,
-    }
-    const res = await postJson(route('presetsSave'), payload)
-    presets.value = Array.isArray(res?.presets) ? res.presets : presets.value
-    const warnings = Array.isArray(res?.warnings) ? res.warnings : []
-    presetWarnings.value = warnings
-    lastLoadedPreset.value = trimmed
-    notifySuccess(`Profile "${trimmed}" saved`)
-  } catch (error) {
-    console.error(error)
-    notifyError('Failed to save preset')
-  } finally {
-    presetSaving.value = false
-  }
-}
-
-function applyPresetData(preset: any) {
-  const sel = Array.isArray(preset?.selected) ? preset.selected.map((id: any) => String(id)) : []
-  selected.value = sel
-  const groups = preset?.groups && typeof preset.groups === 'object' ? preset.groups : {}
-  groupsById.value = { ...groups }
-  targetsWeek.value = preset?.targets_week && typeof preset.targets_week === 'object' ? preset.targets_week : {}
-  targetsMonth.value = preset?.targets_month && typeof preset.targets_month === 'object' ? preset.targets_month : {}
-  const cfg = preset?.targets_config && typeof preset.targets_config === 'object'
-    ? normalizeTargetsConfig(preset.targets_config as TargetsConfig)
-    : cloneTargetsConfig(targetsConfig.value)
-  targetsConfig.value = cfg
-  userChangedSelection.value = false
-}
-
-async function loadPreset(name: string){
-  const trimmed = name.trim()
-  if (trimmed === '') return
-  presetApplying.value = true
-  try {
-    const res = await getJson(route('presetsLoad', trimmed), {})
-    const preset = res?.preset ?? {}
-    const warnings = Array.isArray(preset?.warnings) ? preset.warnings : (Array.isArray(res?.warnings) ? res.warnings : [])
-    if (warnings.length) {
-      const message = `Some items in the saved profile are no longer available:\n\n${warnings.map((w: string) => `• ${w}`).join('\n')}\n\nApply the remaining values?`
-      if (!window.confirm(message)) {
-        presetWarnings.value = warnings
-        presetApplying.value = false
-        return
-      }
-    }
-    applyPresetData(preset)
-    presetWarnings.value = warnings
-    lastLoadedPreset.value = trimmed
-    notifySuccess(`Profile "${trimmed}" applied`)
-    queueSave(true)
-    refreshPresets().catch(err => console.warn('[opsdash] refresh presets after load failed', err))
-  } catch (error) {
-    console.error(error)
-    notifyError('Failed to load preset')
-  } finally {
-    presetApplying.value = false
-  }
-}
-
-async function deletePreset(name: string){
-  const trimmed = name.trim()
-  if (trimmed === '') return
-  try {
-    const res = await deleteJson(route('presetsDelete', trimmed))
-    presets.value = Array.isArray(res?.presets) ? res.presets : presets.value
-    notifySuccess(`Profile "${trimmed}" deleted`)
-    if (lastLoadedPreset.value === trimmed) {
-      lastLoadedPreset.value = null
-    }
-  } catch (error) {
-    console.error(error)
-    notifyError('Failed to delete preset')
-  }
-}
-
-function clearPresetWarnings(){
-  presetWarnings.value = []
-}
-
-function selectAll(v:boolean){
-  selected.value = v ? calendars.value.map(c=>c.id) : []
-}
 
 function setActiveDayMode(mode:'active'|'all'){
   if (activeDayMode.value !== mode) {
@@ -849,11 +724,6 @@ function setActiveDayMode(mode:'active'|'all'){
     }
     return out
   }
-
-  // Efficient draw scheduling to avoid drawing while hidden or before layout
-  // Re-enable chart draw scheduling
-  let rafId:number|undefined
-  function scheduleDraw(){ /* charts handled by components */ }
 
   onMounted(() => {
     console.info('[opsdash] start')
