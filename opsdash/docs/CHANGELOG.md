@@ -16,7 +16,7 @@ All notable changes to this project are documented here. This file is served loc
 - Targets: Introduced `activityCard.forecastMode` (`off` | `total` | `calendar` | `category`) so chart forecasts can respect remaining total hours, per-calendar goals, or per-category targets.
 - Tests: Added Vitest coverage for the chart projection logic to ensure each mode distributes hours as expected.
 - Docs: Configuration and API references updated with the new projection control and payload field.
-- Refactor: Lifted dashboard shell helpers into composables (`useDashboardSelection`, `useDashboardPersistence`, `useDashboardPresets`, `useOcHttp`, `useAppMeta`, `useChartScheduler`) so `App.vue` now only orchestrates state and rendering; added dedicated Vitest coverage for the new modules.
+- Refactor: Lifted dashboard shell helpers into composables (`useDashboardSelection`, `useDashboardPersistence`, `useDashboardPresets`, `useOcHttp`, `useAppMeta`, `useChartScheduler`, `useCalendarLinks`) so `App.vue` now only orchestrates state and rendering; added dedicated Vitest coverage for the new modules.
 
 ## [0.4.2] - 2025-10-12 (NC 30–31 line)
 - UI: Sidebar dock with persistent open/close state; main content spans full width when collapsed.

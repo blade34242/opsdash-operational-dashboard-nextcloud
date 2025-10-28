@@ -278,6 +278,7 @@ import { useDashboardPresets } from '../composables/useDashboardPresets'
 import { useChartScheduler } from '../composables/useChartScheduler'
 import { useOcHttp } from '../composables/useOcHttp'
 import { useAppMeta } from '../composables/useAppMeta'
+import { useCalendarLinks } from '../composables/useCalendarLinks'
 import { useCharts } from '../composables/useCharts'
 import { useCategories } from '../composables/useCategories'
 import { useSummaries } from '../composables/useSummaries'
@@ -374,6 +375,11 @@ const userChangedSelection = ref(false)
 const { scheduleDraw } = useChartScheduler()
 
 const { route, getJson, postJson, deleteJson, root } = useOcHttp()
+
+const { calendarDayLink, fetchDavColors } = useCalendarLinks({
+  root,
+  isDebug: isDbg,
+})
 
 const notes = useNotes({
   range,
@@ -621,13 +627,6 @@ const { timeSummary, activitySummary } = useSummaries({
 
 const detailsIndex = ref<number|null>(null)
 function toggleDetails(i:number){ detailsIndex.value = detailsIndex.value===i ? null : i }
-function calendarDayLink(dateStr: string){
-  const w:any = window as any
-  if (w.OC && typeof w.OC.generateUrl === 'function'){
-    return w.OC.generateUrl('/apps/calendar/timeGridDay/' + dateStr)
-  }
-  return `${root.value}/index.php/apps/calendar/timeGridDay/${dateStr}`
-}
 function isDbg(){ return false }
 
 const { iconSrc, onIconError, appVersion, changelogUrl } = useAppMeta({
@@ -652,36 +651,14 @@ function setActiveDayMode(mode:'active'|'all'){
   }
 }
 
-  async function fetchDavColors(uid:string, ids:string[]): Promise<Record<string,string>>{
-    const out: Record<string,string> = {}
-    if (!uid) return out
-    const rt = (window as any).OC?.requestToken || (window as any).oc_requesttoken || ''
-    const base = root.value
-    // Try each id separately to avoid parsing large multistatus
-    for (const id of ids){
-      try{
-        const url = `${base}/remote.php/dav/calendars/${encodeURIComponent(uid)}/${encodeURIComponent(id)}/`
-        const body = `<?xml version="1.0" encoding="UTF-8"?>\n<d:propfind xmlns:d="DAV:" xmlns:ical="http://apple.com/ns/ical/">\n  <d:prop><ical:calendar-color/></d:prop>\n</d:propfind>`
-        if (isDbg()) console.log('[opsdash] PROPFIND', {url, id})
-        const res = await fetch(url, { method:'PROPFIND', credentials:'same-origin', headers:{'Depth':'0','Content-Type':'application/xml','requesttoken': rt}, body })
-        if (!res.ok) continue
-        const text = await res.text()
-        if (isDbg()) console.log('[opsdash] PROPFIND response', {id, status: res.status, length: text.length, sample: text.slice(0,400)})
-        const m = text.match(/<[^>]*calendar-color[^>]*>(#[0-9a-fA-F]{6}|#[0-9a-fA-F]{8}|rgb\([^<]+\))<\/[^>]*calendar-color>/i)
-        if (m) out[id] = m[1]
-      }catch(_){}
-    }
-    return out
-  }
-
-  onMounted(() => {
+onMounted(() => {
     console.info('[opsdash] start')
     load().catch(err=>{ console.error(err); alert('Initial load failed') })
     refreshPresets().catch(err => console.warn('[opsdash] presets fetch failed', err))
     // charts handled by components; no global resize wiring
   })
 
-  watch(range, () => { offset.value = 0; load().catch(console.error) })
+watch(range, () => { offset.value = 0; load().catch(console.error) })
 </script>
 
 <!-- styles moved to global css/style.css to satisfy strict CSP -->
