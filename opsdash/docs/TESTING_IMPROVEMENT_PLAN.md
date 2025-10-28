@@ -15,6 +15,32 @@ after each milestone to reprioritise.
 - Document assumptions about OC globals (`window.OC.generateUrl`,
   `oc_requesttoken`) to standardise mocking in tests.
 
+### Coverage snapshot (2025-10-27)
+- **Covered (unit)**: `useDashboard`, `useDashboardSelection`, `useDashboardPersistence`,
+  `useDashboardPresets`, `useCalendarLinks`, `useCharts`, sidebar pane components,
+  preset/targets/pace helpers, validators.
+- **Not yet covered**: `useOcHttp`, `useAppMeta`, App.vue orchestration,
+  onboarding workflow (planned), DAV fallback error states, PHP
+  `OverviewController` load/persist logic.
+- **Next action**: Add quick Vitest suites for `useOcHttp`/`useAppMeta` when
+  authoring Phase 2 integration harness.
+
+### Fixture capture checklist
+1. Start local/staging Nextcloud with Opsdash enabled.
+2. Request load payloads (week & month) and persist responses, e.g.:
+   ```bash
+   curl -sS -u admin:admin \
+     -H "OCS-APIREQUEST: true" \
+     -H "requesttoken: <token>" \
+     "http://localhost:8088/index.php/apps/opsdash/overview/load?range=week&offset=0" \
+     > test/fixtures/load-week.json
+   ```
+   Repeat for `range=month`, `offset=±1`, and for `persist` responses after
+   modifying selections in the UI.
+3. Anonymise calendar IDs/names if necessary (replace with `cal-1`, `Focus`…).
+4. Drop files into `test/fixtures/` so integration tests can replay them.
+   (See `test/fixtures/README.md` for the full checklist.)
+
 ## Phase 2 — Integration Harness
 
 - Vitest integration folder exercising composed flows:
