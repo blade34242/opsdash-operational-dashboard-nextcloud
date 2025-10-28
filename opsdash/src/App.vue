@@ -232,9 +232,12 @@
             </div>
 
             <div class="hint footer">
-              Powered by <strong>Gellert Innovation</strong> • Built with <span class="mono">opsdash</span>
-              <template v-if="appVersion"> v{{ appVersion }}</template>
-              <template v-if="changelogUrl"> • <a :href="changelogUrl" target="_blank" rel="noreferrer noopener">Changelog</a></template>
+              <template v-if="appVersion">
+                Operational Dashboard • v{{ appVersion }} • Built by Blade34242 @ Gellert Innovation
+              </template>
+              <template v-else>
+                Operational Dashboard • v0.4.3 • Built by Blade34242 @ Gellert Innovation
+              </template>
             </div>
           </div>
         </div>

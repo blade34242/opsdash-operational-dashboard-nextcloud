@@ -73,6 +73,7 @@
 
 <script setup lang="ts">
 import { NcButton } from '@nextcloud/vue'
+import { toRefs } from 'vue'
 
 type InputMessage = { text: string; tone: 'error' | 'warning' }
 
@@ -94,6 +95,9 @@ defineEmits<{
   (e: 'target-input', payload: { id: string; value: string }): void
 }>()
 
-const { calendars, selected, range, isLoading, categoryOptions, calendarTargetMessages, calendarCategoryId, getTarget } =
-  props
+// Important: keep props reactive in template; avoid plain destructuring
+// Only convert reactive fields with toRefs; call function props directly
+const { calendars, selected, range, isLoading, categoryOptions, calendarTargetMessages } = toRefs(props)
+const calendarCategoryId = (id: string) => props.calendarCategoryId(id)
+const getTarget = (id: string) => props.getTarget(id)
 </script>

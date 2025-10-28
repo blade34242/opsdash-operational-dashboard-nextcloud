@@ -35,6 +35,13 @@ Living backlog for hardening and extending the Operational Dashboard.
 - Add component tests for chart color mapping, status chips, and tab focus/keyboard behaviour. — ✅ initial chart + pane coverage added (2025-10); extend to keyboard shortcuts.
 - Implement onboarding wizard per `docs/ONBOARDING_WORKFLOW.md`, including strategy
   selection (`docs/TARGET_STRATEGIES.md`) and calendar/category seeding.
+- Explore a “By Calendar Events” drill-down in the main content (list every event
+  for the selected calendars inside the By Calendar tab). Estimate render cost for
+  large data sets (hundreds of events/week) and document mitigation options
+  (pagination, virtual scrolling, lazy fetch) before committing to UX.
+- Enhance chart labelling: add explicit weekday abbreviations (Mo, Di, …) under
+  the stacked bar charts regardless of bar width so users can read day names even
+  when the layout is compressed.
 - Execute architecture refactor plan (`docs/ARCHITECTURE_REFACTOR_PLAN.md`): continue carving `App.vue`, detach targets services, then move theme boot logic into a dedicated module.
 
 ## P2 — Server & Performance

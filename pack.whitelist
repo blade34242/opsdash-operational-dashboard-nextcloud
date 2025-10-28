@@ -1,0 +1,14 @@
+# --- Laufzeitordner ---
+appinfo/
+lib/
+l10n/
+templates/
+js/
+css/
+img/
+vendor/
+
+# --- Einzeldateien (optional) ---
+README.md
+LICENSE
+

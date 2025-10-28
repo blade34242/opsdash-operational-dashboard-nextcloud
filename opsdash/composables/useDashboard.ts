@@ -154,10 +154,11 @@ export function useDashboard(deps: DashboardDeps) {
         }
       }
 
+      // Normalize to string IDs to keep UI selection reactive and consistent
       selected.value = Array.isArray(json.selected)
-        ? json.selected
+        ? (json.selected as any[]).map((id) => String(id))
         : Array.isArray(json.saved)
-          ? json.saved
+          ? (json.saved as any[]).map((id) => String(id))
           : []
       deps.userChangedSelection.value = false
 

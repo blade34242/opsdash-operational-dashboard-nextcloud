@@ -21,6 +21,22 @@
       "color_raw": null,
       "color_src": "fallback",
       "checked": true
+    },
+    {
+      "id": "asdsad",
+      "displayname": "asdsad",
+      "color": "#b5b037",
+      "color_raw": null,
+      "color_src": "fallback",
+      "checked": false
+    },
+    {
+      "id": "asdsad-1",
+      "displayname": "asdsad",
+      "color": "#ee3c6b",
+      "color_raw": null,
+      "color_src": "fallback",
+      "checked": false
     }
   ],
   "selected": [
@@ -28,15 +44,20 @@
   ],
   "colors": {
     "byId": {
-      "personal": "#0be5a6"
+      "personal": "#0be5a6",
+      "asdsad": "#b5b037",
+      "asdsad-1": "#ee3c6b"
     },
     "byName": {
-      "Personal": "#0be5a6"
+      "Personal": "#0be5a6",
+      "asdsad": "#ee3c6b"
     }
   },
   "groups": {
     "byId": {
-      "personal": 0
+      "personal": 0,
+      "asdsad": 0,
+      "asdsad-1": 0
     }
   },
   "targets": {
@@ -178,13 +199,13 @@
     }
   },
   "stats": {
-    "total_hours": 45,
-    "avg_per_day": 15,
-    "avg_per_event": 15,
+    "total_hours": 31,
+    "avg_per_day": 10.33,
+    "avg_per_event": 10.33,
     "events": 3,
     "active_days": 3,
     "busiest_day": {
-      "date": "2025-10-27",
+      "date": "2025-10-28",
       "hours": 15
     },
     "median_per_day": 0,
@@ -194,19 +215,19 @@
     },
     "typical_start": "00:00",
     "typical_end": "24:00",
-    "earliest_start": "2025-10-27 00:00",
+    "earliest_start": "2025-10-27 10:00",
     "latest_end": "2025-10-30 00:00",
     "longest_session": 15,
     "last_day_off": "2025-11-02",
-    "last_half_day_off": null,
+    "last_half_day_off": "2025-10-27",
     "weekend_share": 0,
-    "evening_share": 25,
+    "evening_share": 24.2,
     "overlap_events": 0,
     "delta": {
-      "total_hours": 30,
-      "avg_per_day": 0,
-      "avg_per_event": 0,
-      "events": 2
+      "total_hours": 15,
+      "avg_per_day": 2.33,
+      "avg_per_event": 2.33,
+      "events": 1
     },
     "balance_index": 0,
     "balance_overview": {
@@ -242,7 +263,7 @@
         {
           "id": "__uncategorized__",
           "label": "Unassigned",
-          "hours": 45,
+          "hours": 31,
           "share": 100,
           "prevShare": 100,
           "delta": 0,
@@ -292,7 +313,7 @@
         {
           "date": "2025-10-27",
           "weekday": "Mon",
-          "total_hours": 15,
+          "total_hours": 1,
           "categories": [
             {
               "id": "work",
@@ -315,7 +336,7 @@
             {
               "id": "__uncategorized__",
               "label": "Unassigned",
-              "hours": 15,
+              "hours": 1,
               "share": 100
             }
           ]
@@ -521,14 +542,14 @@
       "id": "personal",
       "calendar": "Personal",
       "events_count": 3,
-      "total_hours": 45
+      "total_hours": 31
     }
   ],
   "byDay": [
     {
       "date": "2025-10-27",
       "events_count": 1,
-      "total_hours": 15
+      "total_hours": 1
     },
     {
       "date": "2025-10-28",
@@ -564,14 +585,6 @@
   "longest": [
     {
       "calendar": "Personal",
-      "summary": "",
-      "duration_h": 15,
-      "start": "2025-10-27 00:00:00",
-      "desc": "",
-      "allday": true
-    },
-    {
-      "calendar": "Personal",
       "summary": "123",
       "duration_h": 15,
       "start": "2025-10-28 00:00:00",
@@ -585,6 +598,14 @@
       "start": "2025-10-29 00:00:00",
       "desc": "",
       "allday": true
+    },
+    {
+      "calendar": "Personal",
+      "summary": "asdsad",
+      "duration_h": 1,
+      "start": "2025-10-27 03:00:00",
+      "desc": "",
+      "allday": false
     }
   ],
   "charts": {
@@ -596,7 +617,7 @@
         "personal"
       ],
       "data": [
-        45
+        31
       ],
       "colors": [
         "#0be5a6"
@@ -613,7 +634,7 @@
         "2025-11-02"
       ],
       "data": [
-        15,
+        1,
         15,
         15,
         0,
@@ -633,7 +654,7 @@
         "Sun"
       ],
       "data": [
-        15,
+        1,
         15,
         15,
         0,
@@ -658,7 +679,7 @@
           "name": "Personal",
           "color": "#0be5a6",
           "data": [
-            15,
+            1,
             15,
             15,
             0,
@@ -685,7 +706,7 @@
           "name": "Personal",
           "color": "#0be5a6",
           "data": [
-            15,
+            1,
             15,
             15,
             0,
@@ -734,30 +755,30 @@
       ],
       "matrix": [
         [
-          0.63,
-          0.63,
-          0.63,
-          0.63,
-          0.63,
-          0.63,
-          0.63,
-          0.63,
-          0.63,
-          0.63,
-          0.63,
-          0.63,
-          0.63,
-          0.63,
-          0.63,
-          0.63,
-          0.63,
-          0.63,
-          0.63,
-          0.63,
-          0.63,
-          0.63,
-          0.63,
-          0.63
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          1,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
         ],
         [
           0.63,
@@ -812,111 +833,110 @@
           0.63
         ],
         [
-          0.0,
-          0.0,
-          0.0,
-          0.0,
-          0.0,
-          0.0,
-          0.0,
-          0.0,
-          0.0,
-          0.0,
-          0.0,
-          0.0,
-          0.0,
-          0.0,
-          0.0,
-          0.0,
-          0.0,
-          0.0,
-          0.0,
-          0.0,
-          0.0,
-          0.0,
-          0.0,
-          0.0
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
         ],
         [
-          0.0,
-          0.0,
-          0.0,
-          0.0,
-          0.0,
-          0.0,
-          0.0,
-          0.0,
-          0.0,
-          0.0,
-          0.0,
-          0.0,
-          0.0,
-          0.0,
-          0.0,
-          0.0,
-          0.0,
-          0.0,
-          0.0,
-          0.0,
-          0.0,
-          0.0,
-          0.0,
-          0.0
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
         ],
         [
-          0.0,
-          0.0,
-          0.0,
-          0.0,
-          0.0,
-          0.0,
-          0.0,
-          0.0,
-          0.0,
-          0.0,
-          0.0,
-          0.0,
-          0.0,
-          0.0,
-          0.0,
-          0.0,
-          0.0,
-          0.0,
-          0.0,
-          0.0,
-          0.0,
-          0.0,
-          0.0,
-          0.0
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
         ],
         [
-          0.0,
-          0.0,
-          0.0,
-          0.0,
-          0.0,
-          0.0,
-          0.0,
-          0.0,
-          0.0,
-          0.0,
-          0.0,
-          0.0,
-          0.0,
-          0.0,
-          0.0,
-          0.0,
-          0.0,
-          0.0,
-          0.0,
-          0.0,
-          0.0,
-          0.0,
-          0.0,
-          0.0
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
         ]
       ]
     }
-  },
-  "uid": "admin"
+  }
 }

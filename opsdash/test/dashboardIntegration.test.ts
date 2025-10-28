@@ -1,0 +1,194 @@
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest'
+import { ref, computed, nextTick } from 'vue'
+import { readFileSync } from 'node:fs'
+import path from 'node:path'
+import { fileURLToPath } from 'node:url'
+
+import { useDashboard } from '../composables/useDashboard'
+import { useCategories } from '../composables/useCategories'
+import { useCharts } from '../composables/useCharts'
+import { buildTargetsSummary } from '../src/services/targets'
+
+const __filename = fileURLToPath(import.meta.url)
+const __dirname = path.dirname(__filename)
+
+interface IntegrationHarness {
+  fixture: any
+  range: ReturnType<typeof ref<'week' | 'month'>>
+  dashboard: ReturnType<typeof useDashboard>
+  categories: ReturnType<typeof useCategories>
+  charts: ReturnType<typeof useCharts>
+  targetsSummary: ReturnType<typeof computed>
+  currentTargets: ReturnType<typeof computed>
+  route: ReturnType<typeof vi.fn>
+  getJson: ReturnType<typeof vi.fn>
+  scheduleDraw: ReturnType<typeof vi.fn>
+  fetchNotes: ReturnType<typeof vi.fn>
+}
+
+function loadFixture(name: string) {
+  const file = path.join(__dirname, 'fixtures', name)
+  const json = readFileSync(file, 'utf-8')
+  return JSON.parse(json)
+}
+
+async function createIntegrationHarness(options: { fixture: string; range: 'week' | 'month'; offset?: number }): Promise<IntegrationHarness> {
+  const fixture = loadFixture(options.fixture)
+  const range = ref<'week' | 'month'>(options.range)
+  const offset = ref(options.offset ?? 0)
+  const userChangedSelection = ref(false)
+
+  const route = vi.fn<(name: 'load') => string>().mockReturnValue('/overview/load')
+  const getJson = vi.fn().mockImplementation(async () => JSON.parse(JSON.stringify(fixture)))
+  const notifyError = vi.fn()
+  const scheduleDraw = vi.fn()
+  const fetchNotes = vi.fn().mockResolvedValue(undefined)
+
+  const dashboard = useDashboard({
+    range,
+    offset,
+    userChangedSelection,
+    route,
+    getJson,
+    notifyError,
+    scheduleDraw,
+    fetchNotes,
+    isDebug: () => false,
+  })
+
+  await dashboard.load()
+  await nextTick()
+
+  const targetsSummary = computed(() =>
+    buildTargetsSummary({
+      config: dashboard.targetsConfig.value,
+      stats: fixture.stats,
+      byDay: dashboard.byDay.value,
+      byCal: dashboard.byCal.value,
+      groupsById: dashboard.groupsById.value,
+      range: range.value,
+      from: dashboard.from.value,
+      to: dashboard.to.value,
+    }),
+  )
+
+  const currentTargets = computed(() => (range.value === 'week' ? dashboard.targetsWeek.value : dashboard.targetsMonth.value))
+
+  const categories = useCategories({
+    calendars: dashboard.calendars,
+    selected: dashboard.selected,
+    groupsById: dashboard.groupsById,
+    colorsById: dashboard.colorsById,
+    targetsConfig: dashboard.targetsConfig,
+    targetsSummary,
+    byCal: dashboard.byCal,
+    currentTargets,
+  })
+
+  const activityCardConfig = computed(() => dashboard.targetsConfig.value.activityCard)
+
+  const charts = useCharts({
+    charts: dashboard.charts,
+    colorsById: dashboard.colorsById,
+    colorsByName: dashboard.colorsByName,
+    calendarGroups: categories.calendarGroups,
+    calendarCategoryMap: categories.calendarCategoryMap,
+    targetsConfig: dashboard.targetsConfig,
+    currentTargets,
+    activityCardConfig,
+  })
+
+  return {
+    fixture,
+    range,
+    dashboard,
+    categories,
+    charts,
+    targetsSummary,
+    currentTargets,
+    route,
+    getJson,
+    scheduleDraw,
+    fetchNotes,
+  }
+}
+
+describe('Dashboard integration fixtures', () => {
+  beforeEach(() => {
+    vi.useFakeTimers()
+  })
+
+  afterEach(() => {
+    vi.useRealTimers()
+    vi.clearAllMocks()
+  })
+
+  it('replays week payload and produces forecast for remaining days', async () => {
+    vi.setSystemTime(new Date('2025-10-29T12:00:00Z'))
+
+    const harness = await createIntegrationHarness({ range: 'week', fixture: 'load-week.json' })
+
+    expect(harness.route).toHaveBeenCalledWith('load')
+    expect(harness.getJson).toHaveBeenCalledTimes(1)
+    expect(harness.scheduleDraw).toHaveBeenCalledTimes(1)
+    expect(harness.fetchNotes).toHaveBeenCalledTimes(1)
+
+    expect(harness.dashboard.uid.value).toBe('admin')
+    expect(harness.dashboard.targetsConfig.value.allDayHours).toBe(15)
+    expect(harness.dashboard.longest.value.some((entry: any) => entry?.allday === true)).toBe(true)
+
+    const summary = harness.targetsSummary.value
+    expect(summary.total.actualHours).toBeCloseTo(31, 5)
+    expect(summary.categories).toHaveLength(harness.dashboard.targetsConfig.value.categories.length)
+
+    expect(harness.categories.calendarCategoryMap.value.personal).toBe('__uncategorized__')
+    const unassigned = harness.categories.calendarGroups.value.find((group) => group.id === '__uncategorized__')
+    expect(unassigned?.rows.length).toBeGreaterThan(0)
+
+    const stacked = harness.charts.calendarChartData.value.stacked
+    expect(stacked).not.toBeNull()
+    expect(stacked?.labels).toHaveLength(7)
+    expect(stacked?.series).toHaveLength(1)
+
+    const forecast = stacked?.series?.[0]?.forecast as number[] | undefined
+    expect(forecast).toBeDefined()
+    const futureIndices = stacked!.labels
+      .map((label, idx) => (label > '2025-10-29' ? idx : -1))
+      .filter((idx) => idx >= 0)
+    futureIndices.forEach((idx) => {
+      expect(forecast?.[idx]).toBeGreaterThan(0)
+    })
+    const pastSlice = forecast?.slice(0, futureIndices[0] ?? 0) ?? []
+    pastSlice.forEach((value) => expect(value).toBe(0))
+
+    const totalTarget = harness.dashboard.targetsConfig.value.totalHours
+    const actualTotal = harness.targetsSummary.value.total.actualHours
+    const remaining = Math.max(0, Math.round((totalTarget - actualTotal) * 100) / 100)
+    const expectedPerDay =
+      futureIndices.length > 0 ? Math.round((remaining / futureIndices.length) * 100) / 100 : 0
+    futureIndices.forEach((idx) => {
+      expect(forecast?.[idx]).toBeCloseTo(expectedPerDay, 2)
+    })
+  })
+
+  it('replays month payload and keeps category mapping + forecast data stable', async () => {
+    vi.setSystemTime(new Date('2025-10-05T12:00:00Z'))
+
+    const harness = await createIntegrationHarness({ range: 'month', fixture: 'load-month.json' })
+
+    expect(harness.dashboard.uid.value).toBe('admin')
+    expect(harness.dashboard.targetsConfig.value.totalHours).toBe(48)
+
+    const summary = harness.targetsSummary.value
+    expect(summary.total.actualHours).toBeCloseTo(62, 5)
+    expect(summary.categories).toHaveLength(harness.dashboard.targetsConfig.value.categories.length)
+
+    const groupIds = harness.categories.calendarGroups.value.map((group) => group.id)
+    expect(groupIds).toContain('__uncategorized__')
+
+    const stacked = harness.charts.calendarChartData.value.stacked
+    expect(stacked).not.toBeNull()
+    const forecasts = (stacked?.series || []).flatMap((series: any) => series?.forecast || [])
+    expect(forecasts.some((val: number) => val > 0)).toBe(true)
+  })
+})
