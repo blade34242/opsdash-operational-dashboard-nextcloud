@@ -1,6 +1,7 @@
 <template>
   <div id="opsdash" class="opsdash" :class="{ 'is-nav-collapsed': !navOpen }">
     <OnboardingWizard
+      :key="onboardingRunId"
       :visible="onboardingWizardVisible"
       :calendars="wizardCalendars"
       :initial-selection="wizardInitialSelection"
@@ -471,6 +472,7 @@ const hasInitialLoad = ref(false)
 const autoWizardNeeded = ref(false)
 const manualWizardOpen = ref(false)
 const isOnboardingSaving = ref(false)
+const onboardingRunId = ref(0)
 
 function shouldRequireOnboarding(state: OnboardingState | null): boolean {
   if (!state) return true
@@ -830,11 +832,10 @@ function handleWizardClose() {
 }
 
 function openWizardFromSidebar() {
-  manualWizardOpen.value = false
-  autoWizardNeeded.value = true
+  autoWizardNeeded.value = false
   manualWizardOpen.value = false
   nextTick(() => {
-    autoWizardNeeded.value = false
+    onboardingRunId.value += 1
     manualWizardOpen.value = true
   })
 }
