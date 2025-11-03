@@ -1,17 +1,31 @@
 <template>
-  <NcModal v-if="visible" size="large" @close="handleClose">
-    <div class="onboarding-modal">
-      <header class="onboarding-header">
-        <div class="onboarding-title">
-          <h2>Welcome to Opsdash</h2>
-          <p class="subtitle">Step {{ stepNumber }} of {{ totalSteps }}</p>
-        </div>
-        <button type="button" class="skip-link" @click="handleSkip" :disabled="saving">Maybe later</button>
-      </header>
+  <transition name="onboarding-fade">
+    <div v-if="visible" class="onboarding-overlay" role="dialog" aria-modal="true">
+      <div class="onboarding-backdrop" @click="handleClose"></div>
+      <div class="onboarding-panel" @click.stop>
+        <header class="onboarding-header">
+          <div class="onboarding-title">
+            <h2>Welcome to Opsdash</h2>
+            <p class="subtitle">Step {{ stepNumber }} of {{ totalSteps }}</p>
+          </div>
+          <div class="onboarding-actions">
+            <button type="button" class="skip-link" @click="handleSkip" :disabled="saving">Maybe later</button>
+            <button
+              v-if="isClosable"
+              type="button"
+              class="close-btn"
+              :disabled="saving"
+              @click="handleClose"
+              aria-label="Close onboarding"
+            >
+              ×
+            </button>
+          </div>
+        </header>
 
-      <main class="onboarding-body">
-        <section v-if="currentStep === 'intro'" class="onboarding-step">
-          <h3>Opsdash visualises your calendar time and keeps goals on track.</h3>
+        <main class="onboarding-body">
+          <section v-if="currentStep === 'intro'" class="onboarding-step">
+            <h3>Opsdash visualises your calendar time and keeps goals on track.</h3>
           <ul class="highlights">
             <li>Targets — stay aligned with your weekly/monthly goals.</li>
             <li>Balance — ensure your focus areas get the right attention.</li>
@@ -101,13 +115,14 @@
           Start dashboard
         </NcButton>
       </footer>
+      </div>
     </div>
-  </NcModal>
+  </transition>
 </template>
 
 <script setup lang="ts">
-import { computed, ref, watch } from 'vue'
-import { NcButton, NcModal } from '@nextcloud/vue'
+import { computed, ref, watch, onUnmounted } from 'vue'
+import { NcButton } from '@nextcloud/vue'
 import {
   getStrategyDefinitions,
   buildStrategyResult,
@@ -122,6 +137,7 @@ const props = defineProps<{
   initialStrategy?: StrategyDefinition['id']
   onboardingVersion: number
   saving?: boolean
+  closable?: boolean
 }>()
 
 const emit = defineEmits<{
@@ -145,11 +161,27 @@ const selectedStrategy = ref<StrategyDefinition['id']>('total_only')
 const localSelection = ref<string[]>([])
 
 const strategies = getStrategyDefinitions()
+const isClosable = computed(() => props.closable !== false)
 
 const currentStep = computed<StepId>(() => steps[stepIndex.value])
 const stepNumber = computed(() => stepIndex.value + 1)
 const totalSteps = steps.length
 const saving = computed(() => props.saving === true)
+
+const BODY_SCROLL_CLASS = 'opsdash-onboarding-lock'
+
+function setScrollLocked(locked: boolean) {
+  if (typeof document === 'undefined') return
+  const body = document.body
+  if (!body) return
+  if (locked) {
+    body.classList.add(BODY_SCROLL_CLASS)
+    body.dataset.opsdashOnboarding = '1'
+  } else {
+    body.classList.remove(BODY_SCROLL_CLASS)
+    delete body.dataset.opsdashOnboarding
+  }
+}
 
 watch(
   () => props.visible,
@@ -157,8 +189,14 @@ watch(
     if (visible) {
       resetWizard()
     }
+    setScrollLocked(visible)
   },
+  { immediate: true },
 )
+
+onUnmounted(() => {
+  setScrollLocked(false)
+})
 
 function resetWizard() {
   stepIndex.value = 0
@@ -206,6 +244,7 @@ function handleSkip() {
 }
 
 function handleClose() {
+  if (!isClosable.value) return
   emit('close')
 }
 
@@ -233,10 +272,43 @@ function toggleCalendar(id: string, checkbox: HTMLInputElement) {
 </script>
 
 <style scoped>
-.onboarding-modal {
+.onboarding-fade-enter-active,
+.onboarding-fade-leave-active {
+  transition: opacity 0.2s ease;
+}
+
+.onboarding-fade-enter-from,
+.onboarding-fade-leave-to {
+  opacity: 0;
+}
+
+.onboarding-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 2000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+}
+
+.onboarding-backdrop {
+  position: absolute;
+  inset: 0;
+  background: rgba(15, 23, 42, 0.45);
+}
+
+.onboarding-panel {
+  position: relative;
+  z-index: 1;
+  width: min(960px, 100%);
+  max-height: calc(100vh - 48px);
+  background: var(--color-main-background, #fff);
+  border-radius: 12px;
+  box-shadow: 0 18px 48px rgba(15, 23, 42, 0.35);
   display: flex;
   flex-direction: column;
-  min-height: 480px;
+  padding: 24px 28px;
 }
 
 .onboarding-header {
@@ -244,6 +316,12 @@ function toggleCalendar(id: string, checkbox: HTMLInputElement) {
   justify-content: space-between;
   align-items: baseline;
   margin-bottom: 16px;
+}
+
+.onboarding-actions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
 }
 
 .onboarding-title h2 {
@@ -264,10 +342,24 @@ function toggleCalendar(id: string, checkbox: HTMLInputElement) {
   font-size: 0.95rem;
 }
 
+.close-btn {
+  background: none;
+  border: none;
+  font-size: 1.4rem;
+  line-height: 1;
+  cursor: pointer;
+  color: var(--color-text-light);
+}
+
+.close-btn:hover {
+  color: var(--color-primary);
+}
+
 .onboarding-body {
   flex: 1;
   overflow-y: auto;
   padding-right: 8px;
+  margin-right: -8px;
 }
 
 .onboarding-step h3 {
@@ -372,5 +464,9 @@ function toggleCalendar(id: string, checkbox: HTMLInputElement) {
   justify-content: flex-end;
   gap: 12px;
   margin-top: 24px;
+}
+
+:global(body.opsdash-onboarding-lock) {
+  overflow: hidden;
 }
 </style>

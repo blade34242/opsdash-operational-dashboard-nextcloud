@@ -6,6 +6,7 @@
       :initial-selection="wizardInitialSelection"
       :initial-strategy="wizardInitialStrategy"
       :onboarding-version="ONBOARDING_VERSION"
+      :closable="!autoWizardNeeded"
       :saving="isOnboardingSaving"
       @close="handleWizardClose"
       @skip="handleWizardSkip"
@@ -778,6 +779,7 @@ async function handleWizardSkip() {
 }
 
 function handleWizardClose() {
+  if (autoWizardNeeded.value) return
   manualWizardOpen.value = false
 }
 
