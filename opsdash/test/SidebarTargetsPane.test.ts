@@ -22,6 +22,7 @@ describe('SidebarTargetsPane', () => {
       props: {
         targets: baseConfig,
         categoryOptions: [],
+        colorPalette: ['#2563EB', '#F97316', '#10B981'],
         totalTargetMessage: null,
         allDayHoursMessage: null,
         categoryTargetMessages: {},
@@ -43,6 +44,7 @@ describe('SidebarTargetsPane', () => {
       props: {
         targets: baseConfig,
         categoryOptions: [],
+        colorPalette: ['#2563EB', '#F97316', '#10B981'],
         totalTargetMessage: null,
         allDayHoursMessage: null,
         categoryTargetMessages: {},
@@ -65,6 +67,7 @@ describe('SidebarTargetsPane', () => {
       props: {
         targets: baseConfig,
         categoryOptions: [{ id: 'work', label: 'Work', targetHours: 10, includeWeekend: false }],
+        colorPalette: ['#2563EB', '#F97316', '#10B981'],
         totalTargetMessage: null,
         allDayHoursMessage: null,
         categoryTargetMessages: {},
@@ -86,6 +89,7 @@ describe('SidebarTargetsPane', () => {
       props: {
         targets: baseConfig,
         categoryOptions: [{ id: 'work', label: 'Work', targetHours: 10, includeWeekend: false }],
+        colorPalette: ['#2563EB', '#F97316', '#10B981'],
         totalTargetMessage: null,
         allDayHoursMessage: null,
         categoryTargetMessages: {},

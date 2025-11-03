@@ -86,6 +86,9 @@ function mountSidebar() {
       presetSaving: false,
       presetApplying: false,
       presetWarnings: [],
+      themePreference: 'auto',
+      effectiveTheme: 'light',
+      systemTheme: 'light',
     },
   })
 }

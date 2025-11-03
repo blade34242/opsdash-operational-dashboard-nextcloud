@@ -528,14 +528,16 @@
   color:var(--brand);
 }
 #opsdash .rangebar .range-nav{
-  display:flex;
+  display:grid;
+  grid-template-columns:auto 1fr auto;
   align-items:center;
-  justify-content:space-between;
   gap:10px;
   width:100%;
 }
 #opsdash .rangebar .range-dates{
   font-weight:600;
+  justify-self:center;
+  text-align:center;
 }
 #opsdash .rangebar .nav-btn{
   min-width:36px;

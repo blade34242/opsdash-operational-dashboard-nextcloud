@@ -22,6 +22,7 @@ describe('SidebarNotesPane', () => {
         prevTitle: 'Prev notes',
         currTitle: 'This period',
         saving: false,
+        showNotesInBalance: false,
       },
     })
 
