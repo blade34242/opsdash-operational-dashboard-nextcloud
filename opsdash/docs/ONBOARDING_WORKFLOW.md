@@ -46,9 +46,11 @@ needed to guide new users toward a useful initial configuration.
 3. **Calendar Selection Step**
    - Pulls available calendars and highlights recommended defaults (e.g., work 
      calendars pre-selected).
-   - Allows renaming categories if the chosen strategy supports them.
-   - Shows progress indicator (`Step 2 of 3`).
-4. **Review & Confirm**
+   - Shows progress indicator (`Step 2 of 4` when categories are enabled).
+4. **Categories & Targets Step** (strategies with categories)
+   - Users can create/rename categories, assign weekly targets, and toggle weekend inclusion.
+   - Selected calendars can be mapped to categories before first load.
+5. **Review & Confirm**
    - Summary of choices: strategy, selected calendars, targets seeded, weekend 
      handling, balance hints.
    - `Start dashboard` finalizes choices and writes them via `/persist`.
@@ -72,7 +74,7 @@ needed to guide new users toward a useful initial configuration.
 - When missing or `version < current`, prompt onboarding.
 - Store the initial target/weekend/category choices using existing fields 
   (`targets_week`, `targets_month`, `targets_config`, `groups`).
-- Include a UI toggle in Sidebar → Targets: “Re-run onboarding”.
+- Include a UI toggle in Sidebar → Config & Setup: “Re-run onboarding”.
 
 ## Content Requirements
 - Intro copy: “Opsdash visualises your calendar time and keeps goals on track.”
