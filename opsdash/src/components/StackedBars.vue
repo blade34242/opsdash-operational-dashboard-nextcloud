@@ -56,28 +56,43 @@ function darkenColor(hex: string, factor = 0.5): string {
   return `rgb(${r},${g},${b})`
 }
 
+type ForecastVariant = 'future' | 'mixed'
+
 function drawForecastOverlay(
   ctx: CanvasRenderingContext2D,
-  opts: { x: number; y: number; width: number; height: number; baseColor: string },
+  opts: { x: number; y: number; width: number; height: number; baseColor: string; variant: ForecastVariant },
 ) {
-  const { x, y, width, height, baseColor } = opts
-  const inset = Math.min(width * 0.25, 6)
-  const innerX = x + inset
-  const innerWidth = Math.max(2, width - inset * 2)
-  const fillColor = lightenColor(baseColor, 0.4)
-  const strokeColor = darkenColor(baseColor, 0.35)
+  const { x, y, width, height, baseColor, variant } = opts
+  const isMixed = variant === 'mixed'
+
+  const baseInset = Math.min(width * (isMixed ? 0.35 : 0.22), 6)
+  const innerWidth = Math.max(2, isMixed ? width * 0.45 : width - baseInset * 2)
+  const innerX = isMixed ? x + width - innerWidth - baseInset : x + (width - innerWidth) / 2
+  const fillColor = lightenColor(baseColor, isMixed ? 0.6 : 0.45)
+  const strokeColor = darkenColor(baseColor, isMixed ? 0.4 : 0.35)
 
   ctx.save()
   ctx.fillStyle = fillColor
-  ctx.globalAlpha = 0.18
+  ctx.globalAlpha = isMixed ? 0.12 : 0.16
   ctx.fillRect(innerX, y, innerWidth, height)
   ctx.restore()
 
   ctx.save()
   ctx.strokeStyle = strokeColor
-  ctx.lineWidth = 1.5
-  ctx.setLineDash([4, 3])
+  ctx.lineWidth = isMixed ? 1.25 : 1.5
+  ctx.globalAlpha = isMixed ? 0.6 : 0.75
+  ctx.setLineDash([4, 4])
   ctx.strokeRect(innerX, y, innerWidth, height)
+  ctx.restore()
+
+  ctx.save()
+  ctx.strokeStyle = strokeColor
+  ctx.globalAlpha = isMixed ? 0.35 : 0.45
+  ctx.lineWidth = 1
+  ctx.beginPath()
+  ctx.moveTo(innerX, y)
+  ctx.lineTo(innerX + innerWidth, y)
+  ctx.stroke()
   ctx.restore()
 }
 
@@ -150,6 +165,7 @@ function draw(){
           width: bw,
           height: hf,
           baseColor: baseCol,
+          variant: colActual > 0.01 ? 'mixed' : 'future',
         })
       })
       sumActual += colActual

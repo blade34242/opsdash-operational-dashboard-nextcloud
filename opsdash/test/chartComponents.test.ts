@@ -103,18 +103,57 @@ describe('StackedBars', () => {
 
     wrapper.unmount()
   })
+
+  it('renders forecast overlay slimmer with lower opacity when mixed with actual data', async () => {
+    const wrapper = mount(StackedBars, {
+      props: {
+        stacked: {
+          labels: ['2025-10-20'],
+          series: [
+            {
+              id: 'cal-1',
+              data: [2],
+              forecast: [3],
+            },
+          ],
+        },
+        colorsById: { 'cal-1': '#ff8800' },
+      },
+    })
+
+    await nextTick()
+
+    const ctx = contexts.at(-1)
+    const actualRect = ctx?.rects.find((rect) => rect.fill === '#ff8800')
+    const overlayRect = ctx?.rects.find((rect) => rect.fill.startsWith('rgb('))
+
+    expect(actualRect).toBeDefined()
+    expect(overlayRect).toBeDefined()
+    expect(overlayRect!.width).toBeLessThan(actualRect!.width)
+    expect(overlayRect!.x).toBeGreaterThan(actualRect!.x)
+    expect(overlayRect!.alpha).toBeLessThan(0.2)
+
+    wrapper.unmount()
+  })
 })
 
 function createStubContext() {
   let fillStyle = '#000000'
   let strokeStyle = '#000000'
+  let lineWidth = 1
+  let globalAlpha = 1
+  const stateStack: Array<{ fillStyle: string; strokeStyle: string; lineWidth: number; globalAlpha: number }> = []
 
   const fills: string[] = []
   const rectFills: string[] = []
+  const rects: Array<{ x: number; y: number; width: number; height: number; fill: string; alpha: number }> = []
+  const strokeRects: Array<{ x: number; y: number; width: number; height: number; stroke: string; alpha: number; lineWidth: number }> = []
 
   return {
     fills,
     rectFills,
+    rects,
+    strokeRects,
     set fillStyle(value: string) {
       fillStyle = value
     },
@@ -127,7 +166,18 @@ function createStubContext() {
     get strokeStyle(): string {
       return strokeStyle
     },
-    lineWidth: 1,
+    set lineWidth(value: number) {
+      lineWidth = value
+    },
+    get lineWidth(): number {
+      return lineWidth
+    },
+    set globalAlpha(value: number) {
+      globalAlpha = value
+    },
+    get globalAlpha(): number {
+      return globalAlpha
+    },
     textAlign: 'center' as CanvasTextAlign,
     textBaseline: 'middle' as CanvasTextBaseline,
     font: '12px sans-serif',
@@ -142,13 +192,28 @@ function createStubContext() {
       fills.push(fillStyle)
     }),
     stroke: vi.fn(),
-    save: vi.fn(),
-    restore: vi.fn(),
+    save: vi.fn(() => {
+      stateStack.push({ fillStyle, strokeStyle, lineWidth, globalAlpha })
+    }),
+    restore: vi.fn(() => {
+      const state = stateStack.pop()
+      if (state) {
+        fillStyle = state.fillStyle
+        strokeStyle = state.strokeStyle
+        lineWidth = state.lineWidth
+        globalAlpha = state.globalAlpha
+      }
+    }),
     fillText: vi.fn(),
     strokeText: vi.fn(),
     measureText: vi.fn((text: string) => ({ width: text.length * 6 })),
-    fillRect: vi.fn(() => {
+    fillRect: vi.fn((x: number, y: number, width: number, height: number) => {
       rectFills.push(fillStyle)
+      rects.push({ x, y, width, height, fill: fillStyle, alpha: globalAlpha })
     }),
+    strokeRect: vi.fn((x: number, y: number, width: number, height: number) => {
+      strokeRects.push({ x, y, width, height, stroke: strokeStyle, alpha: globalAlpha, lineWidth })
+    }),
+    setLineDash: vi.fn(),
   }
 }

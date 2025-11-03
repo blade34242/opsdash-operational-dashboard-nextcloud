@@ -21,6 +21,7 @@ use DateTimeInterface;
 use JsonException;
 use Sabre\VObject\Reader;
 // use Sabre\VObject\Reader; // removed to avoid parsing raw ICS in NC32
+use OCA\Opsdash\Service\ColorPalette;
 
 final class OverviewController extends Controller {
     private const MAX_OFFSET = 24;
@@ -365,6 +366,10 @@ final class OverviewController extends Controller {
                     $raw = $cal->getColor();
                     if (is_string($raw) && $raw !== '') { $color = $this->normalizeColor($raw); $src = 'getColor'; }
                 }
+                if (($color === null || $color === '') && method_exists($cal, 'getDisplayColor')) {
+                    $raw = $cal->getDisplayColor();
+                    if (is_string($raw) && $raw !== '') { $color = $this->normalizeColor($raw); $src = 'getDisplayColor'; }
+                }
                 if (($color === null || $color === '') && method_exists($cal, 'getCalendarColor')) {
                     $raw = $cal->getCalendarColor();
                     if (is_string($raw) && $raw !== '') { $color = $this->normalizeColor($raw); $src = 'getCalendarColor'; }
@@ -375,9 +380,11 @@ final class OverviewController extends Controller {
                 }
             } catch (\Throwable) {}
             if ($color === null || $color === '') {
-                // derive deterministic fallback color from id
-                $hex = substr(md5($id), 0, 6);
-                $color = '#' . $hex;
+                $color = ColorPalette::fallbackHex($name !== '' ? $name : $id);
+                $src = 'fallback';
+            } elseif ($src === 'fallback') {
+                // Server reported fallback but supplied a colour; ensure it matches calendar palette
+                $color = ColorPalette::fallbackHex($name !== '' ? $name : $id);
             }
             $sidebar[] = [
                 'id'=>$id, 'displayname'=>$name, 'color'=>$color,
@@ -2074,7 +2081,7 @@ final class OverviewController extends Controller {
                 $out['forecast']['momentumLastNDays'] = $n;
             }
             if (isset($forecast['padding'])) {
-                $out['forecast']['padding'] = round($this->clampFloat((float)$forecast['padding'], 0, 100), 2);
+                $out['forecast']['padding'] = round($this->clampFloat((float)$forecast['padding'], 0, 100), 1);
             }
         }
 
@@ -2247,7 +2254,11 @@ final class OverviewController extends Controller {
         foreach ($src as $k=>$v) {
             $id = substr((string)$k, 0, 128);
             if (!isset($allowedSet[$id])) continue;
-            $n = (float)$v; if (!is_finite($n)) continue; if ($n < 0) $n = 0; if ($n > self::MAX_TARGET_HOURS) $n = self::MAX_TARGET_HOURS;
+            if (!is_numeric($v)) continue;
+            $n = (float)$v;
+            if (!is_finite($n)) continue;
+            if ($n < 0) $n = 0.0;
+            if ($n > self::MAX_TARGET_HOURS) $n = (float)self::MAX_TARGET_HOURS;
             $out[$id] = $n;
         }
         return $out;
@@ -2258,7 +2269,11 @@ final class OverviewController extends Controller {
         foreach ($src as $k=>$v) {
             $id = substr((string)$k, 0, 128);
             if (!isset($allowedSet[$id])) continue;
-            $n = (int)$v; if ($n < 0) $n = 0; if ($n > self::MAX_GROUP) $n = self::MAX_GROUP;
+            if (!is_numeric($v)) continue;
+            $n = (int)$v;
+            if ($n < 0 || $n > self::MAX_GROUP) {
+                $n = 0;
+            }
             $out[$id] = $n;
         }
         foreach ($allIds as $id) { if (!isset($out[$id])) $out[$id] = 0; }

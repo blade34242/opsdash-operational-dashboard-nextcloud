@@ -46,6 +46,9 @@ export function useDashboard(deps: DashboardDeps) {
   async function load() {
     const currentSeq = ++loadSeq
     isLoading.value = true
+    const prevColorsById: Record<string, string> = { ...colorsById.value }
+    const prevColorsByName: Record<string, string> = { ...colorsByName.value }
+    let colorsAdjusted = false
     try {
       const params = {
         range: deps.range.value,
@@ -64,9 +67,104 @@ export function useDashboard(deps: DashboardDeps) {
       isTruncated.value = Boolean(json.meta?.truncated)
       truncLimits.value = json.meta?.limits ?? null
 
-      calendars.value = Array.isArray(json.calendars) ? json.calendars : []
-      colorsByName.value = json.colors?.byName ?? {}
-      colorsById.value = json.colors?.byId ?? {}
+      const cloneColorMap = (input: any): Record<string, string> => {
+        const result: Record<string, string> = {}
+        if (input && typeof input === 'object') {
+          Object.entries(input).forEach(([key, value]) => {
+            if (typeof value === 'string' && value.trim() !== '') {
+              result[String(key)] = value
+            }
+          })
+        }
+        return result
+      }
+
+      const rawCalendars = Array.isArray(json.calendars) ? json.calendars : []
+      const nextColorsById = cloneColorMap(json.colors?.byId)
+      const nextColorsByName = cloneColorMap(json.colors?.byName)
+      const normalizedCalendars = rawCalendars.map((raw: any) => {
+        if (!raw || typeof raw !== 'object') {
+          return raw
+        }
+
+        const cal: Record<string, any> = { ...raw }
+        const id = String(cal.id ?? '')
+        const name = String(cal.displayname ?? cal.name ?? cal.calendar ?? id)
+        const originalColor = typeof cal.color === 'string' ? cal.color : ''
+        const originalSrc = typeof cal.color_src === 'string' ? cal.color_src : ''
+        const serverColor = id ? nextColorsById[id] : ''
+        const nameColor = name ? nextColorsByName[name] : ''
+        const previousColorById = id ? prevColorsById[id] : ''
+        const previousColorByName = name ? prevColorsByName[name] : ''
+        const previousColor = previousColorById || previousColorByName
+
+        let resolvedColor = originalColor
+        if (!resolvedColor && serverColor) {
+          resolvedColor = serverColor
+        }
+        if (!resolvedColor && nameColor) {
+          resolvedColor = nameColor
+        }
+        if ((!resolvedColor || originalSrc === 'fallback') && previousColor) {
+          resolvedColor = previousColor
+        }
+        if (!resolvedColor && previousColor) {
+          resolvedColor = previousColor
+        }
+
+        if (resolvedColor) {
+          if (resolvedColor !== originalColor) {
+            colorsAdjusted = true
+          }
+          cal.color = resolvedColor
+          if (id) nextColorsById[id] = resolvedColor
+          if (name) nextColorsByName[name] = resolvedColor
+        }
+
+        return cal
+      })
+
+      calendars.value = normalizedCalendars
+      colorsByName.value = nextColorsByName
+      colorsById.value = nextColorsById
+
+      const applyPaletteToCharts = () => {
+        let changed = false
+        try {
+          const pieData: any = charts.value?.pie || {}
+          const ids: string[] = Array.isArray(pieData.ids)
+            ? pieData.ids.map((id: any) => String(id ?? ''))
+            : []
+          if (ids.length) {
+            const srvCols: string[] = Array.isArray(pieData.colors) ? pieData.colors : []
+            const newCols = ids.map(
+              (id, idx) => colorsById.value[id] || srvCols[idx] || '#60a5fa',
+            )
+            charts.value = { ...(charts.value || {}), pie: { ...pieData, colors: newCols } }
+            changed = true
+          }
+        } catch (error) {
+          if (deps.isDebug?.()) console.warn('recompute pie colors failed', error)
+        }
+        try {
+          const perDaySeries: any = charts.value?.perDaySeries
+          if (perDaySeries && Array.isArray(perDaySeries.series)) {
+            const updatedSeries = perDaySeries.series.map((series: any) => {
+              const id = String(series?.id ?? '')
+              const color = colorsById.value[id] || series.color || '#60a5fa'
+              return { ...series, color }
+            })
+            charts.value = {
+              ...(charts.value || {}),
+              perDaySeries: { labels: perDaySeries.labels, series: updatedSeries },
+            }
+            changed = true
+          }
+        } catch (error) {
+          if (deps.isDebug?.()) console.warn('recompute stacked colors failed', error)
+        }
+        return changed
+      }
 
       const groupSource = json.groups?.byId ?? json.groups?.byID ?? json.groups?.ids ?? {}
       const mappedGroups: Record<string, number> = {}
@@ -120,33 +218,18 @@ export function useDashboard(deps: DashboardDeps) {
               return c
             })
             Object.entries(dav).forEach(([id, col]) => {
-              if (col) colorsById.value[id] = String(col)
+              if (col) {
+                const stringColor = String(col)
+                colorsById.value[id] = stringColor
+                const cal = calendars.value.find((c: any) => String(c?.id ?? '') === id)
+                if (cal) cal.color = stringColor
+                const calName = cal ? String(cal.displayname ?? cal.name ?? '') : ''
+                if (calName) colorsByName.value[calName] = stringColor
+              }
             })
             if (updated) {
               if (deps.isDebug?.()) console.log('[opsdash] dav colors applied', dav)
-              try {
-                const pieData: any = charts.value?.pie || {}
-                const ids: string[] = pieData.ids || []
-                const srvCols: string[] = pieData.colors || []
-                const newCols = ids.map((id, idx) => colorsById.value[id] || srvCols[idx] || '#60a5fa')
-                charts.value = { ...(charts.value || {}), pie: { ...pieData, colors: newCols } }
-                if (deps.isDebug?.()) console.log('[opsdash] recomputed pie colors', newCols)
-              } catch (error) {
-                if (deps.isDebug?.()) console.warn('recompute pie colors failed', error)
-              }
-              try {
-                const pds: any = charts.value?.perDaySeries
-                if (pds && Array.isArray(pds.series)) {
-                  const updSeries = pds.series.map((s: any) => ({
-                    ...s,
-                    color: colorsById.value[s.id] || s.color || '#60a5fa',
-                  }))
-                  charts.value = { ...(charts.value || {}), perDaySeries: { labels: pds.labels, series: updSeries } }
-                }
-              } catch {
-                /* ignore */
-              }
-              deps.scheduleDraw()
+              colorsAdjusted = true
             }
           } catch (error) {
             if (deps.isDebug?.()) console.warn('dav colors failed', error)
@@ -167,6 +250,9 @@ export function useDashboard(deps: DashboardDeps) {
       byDay.value = Array.isArray(json.byDay) ? json.byDay : []
       longest.value = Array.isArray(json.longest) ? json.longest : []
       charts.value = json.charts ?? {}
+      if (colorsAdjusted) {
+        applyPaletteToCharts()
+      }
 
       await nextTick()
       deps.scheduleDraw()

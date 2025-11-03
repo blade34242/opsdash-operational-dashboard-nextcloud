@@ -2,11 +2,10 @@
 
 Last updated: 2025-10-28
 
-- Stacked bars projection overlays can look “double sized” on current day
-  - Symptom: The forecast overlay is drawn on top of actual bars for future‑day projections, which can make today’s bar appear visually doubled or crowded.
-  - Cause: The renderer stacks forecast segments per calendar using the same x‑slot as actual data and adds a per‑day total label. On “today”, mixed actual/forecast can feel heavy.
-  - Status: Visual refinement pending. Options under evaluation: reduce overlay opacity/width, draw outlines only for forecast, or split lanes for forecast vs actual.
-  - Workaround: Switch Activity → Forecast mode to “off” to disable projections.
+- Stacked bars projection overlay crowding — **fixed in 0.4.3 (2025-11-03)**
+  - Symptom (historical): Forecast overlays rendered directly atop the current-day actual bar, creating a “double width” impression.
+  - Resolution: Overlay lanes now render as slimmer, dashed capsules with lower opacity (and offset alignment when actual data exists), keeping the underlying bar legible without disabling projections.
+  - Notes: No workaround required; remain on firmware ≥0.4.3.
 
 - Calendar selection state not reflecting immediately in the sidebar
   - Symptom: Toggling a calendar may not update the “Selected/Hidden” badge right away.
@@ -22,7 +21,7 @@ Last updated: 2025-10-28
   - Cause: Dedicated theming tokens/CSS variables are not yet wired for the SPA bundle.
   - Status: Planned work (see `docs/LIGHT_DARK_THEMING.md` roadmap). Requires design token mapping + rebuild of chart palettes.
 
-- Calendar color mapping regression
-  - Symptom: Imported/calculated calendar colors no longer show consistently in charts or the By Calendar tables; fallback palette dominates instead of the configured per-calendar colors.
-  - Cause: The DAV color normalisation step currently overwrites `colorsById` when no DAV color is returned, effectively discarding the backend-provided palette.
-  - Status: Needs a regression fix. Revisit the merge logic so fallback colors apply only when a calendar lacks any color metadata, and add tests around `useDashboard` + `useCharts` color propagation.
+- Calendar color mapping regression — **fixed in 0.4.3 (2025-11-03)**
+  - Symptom (historical): Imported or server-calculated calendar colours were replaced by deterministic fallbacks whenever DAV lookups failed, causing charts to ignore user palettes.
+  - Resolution: The dashboard loader now preserves prior palette entries and only applies fallbacks when no authoritative colour is available; DAV refreshes merge without clobbering existing entries.
+  - Notes: Vitest coverage in `test/useDashboard.test.ts` guards against regressions.

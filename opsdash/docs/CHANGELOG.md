@@ -17,6 +17,7 @@ All notable changes to this project are documented here. This file is served loc
 - Tests: Added Vitest coverage for the chart projection logic to ensure each mode distributes hours as expected.
 - Docs: Configuration and API references updated with the new projection control and payload field.
 - Refactor: Lifted dashboard shell helpers into composables (`useDashboardSelection`, `useDashboardPersistence`, `useDashboardPresets`, `useOcHttp`, `useAppMeta`, `useChartScheduler`, `useCalendarLinks`) so `App.vue` now only orchestrates state and rendering; added dedicated Vitest coverage for the new modules.
+- Fix: Align calendar colour palette with the Nextcloud Calendar app by preferring display colours when available, preserving server-provided values, and matching the fallback generator (plus Vitest/PHPUnit coverage to catch regressions).
 
 ## [0.4.2] - 2025-10-12 (NC 30–31 line)
 - UI: Sidebar dock with persistent open/close state; main content spans full width when collapsed.

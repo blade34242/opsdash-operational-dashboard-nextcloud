@@ -123,13 +123,106 @@ describe('useDashboard load', () => {
     expect(dashboard.targetsConfig.value.totalHours).toBe(123)
 
     expect(dashboard.stats.totalHours).toBe(12)
-    expect(dashboard.byCal.value).toEqual(response.byCal)
-    expect(dashboard.byDay.value).toEqual(response.byDay)
-    expect(dashboard.charts.value).toEqual(response.charts)
+  expect(dashboard.byCal.value).toEqual(response.byCal)
+  expect(dashboard.byDay.value).toEqual(response.byDay)
+  expect(dashboard.charts.value).toEqual(response.charts)
 
-    expect(scheduleDraw).toHaveBeenCalledTimes(1)
-    expect(fetchNotes).toHaveBeenCalledTimes(1)
-    expect(notifyError).not.toHaveBeenCalled()
-    expect(dashboard.userChangedSelection.value).toBe(false)
+  expect(scheduleDraw).toHaveBeenCalledTimes(1)
+  expect(fetchNotes).toHaveBeenCalledTimes(1)
+  expect(notifyError).not.toHaveBeenCalled()
+  expect(dashboard.userChangedSelection.value).toBe(false)
+  })
+
+  it('preserves existing palette when the server falls back to hashed colors', async () => {
+    const configA = createDefaultTargetsConfig()
+    const configB = createDefaultTargetsConfig()
+
+    const firstResponse = {
+      meta: {
+        uid: 'user-123',
+        from: '2024-02-01',
+        to: '2024-02-07',
+      },
+      calendars: [
+        { id: 'cal-1', displayname: 'Calendar 1', color: '#123456', color_src: 'getColor' },
+      ],
+      colors: {
+        byName: { 'Calendar 1': '#123456' },
+        byId: { 'cal-1': '#123456' },
+      },
+      groups: { byId: { 'cal-1': 0 } },
+      targets: { week: {}, month: {} },
+      targetsConfig: configA,
+      selected: ['cal-1'],
+      stats: {},
+      byCal: [],
+      byDay: [],
+      longest: [],
+      charts: {
+        pie: { ids: ['cal-1'], colors: ['#123456'], labels: ['Calendar 1'], data: [6] },
+        perDaySeries: {
+          labels: ['2024-02-01'],
+          series: [{ id: 'cal-1', color: '#123456', data: [6] }],
+        },
+      },
+    }
+
+    const secondResponse = {
+      meta: {
+        uid: 'user-123',
+        from: '2024-02-08',
+        to: '2024-02-14',
+      },
+      calendars: [
+        { id: 'cal-1', displayname: 'Calendar 1', color: '#aaaaaa', color_src: 'fallback' },
+      ],
+      colors: {
+        byName: { 'Calendar 1': '#aaaaaa' },
+        byId: { 'cal-1': '#aaaaaa' },
+      },
+      groups: { byId: { 'cal-1': 0 } },
+      targets: { week: {}, month: {} },
+      targetsConfig: configB,
+      selected: ['cal-1'],
+      stats: {},
+      byCal: [],
+      byDay: [],
+      longest: [],
+      charts: {
+        pie: { ids: ['cal-1'], colors: ['#aaaaaa'], labels: ['Calendar 1'], data: [4] },
+        perDaySeries: {
+          labels: ['2024-02-08'],
+          series: [{ id: 'cal-1', color: '#aaaaaa', data: [4] }],
+        },
+      },
+    }
+
+    const responses = [firstResponse, secondResponse]
+    const getJson = vi.fn().mockImplementation(() => Promise.resolve(responses.shift()))
+    const fetchNotes = vi.fn().mockResolvedValue(undefined)
+    const scheduleDraw = vi.fn()
+
+    const dashboard = createDashboard({
+      getJson,
+      fetchNotes,
+      scheduleDraw,
+    })
+
+    await dashboard.load()
+
+    expect(dashboard.colorsById.value['cal-1']).toBe('#123456')
+    expect(dashboard.charts.value.pie.colors).toEqual(['#123456'])
+    expect(dashboard.charts.value.perDaySeries.series[0].color).toBe('#123456')
+
+    await dashboard.load()
+
+    expect(dashboard.colorsById.value['cal-1']).toBe('#123456')
+    expect(dashboard.colorsByName.value['Calendar 1']).toBe('#123456')
+    expect(dashboard.calendars.value[0].color).toBe('#123456')
+    expect(dashboard.calendars.value[0].color_src).toBe('fallback')
+    expect(dashboard.charts.value.pie.colors).toEqual(['#123456'])
+    expect(dashboard.charts.value.perDaySeries.series[0].color).toBe('#123456')
+    expect(fetchNotes).toHaveBeenCalledTimes(2)
+    expect(scheduleDraw).toHaveBeenCalledTimes(2)
   })
 })

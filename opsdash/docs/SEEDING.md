@@ -60,6 +60,14 @@ Examples:
 - `BASE=http://localhost:8088 USER=admin PASS=admin ./tools/seed_opsdash_demo.sh`
 - Override week count: `BASE=http://localhost:8088 USER=admin PASS=admin WEEKS=6 ./tools/seed_opsdash_demo.sh`
 
+## Work-Focused Month Seed (multi-calendar)
+- Script: `tools/seed_month_work.sh`
+- Creates four calendars (Focus, Sync & Meetings, Support & Reviews, Wellness & Personal) and fills the current month with structured work blocks plus weekend recovery time. Use `MONTH_OFFSET` to seed a past/future month.
+
+Examples:
+- `BASE=http://localhost:8088 USER=admin PASS=admin ./tools/seed_month_work.sh`
+- `BASE=http://localhost:8088 USER=admin PASS=admin MONTH_OFFSET=1 ./tools/seed_month_work.sh`
+
 ## Verify Data
 - Calendar UI: `BASE/index.php/apps/calendar/`
 - Dashboard API:
