@@ -34,7 +34,13 @@ Living backlog for hardening and extending the Operational Dashboard.
 - Consolidate chart drawing helpers under `src/services/charts.ts` with explicit typing.
 - Add component tests for chart color mapping, status chips, and tab focus/keyboard behaviour. — ✅ initial chart + pane coverage added (2025-10); extend to keyboard shortcuts.
 - Implement onboarding wizard per `docs/ONBOARDING_WORKFLOW.md`, including strategy
-  selection (`docs/TARGET_STRATEGIES.md`) and calendar/category seeding. — ✅ initial implementation live (2025-11); track refinements/UX polish.
+  selection (`docs/TARGET_STRATEGIES.md`) and calendar/category seeding. — ✅ initial implementation live (2025-11); track refinements/UX polish (see “Sidebar polish” below).
+- Sidebar polish:
+  - Balance tab: sync day on/off messaging with trend lookback, expand copy for display toggles (insights/daily mix/dayparts).
+  - Calendar tab: add “All/None” controls, improve helper copy, drop redundant selection note.
+  - Notes tab: add usage guidance and expose optional Balance-tab surface toggle (`notesInBalance`).
+  - Targets tab: remove preset buttons, support category colour overrides using Nextcloud palette helpers.
+  - Styling: standardise section headings within tabs (bold + underline).
 - Explore a “By Calendar Events” drill-down in the main content (list every event
   for the selected calendars inside the By Calendar tab). Estimate render cost for
   large data sets (hundreds of events/week) and document mitigation options

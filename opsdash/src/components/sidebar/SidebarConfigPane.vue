@@ -10,6 +10,12 @@
       Save and restore complete sidebar configurations (calendars, groups, targets, settings).
     </p>
 
+    <div class="setup-actions">
+      <NcButton type="secondary" size="small" class="rerun-btn" @click="emit('rerun-onboarding')">
+        Re-run onboarding
+      </NcButton>
+    </div>
+
     <div class="preset-form">
       <label class="preset-label" for="preset-name">Profile name</label>
       <input
@@ -101,6 +107,7 @@ const emit = defineEmits<{
   (e: 'delete', name: string): void
   (e: 'refresh'): void
   (e: 'clear-warnings'): void
+  (e: 'rerun-onboarding'): void
 }>()
 
 const presetName = ref('')
@@ -165,6 +172,14 @@ onMounted(() => {
   flex-direction: column;
   gap: 6px;
   margin-bottom: 12px;
+}
+.setup-actions {
+  display: flex;
+  justify-content: flex-start;
+  margin-bottom: 12px;
+}
+.rerun-btn {
+  font-size: 12px;
 }
 .preset-label {
   font-size: 12px;
