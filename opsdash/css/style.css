@@ -548,6 +548,12 @@
   flex:1 1 auto;
   overflow-y:auto;
 }
+#opsdash .sb-actions{
+  display:flex;
+  justify-content:center;
+  gap:8px;
+  margin-bottom:8px;
+}
 #opsdash .sb-title{
   font-weight:700;
   margin-bottom:8px;
