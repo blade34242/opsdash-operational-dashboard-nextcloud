@@ -18,6 +18,9 @@
     <ul class="balance-card__warnings" v-if="warnings.length">
       <li v-for="warn in warnings" :key="warn">⚠️ {{ warn }}</li>
     </ul>
+    <div class="balance-card__note" v-if="noteText">
+      📝 {{ noteText }}
+    </div>
   </div>
 </template>
 
@@ -56,6 +59,7 @@ type BalanceOverview = {
 type BalanceCardConfig = {
   showInsights: boolean
   showDailyStacks: boolean
+  showNotes?: boolean
 }
 
 const defaultConfig: BalanceCardConfig = {
@@ -67,9 +71,11 @@ const props = defineProps<{
   overview: BalanceOverview | null
   rangeLabel: string
   config?: Partial<BalanceCardConfig>
+  note?: string
 }>()
 
 const settings = computed<BalanceCardConfig>(() => Object.assign({}, defaultConfig, props.config ?? {}))
+const noteText = computed(() => (props.note ?? '').trim())
 
 const heroLine = computed(() => {
   if (!props.overview) return ''
@@ -145,6 +151,14 @@ const warnings = computed(() => props.overview?.warnings ?? [])
 }
 .balance-card__warnings {
   color: var(--danger, #b91c1c);
+}
+.balance-card__note {
+  font-size: 12px;
+  color: var(--fg);
+  background: color-mix(in oklab, var(--brand), transparent 88%);
+  border-radius: 6px;
+  padding: 6px 8px;
+  white-space: pre-line;
 }
 .badge {
   display: inline-flex;
