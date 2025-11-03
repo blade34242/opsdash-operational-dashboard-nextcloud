@@ -18,6 +18,7 @@ All notable changes to this project are documented here. This file is served loc
 - Docs: Configuration and API references updated with the new projection control and payload field.
 - Refactor: Lifted dashboard shell helpers into composables (`useDashboardSelection`, `useDashboardPersistence`, `useDashboardPresets`, `useOcHttp`, `useAppMeta`, `useChartScheduler`, `useCalendarLinks`) so `App.vue` now only orchestrates state and rendering; added dedicated Vitest coverage for the new modules.
 - Feat: Added an onboarding wizard with strategy presets, calendar selection, and persisted onboarding state (re-run from Targets tab) so new users can bootstrap the dashboard confidently.
+- Feat: Onboarding wizard supports custom category creation + per-calendar assignment before first load, producing tailored targets/groups out of the box.
 - Fix: Align calendar colour palette with the Nextcloud Calendar app by preferring display colours when available, preserving server-provided values, and matching the fallback generator (plus Vitest/PHPUnit coverage to catch regressions).
 
 ## [0.4.2] - 2025-10-12 (NC 30–31 line)

@@ -26,6 +26,14 @@ export interface StrategyDefinition {
   recommendedFor: string
 }
 
+export interface CategoryDraft {
+  id: string
+  label: string
+  targetHours: number
+  includeWeekend: boolean
+  paceMode: 'days_only' | 'time_aware'
+}
+
 export interface StrategyBuildResult {
   selected: string[]
   targetsConfig: TargetsConfig
@@ -93,101 +101,187 @@ function deriveMonthTargets(targetsWeek: Record<string, number>): Record<string,
   return month
 }
 
+function sanitizeCategories(input: CategoryDraft[]): CategoryDraft[] {
+  const seen = new Set<string>()
+  const cleaned: CategoryDraft[] = []
+  input.forEach((cat, index) => {
+    const id = (cat?.id || `cat_${index}`).trim() || `cat_${index}`
+    if (seen.has(id)) return
+    seen.add(id)
+    cleaned.push({
+      id,
+      label: (cat?.label || id).trim() || `Category ${index + 1}`,
+      targetHours: Number.isFinite(cat?.targetHours) ? Number(cat.targetHours) : 0,
+      includeWeekend: !!cat?.includeWeekend,
+      paceMode: cat?.paceMode === 'time_aware' ? 'time_aware' : 'days_only',
+    })
+  })
+  return cleaned
+}
+
+function sanitizeAssignments(
+  selected: string[],
+  categories: CategoryDraft[],
+  assignments: Record<string, string>,
+): Record<string, string> {
+  const result: Record<string, string> = {}
+  if (!categories.length) {
+    return result
+  }
+  const categoryIds = new Set(categories.map((cat) => cat.id))
+  const fallback = categories[0].id
+  selected.forEach((calId) => {
+    const claimed = assignments[calId]
+    result[calId] = categoryIds.has(claimed) ? claimed : fallback
+  })
+  return result
+}
+
 export function getStrategyDefinitions(): StrategyDefinition[] {
   return STRATEGIES
+}
+
+export function createStrategyDraft(
+  strategyId: StrategyDefinition['id'],
+  calendars: CalendarSummary[],
+  selectedInput: string[],
+): { categories: CategoryDraft[]; assignments: Record<string, string> } {
+  const selected = selectedInput.length ? [...new Set(selectedInput.filter((id) => calendars.some((cal) => cal.id === id)))] : calendars.map((c) => c.id)
+
+  if (strategyId === 'total_only') {
+    return {
+      categories: [],
+      assignments: {},
+    }
+  }
+
+  const categoryOrder =
+    strategyId === 'total_plus_categories'
+      ? ['work', 'personal', 'recovery']
+      : ['work', 'hobby', 'sport']
+  const categoryDefaults =
+    strategyId === 'total_plus_categories'
+      ? [
+          { id: 'work', label: 'Work', targetHours: 32, includeWeekend: false },
+          { id: 'personal', label: 'Personal', targetHours: 8, includeWeekend: true },
+          { id: 'recovery', label: 'Recovery', targetHours: 4, includeWeekend: true },
+        ]
+      : [
+          { id: 'work', label: 'Work', targetHours: 32, includeWeekend: false },
+          { id: 'hobby', label: 'Hobby', targetHours: 6, includeWeekend: true },
+          { id: 'sport', label: 'Sport', targetHours: 4, includeWeekend: true },
+        ]
+
+  const assignments: Record<string, string> = {}
+  let idx = 0
+  calendars
+    .filter((cal) => selected.includes(cal.id))
+    .forEach((cal) => {
+      assignments[cal.id] = pickCategoryId(cal.displayname, categoryOrder, CATEGORY_KEYWORDS, idx)
+      idx += 1
+    })
+
+  const categories: CategoryDraft[] = categoryDefaults.map((cat) => ({
+    id: cat.id,
+    label: cat.label,
+    targetHours: cat.targetHours,
+    includeWeekend: cat.includeWeekend,
+    paceMode: 'days_only',
+  }))
+
+  return {
+    categories,
+    assignments,
+  }
 }
 
 export function buildStrategyResult(
   strategyId: StrategyDefinition['id'],
   calendars: CalendarSummary[],
   selectedInput: string[],
+  overrides?: {
+    categories?: CategoryDraft[]
+    assignments?: Record<string, string>
+  },
 ): StrategyBuildResult {
-  const selected = selectedInput.length ? [...selectedInput] : calendars.map((c) => c.id)
+  const selected = selectedInput.length ? [...new Set(selectedInput.filter((id) => calendars.some((cal) => cal.id === id)))] : calendars.map((c) => c.id)
   const baseConfig = normalizeTargetsConfig(createDefaultTargetsConfig())
   const groups: Record<string, number> = {}
   const targetsWeek: Record<string, number> = {}
 
-  if (strategyId === 'total_plus_categories' || strategyId === 'full_granular') {
-    const categoryOrder =
-      strategyId === 'total_plus_categories'
-        ? ['work', 'personal', 'recovery']
-        : ['work', 'hobby', 'sport']
-    const categoryDefaults =
-      strategyId === 'total_plus_categories'
-        ? [
-            { id: 'work', label: 'Work', targetHours: 32, includeWeekend: false, paceMode: 'days_only' as const, groupId: 1 },
-            { id: 'personal', label: 'Personal', targetHours: 8, includeWeekend: true, paceMode: 'days_only' as const, groupId: 2 },
-            { id: 'recovery', label: 'Recovery', targetHours: 4, includeWeekend: true, paceMode: 'days_only' as const, groupId: 3 },
-          ]
-        : [
-            { id: 'work', label: 'Work', targetHours: 32, includeWeekend: false, paceMode: 'days_only' as const, groupId: 1 },
-            { id: 'hobby', label: 'Hobby', targetHours: 6, includeWeekend: true, paceMode: 'days_only' as const, groupId: 2 },
-            { id: 'sport', label: 'Sport', targetHours: 4, includeWeekend: true, paceMode: 'days_only' as const, groupId: 3 },
-          ]
-
-    const assignment: Record<string, string> = {}
-    let idx = 0
-    calendars
-      .filter((cal) => selected.includes(cal.id))
-      .forEach((cal) => {
-        assignment[cal.id] = pickCategoryId(cal.displayname, categoryOrder, CATEGORY_KEYWORDS, idx)
-        idx += 1
-      })
-
-    const counts: Record<string, number> = {}
-    Object.values(assignment).forEach((catId) => {
-      counts[catId] = (counts[catId] ?? 0) + 1
-    })
-
+  if (strategyId === 'total_only') {
     const cfg = cloneTargetsConfig(baseConfig)
-    cfg.totalHours = categoryDefaults.reduce((sum, cat) => sum + cat.targetHours, 0)
-    cfg.categories = categoryDefaults.map((cat) => ({
-      id: cat.id,
-      label: cat.label,
-      targetHours: cat.targetHours,
-      includeWeekend: cat.includeWeekend,
-      paceMode: cat.paceMode,
-      groupIds: [cat.groupId],
-    }))
-    cfg.ui.showCategoryBlocks = true
-    cfg.ui.showCategoryCharts = true
-    cfg.ui.showCalendarCharts = strategyId === 'full_granular'
-    cfg.includeZeroDaysInStats = false
-
-    Object.entries(assignment).forEach(([calId, catId]) => {
-      const cat = categoryDefaults.find((c) => c.id === catId)
-      if (!cat) return
-      groups[calId] = cat.groupId
-      if (strategyId === 'full_granular' && cat.targetHours > 0) {
-        const divisor = counts[catId] || 1
-        const perCal = Number((cat.targetHours / divisor).toFixed(2))
-        targetsWeek[calId] = perCal
-      }
-    })
-
+    cfg.totalHours = cfg.totalHours || 40
+    cfg.categories = []
+    cfg.ui.showCategoryBlocks = false
+    cfg.ui.showCategoryCharts = false
+    cfg.ui.showCalendarCharts = false
     return {
       selected,
       targetsConfig: normalizeTargetsConfig(cfg),
       groups,
       targetsWeek,
-      targetsMonth: deriveMonthTargets(targetsWeek),
+      targetsMonth: {},
     }
   }
 
-  // total_only fallback
+  const defaults = createStrategyDraft(strategyId, calendars, selected)
+  const categories = sanitizeCategories(overrides?.categories?.length ? overrides.categories : defaults.categories)
+  const assignments = sanitizeAssignments(
+    selected,
+    categories.length ? categories : defaults.categories,
+    overrides?.assignments ?? defaults.assignments,
+  )
+
   const cfg = cloneTargetsConfig(baseConfig)
-  cfg.totalHours = 40
-  cfg.categories = []
-  cfg.ui.showCategoryBlocks = false
-  cfg.ui.showCategoryCharts = false
-  cfg.ui.showCalendarCharts = false
+  const categoryGroupMap = new Map<string, number>()
+  cfg.categories = categories.map((cat, index) => {
+    const groupId = index + 1
+    categoryGroupMap.set(cat.id, groupId)
+    return {
+      id: cat.id,
+      label: cat.label,
+      targetHours: Number(cat.targetHours.toFixed(2)),
+      includeWeekend: cat.includeWeekend,
+      paceMode: cat.paceMode,
+      groupIds: [groupId],
+    }
+  })
+
+  cfg.totalHours = cfg.categories.reduce((sum, cat) => sum + cat.targetHours, 0)
+  if (cfg.totalHours <= 0) {
+    cfg.totalHours = strategyId === 'full_granular' ? 40 : 40
+  }
+  cfg.ui.showCategoryBlocks = cfg.categories.length > 0
+  cfg.ui.showCategoryCharts = cfg.categories.length > 0
+  cfg.ui.showCalendarCharts = strategyId === 'full_granular'
+  cfg.includeZeroDaysInStats = false
+  cfg.balance.categories = cfg.categories.map((cat) => cat.id)
+  cfg.balance.useCategoryMapping = true
+
+  const counts: Record<string, number> = {}
+  Object.values(assignments).forEach((catId) => {
+    counts[catId] = (counts[catId] ?? 0) + 1
+  })
+
+  Object.entries(assignments).forEach(([calId, catId]) => {
+    const groupId = categoryGroupMap.get(catId)
+    if (!groupId) return
+    groups[calId] = groupId
+    if (strategyId === 'full_granular') {
+      const category = cfg.categories.find((c) => c.id === catId)
+      if (!category) return
+      const divisor = counts[catId] || 1
+      const perCal = Number((category.targetHours / divisor).toFixed(2))
+      targetsWeek[calId] = perCal
+    }
+  })
 
   return {
     selected,
     targetsConfig: normalizeTargetsConfig(cfg),
     groups,
     targetsWeek,
-    targetsMonth: {},
+    targetsMonth: deriveMonthTargets(targetsWeek),
   }
 }
-

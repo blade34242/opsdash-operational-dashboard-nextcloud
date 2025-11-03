@@ -72,6 +72,77 @@
           <div v-if="!localSelection.length" class="warning">Select at least one calendar to continue.</div>
         </section>
 
+        <section v-else-if="currentStep === 'categories'" class="onboarding-step">
+          <h3>Configure categories &amp; targets</h3>
+          <p v-if="!categoriesEnabled" class="hint">This strategy does not require categories.</p>
+          <template v-else>
+            <div class="categories-editor">
+              <article v-for="cat in categories" :key="cat.id" class="category-card">
+                <header class="category-card__header">
+                  <input
+                    class="category-name"
+                    type="text"
+                    :value="cat.label"
+                    placeholder="Category name"
+                    @input="setCategoryLabel(cat.id, ($event.target as HTMLInputElement).value)"
+                  />
+                  <div class="category-actions">
+                    <button
+                      class="remove-category"
+                      type="button"
+                      :disabled="categories.length <= 1"
+                      title="Remove category"
+                      @click="removeCategory(cat.id)"
+                    >
+                      ✕
+                    </button>
+                  </div>
+                </header>
+                <div class="category-card__fields">
+                  <label class="field">
+                    <span class="label">Target (h / week)</span>
+                    <input
+                      type="number"
+                      :value="cat.targetHours"
+                      min="0"
+                      step="0.5"
+                      @input="setCategoryTarget(cat.id, ($event.target as HTMLInputElement).value)"
+                    />
+                  </label>
+                  <label class="field checkbox">
+                    <input
+                      type="checkbox"
+                      :checked="cat.includeWeekend"
+                      @change="toggleCategoryWeekend(cat.id, ($event.target as HTMLInputElement).checked)"
+                    />
+                    <span>Include weekend</span>
+                  </label>
+                </div>
+              </article>
+              <NcButton type="tertiary" class="add-category" @click="addCategory">Add category</NcButton>
+              <div class="category-total">Total weekly target: {{ categoryTotalHours.toFixed(1) }} h</div>
+            </div>
+
+            <div class="calendar-assignments" v-if="selectedCalendars.length">
+              <h4>Assign calendars</h4>
+              <div
+                v-for="cal in selectedCalendars"
+                :key="cal.id"
+                class="assignment-row"
+              >
+                <span class="cal-name">{{ cal.displayname }}</span>
+                <select
+                  :value="assignments[cal.id]"
+                  @change="assignCalendar(cal.id, ($event.target as HTMLSelectElement).value)"
+                >
+                  <option v-for="cat in categories" :key="cat.id" :value="cat.id">{{ cat.label }}</option>
+                </select>
+              </div>
+            </div>
+            <p v-else class="hint">Select at least one calendar to continue.</p>
+          </template>
+        </section>
+
         <section v-else-if="currentStep === 'review'" class="onboarding-step">
           <h3>Review your setup</h3>
           <div class="review-grid">
@@ -93,6 +164,7 @@
                     {{ cat.label }} — {{ cat.targetHours }} h
                   </li>
                 </ul>
+                <p class="hint">Total weekly target: {{ categoryTotalHours.toFixed(1) }} h</p>
               </template>
               <template v-else>
                 <p>Total target: {{ draft.targetsConfig.totalHours }} h per week</p>
@@ -126,8 +198,10 @@ import { NcButton } from '@nextcloud/vue'
 import {
   getStrategyDefinitions,
   buildStrategyResult,
+  createStrategyDraft,
   type StrategyDefinition,
   type CalendarSummary,
+  type CategoryDraft,
 } from '../services/onboarding'
 
 const props = defineProps<{
@@ -153,19 +227,24 @@ const emit = defineEmits<{
   }): void
 }>()
 
-const steps = ['intro', 'strategy', 'calendars', 'review'] as const
-type StepId = typeof steps[number]
+const stepOrder = ['intro', 'strategy', 'calendars', 'categories', 'review'] as const
+type StepId = typeof stepOrder[number]
 
 const stepIndex = ref(0)
 const selectedStrategy = ref<StrategyDefinition['id']>('total_only')
 const localSelection = ref<string[]>([])
+const categories = ref<CategoryDraft[]>([])
+const assignments = ref<Record<string, string>>({})
 
 const strategies = getStrategyDefinitions()
+const selectedStrategyDef = computed(() => strategies.find((s) => s.id === selectedStrategy.value) ?? strategies[0])
+const categoriesEnabled = computed(() => selectedStrategyDef.value.layers.categories)
 const isClosable = computed(() => props.closable !== false)
 
-const currentStep = computed<StepId>(() => steps[stepIndex.value])
+const enabledSteps = computed(() => stepOrder.filter((step) => (step === 'categories' ? categoriesEnabled.value : true)))
+const currentStep = computed<StepId>(() => enabledSteps.value[Math.min(stepIndex.value, enabledSteps.value.length - 1)])
 const stepNumber = computed(() => stepIndex.value + 1)
-const totalSteps = steps.length
+const totalSteps = computed(() => enabledSteps.value.length)
 const saving = computed(() => props.saving === true)
 
 const BODY_SCROLL_CLASS = 'opsdash-onboarding-lock'
@@ -203,26 +282,125 @@ function resetWizard() {
   selectedStrategy.value = props.initialStrategy ?? 'total_only'
   const initial = props.initialSelection?.length ? [...props.initialSelection] : props.calendars.map((c) => c.id)
   localSelection.value = Array.from(new Set(initial.filter((id) => props.calendars.some((cal) => cal.id === id))))
+  initializeStrategyState()
 }
+
+function initializeStrategyState() {
+  const draft = createStrategyDraft(selectedStrategy.value, props.calendars, localSelection.value)
+  categories.value = draft.categories.map((cat) => ({ ...cat }))
+  assignments.value = { ...draft.assignments }
+  ensureAssignments()
+}
+
+function ensureAssignments() {
+  if (!categoriesEnabled.value || !categories.value.length) {
+    assignments.value = {}
+    return
+  }
+  const available = new Set(categories.value.map((cat) => cat.id))
+  const fallback = categories.value[0].id
+  const nextAssignments: Record<string, string> = {}
+  localSelection.value.forEach((calId) => {
+    const wanted = assignments.value[calId]
+    nextAssignments[calId] = available.has(wanted) ? wanted : fallback
+  })
+  assignments.value = nextAssignments
+}
+
+watch(selectedStrategy, () => {
+  initializeStrategyState()
+  stepIndex.value = Math.min(stepIndex.value, enabledSteps.value.length - 1)
+})
+
+watch(enabledSteps, (steps) => {
+  if (stepIndex.value >= steps.length) {
+    stepIndex.value = Math.max(steps.length - 1, 0)
+  }
+})
+
+watch(localSelection, () => {
+  ensureAssignments()
+}, { deep: true })
+
+watch(categories, () => {
+  ensureAssignments()
+}, { deep: true })
+
+function addCategory() {
+  const id = `cat_${Date.now().toString(36)}_${categories.value.length}`
+  categories.value = [
+    ...categories.value,
+    {
+      id,
+      label: `Category ${categories.value.length + 1}`,
+      targetHours: 8,
+      includeWeekend: false,
+      paceMode: 'days_only',
+    },
+  ]
+  ensureAssignments()
+}
+
+function removeCategory(id: string) {
+  if (categories.value.length <= 1) return
+  categories.value = categories.value.filter((cat) => cat.id !== id)
+  ensureAssignments()
+}
+
+function setCategoryLabel(id: string, value: string) {
+  categories.value = categories.value.map((cat) => (cat.id === id ? { ...cat, label: value } : cat))
+}
+
+function setCategoryTarget(id: string, value: string) {
+  const parsed = Number(value)
+  categories.value = categories.value.map((cat) =>
+    cat.id === id ? { ...cat, targetHours: Number.isFinite(parsed) ? parsed : cat.targetHours } : cat,
+  )
+}
+
+function toggleCategoryWeekend(id: string, checked: boolean) {
+  categories.value = categories.value.map((cat) => (cat.id === id ? { ...cat, includeWeekend: checked } : cat))
+}
+
+function assignCalendar(calId: string, categoryId: string) {
+  assignments.value = {
+    ...assignments.value,
+    [calId]: categoryId,
+  }
+}
+
+const categoryTotalHours = computed(() =>
+  categories.value.reduce((sum, cat) => sum + (Number.isFinite(cat.targetHours) ? cat.targetHours : 0), 0),
+)
 
 const selectedCalendars = computed(() =>
   props.calendars.filter((cal) => localSelection.value.includes(cal.id)),
 )
 
 const draft = computed(() =>
-  buildStrategyResult(selectedStrategy.value, props.calendars, localSelection.value),
+  buildStrategyResult(selectedStrategy.value, props.calendars, localSelection.value, categoriesEnabled.value
+    ? { categories: categories.value, assignments: assignments.value }
+    : undefined),
 )
 
-const strategyTitle = computed(() => strategies.find((s) => s.id === selectedStrategy.value)?.title ?? '')
+const strategyTitle = computed(() => selectedStrategyDef.value.title)
 
 const canGoBack = computed(() => stepIndex.value > 0)
-const canGoNext = computed(() => stepIndex.value < steps.length - 1)
+const canGoNext = computed(() => stepIndex.value < enabledSteps.value.length - 1)
 const nextDisabled = computed(() => {
   if (currentStep.value === 'strategy') {
     return !selectedStrategy.value
   }
   if (currentStep.value === 'calendars') {
     return localSelection.value.length === 0
+  }
+  if (currentStep.value === 'categories' && categoriesEnabled.value) {
+    if (!localSelection.value.length) return true
+    if (!categories.value.length) return true
+    const available = new Set(categories.value.map((cat) => cat.id))
+    if (localSelection.value.some((id) => !available.has(assignments.value[id]))) {
+      return true
+    }
   }
   return false
 })
@@ -457,6 +635,92 @@ function toggleCalendar(id: string, checkbox: HTMLInputElement) {
   margin: 0 0 8px;
   font-size: 0.95rem;
   color: var(--color-text-light);
+}
+
+.categories-editor {
+  display: grid;
+  gap: 16px;
+}
+
+.category-card {
+  border: 1px solid var(--color-border);
+  border-radius: 8px;
+  padding: 16px;
+  background: var(--color-main-background, #fff);
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.category-card__header {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+}
+
+.category-name {
+  flex: 1;
+  padding: 6px 8px;
+  border: 1px solid var(--color-border);
+  border-radius: 4px;
+}
+
+.category-actions {
+  display: flex;
+  gap: 8px;
+}
+
+.remove-category {
+  background: none;
+  border: none;
+  color: var(--color-text-light);
+  cursor: pointer;
+  font-size: 1.1rem;
+}
+
+.remove-category:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+
+.remove-category:not(:disabled):hover {
+  color: var(--color-error);
+}
+
+.category-card__fields {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16px;
+}
+
+.add-category {
+  justify-self: flex-start;
+}
+
+.category-total {
+  font-size: 0.9rem;
+  color: var(--color-text-light);
+}
+
+.calendar-assignments {
+  margin-top: 24px;
+  display: grid;
+  gap: 12px;
+}
+
+.assignment-row {
+  display: grid;
+  grid-template-columns: 1fr minmax(160px, 220px);
+  gap: 12px;
+  align-items: center;
+}
+
+.assignment-row select {
+  padding: 6px 8px;
+}
+
+.cal-name {
+  font-size: 0.95rem;
 }
 
 .onboarding-footer {
