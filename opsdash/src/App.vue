@@ -831,7 +831,10 @@ function handleWizardClose() {
 
 function openWizardFromSidebar() {
   autoWizardNeeded.value = false
-  manualWizardOpen.value = true
+  manualWizardOpen.value = false
+  nextTick(() => {
+    manualWizardOpen.value = true
+  })
 }
 
 onMounted(async () => {
