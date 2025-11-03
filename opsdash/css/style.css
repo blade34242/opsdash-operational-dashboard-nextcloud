@@ -442,11 +442,15 @@
 }
 #opsdash .rangebar{
   display:flex;
-  gap:8px;
-  align-items:center;
-  margin:6px 0;
-  flex-wrap:wrap;
   flex-direction:column;
+  gap:10px;
+  align-items:stretch;
+  margin:6px 0 12px;
+  padding:12px 14px;
+  border:1px solid color-mix(in oklab, var(--line), transparent 30%);
+  border-radius:14px;
+  background:color-mix(in oklab, var(--card), transparent 10%);
+  box-shadow:0 6px 16px rgba(15, 23, 42, 0.12);
 }
 #opsdash .rangebar .range-actions{
   display:flex;
@@ -480,10 +484,48 @@
   padding-inline:0;
 }
 #opsdash .rangebar .range-toggle{
+  display:inline-flex;
+  align-self:center;
+  background:color-mix(in oklab, var(--soft), transparent 25%);
+  border:1px solid color-mix(in oklab, var(--line), transparent 20%);
+  border-radius:999px;
+  overflow:hidden;
+  box-shadow:inset 0 1px 2px rgba(15,23,42,0.08);
+}
+#opsdash .rangebar .range-toggle .nc-checkbox-radio-switch{
+  position:relative;
   display:flex;
-  gap:10px;
   align-items:center;
   justify-content:center;
+  min-width:96px;
+  cursor:pointer;
+  padding:0;
+}
+#opsdash .rangebar .range-toggle .nc-checkbox-radio-switch input{
+  position:absolute;
+  inset:0;
+  opacity:0;
+  cursor:pointer;
+}
+#opsdash .rangebar .range-toggle .nc-checkbox-radio-switch span{
+  display:block;
+  width:100%;
+  padding:8px 16px;
+  text-align:center;
+  font-weight:600;
+  font-size:12px;
+  letter-spacing:.03em;
+  text-transform:uppercase;
+  color:var(--muted);
+  transition:background .2s ease,color .2s ease;
+}
+#opsdash .rangebar .range-toggle .nc-checkbox-radio-switch input:focus-visible + span{
+  outline:2px solid color-mix(in oklab, var(--brand), transparent 50%);
+  outline-offset:2px;
+}
+#opsdash .rangebar .range-toggle .nc-checkbox-radio-switch input:checked + span{
+  background:color-mix(in oklab, var(--brand), transparent 82%);
+  color:var(--brand);
 }
 #opsdash .rangebar .range-nav{
   display:flex;
