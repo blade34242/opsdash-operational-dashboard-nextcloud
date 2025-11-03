@@ -103,7 +103,9 @@
           <span>?</span>
         </button>
       </div>
-      <p class="section-hint" v-if="helpTrend">Control the comparison window and how ratios are expressed.</p>
+      <p class="section-hint" v-if="helpTrend">
+        Control the comparison window and how ratios are expressed. Day on/off never looks ahead; it scans the past using this lookback (default 4 weeks).
+      </p>
       <div class="field-grid">
         <label class="field">
           <span class="label">Relation display</span>
@@ -149,7 +151,9 @@
           <span>?</span>
         </button>
       </div>
-      <p class="section-hint" v-if="helpDisplay">Toggle optional insights and adjust rounding for the card values.</p>
+      <p class="section-hint" v-if="helpDisplay">
+        Choose which extras appear on the Balance card and how values are rounded.
+      </p>
       <div class="toggle-grid">
         <label class="field checkbox toggle-field">
           <input
@@ -157,7 +161,10 @@
             :checked="balanceSettings.ui.showInsights"
             @change="emit('set-ui-toggle', { key: 'showInsights', value: ($event.target as HTMLInputElement).checked })"
           />
-          <span>Insights</span>
+          <div class="toggle-copy">
+            <span class="toggle-title">Insights</span>
+            <span class="toggle-desc">Surface highlights for the active range.</span>
+          </div>
         </label>
         <label class="field checkbox toggle-field">
           <input
@@ -165,7 +172,10 @@
             :checked="balanceSettings.ui.showDailyStacks"
             @change="emit('set-ui-toggle', { key: 'showDailyStacks', value: ($event.target as HTMLInputElement).checked })"
           />
-          <span>Daily mix (experimental)</span>
+          <div class="toggle-copy">
+            <span class="toggle-title">Daily mix (experimental)</span>
+            <span class="toggle-desc">Add stacked category share for each day.</span>
+          </div>
         </label>
         <label class="field checkbox toggle-field">
           <input
@@ -173,7 +183,21 @@
             :checked="balanceSettings.dayparts.enabled"
             @change="emit('set-ui-toggle', { key: 'dayparts', value: ($event.target as HTMLInputElement).checked })"
           />
-          <span>Dayparts</span>
+          <div class="toggle-copy">
+            <span class="toggle-title">Dayparts</span>
+            <span class="toggle-desc">Break down time into morning / afternoon / evening bands.</span>
+          </div>
+        </label>
+        <label class="field checkbox toggle-field">
+          <input
+            type="checkbox"
+            :checked="balanceSettings.ui.showNotes"
+            @change="emit('set-ui-toggle', { key: 'showNotes', value: ($event.target as HTMLInputElement).checked })"
+          />
+          <div class="toggle-copy">
+            <span class="toggle-title">Notes snippet</span>
+            <span class="toggle-desc">Pin the current note beneath the Balance summary.</span>
+          </div>
         </label>
       </div>
       <div class="field-grid mt-8">
@@ -236,7 +260,7 @@ const emit = defineEmits<{
   (e: 'set-threshold', payload: { key: 'noticeMaxShare' | 'warnMaxShare' | 'warnIndex'; value: string }): void
   (e: 'set-relation', mode: string): void
   (e: 'set-lookback', value: string): void
-  (e: 'set-ui-toggle', payload: { key: 'showInsights' | 'showDailyStacks' | 'dayparts'; value: boolean }): void
+  (e: 'set-ui-toggle', payload: { key: 'showInsights' | 'showDailyStacks' | 'showNotes' | 'dayparts'; value: boolean }): void
   (e: 'set-ui-precision', payload: { key: 'roundPercent' | 'roundRatio'; value: string }): void
 }>()
 

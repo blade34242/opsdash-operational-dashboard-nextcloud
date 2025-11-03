@@ -9,11 +9,14 @@
       <NcButton type="tertiary" :disabled="isLoading" @click="$emit('select-all', true)">All</NcButton>
       <NcButton type="tertiary" :disabled="isLoading" @click="$emit('select-all', false)">None</NcButton>
     </div>
-    <div class="sb-hints">
-      <div class="sb-title" style="margin:0">Per‑Calendar Settings</div>
-      <div class="sb-hintline" title="Use categories to drive targets, balance, and summaries."><strong>Category</strong>: choose how this calendar contributes to targets &amp; balance.</div>
-      <div class="sb-hintline" title="Define weekly/monthly goals per calendar. Values sync between ranges."><strong>Target (h)</strong>: goal hours for the active range (week ↔ month converts automatically).</div>
-      <div class="sb-hintline" title="Only calendars marked Selected contribute to dashboards and KPIs.">Toggle calendars to include or exclude them from stats.</div>
+    <div class="sb-context">
+      <div class="sb-title">Per‑Calendar Settings</div>
+      <p class="sb-description">
+        Choose which calendars feed dashboards, then map them to categories so Balance and Targets stay in sync.
+      </p>
+      <p class="sb-description">
+        Use <strong>Category</strong> to group calendars and <strong>Target (h)</strong> to define weekly/monthly goals—the values convert automatically when you switch ranges.
+      </p>
     </div>
     <div class="sb-list">
       <div v-for="c in calendars" :key="c.id" class="cal-card">
@@ -66,7 +69,6 @@
           </label>
         </div>
       </div>
-      <div class="hint mt-8">Selection is stored per user.</div>
     </div>
   </div>
 </template>

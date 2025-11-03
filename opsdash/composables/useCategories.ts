@@ -105,8 +105,15 @@ export function useCategories(input: UseCategoriesInput) {
     const map: Record<string, string> = {}
     let paletteIdx = 0
 
-    const ensureColor = (catId: string) => {
+    const ensureColor = (cat: any) => {
+      const catId = String(cat?.id ?? '')
+      if (!catId) return
       if (map[catId]) return map[catId]
+      const directColor = typeof cat?.color === 'string' && cat.color ? cat.color : undefined
+      if (directColor) {
+        map[catId] = directColor
+        return directColor
+      }
       const calendarsForCat = Object.entries(calendarCategoryMap.value)
         .filter(([, cid]) => cid === catId)
         .map(([calId]) => calId)
@@ -123,9 +130,9 @@ export function useCategories(input: UseCategoriesInput) {
       return color
     }
 
-    categoryConfigList.value.forEach((cat) => ensureColor(String(cat.id)))
+    categoryConfigList.value.forEach((cat) => ensureColor(cat))
     if (Object.values(calendarCategoryMap.value || {}).some((cid) => cid === UNCATEGORIZED_ID)) {
-      ensureColor(UNCATEGORIZED_ID)
+      ensureColor({ id: UNCATEGORIZED_ID })
     }
 
     return map

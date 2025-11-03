@@ -6,6 +6,7 @@ export interface TargetCategoryConfig {
   targetHours: number
   includeWeekend: boolean
   paceMode?: TargetsMode
+  color?: string | null
   groupIds?: number[]
 }
 
@@ -79,6 +80,7 @@ export interface BalanceConfig {
     roundRatio: number
     showDailyStacks: boolean
     showInsights: boolean
+    showNotes: boolean
   }
 }
 
@@ -181,13 +183,14 @@ export function createDefaultBalanceConfig(): BalanceConfig {
       warnIndex: 0.60,
     },
     relations: { displayMode: 'ratio' },
-    trend: { lookbackWeeks: 1 },
+    trend: { lookbackWeeks: 4 },
     dayparts: { enabled: false },
     ui: {
       roundPercent: 1,
       roundRatio: 1,
       showDailyStacks: false,
       showInsights: true,
+      showNotes: false,
     },
   }
 }
@@ -237,9 +240,9 @@ export function createDefaultTargetsConfig(): TargetsConfig {
   return {
     totalHours: 48,
     categories: [
-      { id: 'work', label: 'Work', targetHours: 32, includeWeekend: false, paceMode: 'days_only', groupIds: [1] },
-      { id: 'hobby', label: 'Hobby', targetHours: 6, includeWeekend: true, paceMode: 'days_only', groupIds: [2] },
-      { id: 'sport', label: 'Sport', targetHours: 4, includeWeekend: true, paceMode: 'days_only', groupIds: [3] },
+      { id: 'work', label: 'Work', targetHours: 32, includeWeekend: false, paceMode: 'days_only', color: '#2563EB', groupIds: [1] },
+      { id: 'hobby', label: 'Hobby', targetHours: 6, includeWeekend: true, paceMode: 'days_only', color: '#F97316', groupIds: [2] },
+      { id: 'sport', label: 'Sport', targetHours: 4, includeWeekend: true, paceMode: 'days_only', color: '#10B981', groupIds: [3] },
     ],
     pace: {
       includeWeekendTotal: true,
@@ -377,12 +380,13 @@ export function normalizeTargetsConfig(cfg: TargetsConfig | string | null | unde
     const targetHours = clampNumber(cat?.targetHours, 0, 10000)
     const includeWeekend = !!cat?.includeWeekend
     const paceMode: TargetsMode = cat?.paceMode === 'time_aware' ? 'time_aware' : 'days_only'
+    const color = sanitizeHexColor(cat?.color)
     const groupIds = Array.isArray(cat?.groupIds)
       ? cat.groupIds
           .map((n: any) => Number(n))
           .filter((n: number) => Number.isFinite(n) && n >= 0 && n <= 9)
       : []
-    return { id, label, targetHours, includeWeekend, paceMode, groupIds }
+    return { id, label, targetHours, includeWeekend, paceMode, color, groupIds }
   })
 
   const resolvedCategories = sanitizedCategories.length ? sanitizedCategories : base.categories
@@ -454,6 +458,19 @@ function clampInt(value: any, min: number, max: number): number {
   if (rounded < min) return min
   if (rounded > max) return max
   return rounded
+}
+
+function sanitizeHexColor(value: any): string | undefined {
+  if (typeof value !== 'string') return undefined
+  const trimmed = value.trim()
+  if (!/^#([0-9a-fA-F]{3}|[0-9a-fA-F]{6})$/.test(trimmed)) {
+    return undefined
+  }
+  if (trimmed.length === 4) {
+    const [, r, g, b] = trimmed
+    return `#${r}${r}${g}${g}${b}${b}`.toUpperCase()
+  }
+  return trimmed.toUpperCase()
 }
 
 function normalizeActivityCardConfig(input: any, base: ActivityCardConfig): ActivityCardConfig {
@@ -537,6 +554,7 @@ function normalizeBalanceConfig(input: any, categories: TargetCategoryConfig[], 
       roundRatio: clampInt(ui.roundRatio ?? base.ui.roundRatio, 0, 3),
       showDailyStacks: !!(ui.showDailyStacks ?? base.ui.showDailyStacks),
       showInsights: !!(ui.showInsights ?? base.ui.showInsights),
+      showNotes: !!(ui.showNotes ?? base.ui.showNotes),
     },
   }
 }

@@ -17,9 +17,19 @@ Last updated: 2025-10-28
   - Status: Server marks `allday=true` and distributes using configurable `allDayHours`; more edge‑case validation is ongoing.
 
 - Light/dark theming support
-  - Symptom: Dashboard UI does not switch styles with the user’s Nextcloud theme; only the default light palette is maintained.
-  - Cause: Dedicated theming tokens/CSS variables are not yet wired for the SPA bundle.
-  - Status: Planned work (see `docs/LIGHT_DARK_THEMING.md` roadmap). Requires design token mapping + rebuild of chart palettes.
+  - Symptom: Charts continue to use the default palette even when the app is forced into dark mode; theme overrides are stored locally but not persisted server-side yet.
+  - Cause: Palette adjustments for chart elements and `/persist` plumbing are still pending.
+  - Status: Config & Setup now exposes an “Auto / Force light / Force dark” toggle (0.4.3). Follow-up will push the preference through `/persist` and extend chart theming.
+
+- Info button icon sizing
+  - Symptom: The small question mark hint button can appear offset from the section heading at certain sidebar widths, making the row look misaligned.
+  - Cause: Icon font rendering and varying heading line-height compete inside the flex row.
+  - Status: CSS tweak shipped in 0.4.3 keeps the icon within the row; we still plan to migrate to an SVG badge for consistent sizing during the next sidebar polish pass.
+
+- Targets card bar spacing
+  - Symptom: The horizontal progress bars in the Targets card can appear to “dip” into the next dashboard card when the viewport is narrow, making the first row look collapsed.
+  - Cause: Fixed card gutters compress before the progress block gains breathing room; the bar container still uses static margins.
+  - Status: Queued for the upcoming layout/theming overhaul—will add responsive spacing and max-height guards so bars never overlap adjacent cards.
 
 - Calendar color mapping regression — **fixed in 0.4.3 (2025-11-03)**
   - Symptom (historical): Imported or server-calculated calendar colours were replaced by deterministic fallbacks whenever DAV lookups failed, causing charts to ignore user palettes.

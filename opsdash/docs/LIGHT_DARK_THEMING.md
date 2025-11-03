@@ -73,6 +73,7 @@ first-class light/dark experience across Opsdash.
      dark`. Default to `auto` until onboarding writes the record.
    - Switching theme updates document attribute (`document.documentElement.dataset.theme`)
      and fires a custom `opsdash:theme:changed` event so charts/modules can react.
+   - **Status 2025-11:** Initial rollout stores the override in `localStorage` and exposes the toggle in Config & Setup; persistence via `/persist` remains a follow-up task.
 
 ## Accessibility & QA
 - Contrast testing for primary text, secondary text, link states, badges, 

@@ -37,10 +37,6 @@
           {{ allDayHoursMessage?.text }}
         </div>
       </div>
-      <div class="preset-buttons">
-        <NcButton type="tertiary" @click="$emit('apply-preset', 'work-week')">Preset: Work-Week</NcButton>
-        <NcButton type="tertiary" @click="$emit('apply-preset', 'balanced-life')">Preset: Balanced-Life</NcButton>
-      </div>
       <div class="target-category" v-for="cat in categoryOptions" :key="cat.id">
         <div class="cat-header">
           <input
@@ -85,17 +81,66 @@
               <option value="days_only">Days only</option>
               <option value="time_aware">Time aware</option>
             </select>
-          </label>
-          <label class="field checkbox">
-            <input
-              type="checkbox"
-              :checked="cat.includeWeekend"
-              @change="$emit('set-category-weekend', { id: cat.id, value: ($event.target as HTMLInputElement).checked })"
-            />
-            <span>Weekend</span>
-          </label>
+        </label>
+        <label class="field checkbox">
+          <input
+            type="checkbox"
+            :checked="cat.includeWeekend"
+            @change="$emit('set-category-weekend', { id: cat.id, value: ($event.target as HTMLInputElement).checked })"
+          />
+          <span>Weekend</span>
+        </label>
+        <div class="field color-field">
+          <span class="label">Colour</span>
+          <div
+            class="color-chip-wrapper"
+            data-color-popover
+            @click.stop
+          >
+            <button
+              type="button"
+              class="color-chip"
+              :style="{ backgroundColor: resolvedColor(cat) }"
+              :aria-expanded="openColorId === cat.id"
+              :aria-label="`Choose colour for ${cat.label}`"
+              @click="toggleColorPopover(cat.id)"
+            >
+              <span class="chip-outline" />
+            </button>
+            <div
+              v-if="openColorId === cat.id"
+              class="color-popover"
+              :id="`opsdash-color-popover-${cat.id}`"
+              tabindex="-1"
+              @keydown.esc.prevent="closeColorPopover()"
+            >
+              <div class="swatch-grid" role="group" aria-label="Preset colours">
+                <button
+                  v-for="swatch in colorPalette"
+                  :key="`${cat.id}-swatch-${swatch}`"
+                  type="button"
+                  class="color-swatch"
+                  :class="{ active: resolvedColor(cat) === swatch }"
+                  :style="{ backgroundColor: swatch }"
+                  :aria-label="`Use colour ${swatch}`"
+                  @click="applyColor(cat.id, swatch)"
+                />
+              </div>
+              <label class="custom-color">
+                <span>Custom</span>
+                <input
+                  class="color-input"
+                  type="color"
+                  :value="resolvedColor(cat)"
+                  aria-label="Pick custom colour"
+                  @input="onColorInput(cat.id, ($event.target as HTMLInputElement).value)"
+                />
+              </label>
+            </div>
+          </div>
         </div>
       </div>
+    </div>
       <NcButton
         type="tertiary"
         class="add-category"
@@ -268,12 +313,13 @@
 </template>
 
 <script setup lang="ts">
+import { computed, toRefs, ref, onMounted, onBeforeUnmount, nextTick } from 'vue'
 import { NcButton } from '@nextcloud/vue'
 import type { TargetsConfig } from '../../services/targets'
 
 type InputMessage = { text: string; tone: 'error' | 'warning' }
 
-defineProps<{
+const props = defineProps<{
   targets: TargetsConfig
   categoryOptions: Array<{
     id: string
@@ -281,6 +327,7 @@ defineProps<{
     targetHours: number
     includeWeekend: boolean
     paceMode?: string
+    color?: string | null
   }>
   totalTargetMessage: InputMessage | null
   allDayHoursMessage: InputMessage | null
@@ -289,17 +336,31 @@ defineProps<{
   forecastMomentumMessage: InputMessage | null
   forecastPaddingMessage: InputMessage | null
   canAddCategory: boolean
+  colorPalette: string[]
 }>()
 
-defineEmits<{
+const {
+  targets,
+  categoryOptions,
+  totalTargetMessage,
+  allDayHoursMessage,
+  categoryTargetMessages,
+  paceThresholdMessages,
+  forecastMomentumMessage,
+  forecastPaddingMessage,
+  canAddCategory,
+  colorPalette,
+} = toRefs(props)
+
+const emit = defineEmits<{
   (e: 'total-target-input', value: string): void
-  (e: 'apply-preset', preset: string): void
   (e: 'set-all-day-hours', value: string): void
   (e: 'set-category-label', payload: { id: string; label: string }): void
   (e: 'remove-category', id: string): void
   (e: 'set-category-target', payload: { id: string; value: string }): void
   (e: 'set-category-pace', payload: { id: string; mode: string }): void
   (e: 'set-category-weekend', payload: { id: string; value: boolean }): void
+  (e: 'set-category-color', payload: { id: string; color: string }): void
   (e: 'add-category'): void
   (e: 'set-include-weekend-total', value: boolean): void
   (e: 'set-pace-mode', mode: string): void
@@ -310,4 +371,67 @@ defineEmits<{
   (e: 'set-ui-option', payload: { key: string; value: boolean }): void
   (e: 'set-include-zero-days', value: boolean): void
 }>()
+
+const defaultColor = computed(() => sanitizeColor(colorPalette.value?.[0]) ?? '#2563EB')
+
+const openColorId = ref<string | null>(null)
+
+function handleClickAway(event: MouseEvent) {
+  const target = event.target as HTMLElement | null
+  if (!target?.closest('[data-color-popover]')) {
+    closeColorPopover()
+  }
+}
+
+onMounted(() => {
+  document.addEventListener('click', handleClickAway)
+})
+
+onBeforeUnmount(() => {
+  document.removeEventListener('click', handleClickAway)
+})
+
+function toggleColorPopover(id: string) {
+  if (openColorId.value === id) {
+    closeColorPopover()
+    return
+  }
+  openColorId.value = id
+  nextTick(() => {
+    const el = document.getElementById(`opsdash-color-popover-${id}`)
+    el?.focus()
+  })
+}
+
+function closeColorPopover() {
+  openColorId.value = null
+}
+
+function sanitizeColor(value: unknown): string | null {
+  if (typeof value !== 'string') return null
+  const trimmed = value.trim()
+  if (!/^#([0-9a-fA-F]{3}|[0-9a-fA-F]{6})$/.test(trimmed)) {
+    return null
+  }
+  if (trimmed.length === 4) {
+    const [, r, g, b] = trimmed
+    return `#${r}${r}${g}${g}${b}${b}`.toUpperCase()
+  }
+  return trimmed.toUpperCase()
+}
+
+function resolvedColor(cat: { color?: string | null }): string {
+  return sanitizeColor(cat?.color) ?? defaultColor.value
+}
+
+function onColorInput(id: string, value: string) {
+  const color = sanitizeColor(value) ?? defaultColor.value
+  emit('set-category-color', { id, color })
+}
+
+function applyColor(id: string, value: string) {
+  const color = sanitizeColor(value) ?? defaultColor.value
+  emit('set-category-color', { id, color })
+  closeColorPopover()
+}
 </script>

@@ -37,6 +37,7 @@ needed to guide new users toward a useful initial configuration.
    - List of highlights (Targets, Balance, Notes).
    - `Get started` primary action, `Maybe later` secondary (skip sets default 
      profile and marks onboarding complete).
+   - If an existing configuration is detected, display a reminder to save a preset first (button triggers the same save flow as Config & Setup → “Save current configuration”).
 2. **Target Strategy Step**
    - Presents the strategies described in `TARGET_STRATEGIES.md`.
    - Each strategy card includes: recommended audience, quick bullet benefits, 
@@ -48,14 +49,19 @@ needed to guide new users toward a useful initial configuration.
      calendars pre-selected).
    - Shows progress indicator (`Step 2 of 4` when categories are enabled).
 4. **Categories & Targets Step** (strategies with categories)
-   - Users can create/rename categories, assign weekly targets, and toggle weekend inclusion.
-   - Selected calendars can be mapped to categories before first load.
-5. **Review & Confirm**
+  - Users can create/rename categories, assign weekly targets, and toggle weekend inclusion.
+  - Selected calendars can be mapped to categories before first load.
+  - Category rows inherit suggested colours from mapped calendars (fallback palette matches Nextcloud); users can tweak them before completing onboarding.
+5. **Preferences Step**
+  - Theme selector (`Follow Nextcloud`, `Force light`, `Force dark`) with guidance that charts keep calendar colours; applies once onboarding completes.
+  - Input for total weekly target (editable for total-only strategies, read-only summary when categories are active).
+  - All-day event hours control (default 8 h) so multi-day all-day events align with expected workloads.
+6. **Review & Confirm**
    - Summary of choices: strategy, selected calendars, targets seeded, weekend 
-     handling, balance hints.
+    handling, balance hints, theme preference, and all-day setting.
    - `Start dashboard` finalizes choices and writes them via `/persist`.
    - Optional `Back` and `Skip for now`.
-5. **Completion Toast**
+7. **Completion Toast**
    - “Setup saved — you can change this later in the Sidebar.”
    - Automatically scroll/focus the main dashboard.
 

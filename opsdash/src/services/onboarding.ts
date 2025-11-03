@@ -32,6 +32,7 @@ export interface CategoryDraft {
   targetHours: number
   includeWeekend: boolean
   paceMode: 'days_only' | 'time_aware'
+  color?: string | null
 }
 
 export interface StrategyBuildResult {
@@ -77,6 +78,8 @@ const CATEGORY_KEYWORDS: Record<string, string[]> = {
   sport: ['sport', 'fitness', 'gym', 'run', 'ride'],
 }
 
+const CATEGORY_COLOR_PALETTE = ['#2563EB', '#F97316', '#10B981', '#A855F7', '#EC4899', '#14B8A6', '#F59E0B', '#6366F1']
+
 function pickCategoryId(
   label: string,
   categoryOrder: string[],
@@ -101,6 +104,19 @@ function deriveMonthTargets(targetsWeek: Record<string, number>): Record<string,
   return month
 }
 
+function sanitizeHexColor(value: any): string | null {
+  if (typeof value !== 'string') return null
+  const trimmed = value.trim()
+  if (!/^#([0-9a-fA-F]{3}|[0-9a-fA-F]{6})$/.test(trimmed)) {
+    return null
+  }
+  if (trimmed.length === 4) {
+    const [, r, g, b] = trimmed
+    return `#${r}${r}${g}${g}${b}${b}`.toUpperCase()
+  }
+  return trimmed.toUpperCase()
+}
+
 function sanitizeCategories(input: CategoryDraft[]): CategoryDraft[] {
   const seen = new Set<string>()
   const cleaned: CategoryDraft[] = []
@@ -114,6 +130,7 @@ function sanitizeCategories(input: CategoryDraft[]): CategoryDraft[] {
       targetHours: Number.isFinite(cat?.targetHours) ? Number(cat.targetHours) : 0,
       includeWeekend: !!cat?.includeWeekend,
       paceMode: cat?.paceMode === 'time_aware' ? 'time_aware' : 'days_only',
+      color: sanitizeHexColor(cat?.color) ?? null,
     })
   })
   return cleaned
@@ -162,14 +179,14 @@ export function createStrategyDraft(
   const categoryDefaults =
     strategyId === 'total_plus_categories'
       ? [
-          { id: 'work', label: 'Work', targetHours: 32, includeWeekend: false },
-          { id: 'personal', label: 'Personal', targetHours: 8, includeWeekend: true },
-          { id: 'recovery', label: 'Recovery', targetHours: 4, includeWeekend: true },
+          { id: 'work', label: 'Work', targetHours: 32, includeWeekend: false, color: CATEGORY_COLOR_PALETTE[0] },
+          { id: 'personal', label: 'Personal', targetHours: 8, includeWeekend: true, color: CATEGORY_COLOR_PALETTE[1] },
+          { id: 'recovery', label: 'Recovery', targetHours: 4, includeWeekend: true, color: CATEGORY_COLOR_PALETTE[2] },
         ]
       : [
-          { id: 'work', label: 'Work', targetHours: 32, includeWeekend: false },
-          { id: 'hobby', label: 'Hobby', targetHours: 6, includeWeekend: true },
-          { id: 'sport', label: 'Sport', targetHours: 4, includeWeekend: true },
+          { id: 'work', label: 'Work', targetHours: 32, includeWeekend: false, color: CATEGORY_COLOR_PALETTE[0] },
+          { id: 'hobby', label: 'Hobby', targetHours: 6, includeWeekend: true, color: CATEGORY_COLOR_PALETTE[1] },
+          { id: 'sport', label: 'Sport', targetHours: 4, includeWeekend: true, color: CATEGORY_COLOR_PALETTE[2] },
         ]
 
   const assignments: Record<string, string> = {}
@@ -187,6 +204,7 @@ export function createStrategyDraft(
     targetHours: cat.targetHours,
     includeWeekend: cat.includeWeekend,
     paceMode: 'days_only',
+    color: sanitizeHexColor(cat.color) ?? null,
   }))
 
   return {
@@ -235,6 +253,19 @@ export function buildStrategyResult(
 
   const cfg = cloneTargetsConfig(baseConfig)
   const categoryGroupMap = new Map<string, number>()
+  let paletteIndex = 0
+  const pickCategoryColor = (cat: CategoryDraft): string | null => {
+    const explicit = sanitizeHexColor(cat.color)
+    if (explicit) return explicit
+    const assignedCal = calendars.find((cal) => assignments[cal.id] === cat.id && sanitizeHexColor(cal.color))
+    if (assignedCal) {
+      return sanitizeHexColor(assignedCal.color) ?? null
+    }
+    const paletteColor = CATEGORY_COLOR_PALETTE[paletteIndex % CATEGORY_COLOR_PALETTE.length]
+    paletteIndex += 1
+    return paletteColor ?? null
+  }
+
   cfg.categories = categories.map((cat, index) => {
     const groupId = index + 1
     categoryGroupMap.set(cat.id, groupId)
@@ -244,6 +275,7 @@ export function buildStrategyResult(
       targetHours: Number(cat.targetHours.toFixed(2)),
       includeWeekend: cat.includeWeekend,
       paceMode: cat.paceMode,
+      color: pickCategoryColor(cat),
       groupIds: [groupId],
     }
   })

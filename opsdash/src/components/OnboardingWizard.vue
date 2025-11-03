@@ -31,7 +31,101 @@
             <li>Balance — ensure your focus areas get the right attention.</li>
             <li>Notes — capture insights and the story behind the numbers.</li>
           </ul>
+          <div v-if="props.hasExistingConfig" class="config-warning">
+            <p>
+              You already have a dashboard configuration. Saving a preset now keeps a backup before onboarding applies new values.
+            </p>
+            <NcButton type="tertiary" size="small" @click="emit('save-current-config')">Save current setup as preset</NcButton>
+          </div>
           <p class="hint">You can change configuration later from the Sidebar.</p>
+        </section>
+
+        <section v-else-if="currentStep === 'preferences'" class="onboarding-step">
+          <h3>Final tweaks</h3>
+          <p class="hint">You can change these options later from Config &amp; Setup.</p>
+          <div class="preferences-grid">
+            <article class="pref-card">
+              <h4>Theme &amp; appearance</h4>
+              <p class="pref-desc">Choose how Opsdash reacts to your Nextcloud theme. Charts keep their calendar colours.</p>
+              <div class="theme-options" role="radiogroup" aria-label="Theme preference">
+                <label class="theme-option">
+                  <input
+                    type="radio"
+                    name="onboarding-theme"
+                    value="auto"
+                    :checked="themePreference === 'auto'"
+                    @change="themePreference = 'auto'"
+                  />
+                  <div class="theme-copy">
+                    <div class="theme-option__title">Follow Nextcloud</div>
+                    <div class="theme-option__desc">Matches your account theme (currently {{ systemThemeLabel }}).</div>
+                  </div>
+                </label>
+                <label class="theme-option">
+                  <input
+                    type="radio"
+                    name="onboarding-theme"
+                    value="light"
+                    :checked="themePreference === 'light'"
+                    @change="themePreference = 'light'"
+                  />
+                  <div class="theme-copy">
+                    <div class="theme-option__title">Force light</div>
+                    <div class="theme-option__desc">Always use the light palette, even if Nextcloud switches to dark.</div>
+                  </div>
+                </label>
+                <label class="theme-option">
+                  <input
+                    type="radio"
+                    name="onboarding-theme"
+                    value="dark"
+                    :checked="themePreference === 'dark'"
+                    @change="themePreference = 'dark'"
+                  />
+                  <div class="theme-copy">
+                    <div class="theme-option__title">Force dark</div>
+                    <div class="theme-option__desc">Keep Opsdash dark, even when Nextcloud stays light.</div>
+                  </div>
+                </label>
+              </div>
+              <div class="theme-preview">Preview: {{ previewTheme === 'dark' ? 'Dark' : 'Light' }} mode</div>
+            </article>
+
+            <article class="pref-card">
+              <h4>Total weekly target</h4>
+              <p class="pref-desc">Set your overall weekly goal. You can fine-tune per-category targets later.</p>
+              <label class="field">
+                <span class="label">Total target (h / week)</span>
+                <input
+                  type="number"
+                  :value="totalHoursInput ?? categoryTotalHours"
+                  :disabled="categoriesEnabled"
+                  min="0"
+                  max="1000"
+                  step="0.5"
+                  @input="onTotalHoursChange($event.target as HTMLInputElement)"
+                />
+              </label>
+              <p v-if="categoriesEnabled" class="pref-hint">Using categories — total derives from category targets ({{ categoryTotalHours.toFixed(1) }} h).</p>
+            </article>
+
+            <article class="pref-card">
+              <h4>All-day events</h4>
+              <p class="pref-desc">Tell Opsdash how many hours an all-day calendar event should contribute per day.</p>
+              <label class="field">
+                <span class="label">All-day hours per day</span>
+                <input
+                  type="number"
+                  :value="allDayHoursInput"
+                  min="0"
+                  max="24"
+                  step="0.25"
+                  @input="onAllDayHoursChange($event.target as HTMLInputElement)"
+                />
+              </label>
+              <p class="pref-hint">Default is 8 h — adjust if your organisation tracks different durations.</p>
+            </article>
+          </div>
         </section>
 
         <section v-else-if="currentStep === 'strategy'" class="onboarding-step">
@@ -117,6 +211,51 @@
                     />
                     <span>Include weekend</span>
                   </label>
+                  <div class="field color-field">
+                    <span class="label">Colour</span>
+                    <div class="color-chip-wrapper" data-color-popover @click.stop>
+                      <button
+                        type="button"
+                        class="color-chip"
+                        :style="{ backgroundColor: resolvedColor(cat) }"
+                        :aria-expanded="openColorId === cat.id"
+                        :aria-label="`Choose colour for ${cat.label}`"
+                        @click="toggleColorPopover(cat.id)"
+                      >
+                        <span class="chip-outline" />
+                      </button>
+                      <div
+                        v-if="openColorId === cat.id"
+                        class="color-popover"
+                        :id="`onboarding-color-popover-${cat.id}`"
+                        tabindex="-1"
+                        @keydown.esc.prevent="closeColorPopover()"
+                      >
+                        <div class="swatch-grid" role="group" aria-label="Preset colours">
+                          <button
+                            v-for="swatch in categoryColorPalette"
+                            :key="`${cat.id}-swatch-${swatch}`"
+                            type="button"
+                            class="color-swatch"
+                            :class="{ active: resolvedColor(cat) === swatch }"
+                            :style="{ backgroundColor: swatch }"
+                            :aria-label="`Use colour ${swatch}`"
+                            @click="applyColor(cat.id, swatch)"
+                          />
+                        </div>
+                        <label class="custom-color">
+                          <span>Custom</span>
+                          <input
+                            class="color-input"
+                            type="color"
+                            :value="resolvedColor(cat)"
+                            aria-label="Pick custom colour"
+                            @input="onColorInput(cat.id, ($event.target as HTMLInputElement).value)"
+                          />
+                        </label>
+                      </div>
+                    </div>
+                  </div>
                 </div>
               </article>
               <NcButton type="tertiary" class="add-category" @click="addCategory">Add category</NcButton>
@@ -193,7 +332,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed, ref, watch, onUnmounted } from 'vue'
+import { computed, ref, watch, onUnmounted, onMounted, nextTick } from 'vue'
 import { NcButton } from '@nextcloud/vue'
 import {
   getStrategyDefinitions,
@@ -212,6 +351,11 @@ const props = defineProps<{
   onboardingVersion: number
   saving?: boolean
   closable?: boolean
+  initialThemePreference?: 'auto' | 'light' | 'dark'
+  systemTheme?: 'light' | 'dark'
+  initialAllDayHours?: number
+  initialTotalHours?: number
+  hasExistingConfig?: boolean
 }>()
 
 const emit = defineEmits<{
@@ -224,10 +368,12 @@ const emit = defineEmits<{
     groups: Record<string, number>
     targetsWeek: Record<string, number>
     targetsMonth: Record<string, number>
+    themePreference: 'auto' | 'light' | 'dark'
   }): void
+  (e: 'save-current-config'): void
 }>()
 
-const stepOrder = ['intro', 'strategy', 'calendars', 'categories', 'review'] as const
+const stepOrder = ['intro', 'strategy', 'calendars', 'categories', 'preferences', 'review'] as const
 type StepId = typeof stepOrder[number]
 
 const stepIndex = ref(0)
@@ -235,6 +381,29 @@ const selectedStrategy = ref<StrategyDefinition['id']>('total_only')
 const localSelection = ref<string[]>([])
 const categories = ref<CategoryDraft[]>([])
 const assignments = ref<Record<string, string>>({})
+const themePreference = ref<'auto' | 'light' | 'dark'>('auto')
+const allDayHoursInput = ref(8)
+const totalHoursInput = ref<number | null>(null)
+const previewTheme = computed(() => {
+  if (themePreference.value === 'auto') {
+    return props.systemTheme === 'dark' ? 'dark' : 'light'
+  }
+  return themePreference.value
+})
+const systemThemeLabel = computed(() => props.systemTheme === 'dark' ? 'dark' : 'light')
+const BASE_CATEGORY_COLORS = ['#2563EB', '#F97316', '#10B981', '#A855F7', '#EC4899', '#14B8A6', '#F59E0B', '#6366F1', '#0EA5E9', '#65A30D']
+
+const categoryColorPalette = computed(() => {
+  const palette = new Set<string>()
+  const push = (value?: string | null) => {
+    const color = sanitizeColor(value)
+    if (color) palette.add(color)
+  }
+  props.calendars.forEach((cal) => push(cal.color))
+  categories.value.forEach((cat) => push(cat.color))
+  BASE_CATEGORY_COLORS.forEach((color) => palette.add(color))
+  return Array.from(palette)
+})
 
 const strategies = getStrategyDefinitions()
 const selectedStrategyDef = computed(() => strategies.find((s) => s.id === selectedStrategy.value) ?? strategies[0])
@@ -267,13 +436,23 @@ watch(
   (visible) => {
     if (visible) {
       resetWizard()
+      closeColorPopover()
     }
     setScrollLocked(visible)
   },
   { immediate: true },
 )
 
+onMounted(() => {
+  if (typeof document !== 'undefined') {
+    document.addEventListener('click', handleDocumentClick)
+  }
+})
+
 onUnmounted(() => {
+  if (typeof document !== 'undefined') {
+    document.removeEventListener('click', handleDocumentClick)
+  }
   setScrollLocked(false)
 })
 
@@ -282,7 +461,15 @@ function resetWizard() {
   selectedStrategy.value = props.initialStrategy ?? 'total_only'
   const initial = props.initialSelection?.length ? [...props.initialSelection] : props.calendars.map((c) => c.id)
   localSelection.value = Array.from(new Set(initial.filter((id) => props.calendars.some((cal) => cal.id === id))))
+  themePreference.value = props.initialThemePreference ?? 'auto'
+  allDayHoursInput.value = clampAllDayHours(props.initialAllDayHours ?? 8)
+  totalHoursInput.value = clampTotalHours(props.initialTotalHours ?? null)
   initializeStrategyState()
+  if (categoriesEnabled.value) {
+    totalHoursInput.value = clampTotalHours(categoryTotalHours.value)
+  } else if (totalHoursInput.value === null) {
+    totalHoursInput.value = 40
+  }
 }
 
 function initializeStrategyState() {
@@ -290,6 +477,7 @@ function initializeStrategyState() {
   categories.value = draft.categories.map((cat) => ({ ...cat }))
   assignments.value = { ...draft.assignments }
   ensureAssignments()
+  syncTotalsWithStrategy()
 }
 
 function ensureAssignments() {
@@ -307,6 +495,15 @@ function ensureAssignments() {
   assignments.value = nextAssignments
 }
 
+function syncTotalsWithStrategy() {
+  if (categoriesEnabled.value) {
+    totalHoursInput.value = clampTotalHours(categoryTotalHours.value)
+  } else {
+    const inferred = clampTotalHours(props.initialTotalHours ?? totalHoursInput.value ?? 40)
+    totalHoursInput.value = inferred ?? 40
+  }
+}
+
 watch(selectedStrategy, () => {
   initializeStrategyState()
   stepIndex.value = Math.min(stepIndex.value, enabledSteps.value.length - 1)
@@ -315,6 +512,28 @@ watch(selectedStrategy, () => {
 watch(enabledSteps, (steps) => {
   if (stepIndex.value >= steps.length) {
     stepIndex.value = Math.max(steps.length - 1, 0)
+  }
+})
+
+watch(categoriesEnabled, () => {
+  syncTotalsWithStrategy()
+})
+
+watch(categoryTotalHours, (total) => {
+  if (categoriesEnabled.value) {
+    totalHoursInput.value = clampTotalHours(total)
+  }
+})
+
+watch(currentStep, (step) => {
+  if (step !== 'categories') {
+    closeColorPopover()
+  }
+})
+
+watch(() => props.visible, (visible) => {
+  if (!visible) {
+    closeColorPopover()
   }
 })
 
@@ -353,8 +572,9 @@ function setCategoryLabel(id: string, value: string) {
 
 function setCategoryTarget(id: string, value: string) {
   const parsed = Number(value)
+  const sanitized = Number.isFinite(parsed) ? Math.max(0, Math.min(1000, parsed)) : undefined
   categories.value = categories.value.map((cat) =>
-    cat.id === id ? { ...cat, targetHours: Number.isFinite(parsed) ? parsed : cat.targetHours } : cat,
+    cat.id === id ? { ...cat, targetHours: sanitized ?? cat.targetHours } : cat,
   )
 }
 
@@ -367,6 +587,90 @@ function assignCalendar(calId: string, categoryId: string) {
     ...assignments.value,
     [calId]: categoryId,
   }
+}
+
+function toggleColorPopover(id: string) {
+  if (openColorId.value === id) {
+    closeColorPopover()
+    return
+  }
+  openColorId.value = id
+  nextTick(() => {
+    const el = document.getElementById(`onboarding-color-popover-${id}`)
+    el?.focus()
+  })
+}
+
+function closeColorPopover() {
+  openColorId.value = null
+}
+
+function handleDocumentClick(event: MouseEvent) {
+  const target = event.target as HTMLElement | null
+  if (!target?.closest('[data-color-popover]')) {
+    closeColorPopover()
+  }
+}
+
+function sanitizeColor(value: unknown): string | null {
+  if (typeof value !== 'string') return null
+  const trimmed = value.trim()
+  if (!/^#([0-9a-fA-F]{3}|[0-9a-fA-F]{6})$/.test(trimmed)) {
+    return null
+  }
+  if (trimmed.length === 4) {
+    const [, r, g, b] = trimmed
+    return `#${r}${r}${g}${g}${b}${b}`.toUpperCase()
+  }
+  return trimmed.toUpperCase()
+}
+
+function resolvedColor(cat: { color?: string | null }): string {
+  return sanitizeColor(cat?.color) ?? defaultColor.value
+}
+
+function onColorInput(id: string, value: string) {
+  const color = sanitizeColor(value)
+  setCategoryColor(id, color ?? defaultColor.value)
+}
+
+function applyColor(id: string, value: string) {
+  const color = sanitizeColor(value)
+  setCategoryColor(id, color ?? defaultColor.value)
+  closeColorPopover()
+}
+
+function clampAllDayHours(value: number): number {
+  if (!Number.isFinite(value)) return 8
+  const clamped = Math.max(0, Math.min(24, value))
+  return Math.round(clamped * 100) / 100
+}
+
+function clampTotalHours(value: number | null): number | null {
+  if (!Number.isFinite(value)) return null
+  const clamped = Math.max(0, Math.min(1000, Number(value)))
+  return Math.round(clamped * 100) / 100
+}
+
+function setCategoryColor(id: string, color: string | null) {
+  categories.value = categories.value.map((cat) =>
+    cat.id === id ? { ...cat, color } : cat,
+  )
+}
+
+function onTotalHoursChange(input: HTMLInputElement) {
+  if (categoriesEnabled.value) return
+  const parsed = Number(input.value)
+  if (!Number.isFinite(parsed)) {
+    totalHoursInput.value = null
+    return
+  }
+  totalHoursInput.value = clampTotalHours(parsed)
+}
+
+function onAllDayHoursChange(input: HTMLInputElement) {
+  const parsed = Number(input.value)
+  allDayHoursInput.value = clampAllDayHours(Number.isFinite(parsed) ? parsed : allDayHoursInput.value)
 }
 
 const categoryTotalHours = computed(() =>
@@ -402,6 +706,12 @@ const nextDisabled = computed(() => {
       return true
     }
   }
+  if (currentStep.value === 'preferences') {
+    if (!categoriesEnabled.value) {
+      if (totalHoursInput.value === null || totalHoursInput.value < 0) return true
+    }
+    if (allDayHoursInput.value < 0 || allDayHoursInput.value > 24) return true
+  }
   return false
 })
 
@@ -427,13 +737,34 @@ function handleClose() {
 }
 
 function emitComplete() {
+  const result = buildStrategyResult(
+    selectedStrategy.value,
+    props.calendars,
+    localSelection.value,
+    categoriesEnabled.value
+      ? { categories: categories.value.map((cat) => ({ ...cat })), assignments: { ...assignments.value } }
+      : undefined,
+  )
+
+  const config = { ...result.targetsConfig }
+  config.allDayHours = clampAllDayHours(allDayHoursInput.value)
+  if (categoriesEnabled.value) {
+    const total = clampTotalHours(categoryTotalHours.value)
+    if (total != null) config.totalHours = total
+  } else if (totalHoursInput.value != null) {
+    const total = clampTotalHours(totalHoursInput.value)
+    if (total != null) config.totalHours = total
+  }
+  result.targetsConfig = config
+
   emit('complete', {
     strategy: selectedStrategy.value,
-    selected: draft.value.selected,
-    targetsConfig: draft.value.targetsConfig,
-    groups: draft.value.groups,
-    targetsWeek: draft.value.targetsWeek,
-    targetsMonth: draft.value.targetsMonth,
+    selected: result.selected,
+    targetsConfig: result.targetsConfig,
+    groups: result.groups,
+    targetsWeek: result.targetsWeek,
+    targetsMonth: result.targetsMonth,
+    themePreference: themePreference.value,
   })
 }
 
@@ -546,6 +877,23 @@ function toggleCalendar(id: string, checkbox: HTMLInputElement) {
 
 .highlights {
   padding-left: 18px;
+}
+
+.config-warning {
+  border: 1px solid color-mix(in srgb, var(--color-warning, #f97316) 35%, transparent);
+  background: color-mix(in srgb, var(--color-warning, #f97316) 12%, transparent);
+  border-radius: 8px;
+  padding: 12px;
+  margin: 12px 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.config-warning p {
+  margin: 0;
+  font-size: 0.95rem;
+  color: var(--color-text);
 }
 
 .hint {
@@ -693,6 +1041,106 @@ function toggleCalendar(id: string, checkbox: HTMLInputElement) {
   gap: 16px;
 }
 
+.color-field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.color-chip-wrapper {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+}
+
+.color-chip {
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  border: 1px solid color-mix(in oklab, var(--color-border), transparent 40%);
+  background: var(--brand, #2563eb);
+  padding: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+}
+
+.chip-outline {
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  border: 1px solid color-mix(in oklab, #000, transparent 90%);
+}
+
+.color-chip:focus-visible {
+  outline: 2px solid color-mix(in oklab, var(--brand, #2563eb), transparent 45%);
+  outline-offset: 2px;
+}
+
+.color-popover {
+  position: absolute;
+  top: calc(100% + 6px);
+  left: 0;
+  z-index: 30;
+  min-width: 160px;
+  padding: 10px;
+  border-radius: 10px;
+  border: 1px solid color-mix(in oklab, var(--color-border), transparent 30%);
+  background: var(--color-main-background, #fff);
+  box-shadow: 0 12px 32px rgba(15, 23, 42, 0.25);
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.color-popover:focus-visible {
+  outline: 2px solid color-mix(in oklab, var(--brand, #2563eb), transparent 45%);
+  outline-offset: 2px;
+}
+
+.swatch-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(20px, 1fr));
+  gap: 6px;
+}
+
+.color-swatch {
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  border: 1px solid color-mix(in oklab, #000, transparent 80%);
+  padding: 0;
+  cursor: pointer;
+}
+
+.color-swatch.active {
+  box-shadow: 0 0 0 2px color-mix(in oklab, var(--brand, #2563eb), transparent 55%);
+}
+
+.color-swatch:focus-visible {
+  outline: 2px solid color-mix(in oklab, var(--brand, #2563eb), transparent 45%);
+  outline-offset: 1px;
+}
+
+.custom-color {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  font-size: 0.85rem;
+  color: var(--color-text-light);
+}
+
+.color-input {
+  width: 44px;
+  height: 26px;
+  padding: 0;
+  border-radius: 6px;
+  border: 1px solid color-mix(in oklab, var(--color-border), transparent 40%);
+  background: transparent;
+}
+
 .add-category {
   justify-self: flex-start;
 }
@@ -728,6 +1176,80 @@ function toggleCalendar(id: string, checkbox: HTMLInputElement) {
   justify-content: flex-end;
   gap: 12px;
   margin-top: 24px;
+}
+
+.preferences-grid {
+  display: grid;
+  gap: 16px;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+}
+
+.pref-card {
+  border: 1px solid color-mix(in oklab, var(--color-border), transparent 30%);
+  border-radius: 10px;
+  padding: 12px;
+  background: color-mix(in oklab, var(--color-main-background, #fff), transparent 6%);
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.pref-card h4 {
+  margin: 0;
+}
+
+.pref-desc {
+  margin: 0;
+  font-size: 0.9rem;
+  color: var(--color-text-light);
+}
+
+.pref-hint {
+  margin: 0;
+  font-size: 0.85rem;
+  color: var(--color-text-light);
+}
+
+.theme-options {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.theme-option {
+  display: flex;
+  gap: 10px;
+  align-items: flex-start;
+  padding: 8px;
+  border-radius: 8px;
+  border: 1px solid color-mix(in oklab, var(--color-border), transparent 40%);
+  background: color-mix(in oklab, var(--color-main-background, #fff), transparent 8%);
+}
+
+.theme-option input[type="radio"] {
+  margin-top: 4px;
+}
+
+.theme-copy {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  font-size: 0.9rem;
+}
+
+.theme-option__title {
+  font-weight: 600;
+  color: var(--color-text);
+}
+
+.theme-option__desc {
+  color: var(--color-text-light);
+  font-size: 0.85rem;
+}
+
+.theme-preview {
+  font-size: 0.85rem;
+  color: var(--color-text-light);
 }
 
 :global(body.opsdash-onboarding-lock) {

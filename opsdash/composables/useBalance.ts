@@ -29,7 +29,7 @@ export interface BalanceOverviewSummary {
 interface UseBalanceInput {
   stats: any
   categoryColorMap: ComputedRef<Record<string, string>>
-  balanceCardConfig: ComputedRef<{ showInsights: boolean; showDailyStacks: boolean }>
+  balanceCardConfig: ComputedRef<{ showInsights: boolean; showDailyStacks: boolean; showNotes?: boolean }>
 }
 
 export function useBalance(input: UseBalanceInput) {

@@ -151,14 +151,15 @@
       :forecast-momentum-message="forecastMomentumMessage"
       :forecast-padding-message="forecastPaddingMessage"
       :can-add-category="canAddCategory"
+      :color-palette="categoryColorPalette"
       @total-target-input="onTotalTarget"
-      @apply-preset="applyPreset"
       @set-all-day-hours="setAllDayHours"
       @set-category-label="({ id, label }) => setCategoryLabel(id, label)"
       @remove-category="removeCategory"
       @set-category-target="({ id, value }) => setCategoryTarget(id, value)"
       @set-category-pace="({ id, mode }) => setCategoryPaceMode(id, mode)"
       @set-category-weekend="({ id, value }) => setCategoryWeekend(id, value)"
+      @set-category-color="({ id, color }) => setCategoryColor(id, color)"
       @add-category="addCategory"
       @set-include-weekend-total="setIncludeWeekendTotal"
       @set-pace-mode="setPaceMode"
@@ -185,12 +186,16 @@
       :is-saving="props.presetSaving"
       :is-applying="props.presetApplying"
       :warnings="props.presetWarnings"
+      :theme-preference="props.themePreference"
+      :effective-theme="props.effectiveTheme"
+      :system-theme="props.systemTheme"
       @save="(name: string) => emit('save-preset', name)"
       @load="(name: string) => emit('load-preset', name)"
       @delete="(name: string) => emit('delete-preset', name)"
       @refresh="() => emit('refresh-presets')"
       @clear-warnings="() => emit('clear-preset-warnings')"
       @rerun-onboarding="() => emit('rerun-onboarding')"
+      @set-theme-preference="(value: 'auto' | 'light' | 'dark') => emit('set-theme-preference', value)"
     />
 
     <SidebarActivityPane
@@ -232,8 +237,10 @@
       :prev-title="notesLabelPrevTitle"
       :curr-title="notesLabelCurrTitle"
       :saving="isSavingNote"
+      :show-notes-in-balance="balanceSettings.ui.showNotes"
       @update:modelValue="value => $emit('update:notes', value)"
       @save="$emit('save-notes')"
+      @toggle-balance-note="value => setBalanceUiToggle('showNotes', value)"
     />
   </NcAppNavigation>
 </template>
@@ -288,6 +295,9 @@ const props = defineProps<{
   presetSaving: boolean
   presetApplying: boolean
   presetWarnings: string[]
+  themePreference: 'auto' | 'light' | 'dark'
+  effectiveTheme: 'light' | 'dark'
+  systemTheme: 'light' | 'dark'
 }>()
 
 const emit = defineEmits([
@@ -309,15 +319,30 @@ const emit = defineEmits([
   'refresh-presets',
   'clear-preset-warnings',
   'rerun-onboarding',
+  'set-theme-preference',
 ])
 
 const activeTab = ref<'calendars'|'targets'|'summary'|'activity'|'balance'|'notes'|'config'>('calendars')
 
-type TargetsPreset = 'work-week'|'balanced-life'
-
 const targets = computed(() => props.targetsConfig)
 const categoryOptions = computed(() => targets.value?.categories ?? [])
 const presetsList = computed(() => props.presets ?? [])
+
+const BASE_CATEGORY_COLORS = ['#2563EB', '#F97316', '#10B981', '#A855F7', '#EC4899', '#14B8A6', '#F59E0B', '#6366F1', '#0EA5E9', '#65A30D']
+
+const categoryColorPalette = computed(() => {
+  const palette = new Set<string>()
+  const push = (value?: string | null) => {
+    const color = sanitizeHexColor(value)
+    if (color) {
+      palette.add(color)
+    }
+  }
+  ;(props.calendars || []).forEach((cal: any) => push(cal?.color))
+  categoryOptions.value.forEach((cat: any) => push(cat?.color))
+  BASE_CATEGORY_COLORS.forEach((color) => palette.add(color))
+  return Array.from(palette)
+})
 
 function updateConfig(mutator: (cfg: TargetsConfig)=>void){
   const next = normalizeTargetsConfig(JSON.parse(JSON.stringify(props.targetsConfig || {})) as TargetsConfig)
@@ -533,14 +558,14 @@ function handleBalanceThreshold(payload: { key: 'noticeMaxShare' | 'warnMaxShare
   setBalanceThreshold(payload.key, payload.value)
 }
 
-function handleBalanceUiToggle(payload: { key: 'showInsights' | 'showDailyStacks' | 'dayparts'; value: boolean }) {
+function handleBalanceUiToggle(payload: { key: 'showInsights' | 'showDailyStacks' | 'showNotes' | 'dayparts'; value: boolean }) {
   if (payload.key === 'dayparts') {
     updateConfig(cfg => {
       cfg.balance.dayparts.enabled = payload.value
     })
     return
   }
-  setBalanceUiToggle(payload.key as 'showInsights' | 'showDailyStacks', payload.value)
+  setBalanceUiToggle(payload.key as 'showInsights' | 'showDailyStacks' | 'showNotes', payload.value)
 }
 
 function handleBalanceUiPrecision(payload: { key: 'roundPercent' | 'roundRatio'; value: string }) {
@@ -590,6 +615,13 @@ function setCategoryLabel(id: string, value: string){
 
 function setCategoryWeekend(id: string, checked: boolean){
   updateCategory(id, cat => { cat.includeWeekend = checked })
+}
+
+function setCategoryColor(id: string, value: string){
+  const color = sanitizeHexColor(value)
+  updateCategory(id, cat => {
+    cat.color = color ?? null
+  })
 }
 
 function emitActiveMode(mode: 'active' | 'all'){
@@ -665,7 +697,7 @@ function setBalanceLookback(value: string){
   )
 }
 
-function setBalanceUiToggle(key: 'showInsights' | 'showDailyStacks', checked: boolean){
+function setBalanceUiToggle(key: 'showInsights' | 'showDailyStacks' | 'showNotes', checked: boolean){
   updateConfig(cfg => {
     cfg.balance.ui[key] = checked
   })
@@ -711,46 +743,6 @@ function setIncludeZeroDays(checked: boolean){
   updateConfig(cfg => { cfg.includeZeroDaysInStats = checked })
 }
 
-function applyPreset(preset: TargetsPreset){
-  updateConfig(cfg => {
-    if (preset === 'work-week'){
-      cfg.totalHours = 48
-      cfg.categories = [
-        { id:'work', label:'Work', targetHours:32, includeWeekend:false, paceMode:'days_only', groupIds:[1] },
-        { id:'hobby', label:'Hobby', targetHours:6, includeWeekend:true, paceMode:'days_only', groupIds:[2] },
-        { id:'sport', label:'Sport', targetHours:4, includeWeekend:true, paceMode:'days_only', groupIds:[3] },
-      ]
-      cfg.allDayHours = 8
-      cfg.pace.includeWeekendTotal = true
-      cfg.pace.mode = 'days_only'
-      cfg.pace.thresholds = { onTrack: -2, atRisk: -10 }
-      cfg.forecast.methodPrimary = 'linear'
-      cfg.forecast.momentumLastNDays = 2
-      cfg.forecast.padding = 1.5
-      cfg.includeZeroDaysInStats = false
-      cfg.ui.showCalendarCharts = true
-      cfg.ui.showCategoryCharts = true
-    } else if (preset === 'balanced-life'){
-      cfg.totalHours = 48
-      cfg.categories = [
-        { id:'work', label:'Work', targetHours:32, includeWeekend:false, paceMode:'time_aware', groupIds:[1] },
-        { id:'hobby', label:'Hobby', targetHours:8, includeWeekend:true, paceMode:'time_aware', groupIds:[2] },
-        { id:'sport', label:'Sport', targetHours:6, includeWeekend:true, paceMode:'time_aware', groupIds:[3] },
-      ]
-      cfg.allDayHours = 8
-      cfg.pace.includeWeekendTotal = true
-      cfg.pace.mode = 'time_aware'
-      cfg.pace.thresholds = { onTrack: -2, atRisk: -10 }
-      cfg.forecast.methodPrimary = 'linear'
-      cfg.forecast.momentumLastNDays = 2
-      cfg.forecast.padding = 1.5
-      cfg.includeZeroDaysInStats = false
-      cfg.ui.showCalendarCharts = true
-      cfg.ui.showCategoryCharts = true
-    }
-  })
-}
-
 function addCategory(){
   const group = nextGroupId()
   if (group === null) {
@@ -758,12 +750,14 @@ function addCategory(){
     return
   }
   updateConfig(cfg => {
+    const nextColor = findNextCategoryColor(cfg.categories)
     cfg.categories = [...cfg.categories, {
       id: makeCategoryId(),
       label: `Category ${cfg.categories.length + 1}`,
       targetHours: 0,
       includeWeekend: true,
       paceMode: 'days_only',
+      color: nextColor,
       groupIds: [group],
     }]
   })
@@ -784,6 +778,31 @@ function removeCategory(id: string){
       }
     })
   }
+}
+
+function sanitizeHexColor(value: any): string | null {
+  if (typeof value !== 'string') return null
+  const trimmed = value.trim()
+  if (!/^#([0-9a-fA-F]{3}|[0-9a-fA-F]{6})$/.test(trimmed)) {
+    return null
+  }
+  if (trimmed.length === 4) {
+    const [, r, g, b] = trimmed
+    return `#${r}${r}${g}${g}${b}${b}`.toUpperCase()
+  }
+  return trimmed.toUpperCase()
+}
+
+function findNextCategoryColor(categories: Array<{ color?: string | null }>): string | null {
+  const used = new Set<string>()
+  categories.forEach((cat) => {
+    const color = sanitizeHexColor(cat?.color ?? null)
+    if (color) used.add(color)
+  })
+  for (const color of BASE_CATEGORY_COLORS) {
+    if (!used.has(color)) return color
+  }
+  return BASE_CATEGORY_COLORS[0] ?? null
 }
 </script>
 

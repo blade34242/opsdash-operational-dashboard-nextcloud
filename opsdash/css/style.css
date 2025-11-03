@@ -25,6 +25,28 @@
     --neg:#f87171;
   }
 }
+#opsdash.opsdash-theme-light{
+  --fg:#0f172a;
+  --muted:#475569;
+  --bg:#f3f4f6;
+  --card:#ffffff;
+  --line:#e5e7eb;
+  --brand:#2563eb;
+  --soft:#eef2ff;
+  --pos:#16a34a;
+  --neg:#ef4444;
+}
+#opsdash.opsdash-theme-dark{
+  --fg:#e5e7eb;
+  --muted:#94a3b8;
+  --bg:#0b1220;
+  --card:#0f172a;
+  --line:#1f2937;
+  --brand:#60a5fa;
+  --soft:#0b2942;
+  --pos:#22c55e;
+  --neg:#f87171;
+}
 #opsdash{
   position:relative;
   display:block;
@@ -530,6 +552,9 @@
   font-weight:700;
   margin-bottom:8px;
   text-align:center;
+  text-decoration:underline;
+  text-decoration-thickness:2px;
+  text-underline-offset:3px;
 }
 #opsdash .mt-8{ margin-top:8px; }
 #opsdash .card-divider{
@@ -600,6 +625,20 @@
   font-weight:600;
   color:var(--muted);
 }
+#opsdash .sb-context{
+  display:flex;
+  flex-direction:column;
+  gap:6px;
+  margin-bottom:12px;
+}
+#opsdash .sb-context .sb-title{
+  margin-bottom:0;
+}
+#opsdash .sb-context .sb-description{
+  font-size:12px;
+  color:var(--muted);
+  margin:0;
+}
 #opsdash select,
 #opsdash input[type="number"],
 #opsdash input[type="text"],
@@ -646,6 +685,91 @@
   align-items:center;
   gap:6px;
 }
+#opsdash .target-config .color-field{
+  align-items:flex-start;
+}
+#opsdash .color-chip-wrapper{
+  position:relative;
+  display:inline-flex;
+  align-items:center;
+}
+#opsdash .color-chip{
+  width:26px;
+  height:26px;
+  border-radius:50%;
+  border:1px solid color-mix(in oklab, var(--line), transparent 20%);
+  background:var(--brand);
+  cursor:pointer;
+  padding:0;
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+}
+#opsdash .color-chip .chip-outline{
+  width:16px;
+  height:16px;
+  border-radius:50%;
+  border:1px solid color-mix(in oklab, #000, transparent 90%);
+}
+#opsdash .color-chip:focus-visible{
+  outline:2px solid color-mix(in oklab, var(--brand), transparent 50%);
+  outline-offset:2px;
+}
+#opsdash .color-popover{
+  position:absolute;
+  top:calc(100% + 6px);
+  left:0;
+  z-index:20;
+  display:flex;
+  flex-direction:column;
+  gap:8px;
+  padding:10px;
+  border-radius:10px;
+  border:1px solid color-mix(in oklab, var(--line), transparent 10%);
+  background:var(--card);
+  box-shadow:0 6px 18px rgba(0,0,0,.18);
+  min-width:160px;
+}
+#opsdash .color-popover:focus-visible{
+  outline:2px solid color-mix(in oklab, var(--brand), transparent 40%);
+  outline-offset:2px;
+}
+#opsdash .color-popover .swatch-grid{
+  display:grid;
+  grid-template-columns:repeat(auto-fill, minmax(20px, 1fr));
+  gap:6px;
+}
+#opsdash .color-popover .color-swatch{
+  width:20px;
+  height:20px;
+  border-radius:50%;
+  border:1px solid color-mix(in oklab, #000, transparent 80%);
+  cursor:pointer;
+  padding:0;
+}
+#opsdash .color-popover .color-swatch.active{
+  box-shadow:0 0 0 2px color-mix(in oklab, var(--brand), transparent 60%);
+}
+#opsdash .color-popover .color-swatch:focus-visible{
+  outline:2px solid color-mix(in oklab, var(--brand), transparent 40%);
+  outline-offset:1px;
+}
+#opsdash .color-popover .custom-color{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:8px;
+  font-size:11px;
+  color:var(--muted);
+}
+#opsdash .color-popover .color-input{
+  width:42px;
+  height:26px;
+  padding:0;
+  border-radius:6px;
+  border:1px solid color-mix(in oklab, var(--line), transparent 40%);
+  background:transparent;
+}
 #opsdash .target-config .field.checkbox.toggle-field{
   padding:6px 10px;
   border-radius:8px;
@@ -656,6 +780,21 @@
 #opsdash .target-config .field.checkbox.toggle-field:hover{
   border-color:color-mix(in oklab, var(--brand), transparent 70%);
 }
+#opsdash .toggle-field .toggle-copy{
+  display:flex;
+  flex-direction:column;
+  align-items:flex-start;
+  gap:2px;
+}
+#opsdash .toggle-field .toggle-title{
+  font-weight:600;
+  color:var(--fg);
+}
+#opsdash .toggle-field .toggle-desc{
+  font-size:11px;
+  color:var(--muted);
+  max-width:230px;
+}
 #opsdash .target-config .section-title{
   font-weight:700;
   margin-bottom:4px;
@@ -663,6 +802,9 @@
   flex:0 0 auto;
   display:inline-flex;
   align-items:center;
+  text-decoration:underline;
+  text-decoration-thickness:2px;
+  text-underline-offset:2px;
 }
 #opsdash .target-config .section-title-row{
   display:flex;
@@ -680,6 +822,9 @@
   flex:0 0 auto;
   display:inline-flex;
   align-items:center;
+  text-decoration:underline;
+  text-decoration-thickness:1px;
+  text-underline-offset:2px;
 }
 #opsdash .target-config .subtitle{ margin-bottom:0; }
 #opsdash .info-button{
@@ -782,6 +927,9 @@
   font-size:12px;
   font-weight:700;
   color:var(--muted);
+  text-decoration:underline;
+  text-decoration-thickness:1px;
+  text-underline-offset:2px;
 }
 #opsdash .target-config .field.checkbox input[type="checkbox"]{
   margin:0;
@@ -801,6 +949,9 @@
   font-size:16px;
   font-weight:700;
   color:var(--fg);
+  text-decoration:underline;
+  text-decoration-thickness:2px;
+  text-underline-offset:3px;
 }
 #opsdash .chart-card{
   display:flex;
@@ -850,4 +1001,12 @@
 @keyframes spin{
   from{ transform:rotate(0deg); }
   to{ transform:rotate(360deg); }
+}
+#opsdash .section-title-row{
+  display:flex;
+  align-items:center;
+  gap:6px;
+}
+#opsdash .section-title-row .info-button{
+  margin-left:auto;
 }

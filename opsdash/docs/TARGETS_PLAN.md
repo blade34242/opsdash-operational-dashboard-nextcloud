@@ -15,6 +15,7 @@ Goals
 - Targets card consumes the same aggregated data as the tables, avoiding drift.
 - All-day events respect a configurable “hours per day” slider in the Targets sidebar; server aggregation uses the same value to apportion multi-day all-day events without double-counting.
 - Range switching keeps the Targets card, category blocks, and stack charts in sync: month view loads stored monthly targets (or converts weekly → monthly on the fly) so KPIs immediately reflect the selected period.
+- Category configuration supports manual colour overrides (palette aligned with Nextcloud Calendar); onboarding seeds initial colours from assigned calendars.
 
 ## Next Iterations
 

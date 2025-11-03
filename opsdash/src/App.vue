@@ -7,10 +7,16 @@
       :initial-strategy="wizardInitialStrategy"
       :onboarding-version="ONBOARDING_VERSION"
       :closable="!autoWizardNeeded"
+      :initial-theme-preference="themePreference"
+      :system-theme="systemTheme"
+      :initial-all-day-hours="targetsConfig.value?.allDayHours ?? 8"
+      :initial-total-hours="targetsConfig.value?.totalHours ?? 40"
+      :has-existing-config="hasExistingConfig"
       :saving="isOnboardingSaving"
       @close="handleWizardClose"
       @skip="handleWizardSkip"
       @complete="handleWizardComplete"
+      @save-current-config="handleWizardSaveSnapshot"
     />
     <NcAppContent app-name="Operational Dashboard" :show-navigation="navOpen">
       <template #navigation>
@@ -42,6 +48,9 @@
           :preset-saving="presetSaving"
           :preset-applying="presetApplying"
           :preset-warnings="presetWarnings"
+          :theme-preference="themePreference"
+          :effective-theme="effectiveTheme"
+          :system-theme="systemTheme"
           @load="performLoad"
           @update:range="(v)=>{ range=v as any; offset=0; performLoad() }"
           @update:offset="(v)=>{ offset=v as number; performLoad() }"
@@ -60,6 +69,7 @@
           @refresh-presets="refreshPresets"
           @clear-preset-warnings="clearPresetWarnings"
           @rerun-onboarding="openWizardFromSidebar"
+          @set-theme-preference="setThemePreference"
         />
       </template>
 
@@ -168,6 +178,7 @@
                 :overview="balanceOverview"
                 :range-label="rangeLabel"
                 :config="balanceCardConfig"
+                :note="balanceNote"
               />
             </div>
 
@@ -301,6 +312,7 @@ import { useCharts } from '../composables/useCharts'
 import { useCategories } from '../composables/useCategories'
 import { useSummaries } from '../composables/useSummaries'
 import { useBalance } from '../composables/useBalance'
+import { useThemePreference } from '../composables/useThemePreference'
 // Ensure a visible version even if backend attrs are empty: use package.json as fallback
 // @ts-ignore
 import pkg from '../package.json'
@@ -409,6 +421,15 @@ const notes = useNotes({
   notifyError,
 })
 const { notesPrev, notesCurrDraft, isSavingNote, fetchNotes, saveNotes } = notes
+
+const {
+  preference: themePreference,
+  effectiveTheme,
+  systemTheme,
+  setThemePreference,
+} = useThemePreference()
+
+const hasExistingConfig = computed(() => Boolean(onboarding.value?.completed))
 
 const {
   calendars,
@@ -624,7 +645,20 @@ const balanceConfigFull = computed<BalanceConfig>(() => {
 const balanceCardConfig = computed(() => ({
   showInsights: !!balanceConfigFull.value.ui.showInsights,
   showDailyStacks: !!balanceConfigFull.value.ui.showDailyStacks,
+  showNotes: !!balanceConfigFull.value.ui.showNotes,
 }))
+
+const balanceNote = computed(() => {
+  if (!balanceConfigFull.value.ui.showNotes) {
+    return ''
+  }
+  const current = (notesCurrDraft.value ?? '').trim()
+  if (current) {
+    return current
+  }
+  const previousNote = (notesPrev.value ?? '').trim()
+  return previousNote
+})
 
 const { categoryLabelById, categoryColorMap, calendarCategoryMap, calendarGroups } = useCategories({
   calendars,
@@ -728,9 +762,11 @@ async function handleWizardComplete(payload: {
   groups: Record<string, number>
   targetsWeek: Record<string, number>
   targetsMonth: Record<string, number>
+  themePreference: 'auto' | 'light' | 'dark'
 }) {
   try {
     isOnboardingSaving.value = true
+    setThemePreference(payload.themePreference)
     await postJson(route('persist'), {
       cals: payload.selected,
       groups: payload.groups,
@@ -752,6 +788,16 @@ async function handleWizardComplete(payload: {
     notifyError('Failed to save onboarding')
   } finally {
     isOnboardingSaving.value = false
+  }
+}
+
+async function handleWizardSaveSnapshot() {
+  try {
+    const stamp = new Date()
+    const name = `Before onboarding ${stamp.toISOString().slice(0, 16).replace('T', ' ')}`
+    await savePreset(name)
+  } catch (error) {
+    console.error('[opsdash] preset backup failed', error)
   }
 }
 

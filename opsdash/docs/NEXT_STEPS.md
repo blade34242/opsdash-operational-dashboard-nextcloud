@@ -27,6 +27,7 @@ Living backlog for hardening and extending the Operational Dashboard.
 - Remove the legacy `/overview/save` endpoint once consumers confirm the `/persist` JSON shape. — ✅ removed in favour of `/persist` (2025-03).
 - Establish shared client/server validation helpers and inline feedback per `docs/INPUT_VALIDATION_PLAN.md`. — ✅ numeric inputs funnel through shared helpers on client/server (2025-03); structured 400 responses + localisation delivered (2025-11); keep translation files updated alongside feature work.
 - Implement unified testing strategy (`docs/TESTING_STRATEGY.md`): add PHPUnit service/controller tests and Vitest component/composable coverage. — ✅ baseline suites for validators, controller sanitisation, dashboard tabs/pacing/charts now in place; plan coverage for keyboard shortcuts & charts in render mode.
+- Persist theme overrides via `/persist` once server payload is ready; add Vitest coverage for the theme composable (auto/override, storage fallback) and ensure chart chrome responds to theme changes without altering data colours.
 
 ## P1 — Frontend Structure
 - Extract remaining logic from `App.vue` into composables (onboarding boot + strategy queue coming next).
@@ -35,12 +36,8 @@ Living backlog for hardening and extending the Operational Dashboard.
 - Add component tests for chart color mapping, status chips, and tab focus/keyboard behaviour. — ✅ initial chart + pane coverage added (2025-10); extend to keyboard shortcuts.
 - Implement onboarding wizard per `docs/ONBOARDING_WORKFLOW.md`, including strategy
   selection (`docs/TARGET_STRATEGIES.md`) and calendar/category seeding. — ✅ initial implementation live (2025-11); track refinements/UX polish (see “Sidebar polish” below).
-- Sidebar polish:
-  - Balance tab: sync day on/off messaging with trend lookback, expand copy for display toggles (insights/daily mix/dayparts).
-  - Calendar tab: add “All/None” controls, improve helper copy, drop redundant selection note.
-  - Notes tab: add usage guidance and expose optional Balance-tab surface toggle (`notesInBalance`).
-  - Targets tab: remove preset buttons, support category colour overrides using Nextcloud palette helpers.
-  - Styling: standardise section headings within tabs (bold + underline).
+- Sidebar polish — ✅ Balance tab copy now references the 4-week default lookback, display toggles include helper text, and the Balance card can surface the current note; Calendars pane gained All/None controls with refreshed guidance; Notes tab explains the workflow and lets users pin notes to Balance; Targets tab drops legacy presets and adds Nextcloud-aligned colour overrides; headings within each pane are bold + underlined for quick scanning.
+  - Follow-up: audit the small “?” info buttons across panes to ensure icon sizing matches the copy baseline (consider swapping to an inline SVG badge if the native button cannot maintain alignment at different breakpoints).
 - Explore a “By Calendar Events” drill-down in the main content (list every event
   for the selected calendars inside the By Calendar tab). Estimate render cost for
   large data sets (hundreds of events/week) and document mitigation options
