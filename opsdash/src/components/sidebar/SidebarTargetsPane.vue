@@ -6,11 +6,6 @@
     aria-labelledby="opsdash-sidebar-tab-targets"
   >
     <div class="sb-title">Target Settings</div>
-    <div class="onboarding-action">
-      <NcButton type="secondary" size="small" class="onboarding-btn" @click="$emit('rerun-onboarding')">
-        Re-run onboarding
-      </NcButton>
-    </div>
     <div class="target-config">
       <div class="field">
         <span class="label">Total target (h)</span>
@@ -268,7 +263,7 @@
           <span>Include zero days in pace</span>
         </label>
       </div>
-    </div>
+      </div>
   </div>
 </template>
 
@@ -314,17 +309,5 @@ defineEmits<{
   (e: 'set-forecast-padding', value: string): void
   (e: 'set-ui-option', payload: { key: string; value: boolean }): void
   (e: 'set-include-zero-days', value: boolean): void
-  (e: 'rerun-onboarding'): void
 }>()
 </script>
-
-<style scoped>
-.onboarding-action {
-  display: flex;
-  justify-content: flex-end;
-  margin-bottom: 8px;
-}
-.onboarding-btn {
-  font-size: 0.85rem;
-}
-</style>

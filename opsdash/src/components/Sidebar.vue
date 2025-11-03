@@ -120,7 +120,7 @@
         aria-controls="opsdash-sidebar-pane-config"
         @click="activeTab = 'config'"
       >
-        Config
+        Config & Setup
       </button>
     </div>
 
@@ -168,7 +168,6 @@
       @set-forecast-padding="setForecastPadding"
       @set-ui-option="({ key, value }) => setUiOption(key as keyof TargetsConfig['ui'], value)"
       @set-include-zero-days="setIncludeZeroDays"
-      @rerun-onboarding="emit('rerun-onboarding')"
     />
 
     <SidebarSummaryPane
@@ -191,6 +190,7 @@
       @delete="(name: string) => emit('delete-preset', name)"
       @refresh="() => emit('refresh-presets')"
       @clear-warnings="() => emit('clear-preset-warnings')"
+      @rerun-onboarding="() => emit('rerun-onboarding')"
     />
 
     <SidebarActivityPane
