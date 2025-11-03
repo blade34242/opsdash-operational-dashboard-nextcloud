@@ -1054,8 +1054,8 @@ function toggleCalendar(id: string, checkbox: HTMLInputElement) {
 }
 
 .color-chip {
-  width: 26px;
-  height: 26px;
+  width: 22px;
+  height: 22px;
   border-radius: 50%;
   border: 1px solid color-mix(in oklab, var(--color-border), transparent 40%);
   background: var(--brand, #2563eb);
@@ -1067,8 +1067,8 @@ function toggleCalendar(id: string, checkbox: HTMLInputElement) {
 }
 
 .chip-outline {
-  width: 16px;
-  height: 16px;
+  width: 14px;
+  height: 14px;
   border-radius: 50%;
   border: 1px solid color-mix(in oklab, #000, transparent 90%);
 }
