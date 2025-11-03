@@ -77,6 +77,12 @@ describe('useDashboard load', () => {
         month: { 'cal-1': 48 },
       },
       targetsConfig: config,
+      onboarding: {
+        completed: false,
+        version: 0,
+        version_required: 1,
+        needsOnboarding: true,
+      },
       selected: ['cal-1'],
       stats: { totalHours: 12 },
       byCal: [{ id: 'cal-1', total_hours: 12 }],
@@ -121,6 +127,7 @@ describe('useDashboard load', () => {
     expect(dashboard.targetsWeek.value).toEqual({ 'cal-1': 12 })
     expect(dashboard.targetsMonth.value).toEqual({ 'cal-1': 48 })
     expect(dashboard.targetsConfig.value.totalHours).toBe(123)
+    expect(dashboard.onboarding.value).toEqual(response.onboarding)
 
     expect(dashboard.stats.totalHours).toBe(12)
   expect(dashboard.byCal.value).toEqual(response.byCal)
@@ -154,6 +161,12 @@ describe('useDashboard load', () => {
       targets: { week: {}, month: {} },
       targetsConfig: configA,
       selected: ['cal-1'],
+      onboarding: {
+        completed: true,
+        version: 1,
+        version_required: 1,
+        needsOnboarding: false,
+      },
       stats: {},
       byCal: [],
       byDay: [],
@@ -184,6 +197,12 @@ describe('useDashboard load', () => {
       targets: { week: {}, month: {} },
       targetsConfig: configB,
       selected: ['cal-1'],
+      onboarding: {
+        completed: false,
+        version: 0,
+        version_required: 1,
+        needsOnboarding: true,
+      },
       stats: {},
       byCal: [],
       byDay: [],
@@ -213,6 +232,7 @@ describe('useDashboard load', () => {
     expect(dashboard.colorsById.value['cal-1']).toBe('#123456')
     expect(dashboard.charts.value.pie.colors).toEqual(['#123456'])
     expect(dashboard.charts.value.perDaySeries.series[0].color).toBe('#123456')
+    expect(dashboard.onboarding.value).toEqual(firstResponse.onboarding)
 
     await dashboard.load()
 
@@ -222,6 +242,7 @@ describe('useDashboard load', () => {
     expect(dashboard.calendars.value[0].color_src).toBe('fallback')
     expect(dashboard.charts.value.pie.colors).toEqual(['#123456'])
     expect(dashboard.charts.value.perDaySeries.series[0].color).toBe('#123456')
+    expect(dashboard.onboarding.value).toEqual(secondResponse.onboarding)
     expect(fetchNotes).toHaveBeenCalledTimes(2)
     expect(scheduleDraw).toHaveBeenCalledTimes(2)
   })

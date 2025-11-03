@@ -5,6 +5,16 @@ import {
   type TargetsConfig,
 } from '../src/services/targets'
 
+export interface OnboardingState {
+  completed: boolean
+  version: number
+  strategy: string
+  completed_at: string
+  version_required?: number
+  needsOnboarding?: boolean
+  resetRequested?: boolean
+}
+
 interface DashboardDeps {
   range: Ref<'week' | 'month'>
   offset: Ref<number>
@@ -41,6 +51,7 @@ export function useDashboard(deps: DashboardDeps) {
   const targetsWeek = ref<Record<string, number>>({})
   const targetsMonth = ref<Record<string, number>>({})
   const targetsConfig = ref<TargetsConfig>(normalizeTargetsConfig(createDefaultTargetsConfig()))
+  const onboarding = ref<OnboardingState | null>(null)
 
   let loadSeq = 0
   async function load() {
@@ -127,6 +138,7 @@ export function useDashboard(deps: DashboardDeps) {
       calendars.value = normalizedCalendars
       colorsByName.value = nextColorsByName
       colorsById.value = nextColorsById
+      onboarding.value = json.onboarding ? { ...json.onboarding } : null
 
       const applyPaletteToCharts = () => {
         let changed = false
@@ -286,6 +298,7 @@ export function useDashboard(deps: DashboardDeps) {
     targetsWeek,
     targetsMonth,
     targetsConfig,
+    onboarding,
     load,
   }
 }

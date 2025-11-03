@@ -15,7 +15,7 @@ Living backlog for hardening and extending the Operational Dashboard.
 2. Establish testing infrastructure (PHPUnit + Vitest) and add baseline coverage.
 3. Implement shared validation helpers with inline feedback — ✅ numeric validation helper extracted (2025-10); structured 400 responses + full localisation wiring (2025-11).
 4. Execute architecture refactor (split App/Sidebar/targets/services) — 🔄 `App.vue` trimmed; sidebar panes/composables in place; persistence queue now lives in `useDashboardPersistence`; selection/target mutators moved into `useDashboardSelection`; presets handled by `useDashboardPresets`; route/fetch utilities + icon/meta boot live in `useOcHttp` and `useAppMeta`; calendar deep links & DAV colour fetch handled by `useCalendarLinks`. Next: start onboarding wizard groundwork.
-5. Build onboarding wizard + strategy profiles.
+5. Build onboarding wizard + strategy profiles. — ✅ initial wizard shipped with strategy presets + re-run entry point (2025-11).
 6. Roll out theming, collapsed controls, keyboard shortcuts overlay.
 7. Update endpoints/docs (rename to `/overview/`) and polish copy (balance card). — ✅ routes + docs migrated to `/overview/*`; copy polish pending follow-up (2025-11).
 8. Keep tests green after every milestone, add cases as features land.
@@ -34,7 +34,7 @@ Living backlog for hardening and extending the Operational Dashboard.
 - Consolidate chart drawing helpers under `src/services/charts.ts` with explicit typing.
 - Add component tests for chart color mapping, status chips, and tab focus/keyboard behaviour. — ✅ initial chart + pane coverage added (2025-10); extend to keyboard shortcuts.
 - Implement onboarding wizard per `docs/ONBOARDING_WORKFLOW.md`, including strategy
-  selection (`docs/TARGET_STRATEGIES.md`) and calendar/category seeding.
+  selection (`docs/TARGET_STRATEGIES.md`) and calendar/category seeding. — ✅ initial implementation live (2025-11); track refinements/UX polish.
 - Explore a “By Calendar Events” drill-down in the main content (list every event
   for the selected calendars inside the By Calendar tab). Estimate render cost for
   large data sets (hundreds of events/week) and document mitigation options

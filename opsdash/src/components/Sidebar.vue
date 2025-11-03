@@ -168,6 +168,7 @@
       @set-forecast-padding="setForecastPadding"
       @set-ui-option="({ key, value }) => setUiOption(key as keyof TargetsConfig['ui'], value)"
       @set-include-zero-days="setIncludeZeroDays"
+      @rerun-onboarding="emit('rerun-onboarding')"
     />
 
     <SidebarSummaryPane
@@ -290,7 +291,24 @@ const props = defineProps<{
 }>()
 
 const emit = defineEmits([
-  'load','update:range','update:offset','select-all','toggle-calendar','set-group','set-target','update:notes','save-notes','update:targets-config','update:active-mode','toggle-nav','save-preset','load-preset','delete-preset','refresh-presets','clear-preset-warnings'
+  'load',
+  'update:range',
+  'update:offset',
+  'select-all',
+  'toggle-calendar',
+  'set-group',
+  'set-target',
+  'update:notes',
+  'save-notes',
+  'update:targets-config',
+  'update:active-mode',
+  'toggle-nav',
+  'save-preset',
+  'load-preset',
+  'delete-preset',
+  'refresh-presets',
+  'clear-preset-warnings',
+  'rerun-onboarding',
 ])
 
 const activeTab = ref<'calendars'|'targets'|'summary'|'activity'|'balance'|'notes'|'config'>('calendars')

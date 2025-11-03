@@ -127,6 +127,32 @@ export const NcAppNavigationItem = defineComponent({
   },
 })
 
+export const NcModal = defineComponent({
+  name: 'NcModal',
+  props: {
+    size: { type: String, default: 'medium' },
+  },
+  emits: ['close'],
+  setup(props, { slots, emit }) {
+    const onBackdrop = (event: MouseEvent) => {
+      if (event.target === event.currentTarget) {
+        emit('close')
+      }
+    }
+    return () => h('div', {
+      class: ['nc-modal-backdrop', `nc-modal--${props.size}`],
+      onClick: onBackdrop,
+      role: 'dialog',
+      'aria-modal': 'true',
+    }, [
+      h('div', { class: 'nc-modal-container' }, [
+        h('button', { class: 'nc-modal__close', type: 'button', onClick: () => emit('close') }, '×'),
+        slots.default ? slots.default() : null,
+      ]),
+    ])
+  },
+})
+
 export default {
   NcAppContent,
   NcAppNavigation,
@@ -135,4 +161,5 @@ export default {
   NcCheckboxRadioSwitch,
   NcLoadingIcon,
   NcAppNavigationItem,
+  NcModal,
 }

@@ -136,4 +136,28 @@ class OverviewControllerTest extends TestCase {
     $this->assertSame(0, $result['balance']['ui']['roundPercent']);
     $this->assertSame(3, $result['balance']['ui']['roundRatio']);
   }
+
+  public function testCleanOnboardingState(): void {
+    $method = new \ReflectionMethod(OverviewController::class, 'cleanOnboardingState');
+    $method->setAccessible(true);
+
+    /** @var array<string,mixed> $default */
+    $default = $method->invoke($this->controller, null);
+    $this->assertFalse($default['completed']);
+    $this->assertSame(0, $default['version']);
+    $this->assertSame('', $default['strategy']);
+    $this->assertSame('', $default['completed_at']);
+
+    /** @var array<string,mixed> $filled */
+    $filled = $method->invoke($this->controller, [
+      'completed' => true,
+      'version' => '12',
+      'strategy' => ' full_granular ',
+      'completed_at' => '2025-01-01T00:00:00Z   ',
+    ]);
+    $this->assertTrue($filled['completed']);
+    $this->assertSame(12, $filled['version']);
+    $this->assertSame('full_granular', $filled['strategy']);
+    $this->assertSame('2025-01-01T00:00:00Z', $filled['completed_at']);
+  }
 }

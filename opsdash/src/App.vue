@@ -1,5 +1,16 @@
 <template>
   <div id="opsdash" class="opsdash" :class="{ 'is-nav-collapsed': !navOpen }">
+    <OnboardingWizard
+      :visible="onboardingWizardVisible"
+      :calendars="wizardCalendars"
+      :initial-selection="wizardInitialSelection"
+      :initial-strategy="wizardInitialStrategy"
+      :onboarding-version="ONBOARDING_VERSION"
+      :saving="isOnboardingSaving"
+      @close="handleWizardClose"
+      @skip="handleWizardSkip"
+      @complete="handleWizardComplete"
+    />
     <NcAppContent app-name="Operational Dashboard" :show-navigation="navOpen">
       <template #navigation>
         <Sidebar
@@ -30,9 +41,9 @@
           :preset-saving="presetSaving"
           :preset-applying="presetApplying"
           :preset-warnings="presetWarnings"
-          @load="load"
-          @update:range="(v)=>{ range=v as any; offset=0; load() }"
-          @update:offset="(v)=>{ offset=v as number; load() }"
+          @load="performLoad"
+          @update:range="(v)=>{ range=v as any; offset=0; performLoad() }"
+          @update:offset="(v)=>{ offset=v as number; performLoad() }"
           @select-all="(v:boolean)=> selectAll(v)"
           @toggle-calendar="(id:string)=> toggleCalendar(id)"
           @set-group="(p:{id:string;n:any})=> setGroup(p.id, p.n)"
@@ -47,6 +58,7 @@
           @delete-preset="deletePreset"
           @refresh-presets="refreshPresets"
           @clear-preset-warnings="clearPresetWarnings"
+          @rerun-onboarding="openWizardFromSidebar"
         />
       </template>
 
@@ -259,7 +271,9 @@ import TimeTargetsCard from './components/TimeTargetsCard.vue'
 import ActivityScheduleCard from './components/ActivityScheduleCard.vue'
 import BalanceOverviewCard from './components/BalanceOverviewCard.vue'
 import Sidebar from './components/Sidebar.vue'
+import OnboardingWizard from './components/OnboardingWizard.vue'
 import { buildTargetsSummary, normalizeTargetsConfig, createEmptyTargetsSummary, createDefaultActivityCardConfig, createDefaultBalanceConfig, cloneTargetsConfig, convertWeekToMonth, type ActivityCardConfig, type BalanceConfig, type TargetsConfig } from './services/targets'
+import { ONBOARDING_VERSION, type StrategyDefinition, type CalendarSummary } from './services/onboarding'
 // Lightweight notifications without @nextcloud/dialogs
 function notifySuccess(msg: string){
   const w:any = window as any
@@ -274,7 +288,7 @@ function notifyError(msg: string){
 
 import { onMounted, ref, watch, nextTick, computed } from 'vue'
 import { useNotes } from '../composables/useNotes'
-import { useDashboard } from '../composables/useDashboard'
+import { useDashboard, type OnboardingState } from '../composables/useDashboard'
 import { useDashboardPersistence } from '../composables/useDashboardPersistence'
 import { useDashboardSelection } from '../composables/useDashboardSelection'
 import { useDashboardPresets } from '../composables/useDashboardPresets'
@@ -344,23 +358,23 @@ const rangeDateLabel = computed(() => {
 })
 
 function loadCurrent(){
-  load().catch(console.error)
+  performLoad().catch(console.error)
 }
 
 function toggleRangeCollapsed(){
   range.value = range.value === 'week' ? 'month' : 'week'
   offset.value = 0
-  load().catch(console.error)
+  performLoad().catch(console.error)
 }
 
 function goPrevious(){
   offset.value = (offset.value || 0) - 1
-  load().catch(console.error)
+  performLoad().catch(console.error)
 }
 
 function goNext(){
   offset.value = (offset.value || 0) + 1
-  load().catch(console.error)
+  performLoad().catch(console.error)
 }
 
 const truncTooltip = computed(()=>{
@@ -415,6 +429,7 @@ const {
   targetsWeek,
   targetsMonth,
   targetsConfig,
+  onboarding,
   load,
 } = useDashboard({
   range,
@@ -429,12 +444,58 @@ const {
   fetchDavColors,
 })
 
+const onboardingState = onboarding
+const hasInitialLoad = ref(false)
+const autoWizardNeeded = ref(false)
+const manualWizardOpen = ref(false)
+const isOnboardingSaving = ref(false)
+
+function shouldRequireOnboarding(state: OnboardingState | null): boolean {
+  if (!state) return true
+  const required = state.version_required ?? ONBOARDING_VERSION
+  if (!state.completed) return true
+  if ((state.version ?? 0) < required) return true
+  return false
+}
+
+function evaluateOnboarding(state?: OnboardingState | null) {
+  const next = state ?? onboardingState.value
+  if (!hasInitialLoad.value && !next) return
+  const needs = shouldRequireOnboarding(next)
+  autoWizardNeeded.value = needs || !!next?.resetRequested
+  if (next?.resetRequested) {
+    manualWizardOpen.value = true
+  }
+}
+
+const wizardCalendars = computed<CalendarSummary[]>(() =>
+  (calendars.value || [])
+    .map((cal: any) => ({
+      id: String(cal?.id ?? ''),
+      displayname: String(cal?.displayname ?? cal?.name ?? cal?.id ?? ''),
+      color: typeof cal?.color === 'string' ? cal.color : '',
+    }))
+    .filter((cal) => cal.id),
+)
+
+const wizardInitialSelection = computed(() => [...selected.value])
+const wizardInitialStrategy = computed<StrategyDefinition['id']>(
+  () => (onboardingState.value?.strategy as StrategyDefinition['id']) ?? 'total_only',
+)
+const onboardingWizardVisible = computed(() => autoWizardNeeded.value || manualWizardOpen.value)
+
+const performLoad = async () => {
+  await load()
+  hasInitialLoad.value = true
+  evaluateOnboarding()
+}
+
 const { queueSave } = useDashboardPersistence({
   route: (name) => route(name),
   postJson,
   notifyError,
   notifySuccess,
-  onReload: () => load(),
+  onReload: () => performLoad(),
   selected,
   groupsById,
   targetsWeek,
@@ -654,14 +715,89 @@ function setActiveDayMode(mode:'active'|'all'){
   }
 }
 
-onMounted(() => {
-    console.info('[opsdash] start')
-    load().catch(err=>{ console.error(err); alert('Initial load failed') })
-    refreshPresets().catch(err => console.warn('[opsdash] presets fetch failed', err))
-    // charts handled by components; no global resize wiring
-  })
+watch(onboardingState, (state) => {
+  if (!hasInitialLoad.value) return
+  evaluateOnboarding(state)
+})
 
-watch(range, () => { offset.value = 0; load().catch(console.error) })
+async function handleWizardComplete(payload: {
+  strategy: StrategyDefinition['id']
+  selected: string[]
+  targetsConfig: TargetsConfig
+  groups: Record<string, number>
+  targetsWeek: Record<string, number>
+  targetsMonth: Record<string, number>
+}) {
+  try {
+    isOnboardingSaving.value = true
+    await postJson(route('persist'), {
+      cals: payload.selected,
+      groups: payload.groups,
+      targets_week: payload.targetsWeek,
+      targets_month: payload.targetsMonth,
+      targets_config: payload.targetsConfig,
+      onboarding: {
+        completed: true,
+        version: ONBOARDING_VERSION,
+        strategy: payload.strategy,
+        completed_at: new Date().toISOString(),
+      },
+    })
+    manualWizardOpen.value = false
+    await performLoad()
+    notifySuccess('Onboarding saved')
+  } catch (error) {
+    console.error(error)
+    notifyError('Failed to save onboarding')
+  } finally {
+    isOnboardingSaving.value = false
+  }
+}
+
+async function handleWizardSkip() {
+  try {
+    isOnboardingSaving.value = true
+    await postJson(route('persist'), {
+      onboarding: {
+        completed: true,
+        version: ONBOARDING_VERSION,
+        strategy: onboardingState.value?.strategy ?? 'total_only',
+        completed_at: new Date().toISOString(),
+      },
+    })
+    manualWizardOpen.value = false
+    autoWizardNeeded.value = false
+    await performLoad()
+    notifySuccess('You can revisit onboarding from the Targets tab any time.')
+  } catch (error) {
+    console.error(error)
+    notifyError('Failed to update onboarding state')
+  } finally {
+    isOnboardingSaving.value = false
+  }
+}
+
+function handleWizardClose() {
+  manualWizardOpen.value = false
+}
+
+function openWizardFromSidebar() {
+  manualWizardOpen.value = true
+}
+
+onMounted(async () => {
+  console.info('[opsdash] start')
+  try {
+    await performLoad()
+  } catch (err) {
+    console.error(err)
+    alert('Initial load failed')
+  }
+  refreshPresets().catch(err => console.warn('[opsdash] presets fetch failed', err))
+  // charts handled by components; no global resize wiring
+})
+
+watch(range, () => { offset.value = 0; performLoad().catch(console.error) })
 </script>
 
 <!-- styles moved to global css/style.css to satisfy strict CSP -->

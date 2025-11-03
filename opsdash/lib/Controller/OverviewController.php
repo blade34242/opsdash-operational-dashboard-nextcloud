@@ -32,6 +32,8 @@ final class OverviewController extends Controller {
     private const MAX_PRESETS = 20;
     private const PRESET_NAME_MAX_LEN = 80;
     private const PRESETS_KEY = 'targets_presets';
+    private const CONFIG_ONBOARDING = 'onboarding_state';
+    private const ONBOARDING_VERSION = 1;
     public function __construct(
         string $appName,
         IRequest $request,
@@ -322,6 +324,8 @@ final class OverviewController extends Controller {
         if ($offset > self::MAX_OFFSET) $offset = self::MAX_OFFSET; elseif ($offset < -self::MAX_OFFSET) $offset = -self::MAX_OFFSET;
         // Ensure this endpoint is strictly read-only; ignore any 'save' requests
         $save   = false;
+        $onboardingParam = $this->request->getParam('onboarding', null);
+        $forceReset = is_string($onboardingParam) && strtolower((string)$onboardingParam) === 'reset';
 
         // Distinguish between: no saved value vs saved empty list (user config)
         $savedRaw = (string)$this->config->getUserValue($uid, $this->appName, 'selected_cals', '__UNSET__');
@@ -1138,6 +1142,18 @@ final class OverviewController extends Controller {
             'events'        => $eventsCount - $prevEvents,
         ];
 
+        $onboardingState = $this->readOnboardingState($uid);
+        $needsOnboarding = !$onboardingState['completed'] || $onboardingState['version'] < self::ONBOARDING_VERSION;
+        if ($forceReset) {
+            $needsOnboarding = true;
+        }
+        $onboardingPayload = $onboardingState;
+        $onboardingPayload['version_required'] = self::ONBOARDING_VERSION;
+        $onboardingPayload['needsOnboarding'] = $needsOnboarding;
+        if ($forceReset) {
+            $onboardingPayload['resetRequested'] = true;
+        }
+
         return new DataResponse([
             'ok'   => true,
             'meta' => [
@@ -1155,6 +1171,7 @@ final class OverviewController extends Controller {
             'groups'    => ['byId'=>$groupsById],
             'targets'   => ['week'=>$targetsWeek, 'month'=>$targetsMonth],
             'targetsConfig' => $targetsConfig,
+            'onboarding' => $onboardingPayload,
             'calDebug'  => $calDebug,
             // Always include debug envelope so clients can introspect easily
             'debug'     => [
@@ -1306,6 +1323,7 @@ final class OverviewController extends Controller {
         // Optional: per-calendar targets (week/month) mapping: { id: hours }
         $targetsWeekSaved = null; $targetsMonthSaved = null; $targetsWeekRead = null; $targetsMonthRead = null;
         $targetsConfigSaved = null; $targetsConfigRead = null;
+        $onboardingSaved = null; $onboardingRead = null;
         if (isset($data['targets_week'])) {
             $tw = $this->cleanTargets(is_array($data['targets_week'])?$data['targets_week']:[], $allowed);
             $this->config->setUserValue($uid, $this->appName, 'cal_targets_week', json_encode($tw));
@@ -1338,6 +1356,16 @@ final class OverviewController extends Controller {
                 $targetsMonthRead = $r!=='' ? json_decode($r, true) : [];
             } catch (\Throwable) {}
         }
+        if (!empty($data['onboarding_reset'])) {
+            try {
+                $this->config->deleteUserValue($uid, $this->appName, self::CONFIG_ONBOARDING);
+            } catch (\Throwable) {}
+        } elseif (array_key_exists('onboarding', $data)) {
+            $cleanOnboarding = $this->cleanOnboardingState($data['onboarding']);
+            $this->config->setUserValue($uid, $this->appName, self::CONFIG_ONBOARDING, json_encode($cleanOnboarding));
+            $onboardingSaved = $cleanOnboarding;
+        }
+        $onboardingRead = $this->readOnboardingState($uid);
 
         // Read-back
         $readCsv = (string)$this->config->getUserValue($uid, $this->appName, 'selected_cals', '');
@@ -1358,6 +1386,8 @@ final class OverviewController extends Controller {
             'targets_month_read'  => $targetsMonthRead,
             'targets_config_saved' => $targetsConfigSaved,
             'targets_config_read'  => $targetsConfigRead,
+            'onboarding_saved' => $onboardingSaved,
+            'onboarding_read'  => $onboardingRead,
         ], Http::STATUS_OK);
     }
 
@@ -2245,6 +2275,54 @@ final class OverviewController extends Controller {
         if ($value < $min) return $min;
         if ($value > $max) return $max;
         return $value;
+    }
+
+    /**
+     * @param mixed $state
+     * @return array{completed:bool,version:int,strategy:string,completed_at:string}
+     */
+    private function cleanOnboardingState($state): array {
+        $result = [
+            'completed' => false,
+            'version' => 0,
+            'strategy' => '',
+            'completed_at' => '',
+        ];
+        if (!is_array($state)) {
+            return $result;
+        }
+        $result['completed'] = !empty($state['completed']);
+        $version = (int)($state['version'] ?? 0);
+        if ($version < 0) {
+            $version = 0;
+        } elseif ($version > 1000) {
+            $version = 1000;
+        }
+        $result['version'] = $version;
+        $strategy = trim((string)($state['strategy'] ?? ''));
+        $result['strategy'] = substr($strategy, 0, 64);
+        $completedAt = trim((string)($state['completed_at'] ?? ''));
+        if ($completedAt !== '') {
+            $result['completed_at'] = substr($completedAt, 0, 32);
+        }
+        return $result;
+    }
+
+    private function readOnboardingState(string $uid): array {
+        try {
+            $raw = (string)$this->config->getUserValue($uid, $this->appName, self::CONFIG_ONBOARDING, '');
+        } catch (\Throwable $e) {
+            $raw = '';
+        }
+        if ($raw === '') {
+            return $this->cleanOnboardingState(null);
+        }
+        try {
+            $decoded = json_decode($raw, true, flags: JSON_THROW_ON_ERROR);
+        } catch (\Throwable $e) {
+            $decoded = null;
+        }
+        return $this->cleanOnboardingState($decoded);
     }
 
     // ---- Validation helpers ----
