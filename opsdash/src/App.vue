@@ -830,9 +830,11 @@ function handleWizardClose() {
 }
 
 function openWizardFromSidebar() {
-  autoWizardNeeded.value = false
+  manualWizardOpen.value = false
+  autoWizardNeeded.value = true
   manualWizardOpen.value = false
   nextTick(() => {
+    autoWizardNeeded.value = false
     manualWizardOpen.value = true
   })
 }
