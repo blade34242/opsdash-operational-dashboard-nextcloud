@@ -2,6 +2,19 @@
 
 All notable changes to this project are documented here. This file is served locally for development.
 
+## [0.4.4] - 2025-11-04 (NC 30–31 line)
+- Fix: Config & Setup “Re-run onboarding” now uses the shared `createOnboardingWizardState` helper, ensuring the wizard remounts cleanly after every manual trigger and resetting internal flags.
+- Refactor: Extracted the onboarding wizard state helper to `composables/useOnboardingWizard.ts` and wired `App.vue` to consume it, trimming local state duplication.
+- Fix: Restored onboarding colour palette popover behaviour by explicitly tracking `openColorId` in the wizard component.
+- Fix: Balance card note toggle now persists reliably—the client merges backend snapshots that omit newer `balance.ui.showNotes` keys so notes stay visible until the server schema catches up.
+- Feat: Theme preference now persists via `/overview/persist`; Config & Setup toggles and onboarding final tweaks keep the server, local storage, and DOM classes aligned.
+- UI: Polished the Config & Setup and Calendars panes (centered All/None buttons, refined range toggle styling, compact target colour chips, aligned info icons) and ensured tests supply the new theme props.
+- Fix: Category progress bars in the Targets card now clamp at 100% width so line charts never overflow into adjacent tabs.
+- Docs: Added `docs/SIDEBAR_CONFIGURATION.md` to catalogue every sidebar option and its persistence path.
+- Config: Config & Setup tab now offers Export/Import buttons for the canonical sidebar payload (whitelisted + sanitised), and Vitest coverage guards future schema changes.
+- Tests: Added Vitest coverage for the onboarding state helper and re-ran the full suite to guarantee the updated wiring stays green.
+- Docs: Updated roadmap, onboarding workflow, testing plan, production readiness notes, and changelog for the 0.4.4 release; rebuilt assets and packaged `opsdash-0.4.4.zip`.
+
 ## [0.4.3] - 2025-10-30 (NC 30–31 line)
 - UI: Config & Setup now includes a “Theme & appearance” toggle (Auto / Force light / Force dark) that switches the Opsdash palette instantly while keeping chart colours intact; the preference is stored locally for returning sessions.
 - UI: Polished sidebar panes — Balance tab references the 4-week trend lookback and can pin the current note, calendar pane gained All/None controls with clearer copy, notes pane explains the workflow with a Balance-card toggle, targets pane drops legacy presets and adds Nextcloud-aligned category colour pickers, and pane headings are bold + underlined for scanability.

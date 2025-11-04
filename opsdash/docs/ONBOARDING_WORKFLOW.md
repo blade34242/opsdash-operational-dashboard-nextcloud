@@ -80,7 +80,7 @@ needed to guide new users toward a useful initial configuration.
 - When missing or `version < current`, prompt onboarding.
 - Store the initial target/weekend/category choices using existing fields 
   (`targets_week`, `targets_month`, `targets_config`, `groups`).
-- Include a UI toggle in Sidebar → Config & Setup: “Re-run onboarding”.
+- Include a UI toggle in Sidebar → Config & Setup: “Re-run onboarding”. — ✅ wired to `createOnboardingWizardState` so the wizard remounts on every manual reopen (0.4.4, 2025-11).
 
 ## Content Requirements
 - Intro copy: “Opsdash visualises your calendar time and keeps goals on track.”

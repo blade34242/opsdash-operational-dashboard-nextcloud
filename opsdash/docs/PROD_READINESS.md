@@ -1,9 +1,9 @@
-# Production Readiness — opsdash 0.4.3
+# Production Readiness — opsdash 0.4.4
 
 Target platform: Nextcloud 30–31 (per `appinfo/info.xml`).
 
 ## Essentials
-- ✅ Versions match (`appinfo/info.xml`, `package.json`, footer) — 0.4.3.
+- ✅ Versions match (`appinfo/info.xml`, `package.json`, footer) — 0.4.4.
 - ✅ Build pipeline: `npm ci && npm run build` refreshes `js/.vite/manifest.json` and hashed bundles under `js/assets/`.
 - ✅ App folder `opsdash` lives inside a configured `apps_paths`; icons limited to `img/app.svg` and `img/app-dark.svg`.
 - ✅ Routes confined to `/apps/opsdash/overview/*`; POST routes enforce CSRF via `window.oc_requesttoken`.
@@ -34,4 +34,4 @@ Target platform: Nextcloud 30–31 (per `appinfo/info.xml`).
 - Localise strings via Nextcloud l10n once copy stabilises.
 - Test against Nextcloud 32; bump `<nextcloud max-version>` after verification.
 
-When the checklist above is green and the follow-ups addressed, the build can move to release (tag `v0.4.3`, attach signed tarball, include `docs/CHANGELOG.md` excerpt).
+When the checklist above is green and the follow-ups addressed, the build can move to release (tag `v0.4.4`, attach signed tarball, include `docs/CHANGELOG.md` excerpt).

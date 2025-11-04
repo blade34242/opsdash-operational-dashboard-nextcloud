@@ -52,6 +52,7 @@ export function useDashboard(deps: DashboardDeps) {
   const targetsMonth = ref<Record<string, number>>({})
   const targetsConfig = ref<TargetsConfig>(normalizeTargetsConfig(createDefaultTargetsConfig()))
   const onboarding = ref<OnboardingState | null>(null)
+  const themePreference = ref<'auto' | 'light' | 'dark'>('auto')
 
   let loadSeq = 0
   async function load() {
@@ -192,6 +193,8 @@ export function useDashboard(deps: DashboardDeps) {
       targetsWeek.value = tw && typeof tw === 'object' ? tw : {}
       targetsMonth.value = tm && typeof tm === 'object' ? tm : {}
       targetsConfig.value = normalizeTargetsConfig(json.targetsConfig ?? createDefaultTargetsConfig())
+      const themeRaw = typeof json.themePreference === 'string' ? json.themePreference : ''
+      themePreference.value = themeRaw === 'light' || themeRaw === 'dark' ? (themeRaw as 'light' | 'dark') : 'auto'
 
       if (deps.isDebug?.()) {
         console.group('[opsdash] calendars/colors')
@@ -300,5 +303,6 @@ export function useDashboard(deps: DashboardDeps) {
     targetsConfig,
     onboarding,
     load,
+    themePreference,
   }
 }

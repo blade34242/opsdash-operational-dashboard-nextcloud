@@ -1171,6 +1171,7 @@ final class OverviewController extends Controller {
             'groups'    => ['byId'=>$groupsById],
             'targets'   => ['week'=>$targetsWeek, 'month'=>$targetsMonth],
             'targetsConfig' => $targetsConfig,
+            'themePreference' => $this->readThemePreference($uid),
             'onboarding' => $onboardingPayload,
             'calDebug'  => $calDebug,
             // Always include debug envelope so clients can introspect easily
@@ -1293,19 +1294,29 @@ final class OverviewController extends Controller {
         $raw  = file_get_contents('php://input') ?: '';
         $data = json_decode($raw, true);
         if (!is_array($data)) return new DataResponse(['message' => 'invalid json'], Http::STATUS_BAD_REQUEST);
-        $req = $data['cals'] ?? [];
-        if (is_string($req)) $req = array_values(array_filter(explode(',', $req), fn($x)=>$x!==''));
-        $req = is_array($req) ? $req : [];
+        $hasCals = array_key_exists('cals', $data);
+        $reqOriginal = null;
+        if ($hasCals) {
+            $reqOriginal = $data['cals'];
+            if (is_string($reqOriginal)) {
+                $reqOriginal = array_values(array_filter(explode(',', $reqOriginal), fn($x)=>$x!==''));
+            }
+            $reqOriginal = is_array($reqOriginal) ? $reqOriginal : [];
+        }
 
         // Intersect with user's calendars
         $allowedIds = [];
         foreach ($this->getCalendarsFor($uid) as $cal) { $allowedIds[] = (string)($cal->getUri() ?? spl_object_id($cal)); }
         $allowed = array_flip($allowedIds);
-        $after = array_values(array_unique(array_filter(array_map(fn($x)=>substr((string)$x,0,128), $req), fn($x)=>isset($allowed[$x]))));
 
         // Save
-        $csv = implode(',', $after);
-        $this->config->setUserValue($uid, $this->appName, 'selected_cals', $csv);
+        $after = null;
+        $csv = null;
+        if ($hasCals) {
+            $after = array_values(array_unique(array_filter(array_map(fn($x)=>substr((string)$x,0,128), $reqOriginal), fn($x)=>isset($allowed[$x]))));
+            $csv = implode(',', $after);
+            $this->config->setUserValue($uid, $this->appName, 'selected_cals', $csv);
+        }
 
         // Optional: groups mapping
         $groupsSaved = null; $groupsRead = null;
@@ -1324,6 +1335,7 @@ final class OverviewController extends Controller {
         $targetsWeekSaved = null; $targetsMonthSaved = null; $targetsWeekRead = null; $targetsMonthRead = null;
         $targetsConfigSaved = null; $targetsConfigRead = null;
         $onboardingSaved = null; $onboardingRead = null;
+        $themeSaved = null; $themeRead = null;
         if (isset($data['targets_week'])) {
             $tw = $this->cleanTargets(is_array($data['targets_week'])?$data['targets_week']:[], $allowed);
             $this->config->setUserValue($uid, $this->appName, 'cal_targets_week', json_encode($tw));
@@ -1366,14 +1378,27 @@ final class OverviewController extends Controller {
             $onboardingSaved = $cleanOnboarding;
         }
         $onboardingRead = $this->readOnboardingState($uid);
+        if (array_key_exists('theme_preference', $data)) {
+            $themeValue = $this->sanitizeThemePreference($data['theme_preference']);
+            if ($themeValue === null) {
+                try { $this->config->deleteUserValue($uid, $this->appName, 'theme_preference'); } catch (\Throwable) {}
+            } else {
+                $this->config->setUserValue($uid, $this->appName, 'theme_preference', $themeValue);
+                $themeSaved = $themeValue;
+            }
+            $themeRead = $this->readThemePreference($uid);
+        }
 
         // Read-back
         $readCsv = (string)$this->config->getUserValue($uid, $this->appName, 'selected_cals', '');
         $read = array_values(array_filter(explode(',', $readCsv), fn($x)=>$x!==''));
+        if ($themeRead === null) {
+            $themeRead = $this->readThemePreference($uid);
+        }
 
         return new DataResponse([
             'ok' => true,
-            'request' => $req,
+            'request' => $hasCals ? $reqOriginal : null,
             'saved_csv' => $csv,
             'read_csv' => $readCsv,
             'saved' => $after,
@@ -1388,6 +1413,8 @@ final class OverviewController extends Controller {
             'targets_config_read'  => $targetsConfigRead,
             'onboarding_saved' => $onboardingSaved,
             'onboarding_read'  => $onboardingRead,
+            'theme_preference_saved' => $themeSaved,
+            'theme_preference_read' => $themeRead,
         ], Http::STATUS_OK);
     }
 
@@ -2323,6 +2350,26 @@ final class OverviewController extends Controller {
             $decoded = null;
         }
         return $this->cleanOnboardingState($decoded);
+    }
+
+    private function sanitizeThemePreference($value): ?string {
+        if (is_string($value)) {
+            $normalized = strtolower(trim($value));
+            if (in_array($normalized, ['auto', 'light', 'dark'], true)) {
+                return $normalized;
+            }
+        }
+        return null;
+    }
+
+    private function readThemePreference(string $uid): string {
+        try {
+            $stored = (string)$this->config->getUserValue($uid, $this->appName, 'theme_preference', '');
+        } catch (\Throwable $e) {
+            $stored = '';
+        }
+        $normalized = $this->sanitizeThemePreference($stored);
+        return $normalized ?? 'auto';
     }
 
     // ---- Validation helpers ----

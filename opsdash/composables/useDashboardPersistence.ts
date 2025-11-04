@@ -31,12 +31,13 @@ export function useDashboardPersistence(deps: DashboardPersistenceDeps) {
       saveTimer = null
       try {
         isSaving.value = true
+        const previousConfig = cloneTargetsConfig(deps.targetsConfig.value)
         const result = await deps.postJson(deps.route('persist'), {
           cals: deps.selected.value,
           groups: deps.groupsById.value,
           targets_week: deps.targetsWeek.value,
           targets_month: deps.targetsMonth.value,
-          targets_config: cloneTargetsConfig(deps.targetsConfig.value),
+          targets_config: previousConfig,
         })
 
         if (Array.isArray(result.read)) {
@@ -47,10 +48,9 @@ export function useDashboardPersistence(deps: DashboardPersistenceDeps) {
 
         const cfgRead = result.targets_config_read as TargetsConfig | undefined
         const cfgSaved = result.targets_config_saved as TargetsConfig | undefined
-        if (cfgRead) {
-          deps.targetsConfig.value = normalizeTargetsConfig(cfgRead)
-        } else if (cfgSaved) {
-          deps.targetsConfig.value = normalizeTargetsConfig(cfgSaved)
+        const nextConfig = mergeIncomingTargetsConfig(cfgRead ?? cfgSaved, previousConfig)
+        if (nextConfig) {
+          deps.targetsConfig.value = nextConfig
         }
 
         if (reload && deps.onReload) {
@@ -71,4 +71,26 @@ export function useDashboardPersistence(deps: DashboardPersistenceDeps) {
     queueSave,
     isSaving,
   }
+}
+
+function mergeIncomingTargetsConfig(
+  incoming: TargetsConfig | undefined,
+  previous: TargetsConfig,
+): TargetsConfig | undefined {
+  if (!incoming) return undefined
+
+  const raw = JSON.parse(JSON.stringify(incoming)) as any
+  const prevBalance = previous?.balance
+  if (prevBalance?.ui) {
+    const incomingUi = (incoming as any)?.balance?.ui ?? {}
+    const rawBalance = raw.balance ?? (raw.balance = {})
+    const rawUi = rawBalance.ui ?? (rawBalance.ui = {})
+    Object.keys(prevBalance.ui).forEach((key) => {
+      if (!Object.prototype.hasOwnProperty.call(incomingUi, key) && Object.prototype.hasOwnProperty.call(prevBalance.ui, key)) {
+        rawUi[key] = prevBalance.ui[key]
+      }
+    })
+  }
+
+  return normalizeTargetsConfig(raw as TargetsConfig)
 }

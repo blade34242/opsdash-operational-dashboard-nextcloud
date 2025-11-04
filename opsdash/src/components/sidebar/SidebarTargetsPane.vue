@@ -435,3 +435,65 @@ function applyColor(id: string, value: string) {
   closeColorPopover()
 }
 </script>
+
+<style scoped>
+.color-chip-wrapper {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+}
+
+.color-chip {
+  width: 18px !important;
+  height: 18px !important;
+  border-radius: 50%;
+  border: 1px solid color-mix(in oklab, var(--line), transparent 20%);
+  background: var(--brand, #2563eb);
+  cursor: pointer;
+  padding: 0 !important;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  line-height: 1;
+}
+
+.color-chip .chip-outline {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  border: 1px solid color-mix(in oklab, #000, transparent 90%);
+}
+
+.color-chip:focus-visible {
+  outline: 2px solid color-mix(in oklab, var(--brand, #2563eb), transparent 50%);
+  outline-offset: 2px;
+}
+
+.swatch-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(0, 20px));
+  justify-content: flex-start;
+  gap: 6px;
+}
+
+.color-swatch {
+  width: 18px !important;
+  height: 18px !important;
+  border-radius: 50%;
+  border: 1px solid color-mix(in oklab, #000, transparent 80%);
+  padding: 0 !important;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+}
+
+.color-swatch.active {
+  box-shadow: 0 0 0 2px color-mix(in oklab, var(--brand, #2563eb), transparent 60%);
+}
+
+.color-swatch:focus-visible {
+  outline: 2px solid color-mix(in oklab, var(--brand, #2563eb), transparent 40%);
+  outline-offset: 1px;
+}
+</style>

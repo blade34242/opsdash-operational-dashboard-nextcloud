@@ -9,12 +9,13 @@ Living backlog for hardening and extending the Operational Dashboard.
 - All-day calendar events are normalised server-side (structured query + ICS fallback) and use the configurable “All-day event (h per day)” slider in the Targets pane; charts now show a single-day column for all-day entries.
 - Targets card, category blocks, and per-calendar stacks now respect the Week/Month toggle by loading monthly targets (with automatic week→month conversion when needed) so KPIs stay aligned with the selected range.
 - Core docs (Architecture, API, Configuration, Dev Workflow, Packaging, Troubleshooting) reflect the latest flow.
+- Config & Setup’s “Re-run onboarding” button now delegates to `createOnboardingWizardState`, guaranteeing the wizard remounts cleanly; Vitest coverage in `test/useOnboardingWizard.test.ts` guards manual reopen regressions.
 
 ## Execution Order (Lean + Tested)
 1. Lock requirements for onboarding, targets, theming (answer open questions) — ✅ decisions captured in `docs/ONBOARDING_WORKFLOW.md` and `docs/LIGHT_DARK_THEMING.md` (2025-03).
 2. Establish testing infrastructure (PHPUnit + Vitest) and add baseline coverage.
 3. Implement shared validation helpers with inline feedback — ✅ numeric validation helper extracted (2025-10); structured 400 responses + full localisation wiring (2025-11).
-4. Execute architecture refactor (split App/Sidebar/targets/services) — 🔄 `App.vue` trimmed; sidebar panes/composables in place; persistence queue now lives in `useDashboardPersistence`; selection/target mutators moved into `useDashboardSelection`; presets handled by `useDashboardPresets`; route/fetch utilities + icon/meta boot live in `useOcHttp` and `useAppMeta`; calendar deep links & DAV colour fetch handled by `useCalendarLinks`. Next: start onboarding wizard groundwork.
+4. Execute architecture refactor (split App/Sidebar/targets/services) — 🔄 `App.vue` trimmed; sidebar panes/composables in place; persistence queue now lives in `useDashboardPersistence`; selection/target mutators moved into `useDashboardSelection`; presets handled by `useDashboardPresets`; route/fetch utilities + icon/meta boot live in `useOcHttp` and `useAppMeta`; calendar deep links & DAV colour fetch handled by `useCalendarLinks`. Next: audit remaining onboarding wiring (theme persistence + wizard snapshot hooks).
 5. Build onboarding wizard + strategy profiles. — ✅ initial wizard shipped with strategy presets, category controls, and re-run entry point (2025-11).
 6. Roll out theming, collapsed controls, keyboard shortcuts overlay.
 7. Update endpoints/docs (rename to `/overview/`) and polish copy (balance card). — ✅ routes + docs migrated to `/overview/*`; copy polish pending follow-up (2025-11).
@@ -27,7 +28,8 @@ Living backlog for hardening and extending the Operational Dashboard.
 - Remove the legacy `/overview/save` endpoint once consumers confirm the `/persist` JSON shape. — ✅ removed in favour of `/persist` (2025-03).
 - Establish shared client/server validation helpers and inline feedback per `docs/INPUT_VALIDATION_PLAN.md`. — ✅ numeric inputs funnel through shared helpers on client/server (2025-03); structured 400 responses + localisation delivered (2025-11); keep translation files updated alongside feature work.
 - Implement unified testing strategy (`docs/TESTING_STRATEGY.md`): add PHPUnit service/controller tests and Vitest component/composable coverage. — ✅ baseline suites for validators, controller sanitisation, dashboard tabs/pacing/charts now in place; plan coverage for keyboard shortcuts & charts in render mode.
-- Persist theme overrides via `/persist` once server payload is ready; add Vitest coverage for the theme composable (auto/override, storage fallback) and ensure chart chrome responds to theme changes without altering data colours.
+- ✅ Persist theme overrides via `/persist` (0.4.4); Vitest now covers `useThemePreference`, so auto/override storage updates stay guarded while charts continue respecting calendar colours.
+- Follow-up: teach the `/overview/persist` response to always echo `balance.ui` flags (including `showNotes`) so the client-side merge fallback added in 0.4.4 can be simplified.
 
 ## P1 — Frontend Structure
 - Extract remaining logic from `App.vue` into composables (onboarding boot + strategy queue coming next).
@@ -36,7 +38,7 @@ Living backlog for hardening and extending the Operational Dashboard.
 - Add component tests for chart color mapping, status chips, and tab focus/keyboard behaviour. — ✅ initial chart + pane coverage added (2025-10); extend to keyboard shortcuts.
 - Implement onboarding wizard per `docs/ONBOARDING_WORKFLOW.md`, including strategy
   selection (`docs/TARGET_STRATEGIES.md`) and calendar/category seeding. — ✅ initial implementation live (2025-11); track refinements/UX polish (see “Sidebar polish” below).
-- Sidebar polish — ✅ Balance tab copy now references the 4-week default lookback, display toggles include helper text, and the Balance card can surface the current note; Calendars pane gained All/None controls with refreshed guidance; Notes tab explains the workflow and lets users pin notes to Balance; Targets tab drops legacy presets and adds Nextcloud-aligned colour overrides; headings within each pane are bold + underlined for quick scanning.
+- Sidebar polish — ✅ Balance tab copy now references the 4-week default lookback, display toggles include helper text, and the Balance card can surface the current note; Calendars pane gained All/None controls with refreshed guidance; Notes tab explains the workflow and lets users pin notes to Balance; Targets tab drops legacy presets and adds Nextcloud-aligned colour overrides; headings within each pane are bold + underlined for quick scanning. Config & Setup rerun control now remounts the wizard reliably.
   - Follow-up: audit the small “?” info buttons across panes to ensure icon sizing matches the copy baseline (consider swapping to an inline SVG badge if the native button cannot maintain alignment at different breakpoints).
 - Explore a “By Calendar Events” drill-down in the main content (list every event
   for the selected calendars inside the By Calendar tab). Estimate render cost for

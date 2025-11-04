@@ -196,6 +196,8 @@
       @clear-warnings="() => emit('clear-preset-warnings')"
       @rerun-onboarding="() => emit('rerun-onboarding')"
       @set-theme-preference="(value: 'auto' | 'light' | 'dark') => emit('set-theme-preference', value)"
+      @export-config="() => emit('export-config')"
+      @import-config="(file: File) => emit('import-config', file)"
     />
 
     <SidebarActivityPane
@@ -320,6 +322,8 @@ const emit = defineEmits([
   'clear-preset-warnings',
   'rerun-onboarding',
   'set-theme-preference',
+  'export-config',
+  'import-config',
 ])
 
 const activeTab = ref<'calendars'|'targets'|'summary'|'activity'|'balance'|'notes'|'config'>('calendars')

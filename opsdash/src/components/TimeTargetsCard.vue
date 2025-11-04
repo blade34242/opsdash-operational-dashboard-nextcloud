@@ -196,8 +196,8 @@ function methodLabel(method: 'linear' | 'momentum'): string {
 .category .cat-label .name{ color:var(--fg) }
 .category .cat-meta{ display:flex; align-items:center; gap:6px; font-weight:600; color:var(--muted) }
 .category .cat-meta .percent{ font-variant-numeric:tabular-nums; color:var(--fg) }
-.cat-progress .bar{ position:relative; width:100%; height:8px; border-radius:999px; background:color-mix(in srgb, var(--muted) 20%, transparent) }
-.cat-progress .bar .fill{ height:100%; border-radius:999px; transition:width .2s ease }
+.cat-progress .bar{ position:relative; width:100%; height:8px; border-radius:999px; background:color-mix(in srgb, var(--muted) 20%, transparent); overflow:hidden }
+.cat-progress .bar .fill{ height:100%; border-radius:999px; transition:width .2s ease; max-width:100% }
 .category .cat-metrics{ display:flex; flex-wrap:wrap; gap:6px; align-items:center; color:var(--fg) }
 .cat-footer{ display:flex; justify-content:space-between; align-items:center }
 .hint{ color:var(--muted); font-size:12px }

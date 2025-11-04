@@ -71,6 +71,8 @@
           @clear-preset-warnings="clearPresetWarnings"
           @rerun-onboarding="openWizardFromSidebar"
           @set-theme-preference="setThemePreference"
+          @export-config="exportSidebarConfig"
+          @import-config="importSidebarConfig"
         />
       </template>
 
@@ -261,7 +263,7 @@
                 Operational Dashboard • v{{ appVersion }} • Built by Blade34242 @ Gellert Innovation
               </template>
               <template v-else>
-                Operational Dashboard • v0.4.3 • Built by Blade34242 @ Gellert Innovation
+                Operational Dashboard • v0.4.4 • Built by Blade34242 @ Gellert Innovation
               </template>
             </div>
           </div>
@@ -313,7 +315,9 @@ import { useCharts } from '../composables/useCharts'
 import { useCategories } from '../composables/useCategories'
 import { useSummaries } from '../composables/useSummaries'
 import { useBalance } from '../composables/useBalance'
-import { useThemePreference } from '../composables/useThemePreference'
+import { useThemePreference, type ThemePreference } from '../composables/useThemePreference'
+import { createOnboardingWizardState } from '../composables/useOnboardingWizard'
+import { buildConfigEnvelope, sanitiseSidebarPayload } from './utils/sidebarConfig'
 // Ensure a visible version even if backend attrs are empty: use package.json as fallback
 // @ts-ignore
 import pkg from '../package.json'
@@ -427,7 +431,7 @@ const {
   preference: themePreference,
   effectiveTheme,
   systemTheme,
-  setThemePreference,
+  setThemePreference: applyThemePreference,
 } = useThemePreference()
 
 const hasExistingConfig = computed(() => Boolean(onboarding.value?.completed))
@@ -454,6 +458,7 @@ const {
   targetsConfig,
   onboarding,
   load,
+  themePreference: dashboardThemePreference,
 } = useDashboard({
   range,
   offset,
@@ -469,10 +474,172 @@ const {
 
 const onboardingState = onboarding
 const hasInitialLoad = ref(false)
-const autoWizardNeeded = ref(false)
-const manualWizardOpen = ref(false)
 const isOnboardingSaving = ref(false)
-const onboardingRunId = ref(0)
+const {
+  autoWizardNeeded,
+  manualWizardOpen,
+  onboardingRunId,
+  onboardingWizardVisible,
+  openWizardFromSidebar,
+} = createOnboardingWizardState()
+
+const normalizeThemePreference = (value: unknown): ThemePreference => {
+  if (value === 'light' || value === 'dark') {
+    return value
+  }
+  return 'auto'
+}
+
+let syncingThemeFromServer = false
+let themePersistTimer: ReturnType<typeof setTimeout> | null = null
+let lastPersistedTheme: ThemePreference = normalizeThemePreference(dashboardThemePreference.value)
+
+watch(dashboardThemePreference, (value) => {
+  const normalized = normalizeThemePreference(value)
+  lastPersistedTheme = normalized
+  if (themePreference.value === normalized) {
+    return
+  }
+  syncingThemeFromServer = true
+  applyThemePreference(normalized)
+  syncingThemeFromServer = false
+})
+
+function scheduleThemePersist(value: ThemePreference) {
+  if (syncingThemeFromServer) return
+  if (value === lastPersistedTheme) return
+  if (themePersistTimer) {
+    clearTimeout(themePersistTimer)
+  }
+  themePersistTimer = setTimeout(async () => {
+    themePersistTimer = null
+    try {
+      await postJson(route('persist'), {
+        theme_preference: value,
+      })
+      lastPersistedTheme = value
+      notifySuccess('Theme preference saved')
+    } catch (error) {
+      console.error(error)
+      notifyError('Failed to save theme preference')
+    }
+  }, 250)
+}
+
+function setThemePreference(value: ThemePreference, options?: { persist?: boolean }) {
+  const normalized = normalizeThemePreference(value)
+  applyThemePreference(normalized)
+  if (options?.persist === false) {
+    return
+  }
+  scheduleThemePersist(normalized)
+}
+
+function collectSidebarPayload() {
+  const payload: Record<string, any> = {
+    cals: [...selected.value],
+    groups: { ...groupsById.value },
+    targets_week: { ...targetsWeek.value },
+    targets_month: { ...targetsMonth.value },
+    targets_config: cloneTargetsConfig(targetsConfig.value),
+    theme_preference: themePreference.value,
+  }
+  if (onboardingState.value) {
+    payload.onboarding = { ...onboardingState.value }
+  }
+  return payload
+}
+
+function downloadJson(filename: string, data: unknown) {
+  const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' })
+  const url = URL.createObjectURL(blob)
+  const link = document.createElement('a')
+  link.href = url
+  link.download = filename
+  document.body.appendChild(link)
+  link.click()
+  document.body.removeChild(link)
+  URL.revokeObjectURL(url)
+}
+
+function exportSidebarConfig() {
+  try {
+    const payload = collectSidebarPayload()
+    const envelope = buildConfigEnvelope(payload)
+    const filename = `opsdash-config-${envelope.generated.slice(0, 10)}.json`
+    downloadJson(filename, envelope)
+    notifySuccess('Configuration exported')
+  } catch (error) {
+    console.error(error)
+    notifyError('Failed to export configuration')
+  }
+}
+
+async function importSidebarConfig(file: File) {
+  try {
+    const text = await file.text()
+    const parsed = JSON.parse(text)
+    const source = parsed?.payload && typeof parsed.payload === 'object' ? parsed.payload : parsed
+    const { cleaned, ignored } = sanitiseSidebarPayload(source)
+    if (!Object.keys(cleaned).length) {
+      notifyError('No recognised configuration keys found in file')
+      return
+    }
+
+    if (cleaned.cals) {
+      selected.value = (cleaned.cals as any[]).map((id) => String(id))
+    }
+    if (cleaned.groups) {
+      const nextGroups: Record<string, number> = {}
+      Object.entries(cleaned.groups as Record<string, any>).forEach(([key, value]) => {
+        const num = Number(value)
+        nextGroups[String(key)] = Number.isFinite(num) ? num : 0
+      })
+      groupsById.value = nextGroups
+    }
+    if (cleaned.targets_week) {
+      const nextWeek: Record<string, number> = {}
+      Object.entries(cleaned.targets_week as Record<string, any>).forEach(([key, value]) => {
+        const num = Number(value)
+        if (Number.isFinite(num)) {
+          nextWeek[String(key)] = num
+        }
+      })
+      targetsWeek.value = nextWeek
+    }
+    if (cleaned.targets_month) {
+      const nextMonth: Record<string, number> = {}
+      Object.entries(cleaned.targets_month as Record<string, any>).forEach(([key, value]) => {
+        const num = Number(value)
+        if (Number.isFinite(num)) {
+          nextMonth[String(key)] = num
+        }
+      })
+      targetsMonth.value = nextMonth
+    }
+    if (cleaned.targets_config) {
+      targetsConfig.value = normalizeTargetsConfig(cleaned.targets_config as TargetsConfig)
+    }
+    if (cleaned.theme_preference) {
+      setThemePreference(cleaned.theme_preference as ThemePreference, { persist: false })
+    }
+    if (cleaned.onboarding && typeof cleaned.onboarding === 'object') {
+      onboardingState.value = { ...(cleaned.onboarding as OnboardingState) }
+    }
+
+    await postJson(route('persist'), cleaned)
+    await performLoad()
+
+    if (ignored.length) {
+      notifyError(`Configuration imported with ignored keys: ${ignored.join(', ')}`)
+    } else {
+      notifySuccess('Configuration imported')
+    }
+  } catch (error) {
+    console.error(error)
+    notifyError('Failed to import configuration')
+  }
+}
 
 function shouldRequireOnboarding(state: OnboardingState | null): boolean {
   if (!state) return true
@@ -506,8 +673,6 @@ const wizardInitialSelection = computed(() => [...selected.value])
 const wizardInitialStrategy = computed<StrategyDefinition['id']>(
   () => (onboardingState.value?.strategy as StrategyDefinition['id']) ?? 'total_only',
 )
-const onboardingWizardVisible = computed(() => autoWizardNeeded.value || manualWizardOpen.value)
-
 const performLoad = async () => {
   await load()
   hasInitialLoad.value = true
@@ -768,13 +933,14 @@ async function handleWizardComplete(payload: {
 }) {
   try {
     isOnboardingSaving.value = true
-    setThemePreference(payload.themePreference)
+    setThemePreference(payload.themePreference, { persist: false })
     await postJson(route('persist'), {
       cals: payload.selected,
       groups: payload.groups,
       targets_week: payload.targetsWeek,
       targets_month: payload.targetsMonth,
       targets_config: payload.targetsConfig,
+      theme_preference: payload.themePreference,
       onboarding: {
         completed: true,
         version: ONBOARDING_VERSION,
@@ -782,6 +948,7 @@ async function handleWizardComplete(payload: {
         completed_at: new Date().toISOString(),
       },
     })
+    lastPersistedTheme = normalizeThemePreference(payload.themePreference)
     manualWizardOpen.value = false
     await performLoad()
     notifySuccess('Onboarding saved')
@@ -829,15 +996,6 @@ async function handleWizardSkip() {
 function handleWizardClose() {
   if (autoWizardNeeded.value) return
   manualWizardOpen.value = false
-}
-
-function openWizardFromSidebar() {
-  autoWizardNeeded.value = false
-  manualWizardOpen.value = false
-  nextTick(() => {
-    onboardingRunId.value += 1
-    manualWizardOpen.value = true
-  })
 }
 
 onMounted(async () => {

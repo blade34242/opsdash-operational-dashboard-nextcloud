@@ -68,6 +68,19 @@
       >
         Re-run onboarding
       </NcButton>
+      <NcButton type="tertiary" size="small" @click="emit('export-config')">
+        Export configuration
+      </NcButton>
+      <NcButton type="tertiary" size="small" @click="triggerImport">
+        Import configuration
+      </NcButton>
+      <input
+        ref="fileInput"
+        type="file"
+        accept="application/json"
+        class="import-input"
+        @change="onFileChange"
+      />
     </div>
 
     <div class="preset-form">
@@ -160,6 +173,8 @@ const props = defineProps<{
 
 const { themePreference, effectiveTheme, systemTheme } = toRefs(props)
 
+const fileInput = ref<HTMLInputElement | null>(null)
+
 const emit = defineEmits<{
   (e: 'save', name: string): void
   (e: 'load', name: string): void
@@ -168,6 +183,8 @@ const emit = defineEmits<{
   (e: 'clear-warnings'): void
   (e: 'rerun-onboarding'): void
   (e: 'set-theme-preference', value: 'auto' | 'light' | 'dark'): void
+  (e: 'export-config'): void
+  (e: 'import-config', file: File): void
 }>()
 
 const presetName = ref('')
@@ -198,6 +215,21 @@ function onLoad(name: string) {
 function onDelete(name: string) {
   if (window.confirm(`Delete profile "${name}"?`)) {
     emit('delete', name)
+  }
+}
+
+function triggerImport() {
+  fileInput.value?.click()
+}
+
+function onFileChange(event: Event) {
+  const input = event.target as HTMLInputElement | null
+  const file = input?.files?.[0]
+  if (file) {
+    emit('import-config', file)
+  }
+  if (input) {
+    input.value = ''
   }
 }
 
@@ -389,5 +421,14 @@ onMounted(() => {
 }
 .theme-option__desc {
   color: var(--muted);
+}
+.setup-actions {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+.setup-actions .import-input {
+  display: none;
 }
 </style>

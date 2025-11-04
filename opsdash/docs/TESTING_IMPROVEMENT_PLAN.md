@@ -16,9 +16,10 @@ after each milestone to reprioritise.
   `oc_requesttoken`) to standardise mocking in tests.
 
 ### Coverage snapshot (2025-10-27)
-- **Covered (unit)**: `useDashboard`, `useDashboardSelection`, `useDashboardPersistence`,
-  `useDashboardPresets`, `useCalendarLinks`, `useCharts`, sidebar pane components,
-  preset/targets/pace helpers, validators.
+- **Covered (unit)**: `useDashboard`, `useDashboardSelection`, `useDashboardPersistence`
+  (now guarding schema gaps such as `balance.ui.showNotes`), `useDashboardPresets`,
+  `useCalendarLinks`, `useCharts`, sidebar pane components,
+  preset/targets/pace helpers, validators, onboarding wizard state helper.
 - **Not yet covered**: `useOcHttp`, `useAppMeta`, App.vue orchestration,
   onboarding workflow (planned), DAV fallback error states, PHP
   `OverviewController` load/persist logic.
@@ -48,7 +49,7 @@ after each milestone to reprioritise.
   - Simulate preset apply → queueSave → chart updates using captured fixtures.
 - Extend unit tests:
   - `useCalendarLinks` (done).
-  - `useOcHttp`, `useAppMeta`, onboarding helpers once introduced.
+  - `useOcHttp`, `useAppMeta` (pending); onboarding wizard state helper covered in 0.4.4 (`test/useOnboardingWizard.test.ts`).
 - PHPUnit additions for `OverviewController` (`load`, `persist`, `presets*`)
   using fixture payloads to verify sanitisation and response shapes.
 

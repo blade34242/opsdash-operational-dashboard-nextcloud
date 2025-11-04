@@ -384,6 +384,7 @@ const assignments = ref<Record<string, string>>({})
 const themePreference = ref<'auto' | 'light' | 'dark'>('auto')
 const allDayHoursInput = ref(8)
 const totalHoursInput = ref<number | null>(null)
+const openColorId = ref<string | null>(null)
 const previewTheme = computed(() => {
   if (themePreference.value === 'auto') {
     return props.systemTheme === 'dark' ? 'dark' : 'light'
@@ -392,6 +393,9 @@ const previewTheme = computed(() => {
 })
 const systemThemeLabel = computed(() => props.systemTheme === 'dark' ? 'dark' : 'light')
 const BASE_CATEGORY_COLORS = ['#2563EB', '#F97316', '#10B981', '#A855F7', '#EC4899', '#14B8A6', '#F59E0B', '#6366F1', '#0EA5E9', '#65A30D']
+const categoryTotalHours = computed(() =>
+  categories.value.reduce((sum, cat) => sum + (Number.isFinite(cat.targetHours) ? cat.targetHours : 0), 0),
+)
 
 const categoryColorPalette = computed(() => {
   const palette = new Set<string>()
@@ -672,10 +676,6 @@ function onAllDayHoursChange(input: HTMLInputElement) {
   const parsed = Number(input.value)
   allDayHoursInput.value = clampAllDayHours(Number.isFinite(parsed) ? parsed : allDayHoursInput.value)
 }
-
-const categoryTotalHours = computed(() =>
-  categories.value.reduce((sum, cat) => sum + (Number.isFinite(cat.targetHours) ? cat.targetHours : 0), 0),
-)
 
 const selectedCalendars = computed(() =>
   props.calendars.filter((cal) => localSelection.value.includes(cal.id)),
@@ -1101,17 +1101,22 @@ function toggleCalendar(id: string, checkbox: HTMLInputElement) {
 
 .swatch-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(20px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(0, 20px));
+  justify-content: flex-start;
   gap: 6px;
 }
 
 .color-swatch {
-  width: 20px;
-  height: 20px;
+  width: 18px;
+  height: 18px;
+  aspect-ratio: 1 / 1;
   border-radius: 50%;
   border: 1px solid color-mix(in oklab, #000, transparent 80%);
   padding: 0;
   cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .color-swatch.active {

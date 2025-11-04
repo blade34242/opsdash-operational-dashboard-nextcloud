@@ -743,25 +743,30 @@
   display:inline-flex;
   align-items:center;
 }
-#opsdash .color-chip{
-  width:22px;
-  height:22px;
-  border-radius:50%;
-  border:1px solid color-mix(in oklab, var(--line), transparent 20%);
-  background:var(--brand);
+#opsdash button.color-chip{
+  width:18px !important;
+  height:18px !important;
+  min-width:18px !important;
+  min-height:18px !important;
+  aspect-ratio:1 / 1;
+  border-radius:50% !important;
+  border:1px solid color-mix(in oklab, var(--line), transparent 20%) !important;
+  background:var(--brand) !important;
   cursor:pointer;
-  padding:0;
-  display:inline-flex;
-  align-items:center;
-  justify-content:center;
+  padding:0 !important;
+  display:inline-flex !important;
+  align-items:center !important;
+  justify-content:center !important;
+  line-height:1 !important;
+  box-sizing:border-box !important;
 }
-#opsdash .color-chip .chip-outline{
-  width:14px;
-  height:14px;
+#opsdash button.color-chip .chip-outline{
+  width:10px;
+  height:10px;
   border-radius:50%;
   border:1px solid color-mix(in oklab, #000, transparent 90%);
 }
-#opsdash .color-chip:focus-visible{
+#opsdash button.color-chip:focus-visible{
   outline:2px solid color-mix(in oklab, var(--brand), transparent 50%);
   outline-offset:2px;
 }
@@ -786,16 +791,24 @@
 }
 #opsdash .color-popover .swatch-grid{
   display:grid;
-  grid-template-columns:repeat(auto-fill, minmax(20px, 1fr));
+  grid-template-columns:repeat(auto-fit, minmax(0, 20px));
+  justify-content:flex-start;
   gap:6px;
 }
 #opsdash .color-popover .color-swatch{
-  width:20px;
-  height:20px;
-  border-radius:50%;
-  border:1px solid color-mix(in oklab, #000, transparent 80%);
+  width:18px !important;
+  height:18px !important;
+  min-width:18px !important;
+  min-height:18px !important;
+  aspect-ratio:1 / 1;
+  border-radius:50% !important;
+  border:1px solid color-mix(in oklab, #000, transparent 80%) !important;
   cursor:pointer;
-  padding:0;
+  padding:0 !important;
+  display:inline-flex !important;
+  align-items:center !important;
+  justify-content:center !important;
+  box-sizing:border-box !important;
 }
 #opsdash .color-popover .color-swatch.active{
   box-shadow:0 0 0 2px color-mix(in oklab, var(--brand), transparent 60%);
