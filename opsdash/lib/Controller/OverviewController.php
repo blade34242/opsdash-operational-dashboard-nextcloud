@@ -2095,12 +2095,14 @@ final class OverviewController extends Controller {
                         }
                     }
                 }
+                $color = $this->sanitizeHexColor($cat['color'] ?? null);
                 $cats[] = [
                     'id' => $id,
                     'label' => $label,
                     'targetHours' => $target,
                     'includeWeekend' => $includeWeekend,
                     'paceMode' => $paceMode,
+                    'color' => $color,
                     'groupIds' => $groupIds,
                 ];
                 if (count($cats) >= 12) break;
@@ -2302,6 +2304,23 @@ final class OverviewController extends Controller {
         if ($value < $min) return $min;
         if ($value > $max) return $max;
         return $value;
+    }
+
+    private function sanitizeHexColor($value): ?string {
+        if (!is_string($value)) {
+            return null;
+        }
+        $trimmed = trim($value);
+        if (!preg_match('/^#([0-9a-fA-F]{3}|[0-9a-fA-F]{6})$/', $trimmed)) {
+            return null;
+        }
+        if (strlen($trimmed) === 4) {
+            $r = strtoupper($trimmed[1]);
+            $g = strtoupper($trimmed[2]);
+            $b = strtoupper($trimmed[3]);
+            return sprintf('#%1$s%1$s%2$s%2$s%3$s%3$s', $r, $g, $b);
+        }
+        return strtoupper($trimmed);
     }
 
     /**

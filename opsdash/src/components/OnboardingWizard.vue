@@ -46,7 +46,7 @@
           <div class="preferences-grid">
             <article class="pref-card">
               <h4>Theme &amp; appearance</h4>
-              <p class="pref-desc">Choose how Opsdash reacts to your Nextcloud theme. Charts keep their calendar colours.</p>
+              <p class="pref-desc">Choose how Opsdash reacts to your Nextcloud theme. Charts keep their calendar colors.</p>
               <div class="theme-options" role="radiogroup" aria-label="Theme preference">
                 <label class="theme-option">
                   <input
@@ -173,6 +173,11 @@
             <div class="categories-editor">
               <article v-for="cat in categories" :key="cat.id" class="category-card">
                 <header class="category-card__header">
+                  <span
+                    class="category-color-indicator"
+                    :style="{ backgroundColor: resolvedColor(cat) }"
+                    aria-hidden="true"
+                  />
                   <input
                     class="category-name"
                     type="text"
@@ -212,48 +217,45 @@
                     <span>Include weekend</span>
                   </label>
                   <div class="field color-field">
-                    <span class="label">Colour</span>
-                    <div class="color-chip-wrapper" data-color-popover @click.stop>
-                      <button
-                        type="button"
-                        class="color-chip"
-                        :style="{ backgroundColor: resolvedColor(cat) }"
-                        :aria-expanded="openColorId === cat.id"
-                        :aria-label="`Choose colour for ${cat.label}`"
-                        @click="toggleColorPopover(cat.id)"
-                      >
-                        <span class="chip-outline" />
-                      </button>
-                      <div
-                        v-if="openColorId === cat.id"
-                        class="color-popover"
-                        :id="`onboarding-color-popover-${cat.id}`"
-                        tabindex="-1"
-                        @keydown.esc.prevent="closeColorPopover()"
-                      >
-                        <div class="swatch-grid" role="group" aria-label="Preset colours">
-                          <button
-                            v-for="swatch in categoryColorPalette"
-                            :key="`${cat.id}-swatch-${swatch}`"
-                            type="button"
-                            class="color-swatch"
-                            :class="{ active: resolvedColor(cat) === swatch }"
-                            :style="{ backgroundColor: swatch }"
-                            :aria-label="`Use colour ${swatch}`"
-                            @click="applyColor(cat.id, swatch)"
-                          />
-                        </div>
-                        <label class="custom-color">
-                          <span>Custom</span>
-                          <input
-                            class="color-input"
-                            type="color"
-                            :value="resolvedColor(cat)"
-                            aria-label="Pick custom colour"
-                            @input="onColorInput(cat.id, ($event.target as HTMLInputElement).value)"
-                          />
-                        </label>
+                    <button
+                      type="button"
+                      class="color-link"
+                      :aria-expanded="openColorId === cat.id"
+                      :aria-label="`Choose color for ${cat.label}`"
+                      data-color-popover
+                      @click.stop="toggleColorPopover(cat.id)"
+                    >
+                      Color
+                    </button>
+                    <div
+                      v-if="openColorId === cat.id"
+                      class="color-popover"
+                      :id="`onboarding-color-popover-${cat.id}`"
+                      tabindex="-1"
+                      @keydown.esc.prevent="closeColorPopover()"
+                    >
+                      <div class="swatch-grid" role="group" aria-label="Preset colors">
+                        <button
+                          v-for="swatch in categoryColorPalette"
+                          :key="`${cat.id}-swatch-${swatch}`"
+                          type="button"
+                          class="color-swatch"
+                          :class="{ active: resolvedColor(cat) === swatch }"
+                          :style="{ backgroundColor: swatch }"
+                          :aria-label="`Use color ${swatch}`"
+                          @click="applyColor(cat.id, swatch)"
+                        />
                       </div>
+                      <label class="custom-color">
+                        <span>Custom</span>
+                        <input
+                          class="color-input"
+                          type="color"
+                          :value="resolvedColor(cat)"
+                          aria-label="Pick custom color"
+                          @input="onColorInput(cat.id, ($event.target as HTMLInputElement).value)"
+                        />
+                      </label>
                     </div>
                   </div>
                 </div>
@@ -1006,6 +1008,14 @@ function toggleCalendar(id: string, checkbox: HTMLInputElement) {
   align-items: center;
 }
 
+.category-color-indicator {
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  border: 1px solid color-mix(in oklab, var(--color-border), transparent 40%);
+  flex-shrink: 0;
+}
+
 .category-name {
   flex: 1;
   padding: 6px 8px;
@@ -1045,35 +1055,21 @@ function toggleCalendar(id: string, checkbox: HTMLInputElement) {
   display: flex;
   flex-direction: column;
   gap: 6px;
-}
-
-.color-chip-wrapper {
   position: relative;
-  display: inline-flex;
-  align-items: center;
 }
 
-.color-chip {
-  width: 22px;
-  height: 22px;
-  border-radius: 50%;
-  border: 1px solid color-mix(in oklab, var(--color-border), transparent 40%);
-  background: var(--brand, #2563eb);
+.color-link {
+  align-self: flex-start;
+  border: none;
+  background: transparent;
   padding: 0;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
+  font-size: 12px;
+  color: var(--brand, #2563eb);
+  text-decoration: underline;
   cursor: pointer;
 }
 
-.chip-outline {
-  width: 14px;
-  height: 14px;
-  border-radius: 50%;
-  border: 1px solid color-mix(in oklab, #000, transparent 90%);
-}
-
-.color-chip:focus-visible {
+.color-link:focus-visible {
   outline: 2px solid color-mix(in oklab, var(--brand, #2563eb), transparent 45%);
   outline-offset: 2px;
 }

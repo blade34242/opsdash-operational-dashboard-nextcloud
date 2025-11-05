@@ -92,5 +92,25 @@ function mergeIncomingTargetsConfig(
     })
   }
 
+  const prevCategories = Array.isArray(previous?.categories) ? previous.categories : []
+  const prevCategoryMap = new Map<string, any>()
+  prevCategories.forEach((cat: any) => {
+    const id = String(cat?.id ?? '')
+    if (id) prevCategoryMap.set(id, cat)
+  })
+  if (Array.isArray(raw.categories)) {
+    raw.categories = raw.categories.map((cat: any) => {
+      const id = String(cat?.id ?? '')
+      if (!id) return cat
+      const prev = prevCategoryMap.get(id)
+      if (prev && (cat?.color == null || cat.color === '')) {
+        if (typeof prev.color === 'string' && prev.color) {
+          cat.color = prev.color
+        }
+      }
+      return cat
+    })
+  }
+
   return normalizeTargetsConfig(raw as TargetsConfig)
 }

@@ -39,6 +39,11 @@
       </div>
       <div class="target-category" v-for="cat in categoryOptions" :key="cat.id">
         <div class="cat-header">
+          <span
+            class="cat-color-indicator"
+            :style="{ backgroundColor: resolvedColor(cat) }"
+            aria-hidden="true"
+          />
           <input
             class="cat-name"
             type="text"
@@ -91,21 +96,19 @@
           <span>Weekend</span>
         </label>
         <div class="field color-field">
-          <span class="label">Colour</span>
           <div
-            class="color-chip-wrapper"
+            class="color-trigger-wrapper"
             data-color-popover
             @click.stop
           >
             <button
               type="button"
-              class="color-chip"
-              :style="{ backgroundColor: resolvedColor(cat) }"
+              class="color-link"
               :aria-expanded="openColorId === cat.id"
-              :aria-label="`Choose colour for ${cat.label}`"
+              :aria-label="`Choose color for ${cat.label}`"
               @click="toggleColorPopover(cat.id)"
             >
-              <span class="chip-outline" />
+              Color
             </button>
             <div
               v-if="openColorId === cat.id"
@@ -114,7 +117,7 @@
               tabindex="-1"
               @keydown.esc.prevent="closeColorPopover()"
             >
-              <div class="swatch-grid" role="group" aria-label="Preset colours">
+              <div class="swatch-grid" role="group" aria-label="Preset colors">
                 <button
                   v-for="swatch in colorPalette"
                   :key="`${cat.id}-swatch-${swatch}`"
@@ -122,7 +125,7 @@
                   class="color-swatch"
                   :class="{ active: resolvedColor(cat) === swatch }"
                   :style="{ backgroundColor: swatch }"
-                  :aria-label="`Use colour ${swatch}`"
+                  :aria-label="`Use color ${swatch}`"
                   @click="applyColor(cat.id, swatch)"
                 />
               </div>
@@ -132,7 +135,7 @@
                   class="color-input"
                   type="color"
                   :value="resolvedColor(cat)"
-                  aria-label="Pick custom colour"
+                  aria-label="Pick custom color"
                   @input="onColorInput(cat.id, ($event.target as HTMLInputElement).value)"
                 />
               </label>
@@ -437,35 +440,47 @@ function applyColor(id: string, value: string) {
 </script>
 
 <style scoped>
-.color-chip-wrapper {
+.cat-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.cat-color-indicator {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  border: 1px solid color-mix(in oklab, var(--fg), transparent 80%);
+  flex-shrink: 0;
+}
+
+.cat-header .cat-name {
+  flex: 1;
+  padding: 6px 8px;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  background: color-mix(in oklab, var(--card), transparent 5%);
+  color: var(--fg);
+}
+
+.color-trigger-wrapper {
   position: relative;
   display: inline-flex;
   align-items: center;
 }
 
-.color-chip {
-  width: 18px !important;
-  height: 18px !important;
-  border-radius: 50%;
-  border: 1px solid color-mix(in oklab, var(--line), transparent 20%);
-  background: var(--brand, #2563eb);
+.color-link {
+  border: none;
+  background: transparent;
+  padding: 0;
+  font-size: 12px;
+  color: var(--brand, #2563eb);
+  text-decoration: underline;
   cursor: pointer;
-  padding: 0 !important;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  line-height: 1;
 }
 
-.color-chip .chip-outline {
-  width: 10px;
-  height: 10px;
-  border-radius: 50%;
-  border: 1px solid color-mix(in oklab, #000, transparent 90%);
-}
-
-.color-chip:focus-visible {
-  outline: 2px solid color-mix(in oklab, var(--brand, #2563eb), transparent 50%);
+.color-link:focus-visible {
+  outline: 2px solid color-mix(in oklab, var(--brand, #2563eb), transparent 40%);
   outline-offset: 2px;
 }
 

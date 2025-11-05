@@ -7,6 +7,7 @@ All notable changes to this project are documented here. This file is served loc
 - Refactor: Extracted the onboarding wizard state helper to `composables/useOnboardingWizard.ts` and wired `App.vue` to consume it, trimming local state duplication.
 - Fix: Restored onboarding colour palette popover behaviour by explicitly tracking `openColorId` in the wizard component.
 - Fix: Balance card note toggle now persists reliably—the client merges backend snapshots that omit newer `balance.ui.showNotes` keys so notes stay visible until the server schema catches up.
+- Fix: Target category colour overrides now persist after refresh—`/overview/persist` sanitises and stores `categories[].color`, echoing the chosen hex back to the SPA.
 - Feat: Theme preference now persists via `/overview/persist`; Config & Setup toggles and onboarding final tweaks keep the server, local storage, and DOM classes aligned.
 - UI: Polished the Config & Setup and Calendars panes (centered All/None buttons, refined range toggle styling, compact target colour chips, aligned info icons) and ensured tests supply the new theme props.
 - Fix: Category progress bars in the Targets card now clamp at 100% width so line charts never overflow into adjacent tabs.
