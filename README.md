@@ -43,10 +43,11 @@ License
 
 ## CI & Testing
 
-- GitHub Actions (`.github/workflows/ci.yml`) runs:
-  - `npm run test -- --run` (Vitest, JS unit/integration tests).
-  - `composer test` (PHPUnit).
-  - Playwright smoke test (`npm run test:e2e`) against a freshly booted `nextcloud:31-apache` container to ensure the SPA mounts without errors.
+- GitHub Actions (`.github/workflows/server-tests.yml`) mirrors the official Nextcloud pipeline:
+  - checkouts `nextcloud/server` (stable31) + this app under `apps/opsdash`.
+  - runs `npm ci`, `npm run build`, `npm run test -- --run`.
+  - installs Nextcloud via `occ maintenance:install`, enables the app, then runs `composer run test:unit`.
+  - launches a temporary PHP built-in server and executes the Playwright smoke test (`npm run test:e2e`) against `http://127.0.0.1:8080`.
 - `tools/ci/setup_nextcloud.sh` provisions the container (install, trusted domains, enable app) for local or CI runs.
 
 ## Automation helpers
