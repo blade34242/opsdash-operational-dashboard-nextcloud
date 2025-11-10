@@ -14,9 +14,12 @@ DIST_DIR="$REPO_DIR/dist"
 BUILD_DIR="$DIST_DIR/opsdash"
 
 cd "$REPO_DIR"
+export NPM_CONFIG_CACHE="$APP_DIR/.npm-cache"
+
+mkdir -p "$DIST_DIR"
 
 echo "[release] building frontend..."
-(cd "$APP_DIR" && npm install && npm run build)
+(cd "$APP_DIR" && npm ci && npm run build)
 
 rm -rf "$BUILD_DIR"
 mkdir -p "$BUILD_DIR"
@@ -24,7 +27,7 @@ mkdir -p "$BUILD_DIR"
 echo "[release] copying app files..."
 rsync -a --exclude 'node_modules' --exclude 'src' --exclude 'tests' --exclude 'tools' \
   --exclude '.git' --exclude '.github' --exclude '.idea' --exclude 'Dockerfile*' \
-  --exclude 'docker-compose*.yml' --exclude 'docs/PENTEST_*' \
+  --exclude 'docker-compose*.yml' --exclude 'docs/PENTEST_*' --exclude 'vendor' \
   "$APP_DIR/" "$BUILD_DIR/"
 
 echo "[release] installing composer deps in staged copy..."

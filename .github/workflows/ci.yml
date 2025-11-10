@@ -1,0 +1,98 @@
+name: CI
+
+on:
+  push:
+    branches:
+      - master
+      - 'release/**'
+  pull_request:
+
+jobs:
+  node-tests:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: opsdash
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+          cache-dependency-path: opsdash/package-lock.json
+      - run: npm ci
+      - run: npm run test -- --run
+
+  php-tests:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: opsdash
+    steps:
+      - uses: actions/checkout@v4
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.3'
+          coverage: none
+          extensions: mbstring, intl, gd
+      - run: composer install
+      - run: composer test
+
+  security:
+    runs-on: ubuntu-latest
+    needs: [node-tests, php-tests]
+    env:
+      OPSDASH_BASE: http://localhost:8088/index.php/apps/opsdash
+      OPSDASH_USER: admin
+      OPSDASH_PASS: admin
+    steps:
+      - uses: actions/checkout@v4
+      - name: Start Nextcloud container
+        run: |
+          docker run -d --name nc-ci -p 8088:80 \
+            -e SERVER_BRANCH=v31.0.8 \
+            -v "$PWD/opsdash:/var/www/html/apps-extra/opsdash" \
+            ghcr.io/juliusknorr/nextcloud-dev-php83:latest
+      - name: Wait for Nextcloud
+        run: |
+          for i in {1..60}; do
+            if curl -s --fail http://localhost:8088/index.php/login >/dev/null; then
+              exit 0
+            fi
+            sleep 5
+          done
+          echo "Nextcloud did not become ready" >&2
+          exit 1
+      - name: run curl checks
+        run: ./tools/security/run_curl_checks.sh
+      - name: run import fuzz
+        run: ./tools/security/import_fuzz.sh
+      - name: run notes csrf script
+        run: OPSDASH_BASE="http://localhost:8088" OPSDASH_APP_PATH="/index.php/apps/opsdash" OPSDASH_USER="$OPSDASH_USER" OPSDASH_PASS="$OPSDASH_PASS" ./opsdash/tools/security/run_notes_csrf.sh
+      - name: Cleanup
+        if: always()
+        run: docker rm -f nc-ci || true
+
+  package:
+    runs-on: ubuntu-latest
+    needs: [node-tests, php-tests, security]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.3'
+          coverage: none
+      - name: Determine version
+        id: version
+        run: echo "value=$(jq -r '.version' opsdash/package.json)" >> "$GITHUB_OUTPUT"
+      - name: Build package
+        run: opsdash/tools/release/package.sh ${{ steps.version.outputs.value }}
+      - uses: actions/upload-artifact@v4
+        with:
+          name: opsdash-${{ steps.version.outputs.value }}
+          path: |
+            dist/opsdash-${{ steps.version.outputs.value }}.tar.gz
+            dist/opsdash-${{ steps.version.outputs.value }}.zip
