@@ -52,6 +52,8 @@ after each milestone to reprioritise.
   - `useOcHttp`, `useAppMeta` (pending); onboarding wizard state helper covered in 0.4.4 (`test/useOnboardingWizard.test.ts`).
 - PHPUnit additions for `OverviewController` (`load`, `persist`, `presets*`)
   using fixture payloads to verify sanitisation and response shapes.
+- Playwright smoke tests log into NC, open Opsdash, and ensure the SPA mounts
+  without `[opsdash] Vue error` (baseline E2E coverage in CI).
 
 ## Phase 3 — Regression Workflow
 
