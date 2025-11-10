@@ -74,7 +74,7 @@ jobs:
       - name: Wait for Nextcloud
         run: |
           for i in {1..60}; do
-            if curl -s --fail http://localhost:8088/index.php/login >/dev/null; then
+            if curl -s -o /dev/null http://localhost:8088/; then
               exit 0
             fi
             sleep 5
