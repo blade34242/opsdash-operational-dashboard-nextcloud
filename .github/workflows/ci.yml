@@ -7,6 +7,9 @@ on:
       - 'release/**'
   pull_request:
 
+env:
+  NEXTCLOUD_IMAGE: ghcr.io/nextcloud/server:31-apache
+
 jobs:
   node-tests:
     runs-on: ubuntu-latest
@@ -50,13 +53,17 @@ jobs:
       - name: Start Nextcloud container
         run: |
           docker run -d --name nc-ci -p 8088:80 \
-            -e SERVER_BRANCH=v31.0.8 \
-            -v "$PWD/opsdash:/var/www/html/apps-extra/opsdash" \
-            ghcr.io/juliusknorr/nextcloud-dev-php83:latest
+            -e SQLITE_DATABASE=1 \
+            -e NEXTCLOUD_TRUSTED_DOMAINS=localhost \
+            -e NEXTCLOUD_ADMIN_USER=$OPSDASH_USER \
+            -e NEXTCLOUD_ADMIN_PASSWORD=$OPSDASH_PASS \
+            -e NEXTCLOUD_DATA_DIR=/var/www/html/data \
+            -v "$PWD/opsdash:/var/www/html/custom_apps/opsdash" \
+            $NEXTCLOUD_IMAGE
       - name: Wait for Nextcloud
         run: |
           for i in {1..60}; do
-            if curl -s --fail http://localhost:8088/index.php/login >/dev/null; then
+            if curl -s --fail http://localhost:8088/status.php | jq -e '.installed == true' >/dev/null; then
               exit 0
             fi
             sleep 5
@@ -98,13 +105,17 @@ jobs:
       - name: Start Nextcloud container
         run: |
           docker run -d --name nc-playwright -p 8088:80 \
-            -e SERVER_BRANCH=v31.0.8 \
-            -v "$PWD/opsdash:/var/www/html/apps-extra/opsdash" \
-            ghcr.io/juliusknorr/nextcloud-dev-php83:latest
+            -e SQLITE_DATABASE=1 \
+            -e NEXTCLOUD_TRUSTED_DOMAINS=localhost \
+            -e NEXTCLOUD_ADMIN_USER=$PLAYWRIGHT_USER \
+            -e NEXTCLOUD_ADMIN_PASSWORD=$PLAYWRIGHT_PASS \
+            -e NEXTCLOUD_DATA_DIR=/var/www/html/data \
+            -v "$PWD/opsdash:/var/www/html/custom_apps/opsdash" \
+            $NEXTCLOUD_IMAGE
       - name: Wait for Nextcloud
         run: |
           for i in {1..60}; do
-            if curl -s --fail http://localhost:8088/index.php/login >/dev/null; then
+            if curl -s --fail http://localhost:8088/status.php | jq -e '.installed == true' >/dev/null; then
               exit 0
             fi
             sleep 5
