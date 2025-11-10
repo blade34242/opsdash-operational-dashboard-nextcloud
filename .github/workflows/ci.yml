@@ -8,7 +8,7 @@ on:
   pull_request:
 
 env:
-  NEXTCLOUD_IMAGE: ghcr.io/nextcloud/server:31-apache
+  NEXTCLOUD_IMAGE: nextcloud:31-apache
 
 jobs:
   node-tests:
