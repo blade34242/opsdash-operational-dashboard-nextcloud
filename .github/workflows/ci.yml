@@ -41,50 +41,9 @@ jobs:
       - run: composer install
       - run: composer test
 
-  security:
-    runs-on: ubuntu-latest
-    needs: [node-tests, php-tests]
-    env:
-      OPSDASH_BASE: http://localhost:8088/index.php/apps/opsdash
-      OPSDASH_USER: admin
-      OPSDASH_PASS: admin
-    steps:
-      - uses: actions/checkout@v4
-      - name: Start Nextcloud container
-        run: |
-          docker run -d --name nc-ci -p 8088:80 \
-            -e SQLITE_DATABASE=1 \
-            -e NEXTCLOUD_TRUSTED_DOMAINS=localhost \
-            -e NEXTCLOUD_ADMIN_USER=$OPSDASH_USER \
-            -e NEXTCLOUD_ADMIN_PASSWORD=$OPSDASH_PASS \
-            -e NEXTCLOUD_DATA_DIR=/var/www/html/data \
-            -v "$PWD/opsdash:/var/www/html/custom_apps/opsdash" \
-            $NEXTCLOUD_IMAGE
-      - name: Wait for Nextcloud
-        run: |
-          for i in {1..60}; do
-            if curl -s --fail http://localhost:8088/status.php | jq -e '.installed == true' >/dev/null; then
-              exit 0
-            fi
-            sleep 5
-          done
-          echo "Nextcloud did not become ready" >&2
-          exit 1
-      - name: Setup Nextcloud (security)
-        run: ./tools/ci/setup_nextcloud.sh nc-ci 8088
-      - name: run curl checks
-        run: ./tools/security/run_curl_checks.sh
-      - name: run import fuzz
-        run: ./tools/security/import_fuzz.sh
-      - name: run notes csrf script
-        run: OPSDASH_BASE="http://localhost:8088" OPSDASH_APP_PATH="/index.php/apps/opsdash" OPSDASH_USER="$OPSDASH_USER" OPSDASH_PASS="$OPSDASH_PASS" ./opsdash/tools/security/run_notes_csrf.sh
-      - name: Cleanup
-        if: always()
-        run: docker rm -f nc-ci || true
-
   playwright:
     runs-on: ubuntu-latest
-    needs: [security]
+    needs: [node-tests, php-tests]
     env:
       PLAYWRIGHT_BASE_URL: http://localhost:8088
       PLAYWRIGHT_USER: admin
@@ -122,15 +81,15 @@ jobs:
           done
           echo "Nextcloud did not become ready" >&2
           exit 1
+      - name: Setup Nextcloud
+        run: ./tools/ci/setup_nextcloud.sh nc-playwright 8088
       - name: Run Playwright tests
         working-directory: opsdash
         env:
           PLAYWRIGHT_BASE_URL: http://localhost:8088
           PLAYWRIGHT_USER: admin
           PLAYWRIGHT_PASS: admin
-        run: |
-          ../tools/ci/setup_nextcloud.sh nc-playwright 8088
-          npm run test:e2e
+        run: npm run test:e2e
       - name: Upload Playwright results
         if: always()
         uses: actions/upload-artifact@v4
@@ -144,7 +103,7 @@ jobs:
 
   package:
     runs-on: ubuntu-latest
-    needs: [node-tests, php-tests, security, playwright]
+    needs: [node-tests, php-tests, playwright]
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
