@@ -5,6 +5,7 @@ import {
   normalizeTargetsConfig,
   type TargetsConfig,
 } from '../src/services/targets'
+import type { ThemePreference } from './useThemePreference'
 
 interface DashboardPersistenceDeps {
   route: (name: 'persist') => string
@@ -17,6 +18,7 @@ interface DashboardPersistenceDeps {
   targetsWeek: Ref<Record<string, number>>
   targetsMonth: Ref<Record<string, number>>
   targetsConfig: Ref<TargetsConfig>
+  themePreference?: Ref<ThemePreference>
 }
 
 export function useDashboardPersistence(deps: DashboardPersistenceDeps) {
@@ -32,13 +34,17 @@ export function useDashboardPersistence(deps: DashboardPersistenceDeps) {
       try {
         isSaving.value = true
         const previousConfig = cloneTargetsConfig(deps.targetsConfig.value)
-        const result = await deps.postJson(deps.route('persist'), {
+        const payload: Record<string, any> = {
           cals: deps.selected.value,
           groups: deps.groupsById.value,
           targets_week: deps.targetsWeek.value,
           targets_month: deps.targetsMonth.value,
           targets_config: previousConfig,
-        })
+        }
+        if (deps.themePreference) {
+          payload.theme_preference = deps.themePreference.value
+        }
+        const result = await deps.postJson(deps.route('persist'), payload)
 
         if (Array.isArray(result.read)) {
           deps.selected.value = result.read.map((id: any) => String(id))
@@ -51,6 +57,15 @@ export function useDashboardPersistence(deps: DashboardPersistenceDeps) {
         const nextConfig = mergeIncomingTargetsConfig(cfgRead ?? cfgSaved, previousConfig)
         if (nextConfig) {
           deps.targetsConfig.value = nextConfig
+        }
+
+        if (deps.themePreference) {
+          const nextTheme = normalizeThemePreference(
+            result.theme_preference_read ?? result.theme_preference_saved,
+          )
+          if (nextTheme) {
+            deps.themePreference.value = nextTheme
+          }
         }
 
         if (reload && deps.onReload) {
@@ -71,6 +86,13 @@ export function useDashboardPersistence(deps: DashboardPersistenceDeps) {
     queueSave,
     isSaving,
   }
+}
+
+function normalizeThemePreference(value: any): ThemePreference | null {
+  if (value === 'light' || value === 'dark' || value === 'auto') {
+    return value
+  }
+  return null
 }
 
 function mergeIncomingTargetsConfig(

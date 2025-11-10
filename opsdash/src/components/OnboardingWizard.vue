@@ -35,9 +35,25 @@
             <p>
               You already have a dashboard configuration. Saving a preset now keeps a backup before onboarding applies new values.
             </p>
-            <NcButton type="tertiary" size="small" @click="emit('save-current-config')">Save current setup as preset</NcButton>
+            <NcButton
+              type="tertiary"
+              size="small"
+              :disabled="snapshotSaving || saving"
+              :aria-busy="snapshotSaving"
+              @click="emit('save-current-config')"
+            >
+              Save current setup as preset
+            </NcButton>
           </div>
           <p class="hint">You can change configuration later from the Sidebar.</p>
+          <div
+            v-if="snapshotNotice"
+            class="snapshot-notice"
+            :class="`snapshot-notice--${snapshotNotice.type}`"
+            role="status"
+          >
+            {{ snapshotNotice.message }}
+          </div>
         </section>
 
         <section v-else-if="currentStep === 'preferences'" class="onboarding-step">
@@ -358,6 +374,8 @@ const props = defineProps<{
   initialAllDayHours?: number
   initialTotalHours?: number
   hasExistingConfig?: boolean
+  snapshotSaving?: boolean
+  snapshotNotice?: { type: 'success' | 'error'; message: string } | null
 }>()
 
 const emit = defineEmits<{
@@ -421,6 +439,8 @@ const currentStep = computed<StepId>(() => enabledSteps.value[Math.min(stepIndex
 const stepNumber = computed(() => stepIndex.value + 1)
 const totalSteps = computed(() => enabledSteps.value.length)
 const saving = computed(() => props.saving === true)
+const snapshotSaving = computed(() => props.snapshotSaving === true)
+const snapshotNotice = computed(() => props.snapshotNotice ?? null)
 
 const BODY_SCROLL_CLASS = 'opsdash-onboarding-lock'
 
@@ -901,6 +921,23 @@ function toggleCalendar(id: string, checkbox: HTMLInputElement) {
 .hint {
   color: var(--color-text-light);
   margin-top: 12px;
+}
+
+.snapshot-notice {
+  margin-top: 12px;
+  padding: 10px 12px;
+  border-radius: 8px;
+  font-size: 0.9rem;
+}
+
+.snapshot-notice--success {
+  background: color-mix(in srgb, #22c55e 15%, transparent);
+  color: #14532d;
+}
+
+.snapshot-notice--error {
+  background: color-mix(in srgb, #ef4444 15%, transparent);
+  color: #7f1d1d;
 }
 
 .strategy-grid {

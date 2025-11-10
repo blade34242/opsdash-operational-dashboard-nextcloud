@@ -10,6 +10,8 @@ function createPersistence(overrides: Partial<Parameters<typeof useDashboardPers
   const targetsWeek = ref<Record<string, number>>({})
   const targetsMonth = ref<Record<string, number>>({})
   const targetsConfig = ref(createDefaultTargetsConfig())
+  const themePreference =
+    overrides.themePreference ?? ref<'auto' | 'light' | 'dark'>('auto')
 
   const route = vi.fn<(name: 'persist') => string>().mockReturnValue('/persist')
   const postJson = vi.fn().mockResolvedValue({})
@@ -28,6 +30,7 @@ function createPersistence(overrides: Partial<Parameters<typeof useDashboardPers
     targetsWeek,
     targetsMonth,
     targetsConfig,
+    themePreference,
     ...overrides,
   })
 
@@ -42,6 +45,7 @@ function createPersistence(overrides: Partial<Parameters<typeof useDashboardPers
     targetsWeek,
     targetsMonth,
     targetsConfig,
+    themePreference,
     ...persistence,
   }
 }
@@ -153,5 +157,24 @@ describe('useDashboardPersistence', () => {
     expect(postJson).toHaveBeenCalledTimes(1)
     expect(targetsConfig.value.balance.ui.showNotes).toBe(true)
     expect(targetsConfig.value.balance.ui.showInsights).toBe(false)
+  })
+
+  it('persists theme preference when provided', async () => {
+    const postJson = vi.fn().mockResolvedValue({
+      theme_preference_read: 'dark',
+    })
+
+    const { queueSave, themePreference } = createPersistence({
+      postJson,
+      themePreference: ref<'auto' | 'light' | 'dark'>('light'),
+    })
+
+    queueSave(false)
+    await vi.runOnlyPendingTimersAsync()
+
+    expect(postJson).toHaveBeenCalledWith('/persist', expect.objectContaining({
+      theme_preference: 'light',
+    }))
+    expect(themePreference.value).toBe('dark')
   })
 })

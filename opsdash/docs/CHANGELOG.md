@@ -2,6 +2,15 @@
 
 All notable changes to this project are documented here. This file is served locally for development.
 
+## [0.4.5] - 2025-11-10 (NC 30–31 line)
+- Fix: theme persistence no longer spams duplicate `/persist` calls or desyncs when onboarding resets theme state; added `useThemeSync` composable to keep SPA + server in lockstep.
+- Fix: onboarding wizard orchestration now lives in `useOnboardingFlow`, eliminating the `ReferenceError: Cannot access 'J' before initialization` regression after the previous refactor.
+- Feat: Wizard snapshot button surfaces progress (disabled while saving) and inline notices so QA/support can confirm backups before applying onboarding changes.
+- Refactor: `App.vue` sheds the remaining onboarding/theme glue code, relying on composables that are fully unit-tested (new Vitest suites for `useThemeSync`, `useOnboardingFlow`, and the wizard component).
+- Fix: Sanitized preset names (strip HTML/path chars) so `/overview/presets/{name}` can never crash, and added curl automation (`tools/security/run_curl_checks.sh`) to cover clamps/auth/preset/notes endpoints.
+- Build: npm/composer suites extended to cover the new helpers; production bundle rebuilt.
+- Docs: Updated NEXT_STEPS, SIDEBAR_CONFIGURATION, TESTING_IMPROVEMENT_PLAN, PROD_READINESS, and ONBOARDING_WORKFLOW with the 0.4.5 work.
+
 ## [0.4.4] - 2025-11-04 (NC 30–31 line)
 - Fix: Config & Setup “Re-run onboarding” now uses the shared `createOnboardingWizardState` helper, ensuring the wizard remounts cleanly after every manual trigger and resetting internal flags.
 - Refactor: Extracted the onboarding wizard state helper to `composables/useOnboardingWizard.ts` and wired `App.vue` to consume it, trimming local state duplication.

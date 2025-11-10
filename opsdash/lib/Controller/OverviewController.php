@@ -236,6 +236,13 @@ final class OverviewController extends Controller {
         $entry = $presets[$decodedName];
         $storedPayload = is_array($entry['payload'] ?? null) ? $entry['payload'] : [];
 
+        $calendars = $this->getCalendarsFor($uid);
+        $allowedIds = [];
+        foreach ($calendars as $cal) {
+            $allowedIds[] = (string)($cal->getUri() ?? spl_object_id($cal));
+        }
+        $allowedSet = array_flip($allowedIds);
+
         $sanitized = $this->sanitizePresetPayload($storedPayload, $allowedSet, $allowedIds);
         $payload = $sanitized['payload'];
         $warnings = $sanitized['warnings'];
@@ -1907,6 +1914,11 @@ final class OverviewController extends Controller {
 
     private function sanitizePresetName(string $name): string {
         $clean = trim(preg_replace('/\s+/', ' ', $name) ?? '');
+        if ($clean === '') {
+            return '';
+        }
+        // Allow letters, numbers, space, dot, dash, underscore only; strip everything else
+        $clean = preg_replace('/[^A-Za-z0-9 _\-.]/u', '', $clean) ?? '';
         if ($clean === '') {
             return '';
         }

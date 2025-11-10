@@ -160,4 +160,20 @@ class OverviewControllerTest extends TestCase {
     $this->assertSame('full_granular', $filled['strategy']);
     $this->assertSame('2025-01-01T00:00:00Z', $filled['completed_at']);
   }
+
+  public function testSanitizePresetNameStripsUnsafeCharacters(): void {
+    $method = new \ReflectionMethod(OverviewController::class, 'sanitizePresetName');
+    $method->setAccessible(true);
+
+    $result = $method->invoke($this->controller, " ../Evil<script>/\\Name  ");
+    $this->assertSame('..EvilscriptName', $result);
+  }
+
+  public function testSanitizePresetNameReturnsEmptyWhenNothingAllowed(): void {
+    $method = new \ReflectionMethod(OverviewController::class, 'sanitizePresetName');
+    $method->setAccessible(true);
+
+    $result = $method->invoke($this->controller, "<><><>");
+    $this->assertSame('', $result);
+  }
 }

@@ -10,10 +10,12 @@
       :closable="!autoWizardNeeded"
       :initial-theme-preference="themePreference"
       :system-theme="systemTheme"
-      :initial-all-day-hours="targetsConfig.value?.allDayHours ?? 8"
-      :initial-total-hours="targetsConfig.value?.totalHours ?? 40"
+      :initial-all-day-hours="wizardInitialAllDayHours"
+      :initial-total-hours="wizardInitialTotalHours"
       :has-existing-config="hasExistingConfig"
       :saving="isOnboardingSaving"
+      :snapshot-saving="isWizardSnapshotSaving"
+      :snapshot-notice="wizardSnapshotNotice"
       @close="handleWizardClose"
       @skip="handleWizardSkip"
       @complete="handleWizardComplete"
@@ -288,7 +290,7 @@ import BalanceOverviewCard from './components/BalanceOverviewCard.vue'
 import Sidebar from './components/Sidebar.vue'
 import OnboardingWizard from './components/OnboardingWizard.vue'
 import { buildTargetsSummary, normalizeTargetsConfig, createEmptyTargetsSummary, createDefaultActivityCardConfig, createDefaultBalanceConfig, cloneTargetsConfig, convertWeekToMonth, type ActivityCardConfig, type BalanceConfig, type TargetsConfig } from './services/targets'
-import { ONBOARDING_VERSION, type StrategyDefinition, type CalendarSummary } from './services/onboarding'
+import { ONBOARDING_VERSION } from './services/onboarding'
 // Lightweight notifications without @nextcloud/dialogs
 function notifySuccess(msg: string){
   const w:any = window as any
@@ -316,7 +318,8 @@ import { useCategories } from '../composables/useCategories'
 import { useSummaries } from '../composables/useSummaries'
 import { useBalance } from '../composables/useBalance'
 import { useThemePreference, type ThemePreference } from '../composables/useThemePreference'
-import { createOnboardingWizardState } from '../composables/useOnboardingWizard'
+import { useThemeSync } from '../composables/useThemeSync'
+import { useOnboardingFlow } from '../composables/useOnboardingFlow'
 import { buildConfigEnvelope, sanitiseSidebarPayload } from './utils/sidebarConfig'
 // Ensure a visible version even if backend attrs are empty: use package.json as fallback
 // @ts-ignore
@@ -434,8 +437,6 @@ const {
   setThemePreference: applyThemePreference,
 } = useThemePreference()
 
-const hasExistingConfig = computed(() => Boolean(onboarding.value?.completed))
-
 const {
   calendars,
   colorsByName,
@@ -474,66 +475,16 @@ const {
 
 const onboardingState = onboarding
 const hasInitialLoad = ref(false)
-const isOnboardingSaving = ref(false)
-const {
-  autoWizardNeeded,
-  manualWizardOpen,
-  onboardingRunId,
-  onboardingWizardVisible,
-  openWizardFromSidebar,
-} = createOnboardingWizardState()
 
-const normalizeThemePreference = (value: unknown): ThemePreference => {
-  if (value === 'light' || value === 'dark') {
-    return value
-  }
-  return 'auto'
-}
-
-let syncingThemeFromServer = false
-let themePersistTimer: ReturnType<typeof setTimeout> | null = null
-let lastPersistedTheme: ThemePreference = normalizeThemePreference(dashboardThemePreference.value)
-
-watch(dashboardThemePreference, (value) => {
-  const normalized = normalizeThemePreference(value)
-  lastPersistedTheme = normalized
-  if (themePreference.value === normalized) {
-    return
-  }
-  syncingThemeFromServer = true
-  applyThemePreference(normalized)
-  syncingThemeFromServer = false
+const { setThemePreference } = useThemeSync({
+  serverPreference: dashboardThemePreference,
+  localPreference: themePreference,
+  applyLocalPreference: applyThemePreference,
+  route: (name) => route(name),
+  postJson,
+  notifySuccess,
+  notifyError,
 })
-
-function scheduleThemePersist(value: ThemePreference) {
-  if (syncingThemeFromServer) return
-  if (value === lastPersistedTheme) return
-  if (themePersistTimer) {
-    clearTimeout(themePersistTimer)
-  }
-  themePersistTimer = setTimeout(async () => {
-    themePersistTimer = null
-    try {
-      await postJson(route('persist'), {
-        theme_preference: value,
-      })
-      lastPersistedTheme = value
-      notifySuccess('Theme preference saved')
-    } catch (error) {
-      console.error(error)
-      notifyError('Failed to save theme preference')
-    }
-  }, 250)
-}
-
-function setThemePreference(value: ThemePreference, options?: { persist?: boolean }) {
-  const normalized = normalizeThemePreference(value)
-  applyThemePreference(normalized)
-  if (options?.persist === false) {
-    return
-  }
-  scheduleThemePersist(normalized)
-}
 
 function collectSidebarPayload() {
   const payload: Record<string, any> = {
@@ -641,44 +592,6 @@ async function importSidebarConfig(file: File) {
   }
 }
 
-function shouldRequireOnboarding(state: OnboardingState | null): boolean {
-  if (!state) return true
-  const required = state.version_required ?? ONBOARDING_VERSION
-  if (!state.completed) return true
-  if ((state.version ?? 0) < required) return true
-  return false
-}
-
-function evaluateOnboarding(state?: OnboardingState | null) {
-  const next = state ?? onboardingState.value
-  if (!hasInitialLoad.value && !next) return
-  const needs = shouldRequireOnboarding(next)
-  autoWizardNeeded.value = needs || !!next?.resetRequested
-  if (next?.resetRequested) {
-    manualWizardOpen.value = true
-  }
-}
-
-const wizardCalendars = computed<CalendarSummary[]>(() =>
-  (calendars.value || [])
-    .map((cal: any) => ({
-      id: String(cal?.id ?? ''),
-      displayname: String(cal?.displayname ?? cal?.name ?? cal?.id ?? ''),
-      color: typeof cal?.color === 'string' ? cal.color : '',
-    }))
-    .filter((cal) => cal.id),
-)
-
-const wizardInitialSelection = computed(() => [...selected.value])
-const wizardInitialStrategy = computed<StrategyDefinition['id']>(
-  () => (onboardingState.value?.strategy as StrategyDefinition['id']) ?? 'total_only',
-)
-const performLoad = async () => {
-  await load()
-  hasInitialLoad.value = true
-  evaluateOnboarding()
-}
-
 const { queueSave } = useDashboardPersistence({
   route: (name) => route(name),
   postJson,
@@ -690,6 +603,7 @@ const { queueSave } = useDashboardPersistence({
   targetsWeek,
   targetsMonth,
   targetsConfig,
+  themePreference: dashboardThemePreference,
 })
 
 const {
@@ -737,6 +651,49 @@ const {
   targetsConfig,
   userChangedSelection,
 })
+
+const {
+  autoWizardNeeded,
+  manualWizardOpen,
+  onboardingRunId,
+  onboardingWizardVisible,
+  openWizardFromSidebar,
+  hasExistingConfig,
+  wizardCalendars,
+  wizardInitialSelection,
+  wizardInitialStrategy,
+  wizardInitialAllDayHours,
+  wizardInitialTotalHours,
+  isOnboardingSaving,
+  isSnapshotSaving: isWizardSnapshotSaving,
+  snapshotNotice: wizardSnapshotNotice,
+  evaluateOnboarding,
+  handleWizardComplete,
+  handleWizardSkip,
+  handleWizardClose,
+  handleWizardSaveSnapshot,
+} = useOnboardingFlow({
+  onboardingState,
+  calendars,
+  selected,
+  targetsConfig,
+  hasInitialLoad,
+  route: (name) => route(name),
+  postJson,
+  notifySuccess,
+  notifyError,
+  setThemePreference,
+  savePreset,
+  reloadAfterPersist: () => performLoad(),
+})
+
+async function performLoad() {
+  await load()
+  if (!hasInitialLoad.value) {
+    hasInitialLoad.value = true
+  }
+  evaluateOnboarding()
+}
 
 const activeDayMode = ref<'active'|'all'>('active')
 const rangeLabel = computed(()=> range.value === 'month' ? 'Month' : 'Week')
@@ -922,81 +879,6 @@ watch(onboardingState, (state) => {
   evaluateOnboarding(state)
 })
 
-async function handleWizardComplete(payload: {
-  strategy: StrategyDefinition['id']
-  selected: string[]
-  targetsConfig: TargetsConfig
-  groups: Record<string, number>
-  targetsWeek: Record<string, number>
-  targetsMonth: Record<string, number>
-  themePreference: 'auto' | 'light' | 'dark'
-}) {
-  try {
-    isOnboardingSaving.value = true
-    setThemePreference(payload.themePreference, { persist: false })
-    await postJson(route('persist'), {
-      cals: payload.selected,
-      groups: payload.groups,
-      targets_week: payload.targetsWeek,
-      targets_month: payload.targetsMonth,
-      targets_config: payload.targetsConfig,
-      theme_preference: payload.themePreference,
-      onboarding: {
-        completed: true,
-        version: ONBOARDING_VERSION,
-        strategy: payload.strategy,
-        completed_at: new Date().toISOString(),
-      },
-    })
-    lastPersistedTheme = normalizeThemePreference(payload.themePreference)
-    manualWizardOpen.value = false
-    await performLoad()
-    notifySuccess('Onboarding saved')
-  } catch (error) {
-    console.error(error)
-    notifyError('Failed to save onboarding')
-  } finally {
-    isOnboardingSaving.value = false
-  }
-}
-
-async function handleWizardSaveSnapshot() {
-  try {
-    const stamp = new Date()
-    const name = `Before onboarding ${stamp.toISOString().slice(0, 16).replace('T', ' ')}`
-    await savePreset(name)
-  } catch (error) {
-    console.error('[opsdash] preset backup failed', error)
-  }
-}
-
-async function handleWizardSkip() {
-  try {
-    isOnboardingSaving.value = true
-    await postJson(route('persist'), {
-      onboarding: {
-        completed: true,
-        version: ONBOARDING_VERSION,
-        strategy: onboardingState.value?.strategy ?? 'total_only',
-        completed_at: new Date().toISOString(),
-      },
-    })
-    manualWizardOpen.value = false
-    autoWizardNeeded.value = false
-    await performLoad()
-    notifySuccess('You can revisit onboarding from the Targets tab any time.')
-  } catch (error) {
-    console.error(error)
-    notifyError('Failed to update onboarding state')
-  } finally {
-    isOnboardingSaving.value = false
-  }
-}
-
-function handleWizardClose() {
-  if (autoWizardNeeded.value) return
-  manualWizardOpen.value = false
-}
 
 onMounted(async () => {
   console.info('[opsdash] start')

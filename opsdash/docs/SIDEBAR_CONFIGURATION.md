@@ -172,7 +172,7 @@ All sidebar state can be represented as a single JSON envelope:
 
 | Field | Description |
 | ----- | ----------- |
-| `theme_preference` | Stored alongside other payload keys. Valid values: `auto`, `light`, `dark`. |
+| `theme_preference` | Stored alongside other payload keys. Valid values: `auto`, `light`, `dark` (persisted via `/persist` since 0.4.4, refined in 0.4.5). |
 | Presets | Saved separately under the presets store (full snapshot of `payload`). |
 
 Transient fields (profile input, preset form state) remain local and are cleared after save.

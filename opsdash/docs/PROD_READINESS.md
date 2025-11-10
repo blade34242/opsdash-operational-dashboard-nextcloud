@@ -1,4 +1,4 @@
-# Production Readiness — opsdash 0.4.4
+# Production Readiness — opsdash 0.4.5
 
 Target platform: Nextcloud 30–31 (per `appinfo/info.xml`).
 

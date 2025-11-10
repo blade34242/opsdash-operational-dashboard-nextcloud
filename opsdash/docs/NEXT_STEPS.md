@@ -28,11 +28,11 @@ Living backlog for hardening and extending the Operational Dashboard.
 - Remove the legacy `/overview/save` endpoint once consumers confirm the `/persist` JSON shape. — ✅ removed in favour of `/persist` (2025-03).
 - Establish shared client/server validation helpers and inline feedback per `docs/INPUT_VALIDATION_PLAN.md`. — ✅ numeric inputs funnel through shared helpers on client/server (2025-03); structured 400 responses + localisation delivered (2025-11); keep translation files updated alongside feature work.
 - Implement unified testing strategy (`docs/TESTING_STRATEGY.md`): add PHPUnit service/controller tests and Vitest component/composable coverage. — ✅ baseline suites for validators, controller sanitisation, dashboard tabs/pacing/charts now in place; plan coverage for keyboard shortcuts & charts in render mode.
-- ✅ Persist theme overrides via `/persist` (0.4.4); Vitest now covers `useThemePreference`, so auto/override storage updates stay guarded while charts continue respecting calendar colours.
+- ✅ Persist theme overrides via `/persist` (0.4.4 → polished in 0.4.5); Vitest now covers `useThemePreference`/`useThemeSync`, so auto/override storage updates stay guarded while charts continue respecting calendar colours.
 - Follow-up: teach the `/overview/persist` response to always echo `balance.ui` flags (including `showNotes`) so the client-side merge fallback added in 0.4.4 can be simplified.
 
 ## P1 — Frontend Structure
-- Extract remaining logic from `App.vue` into composables (onboarding boot + strategy queue coming next).
+- Extract remaining logic from `App.vue` into composables (theme/onboarding already extracted in 0.4.5; range toolbar + export/import helpers next).
 - Execute testing improvement roadmap (see `docs/TESTING_IMPROVEMENT_PLAN.md`): start with Phase 1 audit/fixtures, then integration harness + CI workflow.
 - Consolidate chart drawing helpers under `src/services/charts.ts` with explicit typing.
 - Add component tests for chart color mapping, status chips, and tab focus/keyboard behaviour. — ✅ initial chart + pane coverage added (2025-10); extend to keyboard shortcuts.

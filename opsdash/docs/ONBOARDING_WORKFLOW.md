@@ -102,3 +102,4 @@ needed to guide new users toward a useful initial configuration.
 - Implement onboarding modal wizard (Vue component).
 - Add persistence keys and server migration for onboarding flag.
 - QA across desktop/mobile, light/dark themes (see theming spec).
+- Track theme/onboarding refactors landed in 0.4.5 release.

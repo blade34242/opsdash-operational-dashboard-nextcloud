@@ -16,16 +16,17 @@ npm run build
 - Verify: `js/.vite/manifest.json` exists; controller resolves entry via manifest.
 
 2) Stage a clean app directory (exclude dev files)
+
+Run the release helper from repo root:
 ```
-mkdir -p dist
-rsync -a --delete \
-  --exclude '.git' --exclude '.github' --exclude 'node_modules' \
-  --exclude 'src' --exclude 'tools' --exclude 'test' --exclude 'backup' \
-  --exclude 'docs' --exclude 'vite.config.ts' --exclude 'tsconfig*.json' \
-  --exclude 'package*.json' \
-  opsdash/ dist/opsdash
+./tools/release/package.sh <version>
 ```
-- Ensure dist tree matches `docs/DIRECTORY_STRUCTURE.md`.
+This script will:
+- Run `npm ci && npm run build` if needed.
+- Run `composer install --no-dev --optimize-autoloader`.
+- Copy `opsdash/` into `dist/opsdash` and remove dev-only folders (`node_modules`,
+  `src`, `tests`, `tools`, docker files, docs marked dev-only).
+- Produce `dist/opsdash-<version>.tar.gz` and `dist/opsdash-<version>.zip`.
 
 3) Sign the app
 ```

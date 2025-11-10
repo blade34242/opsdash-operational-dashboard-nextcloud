@@ -15,12 +15,12 @@ after each milestone to reprioritise.
 - Document assumptions about OC globals (`window.OC.generateUrl`,
   `oc_requesttoken`) to standardise mocking in tests.
 
-### Coverage snapshot (2025-10-27)
+### Coverage snapshot (2025-11-10)
 - **Covered (unit)**: `useDashboard`, `useDashboardSelection`, `useDashboardPersistence`
   (now guarding schema gaps such as `balance.ui.showNotes`), `useDashboardPresets`,
   `useCalendarLinks`, `useCharts`, sidebar pane components,
   preset/targets/pace helpers, validators, onboarding wizard state helper.
-- **Not yet covered**: `useOcHttp`, `useAppMeta`, App.vue orchestration,
+- **Not yet covered**: `useOcHttp`, `useAppMeta`, App.vue orchestration (remaining range toolbar/export helpers),
   onboarding workflow (planned), DAV fallback error states, PHP
   `OverviewController` load/persist logic.
 - **Next action**: Add quick Vitest suites for `useOcHttp`/`useAppMeta` when
