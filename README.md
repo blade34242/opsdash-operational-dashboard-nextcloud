@@ -28,7 +28,7 @@ Compatibility
 - 0.5.x → Nextcloud 32 (Calendar 6.0.x for local dev; later widen to 33)
 
 Install (dev)
-1) Place the app folder in your Nextcloud apps path (e.g., `/var/www/html/apps-extra/opsdash`).
+1) Place the app folder in your Nextcloud apps path (e.g., `/var/www/html/custom_apps/opsdash` on the official Docker images or `/var/www/html/apps-extra/opsdash` on legacy setups).
 2) Build assets: `npm ci && npm run build` inside the app folder.
 3) Enable via `occ app:enable opsdash` and open from the navigation.
 4) For demo data, install Calendar and run the seeding scripts (see docs).
@@ -40,3 +40,16 @@ Release overview
 
 License
 - AGPL‑3.0‑or‑later
+
+## CI & Testing
+
+- GitHub Actions (`.github/workflows/ci.yml`) runs:
+  - `npm run test -- --run` (Vitest, JS unit/integration tests).
+  - `composer test` (PHPUnit).
+  - Playwright smoke test (`npm run test:e2e`) against a freshly booted `nextcloud:31-apache` container to ensure the SPA mounts without errors.
+- `tools/ci/setup_nextcloud.sh` provisions the container (install, trusted domains, enable app) for local or CI runs.
+
+## Automation helpers
+
+- Security scripts (`tools/security/run_curl_checks.sh`, `import_fuzz.sh`, `opsdash/tools/security/run_notes_csrf.sh`) are **manual** white-box checks; run them locally when you need the pentest coverage.
+- Packaging helper (`opsdash/tools/release/package.sh`) builds clean `tar.gz`/`zip` artifacts for App Store submissions.

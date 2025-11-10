@@ -26,3 +26,8 @@ This checklist ensures changes show up reliably in a Nextcloud dev container.
 - JS: `GET /apps-extra/opsdash/js/assets/<manifest file>` → 200 (match the filename from `js/.vite/manifest.json`)
 - Route: `GET /index.php/apps/opsdash/overview` (after login)
 - Ping: `GET /index.php/apps/opsdash/overview/ping` (shows version)
+
+## Playwright smoke test
+- Install browsers once: `npx playwright install --with-deps chromium`.
+- Export the base URL (defaults to `http://localhost:8088`): `PLAYWRIGHT_BASE_URL=http://localhost:8088 npm run test:e2e`.
+- The test (`tests/e2e/dashboard.spec.ts`) asserts that the dashboard mounts without `[opsdash] Vue error` in the console. The CI workflow runs the same command against a `nextcloud:31-apache` container (see `tools/ci/setup_nextcloud.sh`).
