@@ -4,12 +4,6 @@
 
 Opsdash turns raw calendar data into actionable week/month insights inside Nextcloud. It ships as a privacy-preserving app (no telemetry, user-scoped config storage) and targets the NC 31 line today while we stage NC 32 support.
 
-## Screenshots
-
-| Week view (cards + charts) | Month view (targets + balance) |
-| --- | --- |
-| ![Week view](opsdash/docs/img/dashboard-week.png) | ![Month view](opsdash/docs/img/dashboard-month.png) |
-
 ## Feature Highlights
 - **Dedicated SPA** powered by Vue 3 + Vite: fast navigation, collapsible sidebar, onboarding wizard, and dark/light auto theme.
 - **Targets + pacing**: per-calendar weekly/monthly targets, Δ, badges, pace hints, and forecast overlay (linear vs. calendar/category modes).
@@ -25,10 +19,10 @@ Opsdash turns raw calendar data into actionable week/month insights inside Nextc
 | `release/0.4.x` | NC 31 | 0.4.x | Cut from `master` for App Store submissions (e.g., `release/0.4.5`). |
 | *(staged)* | NC 32 | 0.5.x | Matrix entries exist in `.github/ci-matrix.json` but stay disabled until `info.xml` widens. |
 
-See `opsdash/docs/BRANCHING.md` for the full branching + release plan.
+Detailed branching/roadmap docs now live in our private knowledge base; the repo stays focused on runtime code + this README.
 
 ## Local Development
-1. **Bootstrap Nextcloud**: use the provided docker-compose files (`docker-compose31.yml` or `docker-compose.yml`) or follow `opsdash/docs/DEV_WORKFLOW.md` to mount the app under `custom_apps/opsdash`.
+1. **Bootstrap Nextcloud**: use the provided docker-compose files (`docker-compose31.yml` or `docker-compose.yml`) to mount the app under `custom_apps/opsdash`.
 2. **Install deps & build**:
    ```bash
    cd opsdash
@@ -53,20 +47,10 @@ See `opsdash/docs/BRANCHING.md` for the full branching + release plan.
   - Additional helpers (`tools/security/import_fuzz.sh`, `tools/security/preset_roundtrip.sh`, `opsdash/tools/security/run_notes_csrf.sh`) cover config import/export, preset roundtrips, and notes CSRF scenarios.
 
 ## Security & Pentest Workflow
-- Pentest plan/log: `opsdash/docs/PENTEST_PLAN.md`, `opsdash/docs/PENTEST_LOG.md` (updated 2025‑11‑10 with DevTools, preset roundtrip, and notes CSRF automation evidence).
-- Follow `docs/INTEGRATION_TESTING.md` to spin up a reproducible Nextcloud server, seed calendars via OCC, and capture curl payloads.
-- Manual scripts stay out of CI; run them before tagging releases to keep white-box coverage fresh.
-- Server hardening tips and CSP references live in `opsdash/docs/SECURITY.md` & `opsdash/docs/OPERATIONS.md`.
-
-## Documentation Map
-- **Architecture & APIs**: `opsdash/docs/ARCHITECTURE.md`, `opsdash/docs/API.md`, `opsdash/docs/DIRECTORY_STRUCTURE.md`.
-- **Dev workflow**: `opsdash/docs/DEV_WORKFLOW.md`, `opsdash/docs/CALENDAR_DEV_SETUP.md`, `opsdash/docs/CONFIGURATION.md`.
-- **Testing roadmap**: `opsdash/docs/TESTING_STRATEGY.md`, `opsdash/docs/TESTING_IMPROVEMENT_PLAN.md`, `opsdash/docs/NEXT_STEPS.md`.
-- **Security/pentest**: `opsdash/docs/SECURITY.md`, `opsdash/docs/PENTEST_PLAN.md`, `opsdash/docs/PENTEST_LOG.md`.
-- **Release/packaging**: `opsdash/docs/PACKAGING.md`, `opsdash/docs/APP_STORE_PUBLISHING.md`, `opsdash/docs/PUBLISHING_CHECKLIST.md`, `opsdash/docs/RELEASE.md`.
+- Pentest plan/log, integration instructions, and security hardening guides remain in the internal docs portal. Public repo keeps only the automation scripts under `tools/security/`.
 
 ## Release Workflow
-1. Bump versions (`opsdash/VERSION`, `appinfo/info.xml`, `package.json`) and update `opsdash/docs/CHANGELOG.md`.
+1. Bump versions (`opsdash/VERSION`, `appinfo/info.xml`, `package.json`) and update the private changelog.
 2. Run the full test suite + security scripts.
 3. `make appstore VERSION=<x.y.z>` → copies a clean app tree into `build/`, runs `npm ci && npm run build` and `composer install --no-dev`, strips dev files, and produces `build/opsdash-<x.y.z>.tar.gz`.
 4. Sign the tarball via `occ integrity:sign-app` once your App Store certificate is available (the `Makefile` echoes the command to use).

@@ -19,3 +19,5 @@ opsdash/node_modules/
 opsdash/.vite/
 opsdash/dist/
 build/
+docs-private/
+docker-compose*.yml
