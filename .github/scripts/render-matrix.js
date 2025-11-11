@@ -2,5 +2,8 @@ const { readFileSync } = require('fs');
 
 const file = '.github/ci-matrix.json';
 const entries = JSON.parse(readFileSync(file, 'utf8'));
-const enabled = entries.filter((entry) => entry.enabled);
-process.stdout.write(JSON.stringify(enabled));
+const include = entries
+  .filter((entry) => entry.enabled)
+  .map(({ nextcloud_branch, php_version }) => ({ nextcloud_branch, php_version }));
+
+process.stdout.write(JSON.stringify({ include }));
