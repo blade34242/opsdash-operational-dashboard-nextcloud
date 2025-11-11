@@ -176,4 +176,30 @@ class OverviewControllerTest extends TestCase {
     $result = $method->invoke($this->controller, "<><><>");
     $this->assertSame('', $result);
   }
+
+  public function testPresetExportFixtureSanitisesWithoutWarnings(): void {
+    $method = new \ReflectionMethod(OverviewController::class, 'sanitizePresetPayload');
+    $method->setAccessible(true);
+
+    $fixturePath = dirname(__DIR__, 3) . '/test/fixtures/preset-export.json';
+    $fixture = json_decode((string)file_get_contents($fixturePath), true, 512, JSON_THROW_ON_ERROR);
+    $payload = $fixture['payload'] ?? [];
+
+    $controllerPayload = [
+      'selected' => array_map('strval', $payload['cals'] ?? []),
+      'groups' => $payload['groups'] ?? [],
+      'targets_week' => $payload['targets_week'] ?? [],
+      'targets_month' => $payload['targets_month'] ?? [],
+      'targets_config' => $payload['targets_config'] ?? [],
+    ];
+    $allowedIds = $controllerPayload['selected'];
+    $result = $method->invoke($this->controller, $controllerPayload, array_flip($allowedIds), $allowedIds);
+
+    $this->assertSame($allowedIds, $result['payload']['selected']);
+    $this->assertSame($controllerPayload['groups'], $result['payload']['groups']);
+    $this->assertEquals($controllerPayload['targets_week'], $result['payload']['targets_week']);
+    $this->assertEquals($controllerPayload['targets_month'], $result['payload']['targets_month']);
+    $this->assertEquals($controllerPayload['targets_config']['totalHours'], $result['payload']['targets_config']['totalHours']);
+    $this->assertSame([], $result['warnings'], 'Fixture should import without warnings when calendars match.');
+  }
 }

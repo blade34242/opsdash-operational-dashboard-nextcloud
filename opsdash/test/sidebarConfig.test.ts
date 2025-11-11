@@ -1,6 +1,7 @@
 import { describe, it, expect } from 'vitest'
 import { sanitiseSidebarPayload, ALLOWED_CONFIG_KEYS } from '../src/utils/sidebarConfig'
 import presetFixture from './fixtures/preset-export.json'
+import onboardingFixture from './fixtures/onboarding-export.json'
 
 describe('sidebar config sanitiser', () => {
   it('keeps only allowed keys', () => {
@@ -34,5 +35,15 @@ describe('sidebar config sanitiser', () => {
     expect(cleaned.cals).toHaveLength(2)
     expect(cleaned.theme_preference).toBe('dark')
     expect(cleaned.targets_config?.totalHours).toBe(20)
+  })
+
+  it('preserves onboarding snapshot from export envelope', () => {
+    const { cleaned, ignored } = sanitiseSidebarPayload(onboardingFixture.payload)
+    expect(ignored).toEqual([])
+    expect(cleaned.cals).toHaveLength(3)
+    expect(cleaned.theme_preference).toBe('dark')
+    expect(cleaned.onboarding?.completed).toBe(true)
+    expect(cleaned.onboarding?.strategy).toBe('total_plus_categories')
+    expect(cleaned.targets_config?.categories).toHaveLength(3)
   })
 })

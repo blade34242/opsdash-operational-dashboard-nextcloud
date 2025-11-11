@@ -9,6 +9,7 @@ All notable changes to this project will be documented in this file.
 - Security automation scripts (`tools/security/run_curl_checks.sh`, `import_fuzz.sh`, `preset_roundtrip.sh`, `opsdash/tools/security/run_notes_csrf.sh`).
 - `make appstore` target for reproducible packaging + signing.
 - `tools/security/rerun_onboarding.sh` to replay the wizard payload (strategy/theme/targets) via `/overview/persist`.
+- Fixture-backed tests that replay the Config & Setup export: Vitest simulates preset import and PHPUnit verifies the controller’s sanitiser accepts the same payload without warnings.
 
 ### Changed
 - README simplified for end users; screenshots moved under `img/`.
