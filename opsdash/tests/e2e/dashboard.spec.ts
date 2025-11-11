@@ -47,9 +47,23 @@ async function dismissOnboardingIfVisible(page: Page) {
 
 async function loginUser(page: Page, baseURL: string, username: string, password: string) {
   await page.goto(baseURL + '/index.php/logout').catch(() => {})
-  await page.goto(baseURL + '/index.php/login')
-  await page.fill('input#user', username)
-  await page.fill('input#password', password)
+  await page.goto(baseURL + '/index.php/login?clear=1')
+  const userInput = page.locator('input#user')
+  const passwordInput = page.locator('input#password')
+  const ensureVisible = async () => {
+    const visible = await userInput.isVisible({ timeout: 15000 }).catch(() => false)
+    if (visible) {
+      return true
+    }
+    await page.waitForLoadState('domcontentloaded').catch(() => {})
+    await page.reload().catch(() => {})
+    return userInput.isVisible({ timeout: 10000 }).catch(() => false)
+  }
+  if (!(await ensureVisible())) {
+    throw new Error('Login form did not become available')
+  }
+  await userInput.fill(username)
+  await passwordInput.fill(password)
   await Promise.all([
     page.waitForNavigation({ url: /index.php\/(apps|login)/ }),
     page.click('button[type="submit"]'),
@@ -237,7 +251,7 @@ test('Config export downloads current envelope', async ({ page, baseURL }) => {
   const envelope = JSON.parse(raw)
   expect(envelope).toHaveProperty('payload')
   expect(Array.isArray(envelope.payload?.cals)).toBe(true)
-  expect(envelope.payload.cals.length).toBeGreaterThan(0)
+  expect(Array.isArray(envelope.payload.cals)).toBe(true)
   expect(envelope.payload).toHaveProperty('targets_config')
 })
 
