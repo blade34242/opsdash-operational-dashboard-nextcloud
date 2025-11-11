@@ -3,6 +3,7 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 
 import { useDashboardPersistence } from '../composables/useDashboardPersistence'
 import { createDefaultTargetsConfig } from '../src/services/targets'
+import persistFixture from './fixtures/persist-response.json'
 
 function createPersistence(overrides: Partial<Parameters<typeof useDashboardPersistence>[0]> = {}) {
   const selected = ref<string[]>([])
@@ -176,5 +177,27 @@ describe('useDashboardPersistence', () => {
       theme_preference: 'light',
     }))
     expect(themePreference.value).toBe('dark')
+  })
+
+  it('replays persist response fixture without dropping UI flags', async () => {
+    const postJson = vi.fn().mockResolvedValue(persistFixture)
+    const themePref = ref<'auto' | 'light' | 'dark'>('auto')
+
+    const { queueSave, selected, targetsConfig, themePreference } = createPersistence({
+      postJson,
+      themePreference: themePref,
+    })
+
+    targetsConfig.value.balance.ui.showNotes = true
+
+    queueSave(false)
+    await vi.runOnlyPendingTimersAsync()
+
+    expect(selected.value).toEqual(persistFixture.saved)
+    expect(themePreference.value).toBe('dark')
+    expect(targetsConfig.value.categories).toHaveLength(
+      persistFixture.targets_config_read.categories.length,
+    )
+    expect(targetsConfig.value.balance.ui.showNotes).toBe(true)
   })
 })

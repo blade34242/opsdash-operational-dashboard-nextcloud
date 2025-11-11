@@ -227,4 +227,11 @@ describe('Dashboard integration fixtures', () => {
     expect(harness.dashboard.to.value).toBe('2025-11-30')
     expect(Array.isArray(harness.dashboard.byDay.value)).toBe(true)
   })
+
+  it('handles month fixtures with multiple calendars selected', async () => {
+    vi.setSystemTime(new Date('2025-10-15T12:00:00Z'))
+    const harness = await createIntegrationHarness({ range: 'month', fixture: 'load-month-multiuser.json', offset: 0 })
+    expect(harness.dashboard.selected.value).toEqual(['personal', 'opsdash-focus'])
+    expect(harness.currentTargets.value['opsdash-focus']).toBeGreaterThan(0)
+  })
 })

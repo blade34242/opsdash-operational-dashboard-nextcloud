@@ -212,4 +212,22 @@ class OverviewControllerTest extends TestCase {
     $this->assertArrayHasKey('byCal', $fixture);
     $this->assertArrayHasKey('stats', $fixture);
   }
+
+  public function testMonthMultiuserFixtureStructure(): void {
+    $fixturePath = dirname(__DIR__, 3) . '/test/fixtures/load-month-multiuser.json';
+    $fixture = json_decode((string)file_get_contents($fixturePath), true, 512, JSON_THROW_ON_ERROR);
+    $this->assertSame(['personal', 'opsdash-focus'], $fixture['selected']);
+    $this->assertSame('2025-10-01', $fixture['meta']['from']);
+    $this->assertSame('2025-10-31', $fixture['meta']['to']);
+    $this->assertArrayHasKey('targets', $fixture);
+  }
+
+  public function testPersistResponseFixtureStructure(): void {
+    $fixturePath = dirname(__DIR__, 3) . '/test/fixtures/persist-response.json';
+    $fixture = json_decode((string)file_get_contents($fixturePath), true, 512, JSON_THROW_ON_ERROR);
+    $this->assertTrue($fixture['ok']);
+    $this->assertSame(['personal', 'opsdash-focus'], $fixture['saved']);
+    $this->assertSame('dark', $fixture['theme_preference_read']);
+    $this->assertArrayHasKey('targets_config_read', $fixture);
+  }
 }
