@@ -47,22 +47,6 @@ cd opsdash && npm ci && npm run build && composer install
 npm run test -- --run
 composer run test:unit
 
-# Playwright smoke (dashboard load, onboarding rerun, preset save)
+ # Playwright smoke (dashboard load, onboarding rerun, preset save, multi-user)
 npm run test:e2e   # requires `npx playwright install --with-deps chromium`
-```
-Security/pentest helpers live under `tools/security/` (curl clamps, preset roundtrip, notes CSRF, preset export/import, multi-user isolation).
-
-### Release Flow
-1. Update `opsdash/VERSION`, `appinfo/info.xml`, `package.json`, and `CHANGELOG.md`.
-2. Run all tests + security scripts.
-3. `VERSION=<x.y.z> make appstore` → creates `build/opsdash-<version>.tar.gz` with dev files stripped.
-4. Sign the tarball via `occ integrity:sign-app` (Makefile prints the command; keep keys outside Git).
-5. Tag (`git tag v<x.y.z>`), push, attach the signed tarball to the GitHub release, then submit to the App Store.
-
-## Documentation & Support
-- Lightweight docs (README, `CHANGELOG.md`, `SECURITY.md`) stay in this repo; deeper internal notes live in `docs-private/`.
-- Issues & feature requests: [GitHub Issues](https://github.com/blade34242/nexcloud-operational-cal-deck-dashboard/issues)
-- Security reports: follow [`SECURITY.md`](SECURITY.md).
-
-## License
-AGPL-3.0-or-later. See `LICENSE`.
+`.

@@ -209,4 +209,13 @@ describe('Dashboard integration fixtures', () => {
     expect(harness.dashboard.to.value).toBe('2025-10-26')
     expect(harness.dashboard.byCal.value.length).toBeGreaterThan(0)
   })
+
+  it('handles next-month offset fixtures', async () => {
+    vi.setSystemTime(new Date('2025-11-28T12:00:00Z'))
+    const harness = await createIntegrationHarness({ range: 'month', fixture: 'load-month-offset1.json', offset: 1 })
+    expect(harness.fixture.meta.offset).toBe(1)
+    expect(harness.dashboard.from.value).toBe('2025-11-03')
+    expect(harness.dashboard.to.value).toBe('2025-11-30')
+    expect(harness.dashboard.byDay.value.length).toBeGreaterThan(0)
+  })
 })

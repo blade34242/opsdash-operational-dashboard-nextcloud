@@ -45,3 +45,6 @@ Integration suites can now import these fixtures directly, e.g.:
 ```ts
 import loadWeek from '../fixtures/load-week.json'
 ```
+- Added offset fixtures (week/month) to cover previous/next periods.
+  - `load-week-offset-1.json` (offset -1)
+  - `load-month-offset1.json` (offset +1)
