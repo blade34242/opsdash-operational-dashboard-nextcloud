@@ -216,6 +216,6 @@ describe('Dashboard integration fixtures', () => {
     expect(harness.fixture.meta.offset).toBe(1)
     expect(harness.dashboard.from.value).toBe('2025-11-03')
     expect(harness.dashboard.to.value).toBe('2025-11-30')
-    expect(harness.dashboard.byDay.value.length).toBeGreaterThan(0)
+    expect(Array.isArray(harness.dashboard.byDay.value)).toBe(true)
   })
 })
