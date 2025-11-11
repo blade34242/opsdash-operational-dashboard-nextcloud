@@ -98,6 +98,15 @@ jobs:
           php occ user:add --password-from-env --display-name="QA Opsdash" "$SECOND_USER"
           php occ user:setting "$SECOND_USER" opsdash selected_cals "opsdash-focus"
 
+      - name: Probe CalDAV colors
+        working-directory: server/apps/${{ env.APP_NAME }}
+        env:
+          OPSDASH_BASE: http://127.0.0.1:8080/index.php/apps/opsdash
+          OPSDASH_USER: admin
+          OPSDASH_PASS: admin
+          CALDAV_CALENDAR: personal
+        run: tools/security/probe_dav_colors.sh
+
       - name: PHPUnit
         working-directory: server/apps/${{ env.APP_NAME }}
         run: composer run test:unit

@@ -91,3 +91,13 @@ OPSDASH_BASE=http://localhost:8088/index.php/apps/opsdash \
   OPSDASH_USER=admin OPSDASH_PASS=admin \
   ./opsdash/tools/security/rerun_onboarding.sh
 ```
+## probe_dav_colors.sh
+Runs a CalDAV `PROPFIND` against `remote.php/dav/calendars/<user>/<calendar>/` and fails if the `calendar-color`
+property is missing or malformed. Useful to catch upstream changes in the Calendar app. Requires the same
+`OPSDASH_BASE`, `OPSDASH_USER`, `OPSDASH_PASS` env vars as the other scripts; override `CALDAV_CALENDAR` if needed.
+
+```
+OPSDASH_BASE=http://localhost:8088/index.php/apps/opsdash \
+  OPSDASH_USER=admin OPSDASH_PASS=admin \
+  ./opsdash/tools/security/probe_dav_colors.sh
+```

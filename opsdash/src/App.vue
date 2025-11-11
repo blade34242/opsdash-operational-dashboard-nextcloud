@@ -321,6 +321,8 @@ import { useThemeController } from '../composables/useThemeController'
 import { useOnboardingFlow } from '../composables/useOnboardingFlow'
 import { useRangeToolbar } from '../composables/useRangeToolbar'
 import { useConfigExportImport } from '../composables/useConfigExportImport'
+import { useDetailsToggle } from '../composables/useDetailsToggle'
+import { useNotesLabels } from '../composables/useNotesLabels'
 import { useSidebarState } from '../composables/useSidebarState'
 // Ensure a visible version even if backend attrs are empty: use package.json as fallback
 // @ts-ignore
@@ -726,8 +728,7 @@ const { timeSummary, activitySummary } = useSummaries({
   topCategory,
 })
 
-const detailsIndex = ref<number|null>(null)
-function toggleDetails(i:number){ detailsIndex.value = detailsIndex.value===i ? null : i }
+const { detailsIndex, toggle: toggleDetails } = useDetailsToggle()
 function isDbg(){ return false }
 
 const { iconSrc, onIconError, appVersion, changelogUrl } = useAppMeta({
@@ -737,10 +738,12 @@ const { iconSrc, onIconError, appVersion, changelogUrl } = useAppMeta({
   root,
 })
 
-const notesLabelPrev = computed(()=> range.value==='month' ? 'Last month' : 'Last week')
-const notesLabelCurr = computed(()=> range.value==='month' ? 'This month' : 'This week')
-const notesLabelPrevTitle = computed(()=> range.value==='month' ? 'Notes for previous month' : 'Notes for previous week')
-const notesLabelCurrTitle = computed(()=> range.value==='month' ? 'Notes for current month' : 'Notes for current week')
+const {
+  notesLabelPrev,
+  notesLabelCurr,
+  notesLabelPrevTitle,
+  notesLabelCurrTitle,
+} = useNotesLabels(range)
 
 function n1(v:any){ return Number(v ?? 0).toFixed(1) }
 function n2(v:any){ return Number(v ?? 0).toFixed(2) }

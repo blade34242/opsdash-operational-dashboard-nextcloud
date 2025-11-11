@@ -230,4 +230,12 @@ class OverviewControllerTest extends TestCase {
     $this->assertSame('dark', $fixture['theme_preference_read']);
     $this->assertArrayHasKey('targets_config_read', $fixture);
   }
+
+  public function testNotesFixtureStructure(): void {
+    $fixturePath = dirname(__DIR__, 3) . '/test/fixtures/notes-week.json';
+    $fixture = json_decode((string)file_get_contents($fixturePath), true, 512, JSON_THROW_ON_ERROR);
+    $this->assertTrue($fixture['ok']);
+    $this->assertArrayHasKey('current', $fixture['notes']);
+    $this->assertArrayHasKey('previous', $fixture['notes']);
+  }
 }
