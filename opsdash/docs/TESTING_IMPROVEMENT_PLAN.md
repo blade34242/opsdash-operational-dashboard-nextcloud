@@ -13,7 +13,9 @@ after each milestone to reprioritise.
   from the dev Nextcloud instance; store anonymised JSON fixtures under
   `test/fixtures/` for reuse.
 - Document assumptions about OC globals (`window.OC.generateUrl`,
-  `oc_requesttoken`) to standardise mocking in tests.
+  `oc_requesttoken`) to standardise mocking in tests. Capture all of this in
+  `docs/INTEGRATION_TESTING.md` so the end-to-end instructions live in one
+  place.
 
 ### Coverage snapshot (2025-11-10)
 - **Covered (unit)**: `useDashboard`, `useDashboardSelection`, `useDashboardPersistence`
@@ -53,7 +55,8 @@ after each milestone to reprioritise.
 - PHPUnit additions for `OverviewController` (`load`, `persist`, `presets*`)
   using fixture payloads to verify sanitisation and response shapes.
 - Playwright smoke tests log into NC, open Opsdash, and ensure the SPA mounts
-  without `[opsdash] Vue error` (baseline E2E coverage in CI).
+  without `[opsdash] Vue error` (baseline E2E coverage in CI). Expand them per
+  the new integration guide once OCC seeding is automated.
 
 ## Phase 3 — Regression Workflow
 

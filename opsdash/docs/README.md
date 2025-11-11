@@ -4,6 +4,7 @@ A quick guide to the docs that matter most when working on the Operational Dashb
 
 ## Quick Start
 - **DEV_WORKFLOW.md** — day-to-day dev loop (build, containers, cache flushing, seed scripts).
+- **INTEGRATION_TESTING.md** — how to stand up a Nextcloud server with seeded calendars and run curl/Playwright/Vitest integration checks that hit the Calendar API.
 - **CONFIGURATION.md** — runtime behaviour (targets, caps, colors) and key server toggles.
 - **API.md** — endpoints exposed by the app (`/load`, `/persist`, `/notes`, `/ping`) with payload shapes.
 
