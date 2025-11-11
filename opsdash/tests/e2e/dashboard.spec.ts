@@ -206,6 +206,16 @@ test('Separate users keep independent selections', async ({ page, baseURL }) => 
     return
   }
 
+  // ensure the second user exists (idempotent)
+  await page.request.post(baseURL + '/index.php/ocs/v2.php/cloud/users', {
+    headers: {
+      Authorization: 'Basic ' + Buffer.from(`admin:admin`).toString('base64'),
+      'OCS-APIREQUEST': 'true',
+      'Content-Type': 'application/json',
+    },
+    data: { userid: SECOND_USER, password: SECOND_PASS, displayName: 'QA Opsdash' },
+  }).catch(() => {})
+
   await page.goto(baseURL + '/index.php/apps/opsdash/overview')
   await dismissOnboardingIfVisible(page)
 
