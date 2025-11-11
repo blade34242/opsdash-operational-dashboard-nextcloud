@@ -20,13 +20,16 @@ need() {
 need curl
 need jq
 
-AUTH_CURL=(curl -s -u "$USER:$PASS" -H 'OCS-APIREQUEST: true')
+AUTH_CURL=(curl -s -f -u "$USER:$PASS" -H 'OCS-APIREQUEST: true')
 
 TMP=$(mktemp)
 trap 'rm -f "$TMP"' EXIT
 
 echo "[onboarding] Fetching existing dashboard state..."
-"${AUTH_CURL[@]}" "$LOAD_URL" >"$TMP"
+if ! "${AUTH_CURL[@]}" "$LOAD_URL" >"$TMP"; then
+  echo "Failed to fetch dashboard state from $LOAD_URL" >&2
+  exit 7
+fi
 
 selected_json=$(jq '[ (.selected // .saved // [])[] | tostring ]' "$TMP")
 selected_count=$(jq 'length' <<<"$selected_json")
@@ -81,6 +84,11 @@ payload=$(jq -n \
   }')
 
 echo "[onboarding] Replaying wizard payload (strategy=$strategy, theme=$theme)"
-response=$("${AUTH_CURL[@]}" -H 'Content-Type: application/json' -X POST "$PERSIST_URL" --data "$payload")
+if ! response=$("${AUTH_CURL[@]}" -H 'Content-Type: application/json' -X POST "$PERSIST_URL" --data "$payload"); then
+  echo "Failed to persist onboarding payload" >&2
+  exit 7
+fi
 
-echo "$response" | jq '{ok, saved, theme_preference_read, onboarding: .onboarding}'
+if ! echo "$response" | jq '{ok, saved, theme_preference_read, onboarding: .onboarding}'; then
+  echo "$response"
+fi
