@@ -40,5 +40,6 @@ This checklist ensures changes show up reliably in a Nextcloud dev container.
 - **Tests:** `composer run test:unit` exercises PHP services/controllers, `npx playwright install --with-deps chromium` ensures the browser binary exists, a PHP built-in server serves Nextcloud, and `npm run test:e2e` runs the Playwright smoke test before artifacts are uploaded and the server is stopped.
 
 ## Going further (PHP & Nextcloud versions)
-- The CI job already fans out across `nextcloud_branch ∈ {stable31, stable32}` and `php_version ∈ {8.2, 8.3}`, mirroring the official app-template approach. Each combination checks out the matching `nextcloud/server` branch, installs the requested PHP version, and runs the full suite.
-- When we need even wider coverage (e.g., stable33 previews or PHP 8.4), extend the `strategy.matrix` to add the new entries. Remember to keep `fail-fast: false` so one failing combo does not hide results from the others.
+- The CI job fans out across explicit matrix entries (`stable30/31` × PHP `8.2/8.3`). Each combo is defined in `.github/workflows/server-tests.yml` with an `enabled` flag so we can keep speculative entries (e.g., `stable32`) in place but skipped until the manifest supports them.
+- To disable or enable a target, flip the `enabled` boolean for that matrix entry. The job-level `if` prevents disabled combos from running while keeping the definition handy for future support.
+- When we need wider coverage (stable33 previews, PHP 8.4), append new include objects with `enabled: false` until they are ready, mirroring the workflow used by Nextcloud’s official app template.

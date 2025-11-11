@@ -12,13 +12,28 @@ env:
 
 jobs:
   server-tests:
+    if: ${{ matrix.enabled != 'false' }}
     name: Nextcloud ${{ matrix.nextcloud_branch }} / PHP ${{ matrix.php_version }}
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
       matrix:
-        nextcloud_branch: [stable31, stable32]
-        php_version: ['8.2', '8.3']
+        include:
+          - nextcloud_branch: stable30
+            php_version: '8.2'
+            enabled: true
+          - nextcloud_branch: stable31
+            php_version: '8.2'
+            enabled: true
+          - nextcloud_branch: stable31
+            php_version: '8.3'
+            enabled: true
+          - nextcloud_branch: stable32
+            php_version: '8.2'
+            enabled: false
+          - nextcloud_branch: stable32
+            php_version: '8.3'
+            enabled: false
     steps:
       - name: Checkout Nextcloud server
         uses: actions/checkout@v4
@@ -99,7 +114,7 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: playwright-report
+          name: playwright-report-${{ matrix.nextcloud_branch }}-php${{ matrix.php_version }}
           path: server/apps/${{ env.APP_NAME }}/playwright-report
           if-no-files-found: ignore
 
