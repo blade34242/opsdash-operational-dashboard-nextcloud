@@ -171,6 +171,15 @@ describe('Dashboard integration fixtures', () => {
     })
   })
 
+  it('exposes longest task summaries from fixtures', async () => {
+    vi.setSystemTime(new Date('2025-10-29T12:00:00Z'))
+    const harness = await createIntegrationHarness({ range: 'week', fixture: 'load-week.json' })
+    const longest = harness.dashboard.longest.value
+    expect(Array.isArray(longest)).toBe(true)
+    expect(longest.length).toBeGreaterThan(0)
+    expect(longest.some((entry: any) => typeof entry?.summary === 'string' && entry.summary.length > 0)).toBe(true)
+  })
+
   it('replays month payload and keeps category mapping + forecast data stable', async () => {
     vi.setSystemTime(new Date('2025-10-05T12:00:00Z'))
 
