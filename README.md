@@ -43,17 +43,17 @@ See `opsdash/docs/BRANCHING.md` for the full branching + release plan.
 - **Local commands**
   - `npm run test -- --run` (Vitest suites for composables/components/services).
   - `composer run test:unit` (PHPUnit controllers/services).
-  - `npm run test:e2e` (Playwright smoke test; requires `npx playwright install --with-deps chromium`).
+  - `npm run test:e2e` (Playwright smoke tests for dashboard load + onboarding rerun; requires `npx playwright install --with-deps chromium`).
   - `npm run build` (ensures `js/.vite/manifest.json` matches hashed assets).
 - **GitHub Actions** (`.github/workflows/server-tests.yml`)
   - Reads `.github/ci-matrix.json` and runs every enabled combo (currently `stable30/stable31 × PHP 8.2/8.3`).
   - Steps: checkout `nextcloud/server@branch`, rsync Opsdash into `server/apps/opsdash`, `npm ci → test → build`, install PHP deps, `occ maintenance:install`, run PHPUnit + Playwright, upload per-matrix artifacts.
 - **Security smoke scripts**
   - `tools/security/run_curl_checks.sh` (range/offset clamp, CSRF header, preset sanitisation, notes injection) now relies on basic auth instead of the legacy form login.
-  - Additional helpers (`tools/security/import_fuzz.sh`, `opsdash/tools/security/run_notes_csrf.sh`) cover config import/export and notes CSRF scenarios.
+  - Additional helpers (`tools/security/import_fuzz.sh`, `tools/security/preset_roundtrip.sh`, `opsdash/tools/security/run_notes_csrf.sh`) cover config import/export, preset roundtrips, and notes CSRF scenarios.
 
 ## Security & Pentest Workflow
-- Pentest plan/log: `opsdash/docs/PENTEST_PLAN.md`, `opsdash/docs/PENTEST_LOG.md` (updated 2025‑11‑10 with DevTools + curl evidence).
+- Pentest plan/log: `opsdash/docs/PENTEST_PLAN.md`, `opsdash/docs/PENTEST_LOG.md` (updated 2025‑11‑10 with DevTools, preset roundtrip, and notes CSRF automation evidence).
 - Follow `docs/INTEGRATION_TESTING.md` to spin up a reproducible Nextcloud server, seed calendars via OCC, and capture curl payloads.
 - Manual scripts stay out of CI; run them before tagging releases to keep white-box coverage fresh.
 - Server hardening tips and CSP references live in `opsdash/docs/SECURITY.md` & `opsdash/docs/OPERATIONS.md`.
