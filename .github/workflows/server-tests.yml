@@ -98,7 +98,7 @@ jobs:
           php occ user:add --password-from-env --display-name="QA Opsdash" "$SECOND_USER"
           php occ dav:create-calendar "$SECOND_USER" opsdash-focus || true
           php occ user:setting "$SECOND_USER" opsdash selected_cals "opsdash-focus"
-          php occ apps/${{ env.APP_NAME }}/tools/seed_qa_calendars.php
+          php apps/${{ env.APP_NAME }}/tools/seed_qa_calendars.php
 
       - name: PHPUnit
         working-directory: server/apps/${{ env.APP_NAME }}
