@@ -1,4 +1,15 @@
-import { test, expect } from '@playwright/test'
+import { test, expect, Page } from '@playwright/test'
+
+async function dismissOnboardingIfVisible(page: Page) {
+  const dialog = page.getByRole('dialog')
+  if (await dialog.isVisible({ timeout: 1000 }).catch(() => false)) {
+    const maybeLater = dialog.getByRole('button', { name: 'Maybe later' })
+    if (await maybeLater.isVisible().catch(() => false)) {
+      await maybeLater.click()
+      await expect(dialog).toBeHidden()
+    }
+  }
+}
 
 test('Operational Dashboard loads without console errors', async ({ page, baseURL }) => {
   if (!baseURL) {
@@ -30,6 +41,7 @@ test('Onboarding wizard can be re-run from Config & Setup', async ({ page, baseU
   }
 
   await page.goto(baseURL + '/index.php/apps/opsdash/overview')
+  await dismissOnboardingIfVisible(page)
 
   await page.getByRole('tab', { name: 'Config & Setup' }).click()
   await page.getByRole('button', { name: 'Re-run onboarding' }).click()
@@ -50,6 +62,7 @@ test('Config preset can be saved via UI', async ({ page, baseURL }) => {
   const presetName = `E2E Preset ${Date.now()}`
 
   await page.goto(baseURL + '/index.php/apps/opsdash/overview')
+  await dismissOnboardingIfVisible(page)
   await page.getByRole('tab', { name: 'Config & Setup' }).click()
 
   await page.getByLabel('Profile name').fill(presetName)
