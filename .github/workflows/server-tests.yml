@@ -9,17 +9,22 @@ on:
 
 env:
   APP_NAME: opsdash
-  NEXTCLOUD_BRANCH: stable31
 
 jobs:
   server-tests:
+    name: Nextcloud ${{ matrix.nextcloud_branch }} / PHP ${{ matrix.php_version }}
     runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        nextcloud_branch: [stable31, stable32]
+        php_version: ['8.2', '8.3']
     steps:
       - name: Checkout Nextcloud server
         uses: actions/checkout@v4
         with:
           repository: nextcloud/server
-          ref: ${{ env.NEXTCLOUD_BRANCH }}
+          ref: ${{ matrix.nextcloud_branch }}
           submodules: true
           path: server
 
@@ -53,7 +58,7 @@ jobs:
       - name: Set up PHP
         uses: shivammathur/setup-php@v2
         with:
-          php-version: '8.2'
+          php-version: ${{ matrix.php_version }}
           extensions: mbstring, intl, gd
           coverage: none
 

@@ -19,14 +19,12 @@ Guarantee every change to Opsdash is covered by fast unit tests (Vitest + PHPUni
    - Run `PLAYWRIGHT_BASE_URL=http://localhost:8088 npm run test:e2e` with `PLAYWRIGHT_USER/PASS` if different from `admin/admin`.
 
 ## CI contract (GitHub Actions)
-- The `Nextcloud Server Tests` job checks out `nextcloud/server@stable31`, copies our app into `server/apps/opsdash`, runs `npm ci → npm run test -- --run → npm run build`, installs PHP 8.2 via `shivammathur/setup-php`, runs `composer install` and `composer run test:unit`, provisions Nextcloud via `php occ maintenance:install`, installs Playwright Chromium, serves Nextcloud with `php -S`, and finally executes `npm run test:e2e`. Artifacts upload the Playwright report.
-- This mirrors what other Nextcloud apps (Notes, Deck, Calendar, app-template) do; the only missing piece compared to them is a matrix of Nextcloud branches + PHP versions.
+- The `Nextcloud Server Tests` job fans out across `nextcloud_branch ∈ {stable31, stable32}` and `php_version ∈ {8.2, 8.3}`. Each matrix entry checks out the matching `nextcloud/server` branch, copies our app into `server/apps/opsdash`, runs `npm ci → npm run test -- --run → npm run build`, installs the requested PHP version via `shivammathur/setup-php`, runs `composer install` and `composer run test:unit`, provisions Nextcloud (`php occ maintenance:install` + `app:enable`), installs Playwright Chromium, serves Nextcloud with `php -S`, and finally executes `npm run test:e2e`. Artifacts upload the Playwright report per combo.
+- This now matches how other Nextcloud apps (Notes, Deck, Calendar, app-template) validate compatibility before bumping `info.xml` ranges.
 
-## Next step: broader PHP + Nextcloud coverage
-- **Matrix plan:**
-  - Add `strategy.matrix.nextcloud_branch` = [`stable31`, `stable32`] once we officially support NC 32.
-  - Add `strategy.matrix.php` = [`8.2`, `8.3`] to match the app-template’s coverage. Parameterise the PHP setup and the `env.NEXTCLOUD_BRANCH` slot.
+## Next step: richer smoke validation
 - **Data seeding:** provide a lightweight OCC command or script to seed calendars/tasks so Playwright can assert more than just “page loads”. Keep it optional to maintain runtime under 5 minutes.
+- **Future matrices:** once NC 33 or PHP 8.4 land, append them to the matrix; keep `fail-fast: false` for full visibility.
 
 ## Documentation & ownership
 - Keep this file and `docs/DEV_WORKFLOW.md` updated whenever a new test suite, script, or CI job is added.
