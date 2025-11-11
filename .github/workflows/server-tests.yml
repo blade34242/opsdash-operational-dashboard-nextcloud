@@ -17,10 +17,12 @@ jobs:
       matrix: ${{ steps.load-matrix.outputs.matrix }}
     steps:
       - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
       - id: load-matrix
         run: |
-          file=".github/ci-matrix.json"
-          matrix=$(jq '[.[] | select(.enabled == true) | {nextcloud_branch, php_version}]' "$file")
+          matrix=$(node .github/scripts/render-matrix.js)
           echo "matrix=$matrix" >> "$GITHUB_OUTPUT"
 
   server-tests:
