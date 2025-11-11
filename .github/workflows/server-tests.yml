@@ -9,6 +9,8 @@ on:
 
 env:
   APP_NAME: opsdash
+  PLAYWRIGHT_SECOND_USER: qa
+  PLAYWRIGHT_SECOND_PASS: qa-secret
 
 jobs:
   matrix-config:
@@ -86,6 +88,15 @@ jobs:
           php occ maintenance:install --database=sqlite --database-name=nextcloud --admin-user admin --admin-pass admin
           php occ app:enable $APP_NAME
 
+      - name: Create secondary user
+        working-directory: server
+        env:
+          SECOND_USER: ${{ env.PLAYWRIGHT_SECOND_USER }}
+          SECOND_PASS: ${{ env.PLAYWRIGHT_SECOND_PASS }}
+          OC_PASS: ${{ env.PLAYWRIGHT_SECOND_PASS }}
+        run: |
+          php occ user:add --password-from-env --display-name="QA Opsdash" "$SECOND_USER"
+
       - name: PHPUnit
         working-directory: server/apps/${{ env.APP_NAME }}
         run: composer run test:unit
@@ -100,12 +111,22 @@ jobs:
           php -S 127.0.0.1:8080 -t . >/tmp/php-server.log 2>&1 &
           echo $! > /tmp/php-server.pid
 
+      - name: Replay onboarding payload
+        working-directory: server/apps/${{ env.APP_NAME }}
+        env:
+          OPSDASH_BASE: http://127.0.0.1:8080/index.php/apps/opsdash
+          OPSDASH_USER: admin
+          OPSDASH_PASS: admin
+        run: tools/security/rerun_onboarding.sh
+
       - name: Playwright smoke test
         working-directory: server/apps/${{ env.APP_NAME }}
         env:
           PLAYWRIGHT_BASE_URL: http://127.0.0.1:8080
           PLAYWRIGHT_USER: admin
           PLAYWRIGHT_PASS: admin
+          PLAYWRIGHT_SECOND_USER: ${{ env.PLAYWRIGHT_SECOND_USER }}
+          PLAYWRIGHT_SECOND_PASS: ${{ env.PLAYWRIGHT_SECOND_PASS }}
         run: npm run test:e2e
 
       - name: Upload Playwright results

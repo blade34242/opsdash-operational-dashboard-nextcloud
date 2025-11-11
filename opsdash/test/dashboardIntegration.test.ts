@@ -210,6 +210,15 @@ describe('Dashboard integration fixtures', () => {
     expect(harness.dashboard.byCal.value.length).toBeGreaterThan(0)
   })
 
+  it('handles future-week offset fixtures with multiple calendars', async () => {
+    vi.setSystemTime(new Date('2025-11-12T12:00:00Z'))
+    const harness = await createIntegrationHarness({ range: 'week', fixture: 'load-week-offset2.json', offset: 2 })
+    expect(harness.fixture.meta.offset).toBe(2)
+    expect(harness.dashboard.from.value).toBe('2025-11-10')
+    expect(harness.dashboard.to.value).toBe('2025-11-16')
+    expect(harness.dashboard.selected.value).toEqual(['personal', 'asdsad'])
+  })
+
   it('handles next-month offset fixtures', async () => {
     vi.setSystemTime(new Date('2025-11-28T12:00:00Z'))
     const harness = await createIntegrationHarness({ range: 'month', fixture: 'load-month-offset1.json', offset: 1 })

@@ -321,6 +321,7 @@ import { useThemeController } from '../composables/useThemeController'
 import { useOnboardingFlow } from '../composables/useOnboardingFlow'
 import { useRangeToolbar } from '../composables/useRangeToolbar'
 import { useConfigExportImport } from '../composables/useConfigExportImport'
+import { useSidebarState } from '../composables/useSidebarState'
 // Ensure a visible version even if backend attrs are empty: use package.json as fallback
 // @ts-ignore
 import pkg from '../package.json'
@@ -345,28 +346,7 @@ type BalanceOverviewSummary = {
   warnings: string[]
 } | null
 
-const SIDEBAR_STORAGE_KEY = 'opsdash.sidebarOpen'
-const navOpen = ref((() => {
-  if (typeof window === 'undefined') return true
-  const raw = window.localStorage.getItem(SIDEBAR_STORAGE_KEY)
-  return raw == null ? true : raw === '1'
-})())
-
-const toggleNav = () => {
-  navOpen.value = !navOpen.value
-}
-
-const navToggleLabel = computed(() => navOpen.value ? 'Hide sidebar' : 'Show sidebar')
-const navToggleIcon = computed(() => navOpen.value ? '⟨' : '⟩')
-
-watch(navOpen, (open) => {
-  if (typeof window !== 'undefined') {
-    window.localStorage.setItem(SIDEBAR_STORAGE_KEY, open ? '1' : '0')
-    nextTick(() => {
-      window.dispatchEvent(new Event('resize'))
-    })
-  }
-})
+const { navOpen, toggleNav, navToggleLabel, navToggleIcon } = useSidebarState()
 
 const pane = ref<'cal'|'day'|'top'|'heat'>('cal')
 const range = ref<'week'|'month'>('week')

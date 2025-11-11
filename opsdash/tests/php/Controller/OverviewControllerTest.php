@@ -202,4 +202,14 @@ class OverviewControllerTest extends TestCase {
     $this->assertEquals($controllerPayload['targets_config']['totalHours'], $result['payload']['targets_config']['totalHours']);
     $this->assertSame([], $result['warnings'], 'Fixture should import without warnings when calendars match.');
   }
+
+  public function testWeekOffsetFixtureStructure(): void {
+    $fixturePath = dirname(__DIR__, 3) . '/test/fixtures/load-week-offset2.json';
+    $fixture = json_decode((string)file_get_contents($fixturePath), true, 512, JSON_THROW_ON_ERROR);
+    $this->assertSame(2, $fixture['meta']['offset']);
+    $this->assertSame('2025-11-10', $fixture['meta']['from']);
+    $this->assertSame(['personal', 'asdsad'], $fixture['selected']);
+    $this->assertArrayHasKey('byCal', $fixture);
+    $this->assertArrayHasKey('stats', $fixture);
+  }
 }

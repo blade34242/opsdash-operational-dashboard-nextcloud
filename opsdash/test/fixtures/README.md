@@ -48,5 +48,6 @@ import loadWeek from '../fixtures/load-week.json'
 - Added offset fixtures (week/month) to cover previous/next periods.
 - `load-week-offset-1.json` (offset -1)
 - `load-month-offset1.json` (offset +1)
+- `load-week-offset2.json` (offset +2 with multiple calendars selected)
 - `preset-export.json` (Config & Setup export envelope)
 - `onboarding-export.json` (Config & Setup export including onboarding snapshot)
