@@ -98,15 +98,6 @@ jobs:
           php occ user:add --password-from-env --display-name="QA Opsdash" "$SECOND_USER"
           php apps/opsdash/tools/seed_qa_calendars.php
 
-      - name: Probe CalDAV colors
-        working-directory: server/apps/${{ env.APP_NAME }}
-        env:
-          OPSDASH_BASE: http://127.0.0.1:8080/index.php/apps/opsdash
-          OPSDASH_USER: admin
-          OPSDASH_PASS: admin
-          CALDAV_CALENDAR: personal
-        run: tools/security/probe_dav_colors.sh
-
       - name: PHPUnit
         working-directory: server/apps/${{ env.APP_NAME }}
         run: composer run test:unit
@@ -120,6 +111,15 @@ jobs:
         run: |
           php -S 127.0.0.1:8080 -t . >/tmp/php-server.log 2>&1 &
           echo $! > /tmp/php-server.pid
+
+      - name: Probe CalDAV colors
+        working-directory: server/apps/${{ env.APP_NAME }}
+        env:
+          OPSDASH_BASE: http://127.0.0.1:8080/index.php/apps/opsdash
+          OPSDASH_USER: admin
+          OPSDASH_PASS: admin
+          CALDAV_CALENDAR: personal
+        run: tools/security/probe_dav_colors.sh
 
       - name: Playwright smoke test
         working-directory: server/apps/${{ env.APP_NAME }}

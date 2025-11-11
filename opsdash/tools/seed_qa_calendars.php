@@ -2,22 +2,22 @@
 <?php
 declare(strict_types=1);
 
-require_once __DIR__ . '/../vendor/autoload.php';
+define('OC_ROOT', dirname(__DIR__, 3));
+require_once OC_ROOT . '/config/config.php';
+require_once OC_ROOT . '/lib/base.php';
 
-use OC\AppFramework\Utility\SimpleContainer;
 use OCP\Calendar\IManager;
-use OCP\User\IManager as IUserManager;
 use OCP\IConfig;
-use OCP\IUser;
 use OCP\Server;
+use OCP\User\IManager as IUserManager;
+use OCP\IUser;
 
-$container = Server::get(SimpleContainer::class);
-/** @var IManager $calendarManager */
-$calendarManager = $container->query(IManager::class);
 /** @var IUserManager $userManager */
-$userManager = $container->query(IUserManager::class);
-/** @var IConfig $config */
-$configStore = $container->query(IConfig::class);
+$userManager = Server::get(IUserManager::class);
+/** @var IManager $calendarManager */
+$calendarManager = Server::get(IManager::class);
+/** @var IConfig $configStore */
+$configStore = Server::get(IConfig::class);
 
 $uid = getenv('QA_USER') ?: 'qa';
 $calendarId = 'opsdash-focus';
