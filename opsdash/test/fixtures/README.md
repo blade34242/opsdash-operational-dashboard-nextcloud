@@ -54,3 +54,4 @@ import loadWeek from '../fixtures/load-week.json'
 - `onboarding-export.json` (Config & Setup export including onboarding snapshot)
 - `persist-response.json` (sanitised `/overview/persist` response)
 - `notes-week.json` (GET `/overview/notes` sample)
+- `notes-month.json` (GET `/overview/notes` for month range)

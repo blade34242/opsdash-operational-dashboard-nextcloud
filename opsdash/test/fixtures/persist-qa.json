@@ -1,0 +1,9 @@
+{
+  "ok": true,
+  "saved": ["opsdash-focus"],
+  "targets_config_read": {
+    "totalHours": 10,
+    "categories": []
+  },
+  "theme_preference_read": "auto"
+}

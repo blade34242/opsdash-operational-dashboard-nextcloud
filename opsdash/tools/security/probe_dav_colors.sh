@@ -16,7 +16,7 @@ URL="$ROOT/remote.php/dav/calendars/$USER/$CALENDAR/"
 BODY='<?xml version="1.0"?><d:propfind xmlns:d="DAV:" xmlns:ical="http://apple.com/ns/ical/"><d:prop><ical:calendar-color/></d:prop></d:propfind>'
 
 echo "[dav-probe] PROPFIND $URL"
-RESPONSE=$(curl -s -u "$USER:$PASS" -X PROPFIND -H 'Depth: 0' -H 'Content-Type: application/xml' --data "$BODY" "$URL/index.php/apps/dav/caldav/calendars/$USER/$CALENDAR/") || {
+RESPONSE=$(curl -s -u "$USER:$PASS" -X PROPFIND -H 'Depth: 0' -H 'Content-Type: application/xml' --data "$BODY" "$URL") || {
   echo "CalDAV request failed" >&2
   exit 7
 }

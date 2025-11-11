@@ -4,6 +4,7 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { useDashboardPersistence } from '../composables/useDashboardPersistence'
 import { createDefaultTargetsConfig } from '../src/services/targets'
 import persistFixture from './fixtures/persist-response.json'
+import persistQaFixture from './fixtures/persist-qa.json'
 
 function createPersistence(overrides: Partial<Parameters<typeof useDashboardPersistence>[0]> = {}) {
   const selected = ref<string[]>([])
@@ -199,5 +200,13 @@ describe('useDashboardPersistence', () => {
       persistFixture.targets_config_read.categories.length,
     )
     expect(targetsConfig.value.balance.ui.showNotes).toBe(true)
+  })
+
+  it('handles minimal QA persist fixture', async () => {
+    const postJson = vi.fn().mockResolvedValue(persistQaFixture)
+    const { queueSave, selected } = createPersistence({ postJson })
+    queueSave(false)
+    await vi.runOnlyPendingTimersAsync()
+    expect(selected.value).toEqual(['opsdash-focus'])
   })
 })
