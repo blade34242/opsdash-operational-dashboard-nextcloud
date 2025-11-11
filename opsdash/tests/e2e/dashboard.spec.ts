@@ -1,5 +1,31 @@
 import { test, expect, Page } from '@playwright/test'
 
+async function seedCalendarEvent(page: Page, baseURL: string, summary: string, durationHours = 2) {
+  const now = new Date()
+  const start = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate(), 9, 0, 0))
+  const end = new Date(start.getTime() + durationHours * 60 * 60 * 1000)
+  const format = (date: Date) => date.toISOString().replace(/[-:]/g, '').split('.')[0] + 'Z'
+  const dtstamp = format(now)
+  const dtstart = format(start)
+  const dtend = format(end)
+  const uid = `opsdash-e2e-${Date.now()}@local`
+  const ics = `BEGIN:VCALENDAR\nVERSION:2.0\nPRODID:-//Opsdash//Integration Test//EN\nBEGIN:VEVENT\nUID:${uid}\nDTSTAMP:${dtstamp}\nDTSTART:${dtstart}\nDTEND:${dtend}\nSUMMARY:${summary}\nEND:VEVENT\nEND:VCALENDAR\n`
+  const url = `${baseURL}/remote.php/dav/calendars/admin/personal/${encodeURIComponent(uid)}.ics`
+  await page.request.put(url, {
+    data: ics,
+    headers: { 'Content-Type': 'text/calendar' },
+  })
+  return url
+}
+
+async function removeCalendarResource(page: Page, resourceUrl: string) {
+  try {
+    await page.request.delete(resourceUrl)
+  } catch {
+    // ignore cleanup errors
+  }
+}
+
 async function dismissOnboardingIfVisible(page: Page) {
   const dialog = page.getByRole('dialog')
   if (await dialog.isVisible({ timeout: 1000 }).catch(() => false)) {
@@ -79,4 +105,23 @@ test('Config preset can be saved via UI', async ({ page, baseURL }) => {
       headers: token ? { requesttoken: token } : {},
     })
   }, presetName)
+})
+
+test('Dashboard reflects seeded calendar events', async ({ page, baseURL }) => {
+  if (!baseURL) {
+    test.skip()
+    return
+  }
+
+  const seededSummary = `E2E Focus Block ${Date.now()}`
+  const resourceUrl = await seedCalendarEvent(page, baseURL, seededSummary)
+
+  try {
+    await page.goto(baseURL + '/index.php/apps/opsdash/overview')
+    await dismissOnboardingIfVisible(page)
+    await page.getByRole('link', { name: 'Longest Tasks' }).click()
+    await expect(page.getByText(seededSummary, { exact: false })).toBeVisible({ timeout: 15000 })
+  } finally {
+    await removeCalendarResource(page, resourceUrl)
+  }
 })
