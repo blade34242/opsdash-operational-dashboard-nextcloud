@@ -1,4 +1,4 @@
-import { test, expect, Page, request as playwrightRequest } from '@playwright/test'
+import { test, expect, Page } from '@playwright/test'
 import { Buffer } from 'node:buffer'
 import { promises as fs } from 'node:fs'
 import os from 'node:os'
@@ -43,6 +43,32 @@ async function dismissOnboardingIfVisible(page: Page) {
       await expect(dialog).toBeHidden()
     }
   }
+}
+
+async function loginUser(page: Page, baseURL: string, username: string, password: string) {
+  await page.goto(baseURL + '/index.php/logout').catch(() => {})
+  await page.goto(baseURL + '/index.php/login')
+  await page.fill('input#user', username)
+  await page.fill('input#password', password)
+  await Promise.all([
+    page.waitForNavigation({ url: /index.php\/(apps|login)/ }),
+    page.click('button[type="submit"]'),
+  ])
+}
+
+async function persistSelection(page: Page, calendars: string[]) {
+  await page.evaluate(async (selected) => {
+    const token = (window as any).OC?.requestToken || (window as any).oc_requesttoken || ''
+    await fetch('/index.php/apps/opsdash/overview/persist', {
+      method: 'POST',
+      credentials: 'same-origin',
+      headers: {
+        'Content-Type': 'application/json',
+        ...(token ? { requesttoken: token } : {}),
+      },
+      body: JSON.stringify({ cals: selected }),
+    })
+  }, calendars)
 }
 
 async function expectCalDavColor(page: Page, baseURL: string, calendar = 'personal') {
@@ -234,7 +260,7 @@ test('Dashboard reflects seeded calendar events', async ({ page, baseURL }) => {
   }
 })
 
-test('Separate users keep independent selections', async ({ page, baseURL }) => {
+test('Separate users keep independent selections', async ({ page, baseURL, browser }) => {
   if (!baseURL || !SECOND_USER || !SECOND_PASS) {
     test.skip()
     return
@@ -244,27 +270,19 @@ test('Separate users keep independent selections', async ({ page, baseURL }) => 
   await page.goto(baseURL + '/index.php/apps/opsdash/overview')
   await dismissOnboardingIfVisible(page)
 
-  await page.evaluate(() => {
-    const token = (window as any).OC?.requestToken || (window as any).oc_requesttoken || ''
-    return fetch('/index.php/apps/opsdash/overview/persist', {
-      method: 'POST',
-      credentials: 'same-origin',
-      headers: { 'Content-Type': 'application/json', requesttoken: token },
-      body: JSON.stringify({ cals: ['personal'] }),
-    })
-  })
+  await persistSelection(page, ['personal'])
 
   const loadPrimary = await page.request.get('/index.php/apps/opsdash/overview/load?range=week&offset=0')
   const primaryJson = await loadPrimary.json()
 
-  const secondaryContext = await playwrightRequest.newContext({
-    baseURL,
-    extraHTTPHeaders: {
-      Authorization: 'Basic ' + Buffer.from(`${SECOND_USER}:${SECOND_PASS}`).toString('base64'),
-      'OCS-APIREQUEST': 'true',
-    },
-  })
-  const loadSecondary = await secondaryContext.get('/index.php/apps/opsdash/overview/load?range=week&offset=0')
+  const secondaryContext = await browser.newContext()
+  const secondaryPage = await secondaryContext.newPage()
+  await loginUser(secondaryPage, baseURL, SECOND_USER, SECOND_PASS)
+  await secondaryPage.goto(baseURL + '/index.php/apps/opsdash/overview')
+  await dismissOnboardingIfVisible(secondaryPage)
+  await persistSelection(secondaryPage, ['opsdash-focus'])
+
+  const loadSecondary = await secondaryPage.request.get('/index.php/apps/opsdash/overview/load?range=week&offset=0')
   const secondaryJson = await loadSecondary.json()
   await secondaryContext.dispose()
 

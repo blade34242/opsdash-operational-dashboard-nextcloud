@@ -222,6 +222,15 @@ class OverviewControllerTest extends TestCase {
     $this->assertArrayHasKey('targets', $fixture);
   }
 
+  public function testQaMonthFixtureStructure(): void {
+    $fixturePath = dirname(__DIR__, 3) . '/test/fixtures/load-month-qa.json';
+    $fixture = json_decode((string)file_get_contents($fixturePath), true, 512, JSON_THROW_ON_ERROR);
+    $this->assertSame('month', $fixture['meta']['range']);
+    $this->assertSame('admin', $fixture['meta']['uid']);
+    $this->assertArrayHasKey('colors', $fixture);
+    $this->assertArrayHasKey('byDay', $fixture);
+  }
+
   public function testPersistResponseFixtureStructure(): void {
     $fixturePath = dirname(__DIR__, 3) . '/test/fixtures/persist-response.json';
     $fixture = json_decode((string)file_get_contents($fixturePath), true, 512, JSON_THROW_ON_ERROR);
@@ -235,6 +244,15 @@ class OverviewControllerTest extends TestCase {
     $fixturePath = dirname(__DIR__, 3) . '/test/fixtures/notes-week.json';
     $fixture = json_decode((string)file_get_contents($fixturePath), true, 512, JSON_THROW_ON_ERROR);
     $this->assertTrue($fixture['ok']);
+    $this->assertArrayHasKey('current', $fixture['notes']);
+    $this->assertArrayHasKey('previous', $fixture['notes']);
+  }
+
+  public function testNotesQaFixtureStructure(): void {
+    $fixturePath = dirname(__DIR__, 3) . '/test/fixtures/notes-month-qa.json';
+    $fixture = json_decode((string)file_get_contents($fixturePath), true, 512, JSON_THROW_ON_ERROR);
+    $this->assertSame('month', $fixture['range']);
+    $this->assertSame('qa', $fixture['user']);
     $this->assertArrayHasKey('current', $fixture['notes']);
     $this->assertArrayHasKey('previous', $fixture['notes']);
   }

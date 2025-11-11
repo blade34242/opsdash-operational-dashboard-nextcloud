@@ -2304,6 +2304,9 @@ final class OverviewController extends Controller {
             if (array_key_exists('showInsights', $cfg['ui'])) {
                 $result['ui']['showInsights'] = !empty($cfg['ui']['showInsights']);
             }
+            if (array_key_exists('showNotes', $cfg['ui'])) {
+                $result['ui']['showNotes'] = !empty($cfg['ui']['showNotes']);
+            }
         }
 
         return $result;

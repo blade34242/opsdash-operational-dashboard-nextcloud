@@ -102,16 +102,10 @@ function mergeIncomingTargetsConfig(
   if (!incoming) return undefined
 
   const raw = JSON.parse(JSON.stringify(incoming)) as any
-  const prevBalance = previous?.balance
-  if (prevBalance?.ui) {
-    const incomingUi = (incoming as any)?.balance?.ui ?? {}
-    const rawBalance = raw.balance ?? (raw.balance = {})
-    const rawUi = rawBalance.ui ?? (rawBalance.ui = {})
-    Object.keys(prevBalance.ui).forEach((key) => {
-      if (!Object.prototype.hasOwnProperty.call(incomingUi, key) && Object.prototype.hasOwnProperty.call(prevBalance.ui, key)) {
-        rawUi[key] = prevBalance.ui[key]
-      }
-    })
+  const prevBalanceUi = previous?.balance?.ui
+  const rawBalance = raw.balance ?? (raw.balance = {})
+  if (!rawBalance.ui && prevBalanceUi) {
+    rawBalance.ui = { ...prevBalanceUi }
   }
 
   const prevCategories = Array.isArray(previous?.categories) ? previous.categories : []

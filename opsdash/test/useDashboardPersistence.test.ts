@@ -137,13 +137,13 @@ describe('useDashboardPersistence', () => {
     expect(notifySuccess).toHaveBeenCalledTimes(1)
   })
 
-  it('keeps locally known balance toggles when backend omits them', async () => {
+  it('applies server-provided balance UI toggles', async () => {
     const serverConfig = createDefaultTargetsConfig()
     serverConfig.balance.ui.showInsights = false
-    delete (serverConfig.balance as any).ui.showNotes
+    serverConfig.balance.ui.showNotes = false
 
     const postJson = vi.fn().mockResolvedValue({
-      targets_config_saved: serverConfig,
+      targets_config_read: serverConfig,
     })
 
     const { queueSave, targetsConfig } = createPersistence({
@@ -157,7 +157,7 @@ describe('useDashboardPersistence', () => {
     await vi.runOnlyPendingTimersAsync()
 
     expect(postJson).toHaveBeenCalledTimes(1)
-    expect(targetsConfig.value.balance.ui.showNotes).toBe(true)
+    expect(targetsConfig.value.balance.ui.showNotes).toBe(false)
     expect(targetsConfig.value.balance.ui.showInsights).toBe(false)
   })
 

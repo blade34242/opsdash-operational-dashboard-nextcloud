@@ -3,6 +3,7 @@ import { ref } from 'vue'
 
 import { useNotes } from '../composables/useNotes'
 import notesFixture from './fixtures/notes-week.json'
+import notesMonthQa from './fixtures/notes-month-qa.json'
 
 describe('useNotes', () => {
   it('fetches and saves notes', async () => {
@@ -33,5 +34,28 @@ describe('useNotes', () => {
     expect(postJson).toHaveBeenCalledWith('/notes/save', expect.objectContaining({ content: 'Updated' }))
     expect(notifySuccess).toHaveBeenCalledWith('Notes saved')
     expect(getJson).toHaveBeenCalledTimes(2)
+  })
+
+  it('replays month fixture with QA user notes', async () => {
+    const range = ref<'week' | 'month'>('month')
+    const offset = ref(1)
+    const getJson = vi.fn().mockResolvedValue(notesMonthQa)
+    const postJson = vi.fn()
+    const notifySuccess = vi.fn()
+    const notifyError = vi.fn()
+
+    const notes = useNotes({
+      range,
+      offset,
+      route: () => '/notes',
+      getJson,
+      postJson,
+      notifySuccess,
+      notifyError,
+    })
+
+    await notes.fetchNotes()
+    expect(notes.notesCurrDraft.value).toBe(notesMonthQa.notes.current)
+    expect(notes.notesPrev.value).toBe(notesMonthQa.notes.previous)
   })
 })

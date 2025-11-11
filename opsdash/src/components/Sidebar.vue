@@ -198,6 +198,7 @@
       @set-theme-preference="(value: 'auto' | 'light' | 'dark') => emit('set-theme-preference', value)"
       @export-config="() => emit('export-config')"
       @import-config="(file: File) => emit('import-config', file)"
+      @open-shortcuts="(el) => emit('open-shortcuts', el)"
     />
 
     <SidebarActivityPane
@@ -324,9 +325,12 @@ const emit = defineEmits([
   'set-theme-preference',
   'export-config',
   'import-config',
+  'open-shortcuts',
 ])
 
-const activeTab = ref<'calendars'|'targets'|'summary'|'activity'|'balance'|'notes'|'config'>('calendars')
+type SidebarTab = 'calendars'|'targets'|'summary'|'activity'|'balance'|'notes'|'config'
+
+const activeTab = ref<SidebarTab>('calendars')
 
 const targets = computed(() => props.targetsConfig)
 const categoryOptions = computed(() => targets.value?.categories ?? [])
@@ -808,6 +812,14 @@ function findNextCategoryColor(categories: Array<{ color?: string | null }>): st
   }
   return BASE_CATEGORY_COLORS[0] ?? null
 }
+
+function openTab(tab: SidebarTab) {
+  activeTab.value = tab
+}
+
+defineExpose({
+  openTab,
+})
 </script>
 
 <style scoped>

@@ -234,4 +234,14 @@ describe('Dashboard integration fixtures', () => {
     expect(harness.dashboard.selected.value).toEqual(['personal', 'opsdash-focus'])
     expect(harness.currentTargets.value['opsdash-focus']).toBeGreaterThan(0)
   })
+
+  it('replays QA month payload with limit metadata intact', async () => {
+    vi.setSystemTime(new Date('2025-11-12T12:00:00Z'))
+    const harness = await createIntegrationHarness({ range: 'month', fixture: 'load-month-qa.json', offset: 0 })
+    expect(harness.dashboard.uid.value).toBe('admin')
+    expect(harness.dashboard.colorsById.value.personal).toBe('#0be5a6')
+    expect(harness.dashboard.truncLimits.value?.totalProcessed).toBe(3)
+    expect(harness.dashboard.byCal.value.length).toBeGreaterThan(0)
+    expect(harness.dashboard.charts.value?.perDaySeries).toBeTruthy()
+  })
 })

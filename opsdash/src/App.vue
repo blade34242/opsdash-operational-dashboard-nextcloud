@@ -24,6 +24,7 @@
     <NcAppContent app-name="Operational Dashboard" :show-navigation="navOpen">
       <template #navigation>
         <Sidebar
+          ref="sidebarRef"
           id="opsdash-sidebar"
           :calendars="calendars"
           :selected="selected"
@@ -75,6 +76,7 @@
           @set-theme-preference="setThemePreference"
           @export-config="exportSidebarConfig"
           @import-config="importSidebarConfig"
+          @open-shortcuts="handleOpenShortcuts"
         />
       </template>
 
@@ -272,6 +274,11 @@
         </div>
       </div>
     </NcAppContent>
+    <KeyboardShortcutsModal
+      :visible="shortcutsOpen"
+      :groups="shortcutGroups"
+      @close="closeShortcuts"
+    />
   </div>
 </template>
 
@@ -289,6 +296,7 @@ import ActivityScheduleCard from './components/ActivityScheduleCard.vue'
 import BalanceOverviewCard from './components/BalanceOverviewCard.vue'
 import Sidebar from './components/Sidebar.vue'
 import OnboardingWizard from './components/OnboardingWizard.vue'
+import KeyboardShortcutsModal from './components/KeyboardShortcutsModal.vue'
 import { buildTargetsSummary, normalizeTargetsConfig, createEmptyTargetsSummary, createDefaultActivityCardConfig, createDefaultBalanceConfig, cloneTargetsConfig, convertWeekToMonth, type ActivityCardConfig, type BalanceConfig, type TargetsConfig } from './services/targets'
 import { ONBOARDING_VERSION } from './services/onboarding'
 // Lightweight notifications without @nextcloud/dialogs
@@ -324,6 +332,8 @@ import { useConfigExportImport } from '../composables/useConfigExportImport'
 import { useDetailsToggle } from '../composables/useDetailsToggle'
 import { useNotesLabels } from '../composables/useNotesLabels'
 import { useSidebarState } from '../composables/useSidebarState'
+import { useKeyboardShortcuts } from '../composables/useKeyboardShortcuts'
+import { trackTelemetry } from './services/telemetry'
 // Ensure a visible version even if backend attrs are empty: use package.json as fallback
 // @ts-ignore
 import pkg from '../package.json'
@@ -349,6 +359,13 @@ type BalanceOverviewSummary = {
 } | null
 
 const { navOpen, toggleNav, navToggleLabel, navToggleIcon } = useSidebarState()
+const sidebarRef = ref<InstanceType<typeof Sidebar> | null>(null)
+
+function ensureSidebarVisible() {
+  if (!navOpen.value) {
+    toggleNav()
+  }
+}
 
 const pane = ref<'cal'|'day'|'top'|'heat'>('cal')
 const range = ref<'week'|'month'>('week')
@@ -575,6 +592,27 @@ const {
   performLoad: () => performLoad(),
 })
 
+function focusSidebarTab(tab: 'notes' | 'config') {
+  ensureSidebarVisible()
+  sidebarRef.value?.openTab(tab)
+}
+
+const {
+  shortcutsOpen,
+  openShortcuts,
+  closeShortcuts,
+  shortcutGroups,
+} = useKeyboardShortcuts({
+  goPrevious,
+  goNext,
+  toggleRange: toggleRangeCollapsed,
+  saveNotes: () => saveNotes(),
+  openNotesPanel: () => focusSidebarTab('notes'),
+  openConfigPanel: () => focusSidebarTab('config'),
+  ensureSidebarVisible,
+  onOpen: ({ source }) => trackTelemetry('shortcuts_opened', { source }),
+})
+
 const activeDayMode = ref<'active'|'all'>('active')
 const rangeLabel = computed(()=> range.value === 'month' ? 'Month' : 'Week')
 
@@ -753,6 +791,10 @@ function setActiveDayMode(mode:'active'|'all'){
   if (activeDayMode.value !== mode) {
     activeDayMode.value = mode
   }
+}
+
+function handleOpenShortcuts(trigger?: HTMLElement | null) {
+  openShortcuts(trigger ?? null, 'button')
 }
 
 watch(onboardingState, (state) => {

@@ -55,3 +55,4 @@ import loadWeek from '../fixtures/load-week.json'
 - `persist-response.json` (sanitised `/overview/persist` response)
 - `notes-week.json` (GET `/overview/notes` sample; also used for `/overview/persist` minimal fixture)
 - `load-month-qa.json` (Month view payload seeded via QA user)
+- `notes-month-qa.json` (QA user month note payload captured after rerunning onboarding)

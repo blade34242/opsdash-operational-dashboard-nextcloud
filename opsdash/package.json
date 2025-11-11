@@ -9,7 +9,9 @@
     "preview": "vite preview",
     "test": "vitest",
     "test:unit": "vitest --run",
-    "test:e2e": "playwright test"
+    "test:e2e": "playwright test",
+    "i18n:scan": "node ../tools/i18n/scan_strings.mjs",
+    "i18n:extract": "../tools/i18n/extract.sh"
   },
   "dependencies": {
     "vue": "^3.4.27"

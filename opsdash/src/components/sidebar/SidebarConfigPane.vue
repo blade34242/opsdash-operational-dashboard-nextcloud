@@ -74,6 +74,14 @@
       <NcButton type="tertiary" size="small" @click="triggerImport">
         Import configuration
       </NcButton>
+      <NcButton
+        type="tertiary"
+        size="small"
+        class="shortcuts-btn"
+        @click="onOpenShortcuts"
+      >
+        Keyboard shortcuts
+      </NcButton>
       <input
         ref="fileInput"
         type="file"
@@ -185,6 +193,7 @@ const emit = defineEmits<{
   (e: 'set-theme-preference', value: 'auto' | 'light' | 'dark'): void
   (e: 'export-config'): void
   (e: 'import-config', file: File): void
+  (e: 'open-shortcuts', trigger?: HTMLElement | null): void
 }>()
 
 const presetName = ref('')
@@ -233,6 +242,11 @@ function onFileChange(event: Event) {
   }
 }
 
+function onOpenShortcuts(event: MouseEvent) {
+  const target = event.currentTarget as HTMLElement | null
+  emit('open-shortcuts', target ?? undefined)
+}
+
 function formatRelative(value?: string | null): string {
   if (!value) return ''
   const date = new Date(value)
@@ -275,6 +289,8 @@ onMounted(() => {
 .setup-actions {
   display: flex;
   justify-content: flex-start;
+  flex-wrap: wrap;
+  gap: 6px;
   margin-bottom: 12px;
 }
 .rerun-btn {

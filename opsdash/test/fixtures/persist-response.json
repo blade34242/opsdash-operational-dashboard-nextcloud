@@ -12,7 +12,13 @@
     ],
     "balance": {
       "categories": ["focus"],
-      "ui": {"showNotes": true, "showInsights": true}
+      "ui": {
+        "roundPercent": 1,
+        "roundRatio": 1,
+        "showDailyStacks": false,
+        "showInsights": true,
+        "showNotes": true
+      }
     }
   },
   "theme_preference_read": "dark"

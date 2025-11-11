@@ -38,7 +38,7 @@ Single source of truth for the Opsdash backlog: high-level roadmap, target syste
 - **CalDAV colour probe** — Add automated PROPFIND checks against `remote.php/dav/calendars/<user>/<cal>` (per NC version) to ensure `apple:calendar-color` responses stay compatible; fail builds if colours disappear.
 
 ### P1 – Frontend Structure
-- Finish carving `App.vue` (range toolbar, export/import helpers) + dedicated theme bootstrap module.
+- ~~Finish carving `App.vue` (range toolbar, export/import helpers) + dedicated theme bootstrap module.~~ ✅ `useRangeToolbar`, `useKeyboardShortcuts`, theme bootloader now own modules (0.4.6).
 - Extend vitest/Playwright coverage per Testing Guide Phase 2.
 - Explore “By Calendar Events” drill-down UX.
 - Enhance chart labelling + info badges alignment.
@@ -50,11 +50,11 @@ Single source of truth for the Opsdash backlog: high-level roadmap, target syste
 - Upgrade seeding scripts to more realistic schedules (tools already exist; expand data variety).
 
 ### P3 – UX & Platform
-- L10n + accessibility pass (sidebar focus order, contrast, aria for charts).
+- L10n + accessibility pass (sidebar focus order, contrast, aria for charts). See `I18N_PLAN.md` for de/fr/es rollout steps.
 - Improve CalDAV color error UX.
 - Roll out full theming phases + sidebar-collapsed controls.
-- Surface keyboard shortcuts overlay.
-- Add language/label packs for additional locales (de, fr, es). Track per-page label gaps and build i18n tooling before opening translations.
+- ~~Surface keyboard shortcuts overlay.~~ ✅ overlay + shortcuts shipped in App.vue (0.4.6).
+- Add language/label packs for additional locales (de, fr, es). Track per-page label gaps and build i18n tooling before opening translations (`I18N_PLAN.md` covers extraction + review workflow).
 
 ### Watchlist / Questions
 - NC 33 support timeline; update `<nextcloud max-version>` when ready.
