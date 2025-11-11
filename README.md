@@ -1,56 +1,76 @@
-# OpsDash (Nextcloud app)
+# Opsdash — Operational Calendar Dashboard for Nextcloud
 
-A lightweight dashboard for scheduling and operations on Nextcloud — with calendar statistics, targets, and visual insights. Built for clarity, privacy, and performance.
+![Nextcloud Server Tests](https://github.com/blade34242/nexcloud-operational-cal-deck-dashboard/actions/workflows/server-tests.yml/badge.svg)
 
-Current status
-- NC 31 line (0.4.x): stable and in active use
-- NC 32 line (0.5.x): planned; will follow the same app id and route
+Opsdash turns raw calendar data into actionable week/month insights inside Nextcloud. It ships as a privacy-preserving app (no telemetry, user-scoped config storage) and targets the NC 31 line today while we stage NC 32 support.
 
-Features
-- Calendar insights: totals, averages, busiest day, typical start/end
-- Visuals: pie (with %), stacked bars (per-day, per-calendar), 24×7 heatmap
-- Targets: per‑calendar weekly/monthly targets, auto‑convert (×4/÷4), Δ and %
-- Grouping: optional per‑calendar groups (0–9) to slice charts
-- Notes: short notes per week/month (user‑scoped)
-- Timezone aware: bucketing in the user’s timezone (DST‑safe)
-- No telemetry: zero usage tracking
+## Screenshots
 
-Quick links
-- Architecture & APIs: `aaacalstatsdashxyz/docs/ARCHITECTURE.md`, `aaacalstatsdashxyz/docs/API.md`
-- Security & Ops: `aaacalstatsdashxyz/docs/SECURITY.md`, `aaacalstatsdashxyz/docs/OPERATIONS.md`
-- Packaging & Release: `aaacalstatsdashxyz/docs/PACKAGING.md`, `aaacalstatsdashxyz/docs/RELEASE.md`, `aaacalstatsdashxyz/docs/PUBLISHING_CHECKLIST.md`
-- App Store Policy: `aaacalstatsdashxyz/docs/APP_STORE_PUBLISHING.md`
-- Dev workflow & branching: `aaacalstatsdashxyz/docs/DEV_WORKFLOW.md`, `aaacalstatsdashxyz/docs/BRANCHING.md`
-- Calendar seeding (dev): `aaacalstatsdashxyz/docs/CALENDAR_DEV_SETUP.md`
+| Week view (cards + charts) | Month view (targets + balance) |
+| --- | --- |
+| ![Week view](opsdash/docs/img/dashboard-week.png) | ![Month view](opsdash/docs/img/dashboard-month.png) |
 
-Compatibility
-- 0.4.x → Nextcloud 31 (Calendar 5.5.x for local dev)
-- 0.5.x → Nextcloud 32 (Calendar 6.0.x for local dev; later widen to 33)
+## Feature Highlights
+- **Dedicated SPA** powered by Vue 3 + Vite: fast navigation, collapsible sidebar, onboarding wizard, and dark/light auto theme.
+- **Targets + pacing**: per-calendar weekly/monthly targets, Δ, badges, pace hints, and forecast overlay (linear vs. calendar/category modes).
+- **Charts & tables**: stacked bars, pie, calendar-by-category tables, longest tasks, heatmap, balance index, and activity breakdowns (weekend share, overlaps, earliest/latest, etc.).
+- **Notes & presets**: jot context per range and save/load named presets (sanitised and scoped per user).
+- **No telemetry**: the app never leaves your server; all configs live in Nextcloud’s config backend.
 
-Install (dev)
-1) Place the app folder in your Nextcloud apps path (e.g., `/var/www/html/custom_apps/opsdash` on the official Docker images or `/var/www/html/apps-extra/opsdash` on legacy setups).
-2) Build assets: `npm ci && npm run build` inside the app folder.
-3) Enable via `occ app:enable opsdash` and open from the navigation.
-4) For demo data, install Calendar and run the seeding scripts (see docs).
+## Compatibility & Branching
 
-Release overview
-- We publish separate packages per NC major via `info.xml` min/max versions.
-- Packages are signed with Nextcloud’s `integrity:sign-app`.
-- The controller uses the Vite manifest to resolve built assets (no hard‑coded names).
+| Branch | NC support | Version line | Notes |
+| --- | --- | --- | --- |
+| `master` | NC 31 | 0.4.x | Active development (architecture refactor, onboarding revamp). |
+| `release/0.4.x` | NC 31 | 0.4.x | Cut from `master` for App Store submissions (e.g., `release/0.4.5`). |
+| *(staged)* | NC 32 | 0.5.x | Matrix entries exist in `.github/ci-matrix.json` but stay disabled until `info.xml` widens. |
 
-License
-- AGPL‑3.0‑or‑later
+See `opsdash/docs/BRANCHING.md` for the full branching + release plan.
 
-## CI & Testing
+## Local Development
+1. **Bootstrap Nextcloud**: use the provided docker-compose files (`docker-compose31.yml` or `docker-compose.yml`) or follow `opsdash/docs/DEV_WORKFLOW.md` to mount the app under `custom_apps/opsdash`.
+2. **Install deps & build**:
+   ```bash
+   cd opsdash
+   npm ci
+   npm run build
+   composer install
+   ```
+3. **Enable + seed**: `occ app:enable opsdash`, install the Calendar app, then run the seeding helpers from `opsdash/tools/seed/` (documented in `docs/SEEDING.md`).
+4. **Vite dev server** (optional): `cd opsdash && npm run dev` to hot-reload the SPA; Nextcloud still serves the built assets, so rebuild before packaging.
 
-- GitHub Actions (`.github/workflows/server-tests.yml`) mirrors the official Nextcloud pipeline:
-  - checkouts `nextcloud/server` (stable31) + this app under `apps/opsdash`.
-  - runs `npm ci`, `npm run build`, `npm run test -- --run`.
-  - installs Nextcloud via `occ maintenance:install`, enables the app, then runs `composer run test:unit`.
-  - launches a temporary PHP built-in server and executes the Playwright smoke test (`npm run test:e2e`) against `http://127.0.0.1:8080`.
-- `tools/ci/setup_nextcloud.sh` provisions the container (install, trusted domains, enable app) for local or CI runs.
+## Testing & CI
+- **Local commands**
+  - `npm run test -- --run` (Vitest suites for composables/components/services).
+  - `composer run test:unit` (PHPUnit controllers/services).
+  - `npm run test:e2e` (Playwright smoke test; requires `npx playwright install --with-deps chromium`).
+  - `npm run build` (ensures `js/.vite/manifest.json` matches hashed assets).
+- **GitHub Actions** (`.github/workflows/server-tests.yml`)
+  - Reads `.github/ci-matrix.json` and runs every enabled combo (currently `stable30/stable31 × PHP 8.2/8.3`).
+  - Steps: checkout `nextcloud/server@branch`, rsync Opsdash into `server/apps/opsdash`, `npm ci → test → build`, install PHP deps, `occ maintenance:install`, run PHPUnit + Playwright, upload per-matrix artifacts.
+- **Security smoke scripts**
+  - `tools/security/run_curl_checks.sh` (range/offset clamp, CSRF header, preset sanitisation, notes injection) now relies on basic auth instead of the legacy form login.
+  - Additional helpers (`tools/security/import_fuzz.sh`, `opsdash/tools/security/run_notes_csrf.sh`) cover config import/export and notes CSRF scenarios.
 
-## Automation helpers
+## Security & Pentest Workflow
+- Pentest plan/log: `opsdash/docs/PENTEST_PLAN.md`, `opsdash/docs/PENTEST_LOG.md` (updated 2025‑11‑10 with DevTools + curl evidence).
+- Follow `docs/INTEGRATION_TESTING.md` to spin up a reproducible Nextcloud server, seed calendars via OCC, and capture curl payloads.
+- Manual scripts stay out of CI; run them before tagging releases to keep white-box coverage fresh.
+- Server hardening tips and CSP references live in `opsdash/docs/SECURITY.md` & `opsdash/docs/OPERATIONS.md`.
 
-- Security scripts (`tools/security/run_curl_checks.sh`, `import_fuzz.sh`, `opsdash/tools/security/run_notes_csrf.sh`) are **manual** white-box checks; run them locally when you need the pentest coverage.
-- Packaging helper (`opsdash/tools/release/package.sh`) builds clean `tar.gz`/`zip` artifacts for App Store submissions.
+## Documentation Map
+- **Architecture & APIs**: `opsdash/docs/ARCHITECTURE.md`, `opsdash/docs/API.md`, `opsdash/docs/DIRECTORY_STRUCTURE.md`.
+- **Dev workflow**: `opsdash/docs/DEV_WORKFLOW.md`, `opsdash/docs/CALENDAR_DEV_SETUP.md`, `opsdash/docs/CONFIGURATION.md`.
+- **Testing roadmap**: `opsdash/docs/TESTING_STRATEGY.md`, `opsdash/docs/TESTING_IMPROVEMENT_PLAN.md`, `opsdash/docs/NEXT_STEPS.md`.
+- **Security/pentest**: `opsdash/docs/SECURITY.md`, `opsdash/docs/PENTEST_PLAN.md`, `opsdash/docs/PENTEST_LOG.md`.
+- **Release/packaging**: `opsdash/docs/PACKAGING.md`, `opsdash/docs/APP_STORE_PUBLISHING.md`, `opsdash/docs/PUBLISHING_CHECKLIST.md`, `opsdash/docs/RELEASE.md`.
+
+## Release Workflow
+1. Bump versions (`opsdash/VERSION`, `appinfo/info.xml`, `package.json`) and update `opsdash/docs/CHANGELOG.md`.
+2. Run the full test suite + security scripts.
+3. `npm run build && composer install --no-dev` to prep artifacts.
+4. Package/sign via `pack_opsdash.sh` (calls Nextcloud’s `integrity:sign-app`).
+5. Cut `release/<line>` branch, create Git tag (e.g., `v0.4.5`), and upload to the App Store.
+
+## License
+AGPL‑3.0-or-later. See `LICENSE` for details.
