@@ -30,3 +30,26 @@ OPSDASH_USER=admin OPSDASH_PASS=admin ./tools/security/import_fuzz.sh
 
 The script requires `curl` and `jq`. You can export different credentials (e.g.,
 `pentester`) to confirm isolation between users.
+
+## preset_roundtrip.sh
+Saves a preset with HTML in its name, verifies the sanitised name + warnings via
+`GET /overview/presets/{name}`, and deletes it again. Run this after
+`run_curl_checks.sh` to validate the preset lifecycle in isolation.
+
+```
+OPSDASH_BASE=http://localhost:8088/index.php/apps/opsdash \
+  OPSDASH_USER=admin OPSDASH_PASS=admin \
+  ./tools/security/preset_roundtrip.sh
+```
+
+## run_notes_csrf.sh
+Uses basic auth to load the Opsdash overview, scrape `window.OC.requestToken`,
+POST a note with the proper CSRF header, and read it back. Helpful for verifying
+notes remain user-scoped and require valid tokens even outside the SPA.
+
+```
+OPSDASH_BASE=http://localhost:8088 \
+  OPSDASH_APP_PATH=/index.php/apps/opsdash \
+  OPSDASH_USER=admin OPSDASH_PASS=admin \
+  opsdash/tools/security/run_notes_csrf.sh
+```

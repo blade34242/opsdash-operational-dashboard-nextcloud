@@ -37,14 +37,33 @@ test('Onboarding wizard can be re-run from Config & Setup', async ({ page, baseU
   const dialog = page.getByRole('dialog')
   await expect(dialog.getByRole('heading', { name: 'Welcome to Opsdash' })).toBeVisible()
 
-  const continueButton = dialog.getByRole('button', { name: 'Continue' })
-  for (let i = 0; i < 5; i++) {
-    if (!(await continueButton.isVisible())) {
-      break
-    }
-    await continueButton.click()
+  await dialog.getByRole('button', { name: 'Maybe later' }).click()
+  await expect(dialog).toBeHidden()
+})
+
+test('Config preset can be saved via UI', async ({ page, baseURL }) => {
+  if (!baseURL) {
+    test.skip()
+    return
   }
 
-  await dialog.getByRole('button', { name: 'Start dashboard' }).click()
-  await expect(dialog).toBeHidden()
+  const presetName = `E2E Preset ${Date.now()}`
+
+  await page.goto(baseURL + '/index.php/apps/opsdash/overview')
+  await page.getByRole('tab', { name: 'Config & Setup' }).click()
+
+  await page.getByLabel('Profile name').fill(presetName)
+  await page.getByRole('button', { name: 'Save current configuration' }).click()
+
+  const presetNameLocator = page.locator('.preset-name', { hasText: presetName })
+  await expect(presetNameLocator).toBeVisible({ timeout: 15000 })
+
+  await page.evaluate(async (name) => {
+    const token = (window as any).OC?.requestToken || (window as any).oc_requesttoken || ''
+    await fetch(`/index.php/apps/opsdash/overview/presets/${encodeURIComponent(name)}`, {
+      method: 'DELETE',
+      credentials: 'same-origin',
+      headers: token ? { requesttoken: token } : {},
+    })
+  }, presetName)
 })

@@ -43,7 +43,7 @@ See `opsdash/docs/BRANCHING.md` for the full branching + release plan.
 - **Local commands**
   - `npm run test -- --run` (Vitest suites for composables/components/services).
   - `composer run test:unit` (PHPUnit controllers/services).
-  - `npm run test:e2e` (Playwright smoke tests for dashboard load + onboarding rerun; requires `npx playwright install --with-deps chromium`).
+  - `npm run test:e2e` (Playwright smoke tests for dashboard load, onboarding rerun, and preset saves; requires `npx playwright install --with-deps chromium`).
   - `npm run build` (ensures `js/.vite/manifest.json` matches hashed assets).
 - **GitHub Actions** (`.github/workflows/server-tests.yml`)
   - Reads `.github/ci-matrix.json` and runs every enabled combo (currently `stable30/stable31 × PHP 8.2/8.3`).
