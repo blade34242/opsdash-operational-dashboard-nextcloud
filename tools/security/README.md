@@ -77,3 +77,17 @@ OPSDASH_BASE=http://localhost:8088/index.php/apps/opsdash \
   OPSDASH_USER=admin OPSDASH_PASS=admin \
   ./tools/security/preset_export_import.sh
 ```
+
+## rerun_onboarding.sh
+Replays the current dashboard state through the onboarding payload to verify the
+backend accepts wizard submissions (strategy, theme preference, targets, groups).
+The script fetches `/overview/load`, builds the persist payload, and posts it to
+`/overview/persist`. Override the strategy or theme via `ONBOARDING_STRATEGY`
+(`total_only`, `total_plus_categories`, `full_granular`) and `ONBOARDING_THEME`
+(`auto`, `light`, `dark`) if you want to simulate a different choice.
+
+```
+OPSDASH_BASE=http://localhost:8088/index.php/apps/opsdash \
+  OPSDASH_USER=admin OPSDASH_PASS=admin \
+  ./tools/security/rerun_onboarding.sh
+```

@@ -3,6 +3,7 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 
 import { useDashboardPresets } from '../composables/useDashboardPresets'
 import { createDefaultTargetsConfig } from '../src/services/targets'
+import presetFixture from './fixtures/preset-export.json'
 
 function createPresetManager(overrides: Partial<Parameters<typeof useDashboardPresets>[0]> = {}) {
   const selected = ref<string[]>(['cal-1'])
@@ -140,5 +141,33 @@ describe('useDashboardPresets', () => {
     expect(manager.queueSave).not.toHaveBeenCalled()
     expect(manager.notifySuccess).not.toHaveBeenCalled()
     expect(confirmSpy).toHaveBeenCalledTimes(1)
+  })
+
+  it('replays exported preset envelope fixture without warnings', async () => {
+    const presetFromExport = {
+      selected: presetFixture.payload.cals,
+      groups: presetFixture.payload.groups,
+      targets_week: presetFixture.payload.targets_week,
+      targets_month: presetFixture.payload.targets_month,
+      targets_config: presetFixture.payload.targets_config,
+    }
+
+    const getJson = vi
+      .fn()
+      .mockResolvedValueOnce({ preset: presetFromExport })
+      .mockResolvedValueOnce({ presets: [] })
+    const queueSave = vi.fn()
+    const manager = createPresetManager({ getJson, queueSave })
+
+    await manager.loadPreset('Opsdash Demo')
+
+    expect(manager.selected.value).toEqual(presetFixture.payload.cals)
+    expect(manager.groupsById.value).toEqual(presetFixture.payload.groups)
+    expect(manager.targetsWeek.value).toEqual(presetFixture.payload.targets_week)
+    expect(manager.targetsMonth.value).toEqual(presetFixture.payload.targets_month)
+    expect(manager.targetsConfig.value.totalHours).toBe(presetFixture.payload.targets_config.totalHours)
+    expect(manager.presetWarnings.value).toEqual([])
+    expect(queueSave).toHaveBeenCalledWith(true)
+    expect(manager.notifySuccess).toHaveBeenCalledWith('Profile "Opsdash Demo" applied')
   })
 })

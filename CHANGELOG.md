@@ -8,10 +8,12 @@ All notable changes to this project will be documented in this file.
 - Playwright flow that re-runs onboarding and saves a preset to guard main UI paths.
 - Security automation scripts (`tools/security/run_curl_checks.sh`, `import_fuzz.sh`, `preset_roundtrip.sh`, `opsdash/tools/security/run_notes_csrf.sh`).
 - `make appstore` target for reproducible packaging + signing.
+- `tools/security/rerun_onboarding.sh` to replay the wizard payload (strategy/theme/targets) via `/overview/persist`.
 
 ### Changed
 - README simplified for end users; screenshots moved under `img/`.
 - Docs moved out of the distribution package to keep releases lean.
+- Internal doc set consolidated (`DEV_WORKFLOW.md`, `TESTING.md`, `ROADMAP.md`) while legacy references now sit under `docs-private/opsdash-docs/archive/` for historical lookup.
 
 ### Fixed
 - Preset names are sanitised end-to-end (API + UI) after fuzz testing uncovered path/HTML issues.
