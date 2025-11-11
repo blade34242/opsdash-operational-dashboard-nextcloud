@@ -96,6 +96,8 @@ jobs:
           OC_PASS: ${{ env.PLAYWRIGHT_SECOND_PASS }}
         run: |
           php occ user:add --password-from-env --display-name="QA Opsdash" "$SECOND_USER"
+          php occ config:user:set "$SECOND_USER" opsdash selected_cals --value="opsdash-focus"
+          php occ config:user:set "$SECOND_USER" opsdash cal_groups --value='{"opsdash-focus":0}'
 
       - name: PHPUnit
         working-directory: server/apps/${{ env.APP_NAME }}
