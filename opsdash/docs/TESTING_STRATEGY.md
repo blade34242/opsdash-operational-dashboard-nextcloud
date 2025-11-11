@@ -1,56 +1,33 @@
 # Testing Strategy Specification
 
-## Goal
-Define how the Opsdash app should be tested across PHP (server) and Vue
-(frontend) layers, using tools recommended in the Nextcloud ecosystem.
+## Purpose
+Guarantee every change to Opsdash is covered by fast unit tests (Vitest + PHPUnit) plus an end-to-end smoke test (Playwright) that runs inside a real Nextcloud server, mirroring the official Nextcloud app-template workflows.
 
-## Overview
-- **Server-side:** PHPUnit tests targeting controllers and services.
-- **Client-side:** Vitest + Vue Test Utils for components/composables.
-- **Future:** Optional end-to-end (Cypress/Playwright) once UI stable.
+## Test layers (current state)
+- **Client (Vue/TypeScript):** Vitest suites under `test/` covering composables (`useDashboard*`, `useTheme*`), sidebar panes, chart helpers, and onboarding logic. Command: `npm run test -- --run`.
+- **Server (PHP):** PHPUnit suites wired through Composer (`composer run test:unit`) exercising controllers, services, and validators.
+- **End-to-end:** A Playwright smoke test (`npm run test:e2e`) that logs into Nextcloud, loads `/index.php/apps/opsdash/overview`, and fails on console errors or missing UI shell.
 
-## Server-side (PHP) Testing
-1. **Framework:** PHPUnit (Nextcloud ships setup via `nextcloud/server` repo).
-2. **Structure:**
-   - Place tests under `tests/` or `lib/Tests/` following NC conventions.
-   - Use `\OCP\AppFramework\Test\ControllerTest` for controller tests.
-   - Create dedicated service tests (pure PHP assertions) with mocked dependencies.
-3. **Fixtures:**
-   - Prefer dependency injection over static calls to ease mocking.
-   - Use Nextcloud’s in-memory SQLite support when DB interaction required.
-4. **Execution:**
-   - Run inside NC dev container or using `make app-code-check` tooling.
-   - Document command (e.g., `composer run app:phpunit` or `phpunit --configuration phpunit.xml`).
-   - Immediate action (2025-03): add a PHPUnit bootstrap with a smoke test covering targets services to validate the harness.
-   - Status (2025-10): Controller, validator, and dashboard tab coverage is in place; new sidebar pane + chart tests run in Vitest; continue expanding to keyboard shortcuts and chart render flows.
+## How to run everything locally
+1. `npm ci` (installs SPA deps) and `composer install` (installs PHP deps) inside `opsdash/`.
+2. **Vitest:** `npm run test -- --run`.
+3. **Build sanity check:** `npm run build` to refresh hashed assets for manual QA.
+4. **PHPUnit:** `composer run test:unit` (requires a Nextcloud dev instance or the checked-out `nextcloud/server` repo; match the GitHub Action for parity).
+5. **Playwright:**
+   - Install browsers once: `npx playwright install --with-deps chromium`.
+   - Ensure a Nextcloud instance is reachable (dev container or `php -S` crude server in the CI workflow).
+   - Run `PLAYWRIGHT_BASE_URL=http://localhost:8088 npm run test:e2e` with `PLAYWRIGHT_USER/PASS` if different from `admin/admin`.
 
-## Client-side (Vue) Testing
-1. **Framework:** Vitest.
-2. **Scope:**
-   - Unit tests for composables (`useTargets`, `useCharts`).
-   - Component tests for cards, sidebar subcomponents, charts (with mocks).
-   - Service tests for business logic modules (`targets/progress` etc.).
-3. **Tools:**
-   - Vue Test Utils for DOM assertions.
-   - `@testing-library/vue` optional for user-centric assertions.
-4. **Execution:**
-   - Add npm scripts (`npm run test:unit`).
-   - Integrate into CI (GitHub Actions).
-   - Immediate action (2025-03): scaffold Vitest with a placeholder test around `buildTargetsSummary`.
-   - Status (2025-10): Vitest suite covers `buildTargetsSummary`, validator helpers, dashboard tabs/balance flows, `computePaceInfo`, chart helpers, and sidebar pane interaction tests. Next stretch: keyboard shortcuts, chart render assertions, and onboarding wizard once available.
+## CI contract (GitHub Actions)
+- The `Nextcloud Server Tests` job checks out `nextcloud/server@stable31`, copies our app into `server/apps/opsdash`, runs `npm ci → npm run test -- --run → npm run build`, installs PHP 8.2 via `shivammathur/setup-php`, runs `composer install` and `composer run test:unit`, provisions Nextcloud via `php occ maintenance:install`, installs Playwright Chromium, serves Nextcloud with `php -S`, and finally executes `npm run test:e2e`. Artifacts upload the Playwright report.
+- This mirrors what other Nextcloud apps (Notes, Deck, Calendar, app-template) do; the only missing piece compared to them is a matrix of Nextcloud branches + PHP versions.
 
-## End-to-End (Optional Later)
-- Use Cypress or Playwright once onboarding/theming stabilises.
-- Mock Nextcloud APIs where feasible; for real integration, run in NC Docker env.
+## Next step: broader PHP + Nextcloud coverage
+- **Matrix plan:**
+  - Add `strategy.matrix.nextcloud_branch` = [`stable31`, `stable32`] once we officially support NC 32.
+  - Add `strategy.matrix.php` = [`8.2`, `8.3`] to match the app-template’s coverage. Parameterise the PHP setup and the `env.NEXTCLOUD_BRANCH` slot.
+- **Data seeding:** provide a lightweight OCC command or script to seed calendars/tasks so Playwright can assert more than just “page loads”. Keep it optional to maintain runtime under 5 minutes.
 
-## CI Integration
-- Extend GitHub workflow to run both PHPUnit and Vitest.
-- Fail build on test failure; publish coverage reports (Codecov optional).
-
-## Documentation
-- Update `docs/DEV_WORKFLOW.md` with commands and guidelines.
-- Keep a testing matrix per feature (targets, balance, notes).
-
-## Open Questions
-- Do we need snapshot tests for charts?
-- Should we provide a seeded dataset fixture for e2e runs?
+## Documentation & ownership
+- Keep this file and `docs/DEV_WORKFLOW.md` updated whenever a new test suite, script, or CI job is added.
+- Record coverage/expectations per feature in `docs/TESTING_IMPROVEMENT_PLAN.md` (e.g., onboarding wizard snapshot checklist) so future contributors know where to plug tests.

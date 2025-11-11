@@ -30,4 +30,15 @@ This checklist ensures changes show up reliably in a Nextcloud dev container.
 ## Playwright smoke test
 - Install browsers once: `npx playwright install --with-deps chromium`.
 - Export the base URL (defaults to `http://localhost:8088`): `PLAYWRIGHT_BASE_URL=http://localhost:8088 npm run test:e2e`.
-- The test (`tests/e2e/dashboard.spec.ts`) asserts that the dashboard mounts without `[opsdash] Vue error` in the console. The CI workflow runs the same command against a `nextcloud:31-apache` container (see `tools/ci/setup_nextcloud.sh`).
+- The test (`tests/e2e/dashboard.spec.ts`) asserts that the dashboard mounts without `[opsdash] Vue error` in the console. The GitHub Action provisions `nextcloud/server@stable31`, enables the app, and runs the same command via `npm run test:e2e`.
+
+## GitHub Actions (Nextcloud Server Tests)
+- **Checkout** `nextcloud/server@stable31` under `server/` and this repo under `app-src/`, then `rsync` `opsdash/` into `server/apps/opsdash/` to mirror a real Nextcloud install.
+- **Node stage:** `npm ci`, `npm run test -- --run`, and `npm run build` to guarantee hashed assets are up to date.
+- **PHP stage:** `shivammathur/setup-php@v2` installs PHP 8.2 with `mbstring`, `intl`, `gd`, then `composer install` inside the app.
+- **Nextcloud bootstrap:** `php occ maintenance:install --database=sqlite …` followed by `php occ app:enable opsdash` so PHPUnit and Playwright run against a working instance.
+- **Tests:** `composer run test:unit` exercises PHP services/controllers, `npx playwright install --with-deps chromium` ensures the browser binary exists, a PHP built-in server serves Nextcloud, and `npm run test:e2e` runs the Playwright smoke test before artifacts are uploaded and the server is stopped.
+
+## Going further (PHP & Nextcloud versions)
+- Other official apps (Calendar, Deck, the `nextcloud/app-template`) run the same workflow across matrices of NC branches (`stable30`, `stable31`, `stable32`) and PHP versions (8.1/8.2/8.3). Our workflow currently runs a single combo (stable31 + PHP 8.2).
+- To match those setups, add a `strategy.matrix` with `nextcloud_branch` and `php-version` entries, parameterise the job environment (`NEXTCLOUD_BRANCH`, PHP version input), and keep the rsync step unchanged. Once stable, expand to include `nextcloud/server@stable32` and PHP 8.3 so we know exactly which combinations pass before advertising support.

@@ -1,32 +1,41 @@
 # Branching & Versioning Strategy
 
-Purpose: keep releases stable per Nextcloud major while allowing main to move fast.
+Goal: keep the NC 31-compatible line (0.4.x) moving on `main`, cut release branches for App Store submissions, and prepare the next NC line without destabilising current users.
 
-Branches
-- `main` → current line for NC 32 (later 33)
-  - Version line: 0.5.x
-  - App id: `opsdash`, route `/overview` (same id/route as 0.4.x)
-- `support/0.4.x` → maintenance line for NC 30–31
-  - Version line: 0.4.x
-  - App id: `opsdash`, route `/overview`
-  - No big refactors; only bug fixes
+## Branch roles
 
-Compatibility windows
-- 0.4.x: `info.xml` `<nextcloud min-version="30" max-version="31"/>`
-- 0.5.x: `info.xml` `<nextcloud min-version="32" max-version="32"/>` → widen to 33 after test
+- `main`
+  - Tracks NC 31 today (release line 0.4.x). All day‑to‑day development happens here so that fixing bugs and shipping onboarding refactors does not require backports.
+  - `appinfo/info.xml` should continue to declare `min-version="31" max-version="31"` until we officially support NC 32.
+  - When we start NC 32 work we keep `main` on 0.4.x until a dedicated branch is ready (see “Future lines”).
+- `release/0.4.x`
+  - Cut from `main` whenever we stabilise for an App Store upload (e.g., `release/0.4.5`).
+  - Only allow cherry-picked fixes after the release candidate is tagged to keep hashes stable for signature verification.
+- Future NC line (placeholder name `feature/nc32-bootstrap` → later `main`)
+  - Once NC 32 is validated we create a long‑lived branch for 0.5.x, repeat the same “release/<line>” pattern, and eventually flip `main` over after 0.5.0 is healthy. Until then `release/0.4.x` and `main` remain NC 31.
 
-Release process per line
-- Bump `appinfo/info.xml` and `package.json` versions (aligned)
-- Update `docs/CHANGELOG.md` and `docs/UPGRADE.md`
-- Build → stage (runtime files only) → sign → tarball → upload to App Store
-- Tag (e.g., v0.4.1 or v0.5.0)
+## Compatibility windows
 
-Backports
-- Implement on `main` then cherry-pick to `support/0.4.x` if needed.
-- Avoid feature backports; keep maintenance branches stable.
+- 0.4.x: `info.xml` `<nextcloud min-version="30" max-version="31"/>` (today we only test on 31 in CI; keep 30 support best‑effort).
+- 0.5.x (future): `<nextcloud min-version="32" max-version="32"/>` initially, widen after CI gains new job entries.
 
-Local multi-folder setup (recommended)
-- Use git worktrees or separate folders per branch:
-  - `worktrees/opsdash-main` (mounted to NC 32 container)
-  - `worktrees/opsdash-nc31` (mounted to NC 31 container)
-- Update docker-compose mounts to point to the correct folder per container.
+## Release flow
+
+1. Branch: `git switch -c release/0.4.5` from `main` once features freeze.
+2. Bump versions (`appinfo/info.xml`, `package.json`, `VERSION`, docs/CHANGELOG entry).
+3. Build assets: `npm ci && npm run build` (hash manifest) and `composer install --no-dev` for packaging.
+4. Create App Store tarball via `pack_opsdash.sh`, sign, and upload.
+5. Tag `v0.4.5` on the release branch, then merge/tag back to `main` if needed.
+
+## Backport rules
+
+- All work merges into `main` first. Only cherry-pick to a release branch when the bug affects that release and we need a follow-up build.
+- Avoid diverging feature work on release branches; keep them hotfix‑only so signatures stay reproducible.
+- If we ever maintain multiple major lines simultaneously, follow the same pattern as other Nextcloud apps (e.g., Notes, Deck): `main` targets the newest NC, `stable/xx` branches lock older compatibility.
+
+## Local multi-folder setup (recommended)
+
+- Use git worktrees or sibling clones to map each branch to a container volume:
+  - `worktrees/opsdash-main` → mounted into the NC 31 dev container.
+  - `worktrees/opsdash-release-0.4.x` → used to build App Store bundles without extra files in the volume.
+- Update `docker-compose*.yml` to point at the correct path per container, matching how other Nextcloud apps (Calendar, Deck) mount their `apps/your-app` folder.
