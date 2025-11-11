@@ -30,10 +30,10 @@ This checklist ensures changes show up reliably in a Nextcloud dev container.
 ## Playwright smoke test
 - Install browsers once: `npx playwright install --with-deps chromium`.
 - Export the base URL (defaults to `http://localhost:8088`): `PLAYWRIGHT_BASE_URL=http://localhost:8088 npm run test:e2e`.
-- The test (`tests/e2e/dashboard.spec.ts`) asserts that the dashboard mounts without `[opsdash] Vue error` in the console. The GitHub Action provisions `nextcloud/server@stable31`, enables the app, and runs the same command via `npm run test:e2e`.
+- The test (`tests/e2e/dashboard.spec.ts`) asserts that the dashboard mounts without `[opsdash] Vue error` in the console. The GitHub Action provisions whichever Nextcloud branch is listed in `.github/ci-matrix.json` (currently `stable30` and `stable31`), enables the app, and runs the same command via `npm run test:e2e`.
 
 ## GitHub Actions (Nextcloud Server Tests)
-- **Checkout** `nextcloud/server@stable31` under `server/` and this repo under `app-src/`, then `rsync` `opsdash/` into `server/apps/opsdash/` to mirror a real Nextcloud install.
+- **Checkout** the desired `nextcloud/server@stableXX` branch (match the matrix entry you want to reproduce) under `server/` and this repo under `app-src/`, then `rsync` `opsdash/` into `server/apps/opsdash/` to mirror a real Nextcloud install.
 - **Node stage:** `npm ci`, `npm run test -- --run`, and `npm run build` to guarantee hashed assets are up to date.
 - **PHP stage:** `shivammathur/setup-php@v2` installs PHP 8.2 with `mbstring`, `intl`, `gd`, then `composer install` inside the app.
 - **Nextcloud bootstrap:** `php occ maintenance:install --database=sqlite …` followed by `php occ app:enable opsdash` so PHPUnit and Playwright run against a working instance.

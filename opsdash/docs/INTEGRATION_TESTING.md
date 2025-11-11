@@ -15,12 +15,13 @@ in CI so we do more than unit-test the parsing helpers.
 
 ## 1. Reuse the Nextcloud server checkout
 
-The GitHub Action already clones `nextcloud/server@stable31` (and in preview,
-`stable30/32`) before syncing Opsdash into `server/apps/opsdash`. Use that exact
-flow locally when you need a reproducible integration rig:
+The GitHub Action already clones the branches defined in `.github/ci-matrix.json`
+(currently `stable30` and `stable31`, with `stable32` staged but disabled)
+before syncing Opsdash into `server/apps/opsdash`. Use that exact flow locally
+when you need a reproducible integration rig:
 
 ```bash
-# 1) clone server
+# 1) clone server (pick the branch you want to mirror from ci-matrix.json)
 git clone --depth=1 --branch stable31 https://github.com/nextcloud/server.git nc-server
 
 # 2) copy opsdash into apps/
