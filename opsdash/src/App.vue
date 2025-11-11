@@ -317,10 +317,10 @@ import { useCharts } from '../composables/useCharts'
 import { useCategories } from '../composables/useCategories'
 import { useSummaries } from '../composables/useSummaries'
 import { useBalance } from '../composables/useBalance'
-import { useThemePreference, type ThemePreference } from '../composables/useThemePreference'
-import { useThemeSync } from '../composables/useThemeSync'
+import { useThemeController } from '../composables/useThemeController'
 import { useOnboardingFlow } from '../composables/useOnboardingFlow'
-import { buildConfigEnvelope, sanitiseSidebarPayload } from './utils/sidebarConfig'
+import { useRangeToolbar } from '../composables/useRangeToolbar'
+import { useConfigExportImport } from '../composables/useConfigExportImport'
 // Ensure a visible version even if backend attrs are empty: use package.json as fallback
 // @ts-ignore
 import pkg from '../package.json'
@@ -371,32 +371,6 @@ watch(navOpen, (open) => {
 const pane = ref<'cal'|'day'|'top'|'heat'>('cal')
 const range = ref<'week'|'month'>('week')
 const offset = ref<number>(0)
-const showCollapsedRangeControls = computed(() => !navOpen.value)
-const rangeToggleLabel = computed(() => range.value === 'week' ? 'Switch to month' : 'Switch to week')
-const rangeDateLabel = computed(() => {
-  if (!from.value || !to.value) return ''
-  return `${from.value} – ${to.value}`
-})
-
-function loadCurrent(){
-  performLoad().catch(console.error)
-}
-
-function toggleRangeCollapsed(){
-  range.value = range.value === 'week' ? 'month' : 'week'
-  offset.value = 0
-  performLoad().catch(console.error)
-}
-
-function goPrevious(){
-  offset.value = (offset.value || 0) - 1
-  performLoad().catch(console.error)
-}
-
-function goNext(){
-  offset.value = (offset.value || 0) + 1
-  performLoad().catch(console.error)
-}
 
 const truncTooltip = computed(()=>{
   const l:any = truncLimits.value
@@ -429,13 +403,6 @@ const notes = useNotes({
   notifyError,
 })
 const { notesPrev, notesCurrDraft, isSavingNote, fetchNotes, saveNotes } = notes
-
-const {
-  preference: themePreference,
-  effectiveTheme,
-  systemTheme,
-  setThemePreference: applyThemePreference,
-} = useThemePreference()
 
 const {
   calendars,
@@ -476,121 +443,34 @@ const {
 const onboardingState = onboarding
 const hasInitialLoad = ref(false)
 
-const { setThemePreference } = useThemeSync({
+const {
+  themePreference,
+  effectiveTheme,
+  systemTheme,
+  setThemePreference,
+} = useThemeController({
   serverPreference: dashboardThemePreference,
-  localPreference: themePreference,
-  applyLocalPreference: applyThemePreference,
   route: (name) => route(name),
   postJson,
   notifySuccess,
   notifyError,
 })
 
-function collectSidebarPayload() {
-  const payload: Record<string, any> = {
-    cals: [...selected.value],
-    groups: { ...groupsById.value },
-    targets_week: { ...targetsWeek.value },
-    targets_month: { ...targetsMonth.value },
-    targets_config: cloneTargetsConfig(targetsConfig.value),
-    theme_preference: themePreference.value,
-  }
-  if (onboardingState.value) {
-    payload.onboarding = { ...onboardingState.value }
-  }
-  return payload
-}
-
-function downloadJson(filename: string, data: unknown) {
-  const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' })
-  const url = URL.createObjectURL(blob)
-  const link = document.createElement('a')
-  link.href = url
-  link.download = filename
-  document.body.appendChild(link)
-  link.click()
-  document.body.removeChild(link)
-  URL.revokeObjectURL(url)
-}
-
-function exportSidebarConfig() {
-  try {
-    const payload = collectSidebarPayload()
-    const envelope = buildConfigEnvelope(payload)
-    const filename = `opsdash-config-${envelope.generated.slice(0, 10)}.json`
-    downloadJson(filename, envelope)
-    notifySuccess('Configuration exported')
-  } catch (error) {
-    console.error(error)
-    notifyError('Failed to export configuration')
-  }
-}
-
-async function importSidebarConfig(file: File) {
-  try {
-    const text = await file.text()
-    const parsed = JSON.parse(text)
-    const source = parsed?.payload && typeof parsed.payload === 'object' ? parsed.payload : parsed
-    const { cleaned, ignored } = sanitiseSidebarPayload(source)
-    if (!Object.keys(cleaned).length) {
-      notifyError('No recognised configuration keys found in file')
-      return
-    }
-
-    if (cleaned.cals) {
-      selected.value = (cleaned.cals as any[]).map((id) => String(id))
-    }
-    if (cleaned.groups) {
-      const nextGroups: Record<string, number> = {}
-      Object.entries(cleaned.groups as Record<string, any>).forEach(([key, value]) => {
-        const num = Number(value)
-        nextGroups[String(key)] = Number.isFinite(num) ? num : 0
-      })
-      groupsById.value = nextGroups
-    }
-    if (cleaned.targets_week) {
-      const nextWeek: Record<string, number> = {}
-      Object.entries(cleaned.targets_week as Record<string, any>).forEach(([key, value]) => {
-        const num = Number(value)
-        if (Number.isFinite(num)) {
-          nextWeek[String(key)] = num
-        }
-      })
-      targetsWeek.value = nextWeek
-    }
-    if (cleaned.targets_month) {
-      const nextMonth: Record<string, number> = {}
-      Object.entries(cleaned.targets_month as Record<string, any>).forEach(([key, value]) => {
-        const num = Number(value)
-        if (Number.isFinite(num)) {
-          nextMonth[String(key)] = num
-        }
-      })
-      targetsMonth.value = nextMonth
-    }
-    if (cleaned.targets_config) {
-      targetsConfig.value = normalizeTargetsConfig(cleaned.targets_config as TargetsConfig)
-    }
-    if (cleaned.theme_preference) {
-      setThemePreference(cleaned.theme_preference as ThemePreference, { persist: false })
-    }
-    if (cleaned.onboarding && typeof cleaned.onboarding === 'object') {
-      onboardingState.value = { ...(cleaned.onboarding as OnboardingState) }
-    }
-
-    await postJson(route('persist'), cleaned)
-    await performLoad()
-
-    if (ignored.length) {
-      notifyError(`Configuration imported with ignored keys: ${ignored.join(', ')}`)
-    } else {
-      notifySuccess('Configuration imported')
-    }
-  } catch (error) {
-    console.error(error)
-    notifyError('Failed to import configuration')
-  }
-}
+const { exportSidebarConfig, importSidebarConfig } = useConfigExportImport({
+  selected,
+  groupsById,
+  targetsWeek,
+  targetsMonth,
+  targetsConfig,
+  themePreference,
+  onboardingState,
+  setThemePreference,
+  postJson,
+  route: (name) => route(name),
+  performLoad: () => performLoad(),
+  notifySuccess,
+  notifyError,
+})
 
 const { queueSave } = useDashboardPersistence({
   route: (name) => route(name),
@@ -603,7 +483,7 @@ const { queueSave } = useDashboardPersistence({
   targetsWeek,
   targetsMonth,
   targetsConfig,
-  themePreference: dashboardThemePreference,
+  themePreference,
 })
 
 const {
@@ -694,6 +574,24 @@ async function performLoad() {
   }
   evaluateOnboarding()
 }
+
+const {
+  showCollapsedRangeControls,
+  rangeToggleLabel,
+  rangeDateLabel,
+  loadCurrent,
+  toggleRangeCollapsed,
+  goPrevious,
+  goNext,
+} = useRangeToolbar({
+  navOpen,
+  range,
+  offset,
+  from,
+  to,
+  isLoading,
+  performLoad: () => performLoad(),
+})
 
 const activeDayMode = ref<'active'|'all'>('active')
 const rangeLabel = computed(()=> range.value === 'month' ? 'Month' : 'Week')
