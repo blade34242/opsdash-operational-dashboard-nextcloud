@@ -16,10 +16,11 @@ URL="$ROOT/remote.php/dav/calendars/$USER/$CALENDAR/"
 BODY='<?xml version="1.0"?><d:propfind xmlns:d="DAV:" xmlns:ical="http://apple.com/ns/ical/"><d:prop><ical:calendar-color/></d:prop></d:propfind>'
 
 echo "[dav-probe] PROPFIND $URL"
-RESPONSE=$(curl -s -u "$USER:$PASS" -X PROPFIND -H 'Depth: 0' -H 'Content-Type: application/xml' --data "$BODY" "$URL") || {
+RESPONSE=$(curl -s -u "$USER:$PASS" -X PROPFIND -H 'Depth: 0' -H 'Content-Type: application/xml' --data "$BODY" "$URL" || true)
+if [[ -z "$RESPONSE" ]]; then
   echo "CalDAV request failed" >&2
   exit 7
-}
+fi
 COLOR=$(echo "$RESPONSE" | grep -o '<ical:calendar-color>[^<]*' | sed 's/<ical:calendar-color>//')
 if [[ -z "$COLOR" ]]; then
   echo "No calendar-color property found in CalDAV response" >&2
