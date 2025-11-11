@@ -1,4 +1,4 @@
-import { test, expect, Page } from '@playwright/test'
+import { test, expect, Page, request as playwrightRequest } from '@playwright/test'
 import { Buffer } from 'node:buffer'
 import { promises as fs } from 'node:fs'
 import os from 'node:os'
@@ -93,6 +93,63 @@ async function loginUser(page: Page, baseURL: string, username: string, password
     page.waitForNavigation({ url: /index.php\/(apps|login)/ }),
     page.click('button[type="submit"]'),
   ])
+}
+
+async function createApiContext(baseURL: string, username: string, password: string) {
+  const ctx = await playwrightRequest.newContext({
+    baseURL,
+    extraHTTPHeaders: {
+      'User-Agent': 'opsdash-playwright',
+    },
+  })
+  const loginResponse = await ctx.get('/index.php/login?clear=1')
+  const loginHtml = await loginResponse.text()
+  const requestTokenMatch = loginHtml.match(/name="requesttoken" value="([^"]+)"/)
+  if (!requestTokenMatch) {
+    await ctx.dispose()
+    throw new Error('Unable to extract requesttoken for API login')
+  }
+  const requestToken = requestTokenMatch[1]
+  const form = new URLSearchParams()
+  form.set('user', username)
+  form.set('password', password)
+  form.set('timezone', 'UTC')
+  form.set('timezone_offset', '0')
+  form.set('remember_login', '1')
+  form.set('requesttoken', requestToken)
+
+  await ctx.post('/index.php/login', {
+    headers: {
+      'Content-Type': 'application/x-www-form-urlencoded',
+    },
+    data: form.toString(),
+  })
+
+  return ctx
+}
+
+async function persistSelectionViaApi(baseURL: string, username: string, password: string, calendars: string[]) {
+  const ctx = await createApiContext(baseURL, username, password)
+  try {
+    const overviewResponse = await ctx.get('/index.php/apps/opsdash/overview')
+    const overviewHtml = await overviewResponse.text()
+    const rtMatch = overviewHtml.match(/data-requesttoken="([^"]+)"/)
+    if (!rtMatch) {
+      throw new Error('Unable to extract requesttoken from overview page')
+    }
+    const requestToken = rtMatch[1]
+    await ctx.post('/index.php/apps/opsdash/overview/persist', {
+      headers: {
+        'Content-Type': 'application/json',
+        requesttoken: requestToken,
+      },
+      data: JSON.stringify({ cals: calendars }),
+    })
+    return ctx
+  } catch (error) {
+    await ctx.dispose()
+    throw error
+  }
 }
 
 async function persistSelection(page: Page, calendars: string[]) {
@@ -299,7 +356,7 @@ test('Dashboard reflects seeded calendar events', async ({ page, baseURL }) => {
   }
 })
 
-test('Separate users keep independent selections', async ({ page, baseURL, browser }) => {
+test('Separate users keep independent selections', async ({ page, baseURL }) => {
   if (!baseURL || !SECOND_USER || !SECOND_PASS) {
     test.skip()
     return
@@ -314,16 +371,10 @@ test('Separate users keep independent selections', async ({ page, baseURL, brows
   const loadPrimary = await page.request.get('/index.php/apps/opsdash/overview/load?range=week&offset=0')
   const primaryJson = await loadPrimary.json()
 
-  const secondaryContext = await browser.newContext()
-  const secondaryPage = await secondaryContext.newPage()
-  await loginUser(secondaryPage, baseURL, SECOND_USER, SECOND_PASS)
-  await secondaryPage.goto(baseURL + '/index.php/apps/opsdash/overview')
-  await dismissOnboardingIfVisible(secondaryPage)
-  await persistSelection(secondaryPage, ['opsdash-focus'])
-
-  const loadSecondary = await secondaryPage.request.get('/index.php/apps/opsdash/overview/load?range=week&offset=0')
+  const qaApiContext = await persistSelectionViaApi(baseURL, SECOND_USER, SECOND_PASS, ['opsdash-focus'])
+  const loadSecondary = await qaApiContext.get('/index.php/apps/opsdash/overview/load?range=week&offset=0')
   const secondaryJson = await loadSecondary.json()
-  await secondaryContext.dispose()
+  await qaApiContext.dispose()
 
   expect(primaryJson.selected).toContain('personal')
   expect(primaryJson.selected).not.toContain('opsdash-focus')
