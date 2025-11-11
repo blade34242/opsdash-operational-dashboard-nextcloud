@@ -1,8 +1,11 @@
-import { test, expect, Page } from '@playwright/test'
+import { test, expect, Page, request as playwrightRequest } from '@playwright/test'
 import { Buffer } from 'node:buffer'
 import { promises as fs } from 'node:fs'
 import os from 'node:os'
 import path from 'node:path'
+
+const SECOND_USER = process.env.PLAYWRIGHT_SECOND_USER
+const SECOND_PASS = process.env.PLAYWRIGHT_SECOND_PASS
 
 async function seedCalendarEvent(page: Page, baseURL: string, summary: string, durationHours = 2) {
   const now = new Date()
@@ -195,4 +198,48 @@ test('Dashboard reflects seeded calendar events', async ({ page, baseURL }) => {
   } finally {
     await removeCalendarResource(page, resourceUrl)
   }
+})
+
+test('Separate users keep independent selections', async ({ page, baseURL }) => {
+  if (!baseURL || !SECOND_USER || !SECOND_PASS) {
+    test.skip()
+    return
+  }
+
+  await page.goto(baseURL + '/index.php/apps/opsdash/overview')
+  await dismissOnboardingIfVisible(page)
+
+  await page.evaluate(() => {
+    const token = (window as any).OC?.requestToken || (window as any).oc_requesttoken || ''
+    return fetch('/index.php/apps/opsdash/overview/persist', {
+      method: 'POST',
+      credentials: 'same-origin',
+      headers: { 'Content-Type': 'application/json', requesttoken: token },
+      body: JSON.stringify({ selected: ['personal'] }),
+    })
+  })
+
+  const secondaryContext = await playwrightRequest.newContext({
+    baseURL,
+    extraHTTPHeaders: {
+      Authorization: 'Basic ' + Buffer.from(`${SECOND_USER}:${SECOND_PASS}`).toString('base64'),
+      'OCS-APIREQUEST': 'true',
+    },
+  })
+
+  await secondaryContext.post('/index.php/apps/opsdash/overview/persist', {
+    data: { selected: ['opsdash-focus'] },
+    headers: { 'Content-Type': 'application/json' },
+  })
+
+  const loadPrimary = await page.request.get('/index.php/apps/opsdash/overview/load?range=week&offset=0')
+  const primaryJson = await loadPrimary.json()
+  const loadSecondary = await secondaryContext.get('/index.php/apps/opsdash/overview/load?range=week&offset=0')
+  const secondaryJson = await loadSecondary.json()
+
+  await secondaryContext.dispose()
+
+  expect(primaryJson.selected).toContain('personal')
+  expect(primaryJson.selected).not.toContain('opsdash-focus')
+  expect(secondaryJson.selected).toContain('opsdash-focus')
 })

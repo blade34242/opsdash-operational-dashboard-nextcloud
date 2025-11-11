@@ -66,3 +66,14 @@ OPSDASH_BASE=http://localhost:8088/index.php/apps/opsdash \
   OPSDASH_USER_B=pentester OPSDASH_PASS_B=pentest \
   ./tools/security/check_multi_user.sh
 ```
+
+## preset_export_import.sh
+Exports the first available preset via `/overview/presets`, saves the JSON, and
+re-imports its payload through `/overview/persist`. Useful to sanity-check that
+exported envelopes remain valid inputs.
+
+```
+OPSDASH_BASE=http://localhost:8088/index.php/apps/opsdash \
+  OPSDASH_USER=admin OPSDASH_PASS=admin \
+  ./tools/security/preset_export_import.sh
+```

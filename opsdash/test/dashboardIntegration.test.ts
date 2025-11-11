@@ -200,4 +200,13 @@ describe('Dashboard integration fixtures', () => {
     const forecasts = (stacked?.series || []).flatMap((series: any) => series?.forecast || [])
     expect(forecasts.some((val: number) => val > 0)).toBe(true)
   })
+
+  it('handles previous-week offset fixtures', async () => {
+    vi.setSystemTime(new Date('2025-10-25T12:00:00Z'))
+    const harness = await createIntegrationHarness({ range: 'week', fixture: 'load-week-offset-1.json', offset: -1 })
+    expect(harness.fixture.meta.offset).toBe(-1)
+    expect(harness.dashboard.from.value).toBe('2025-10-20')
+    expect(harness.dashboard.to.value).toBe('2025-10-26')
+    expect(harness.dashboard.byCal.value.length).toBeGreaterThan(0)
+  })
 })
