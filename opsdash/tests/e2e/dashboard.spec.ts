@@ -104,7 +104,9 @@ async function createApiContext(baseURL: string, username: string, password: str
   })
   const loginResponse = await ctx.get('/index.php/login?clear=1')
   const loginHtml = await loginResponse.text()
-  const requestTokenMatch = loginHtml.match(/name="requesttoken" value="([^"]+)"/)
+  const requestTokenMatch =
+    loginHtml.match(/name="requesttoken" value="([^"]+)"/) ||
+    loginHtml.match(/data-requesttoken="([^"]+)"/)
   if (!requestTokenMatch) {
     await ctx.dispose()
     throw new Error('Unable to extract requesttoken for API login')
@@ -131,13 +133,27 @@ async function createApiContext(baseURL: string, username: string, password: str
 async function persistSelectionViaApi(baseURL: string, username: string, password: string, calendars: string[]) {
   const ctx = await createApiContext(baseURL, username, password)
   try {
-    const overviewResponse = await ctx.get('/index.php/apps/opsdash/overview')
-    const overviewHtml = await overviewResponse.text()
-    const rtMatch = overviewHtml.match(/data-requesttoken="([^"]+)"/)
-    if (!rtMatch) {
-      throw new Error('Unable to extract requesttoken from overview page')
+    let requestToken = ''
+    try {
+      const csrfResponse = await ctx.get('/index.php/csrftoken')
+      if (csrfResponse.ok()) {
+        const json = await csrfResponse.json()
+        if (typeof json?.token === 'string') {
+          requestToken = json.token
+        }
+      }
+    } catch {}
+    if (!requestToken) {
+      const overviewResponse = await ctx.get('/index.php/apps/opsdash/overview')
+      const overviewHtml = await overviewResponse.text()
+      const rtMatch =
+        overviewHtml.match(/data-requesttoken="([^"]+)"/) ||
+        overviewHtml.match(/name="requesttoken" value="([^"]+)"/)
+      if (!rtMatch) {
+        throw new Error('Unable to extract requesttoken from overview page')
+      }
+      requestToken = rtMatch[1]
     }
-    const requestToken = rtMatch[1]
     await ctx.post('/index.php/apps/opsdash/overview/persist', {
       headers: {
         'Content-Type': 'application/json',
