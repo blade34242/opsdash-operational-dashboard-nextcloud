@@ -96,10 +96,9 @@ jobs:
           OC_PASS: ${{ env.PLAYWRIGHT_SECOND_PASS }}
         run: |
           php occ user:add --password-from-env --display-name="QA Opsdash" "$SECOND_USER"
-          php occ dav:create-calendar "$SECOND_USER" opsdash-focus "Opsdash Focus" || true
+          php occ dav:create-calendar "$SECOND_USER" opsdash-focus || true
           php occ user:setting "$SECOND_USER" opsdash selected_cals "opsdash-focus"
-          php occ dav:import "$SECOND_USER" opsdash-focus apps/${{ env.APP_NAME }}/tools/seed_qa_ics.ics
-          php apps/opsdash/tools/seed_qa_calendars.php
+          php occ apps/${{ env.APP_NAME }}/tools/seed_qa_calendars.php
 
       - name: PHPUnit
         working-directory: server/apps/${{ env.APP_NAME }}
