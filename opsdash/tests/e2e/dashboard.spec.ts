@@ -216,6 +216,8 @@ test('Separate users keep independent selections', async ({ page, baseURL }) => 
     data: { userid: SECOND_USER, password: SECOND_PASS, displayName: 'QA Opsdash' },
   }).catch(() => {})
 
+  // log out (if needed) to avoid OC redirect loop
+  await page.goto(baseURL + '/index.php/logout')
   await page.goto(baseURL + '/index.php/apps/opsdash/overview')
   await dismissOnboardingIfVisible(page)
 
@@ -237,10 +239,13 @@ test('Separate users keep independent selections', async ({ page, baseURL }) => 
     },
   })
 
-  await secondaryContext.post('/index.php/apps/opsdash/overview/persist', {
+  const persistSecondary = await secondaryContext.post('/index.php/apps/opsdash/overview/persist', {
     data: { selected: ['opsdash-focus'] },
     headers: { 'Content-Type': 'application/json' },
   })
+  if (!persistSecondary.ok()) {
+    console.warn('secondary persist failed', await persistSecondary.text())
+  }
 
   const loadPrimary = await page.request.get('/index.php/apps/opsdash/overview/load?range=week&offset=0')
   const primaryJson = await loadPrimary.json()
