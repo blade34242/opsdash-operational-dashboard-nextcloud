@@ -227,7 +227,7 @@ test('Separate users keep independent selections', async ({ page, baseURL }) => 
       method: 'POST',
       credentials: 'same-origin',
       headers: { 'Content-Type': 'application/json', requesttoken: token },
-      body: JSON.stringify({ selected: ['personal'] }),
+      body: JSON.stringify({ cals: ['personal'] }),
     })
   })
 
@@ -240,7 +240,7 @@ test('Separate users keep independent selections', async ({ page, baseURL }) => 
   })
 
   const persistSecondary = await secondaryContext.post('/index.php/apps/opsdash/overview/persist', {
-    data: { selected: ['opsdash-focus'] },
+    data: { cals: ['opsdash-focus'] },
     headers: { 'Content-Type': 'application/json' },
   })
   if (!persistSecondary.ok()) {
