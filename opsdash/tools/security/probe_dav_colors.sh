@@ -21,6 +21,10 @@ if [[ -z "$RESPONSE" ]]; then
   echo "CalDAV request failed" >&2
   exit 7
 fi
+if echo "$RESPONSE" | grep -q "error"; then
+  echo "$RESPONSE"
+  exit 7
+fi
 COLOR=$(echo "$RESPONSE" | grep -o '<ical:calendar-color>[^<]*' | sed 's/<ical:calendar-color>//')
 if [[ -z "$COLOR" ]]; then
   echo "No calendar-color property found in CalDAV response" >&2
