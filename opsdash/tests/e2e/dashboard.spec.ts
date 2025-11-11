@@ -1,4 +1,5 @@
 import { test, expect, Page } from '@playwright/test'
+import { Buffer } from 'node:buffer'
 
 async function seedCalendarEvent(page: Page, baseURL: string, summary: string, durationHours = 2) {
   const now = new Date()
@@ -105,6 +106,46 @@ test('Config preset can be saved via UI', async ({ page, baseURL }) => {
       headers: token ? { requesttoken: token } : {},
     })
   }, presetName)
+})
+
+test('Config import applies theme preference', async ({ page, baseURL }) => {
+  if (!baseURL) {
+    test.skip()
+    return
+  }
+
+  const importEnvelope = {
+    version: 1,
+    generated: new Date().toISOString(),
+    payload: {
+      cals: ['personal'],
+      groups: { personal: 0 },
+      targets_week: { personal: 12 },
+      targets_month: { personal: 48 },
+      targets_config: {
+        totalHours: 12,
+        categories: [],
+        pace: { includeWeekendTotal: true, mode: 'days_only', thresholds: { onTrack: -2, atRisk: -10 } },
+        forecast: { methodPrimary: 'linear', momentumLastNDays: 2, padding: 1.5 },
+        ui: { showTotalDelta: true, showNeedPerDay: true, showCategoryBlocks: true },
+        allDayHours: 8,
+        timeSummary: {},
+        activityCard: { showWeekendShare: true },
+        balance: { categories: [], useCategoryMapping: true, thresholds: { noticeMaxShare: 0.65, warnMaxShare: 0.75, warnIndex: 0.6 }, relations: { displayMode: 'ratio' }, trend: { lookbackWeeks: 1 }, dayparts: { enabled: false }, ui: { roundPercent: 1, roundRatio: 1, showDailyStacks: false, showInsights: true } },
+      },
+      theme_preference: 'light',
+      onboarding: { completed: true, version: 1, strategy: 'total_only' },
+    },
+  }
+
+  await page.goto(baseURL + '/index.php/apps/opsdash/overview')
+  await dismissOnboardingIfVisible(page)
+  await page.getByRole('tab', { name: 'Config & Setup' }).click()
+
+  const fileInput = page.locator('input[type="file"][accept="application/json"]')
+  await fileInput.setInputFiles({ name: 'opsdash-config.json', mimeType: 'application/json', buffer: Buffer.from(JSON.stringify(importEnvelope)) })
+
+  await expect(page.getByLabel('Force light')).toBeChecked({ timeout: 10000 })
 })
 
 test('Dashboard reflects seeded calendar events', async ({ page, baseURL }) => {
