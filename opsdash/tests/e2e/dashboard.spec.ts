@@ -158,10 +158,11 @@ async function persistSelectionViaApi(baseURL: string, username: string, passwor
       headers: {
         'Content-Type': 'application/json',
         requesttoken: requestToken,
+        'OCS-APIREQUEST': 'true',
       },
       data: JSON.stringify({ cals: calendars }),
     })
-    return ctx
+    return { ctx, requestToken }
   } catch (error) {
     await ctx.dispose()
     throw error
@@ -387,12 +388,23 @@ test('Separate users keep independent selections', async ({ page, baseURL }) => 
   const loadPrimary = await page.request.get('/index.php/apps/opsdash/overview/load?range=week&offset=0')
   const primaryJson = await loadPrimary.json()
 
-  const qaApiContext = await persistSelectionViaApi(baseURL, SECOND_USER, SECOND_PASS, ['opsdash-focus'])
-  const loadSecondary = await qaApiContext.get('/index.php/apps/opsdash/overview/load?range=week&offset=0')
+  const { ctx: qaApiContext, requestToken: qaToken } = await persistSelectionViaApi(baseURL, SECOND_USER, SECOND_PASS, ['opsdash-focus'])
+  const loadSecondary = await qaApiContext.get('/index.php/apps/opsdash/overview/load?range=week&offset=0', {
+    headers: {
+      'OCS-APIREQUEST': 'true',
+      ...(qaToken ? { requesttoken: qaToken } : {}),
+    },
+  })
+  if (!loadSecondary.ok()) {
+    const body = await loadSecondary.text()
+    await qaApiContext.dispose()
+    throw new Error(`Secondary load failed (${loadSecondary.status()}): ${body.slice(0, 200)}`)
+  }
   const secondaryJson = await loadSecondary.json()
   await qaApiContext.dispose()
 
   expect(primaryJson.selected).toContain('personal')
   expect(primaryJson.selected).not.toContain('opsdash-focus')
+  expect(Array.isArray(secondaryJson?.selected)).toBe(true)
   expect(secondaryJson.selected).toContain('opsdash-focus')
 })
