@@ -117,7 +117,7 @@ jobs:
           OPSDASH_BASE: http://127.0.0.1:8080/index.php/apps/opsdash
           OPSDASH_USER: admin
           OPSDASH_PASS: admin
-        run: opsdash/tools/security/rerun_onboarding.sh
+        run: tools/security/rerun_onboarding.sh
 
       - name: Playwright smoke test
         working-directory: server/apps/${{ env.APP_NAME }}
