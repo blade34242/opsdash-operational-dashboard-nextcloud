@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'vitest'
 import { sanitiseSidebarPayload, ALLOWED_CONFIG_KEYS } from '../src/utils/sidebarConfig'
+import presetFixture from './fixtures/preset-export.json'
 
 describe('sidebar config sanitiser', () => {
   it('keeps only allowed keys', () => {
@@ -25,5 +26,13 @@ describe('sidebar config sanitiser', () => {
     })
     expect(cleaned).toEqual({})
     expect(ignored.sort()).toEqual(['groups', 'targets_week', 'cals'].sort())
+  })
+
+  it('sanitises exported preset payloads', () => {
+    const { cleaned, ignored } = sanitiseSidebarPayload(presetFixture.payload)
+    expect(ignored).toEqual([])
+    expect(cleaned.cals).toHaveLength(2)
+    expect(cleaned.theme_preference).toBe('dark')
+    expect(cleaned.targets_config?.totalHours).toBe(20)
   })
 })

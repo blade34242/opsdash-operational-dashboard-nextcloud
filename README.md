@@ -50,7 +50,7 @@ composer run test:unit
 # Playwright smoke (dashboard load, onboarding rerun, preset save)
 npm run test:e2e   # requires `npx playwright install --with-deps chromium`
 ```
-Security/pentest helpers live under `tools/security/` (curl clamps, preset roundtrip, notes CSRF).
+Security/pentest helpers live under `tools/security/` (curl clamps, preset roundtrip, notes CSRF, multi-user isolation).
 
 ### Release Flow
 1. Update `opsdash/VERSION`, `appinfo/info.xml`, `package.json`, and `CHANGELOG.md`.

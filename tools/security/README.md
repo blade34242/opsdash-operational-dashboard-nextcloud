@@ -53,3 +53,16 @@ OPSDASH_BASE=http://localhost:8088 \
   OPSDASH_USER=admin OPSDASH_PASS=admin \
   opsdash/tools/security/run_notes_csrf.sh
 ```
+
+## check_multi_user.sh
+Ensures two different users keep independent selections/configs. Requires two
+existing accounts (set `OPSDASH_USER_A/PASS_A` and `OPSDASH_USER_B/PASS_B`). The
+script sets unique selections for each user, fetches `/overview/load`, and
+verifies the responses differ.
+
+```
+OPSDASH_BASE=http://localhost:8088/index.php/apps/opsdash \
+  OPSDASH_USER_A=admin OPSDASH_PASS_A=admin \
+  OPSDASH_USER_B=pentester OPSDASH_PASS_B=pentest \
+  ./tools/security/check_multi_user.sh
+```
