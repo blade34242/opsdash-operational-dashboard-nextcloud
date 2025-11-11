@@ -231,28 +231,45 @@ test('Separate users keep independent selections', async ({ page, baseURL }) => 
     })
   })
 
-  const secondaryContext = await playwrightRequest.newContext({
-    baseURL,
-    extraHTTPHeaders: {
-      Authorization: 'Basic ' + Buffer.from(`${SECOND_USER}:${SECOND_PASS}`).toString('base64'),
-      'OCS-APIREQUEST': 'true',
-    },
-  })
-
-  const persistSecondary = await secondaryContext.post('/index.php/apps/opsdash/overview/persist', {
-    data: { cals: ['opsdash-focus'] },
-    headers: { 'Content-Type': 'application/json' },
-  })
-  if (!persistSecondary.ok()) {
-    console.warn('secondary persist failed', await persistSecondary.text())
-  }
-
   const loadPrimary = await page.request.get('/index.php/apps/opsdash/overview/load?range=week&offset=0')
   const primaryJson = await loadPrimary.json()
-  const loadSecondary = await secondaryContext.get('/index.php/apps/opsdash/overview/load?range=week&offset=0')
-  const secondaryJson = await loadSecondary.json()
 
-  await secondaryContext.dispose()
+  const browser = page.context().browser()
+  if (!browser) {
+    test.skip()
+    return
+  }
+  const secondaryContext = await browser.newContext()
+  const secondaryPage = await secondaryContext.newPage()
+  await secondaryPage.goto(baseURL + '/index.php/logout').catch(() => {})
+  await secondaryPage.goto(baseURL + '/index.php/login')
+  await secondaryPage.waitForSelector('input#user', { timeout: 15000 })
+  await secondaryPage.fill('input#user', SECOND_USER)
+  await secondaryPage.fill('input#password', SECOND_PASS)
+  await Promise.all([
+    secondaryPage.waitForNavigation({ waitUntil: 'networkidle' }),
+    secondaryPage.click('button[type="submit"]'),
+  ])
+  await secondaryPage.waitForURL(/index.php\/(apps|dashboard)/, { timeout: 15000 })
+  if (!secondaryPage.url().includes('/apps/')) {
+    await secondaryPage.goto(baseURL + '/index.php/apps/dashboard')
+  }
+  await secondaryPage.goto(baseURL + '/index.php/apps/opsdash/overview')
+  await dismissOnboardingIfVisible(secondaryPage)
+
+  await secondaryPage.evaluate(() => {
+    const token = (window as any).OC?.requestToken || (window as any).oc_requesttoken || ''
+    return fetch('/index.php/apps/opsdash/overview/persist', {
+      method: 'POST',
+      credentials: 'same-origin',
+      headers: { 'Content-Type': 'application/json', requesttoken: token },
+      body: JSON.stringify({ cals: ['opsdash-focus'] }),
+    })
+  })
+
+  const loadSecondary = await secondaryPage.request.get('/index.php/apps/opsdash/overview/load?range=week&offset=0')
+  const secondaryJson = await loadSecondary.json()
+  await secondaryContext.close()
 
   expect(primaryJson.selected).toContain('personal')
   expect(primaryJson.selected).not.toContain('opsdash-focus')
