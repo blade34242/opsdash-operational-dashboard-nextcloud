@@ -1,5 +1,8 @@
 import { test, expect, Page } from '@playwright/test'
 import { Buffer } from 'node:buffer'
+import { promises as fs } from 'node:fs'
+import os from 'node:os'
+import path from 'node:path'
 
 async function seedCalendarEvent(page: Page, baseURL: string, summary: string, durationHours = 2) {
   const now = new Date()
@@ -146,6 +149,33 @@ test('Config import applies theme preference', async ({ page, baseURL }) => {
   await fileInput.setInputFiles({ name: 'opsdash-config.json', mimeType: 'application/json', buffer: Buffer.from(JSON.stringify(importEnvelope)) })
 
   await expect(page.getByLabel('Force light')).toBeChecked({ timeout: 10000 })
+})
+
+test('Config export downloads current envelope', async ({ page, baseURL }) => {
+  if (!baseURL) {
+    test.skip()
+    return
+  }
+
+  await page.goto(baseURL + '/index.php/apps/opsdash/overview')
+  await dismissOnboardingIfVisible(page)
+  await page.getByRole('tab', { name: 'Config & Setup' }).click()
+
+  const tempFile = path.join(os.tmpdir(), `opsdash-export-${Date.now()}.json`)
+  const [download] = await Promise.all([
+    page.waitForEvent('download'),
+    page.getByRole('button', { name: 'Export configuration' }).click(),
+  ])
+
+  await download.saveAs(tempFile)
+  const raw = await fs.readFile(tempFile, 'utf-8')
+  await fs.unlink(tempFile)
+
+  const envelope = JSON.parse(raw)
+  expect(envelope).toHaveProperty('payload')
+  expect(Array.isArray(envelope.payload?.cals)).toBe(true)
+  expect(envelope.payload.cals.length).toBeGreaterThan(0)
+  expect(envelope.payload).toHaveProperty('targets_config')
 })
 
 test('Dashboard reflects seeded calendar events', async ({ page, baseURL }) => {
