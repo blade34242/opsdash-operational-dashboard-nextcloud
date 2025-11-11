@@ -23,10 +23,15 @@ jobs:
           submodules: true
           path: server
 
-      - name: Checkout app
+      - name: Checkout app sources
         uses: actions/checkout@v4
         with:
-          path: server/apps/${{ env.APP_NAME }}
+          path: app-src
+
+      - name: Sync app into server tree
+        run: |
+          mkdir -p server/apps/${{ env.APP_NAME }}
+          rsync -a --delete app-src/opsdash/ server/apps/${{ env.APP_NAME }}/
 
       - name: Set up Node.js
         uses: actions/setup-node@v4
