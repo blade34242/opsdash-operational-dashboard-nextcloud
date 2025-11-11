@@ -4,6 +4,7 @@ import { promises as fs } from 'node:fs'
 import os from 'node:os'
 import path from 'node:path'
 
+const PRIMARY_USER = process.env.PLAYWRIGHT_USER || 'admin'
 const SECOND_USER = process.env.PLAYWRIGHT_SECOND_USER
 const SECOND_PASS = process.env.PLAYWRIGHT_SECOND_PASS
 
@@ -44,6 +45,26 @@ async function dismissOnboardingIfVisible(page: Page) {
   }
 }
 
+async function expectCalDavColor(page: Page, baseURL: string, calendar = 'personal') {
+  const root = baseURL.replace(/\/$/, '')
+  const body =
+    '<?xml version="1.0"?><d:propfind xmlns:d="DAV:" xmlns:ical="http://apple.com/ns/ical/"><d:prop><ical:calendar-color/></d:prop></d:propfind>'
+  const response = await page.request.fetch(
+    `${root}/remote.php/dav/calendars/${PRIMARY_USER}/${encodeURIComponent(calendar)}/`,
+    {
+      method: 'PROPFIND',
+      headers: {
+        Depth: '0',
+        'Content-Type': 'application/xml',
+      },
+      body,
+    },
+  )
+  expect(response.status(), 'CalDAV response should be successful').toBeLessThan(400)
+  const text = await response.text()
+  expect(text).toMatch(/calendar-color/i)
+}
+
 test('Operational Dashboard loads without console errors', async ({ page, baseURL }) => {
   if (!baseURL) {
     test.skip()
@@ -65,6 +86,19 @@ test('Operational Dashboard loads without console errors', async ({ page, baseUR
   // ensure no opsdash Vue errors surfaced
   const hasOpsdashError = consoleErrors.some(line => line.includes('[opsdash] Vue error'))
   expect(hasOpsdashError, `Console errors encountered: ${consoleErrors.join('\n')}`).toBeFalsy()
+})
+
+test('CalDAV calendar exposes color metadata', async ({ page, baseURL }) => {
+  if (!baseURL) {
+    test.skip()
+    return
+  }
+
+  await page.goto(baseURL + '/index.php/apps/opsdash/overview')
+  await dismissOnboardingIfVisible(page)
+  await expect(page.locator('#app')).toBeVisible()
+
+  await expectCalDavColor(page, baseURL)
 })
 
 test('Onboarding wizard can be re-run from Config & Setup', async ({ page, baseURL }) => {
