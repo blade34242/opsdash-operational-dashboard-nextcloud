@@ -50,3 +50,9 @@ composer run test:unit
  # Playwright smoke (dashboard load, onboarding rerun, preset save, multi-user)
 npm run test:e2e   # requires `npx playwright install --with-deps chromium`
 `.
+## QA Seeding
+Run this inside your Nextcloud root to create the QA calendar and import the demo ICS:
+```bash
+php apps/opsdash/tools/seed_qa_calendars.php
+```
+This seeds the `opsdash-focus` calendar with the sample events used by Playwright.
