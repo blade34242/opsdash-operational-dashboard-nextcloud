@@ -12,7 +12,7 @@ need() { command -v "$1" >/dev/null 2>&1 || { echo "Missing $1" >&2; exit 1; }; 
 need curl
 need jq >/dev/null 2>&1 || true
 
-URL="$ROOT/remote.php/dav/calendars/$USER/$CALENDAR/"
+URL="$ROOT/index.php/apps/dav/calendars/$USER/$CALENDAR/"
 BODY='<?xml version="1.0"?><d:propfind xmlns:d="DAV:" xmlns:ical="http://apple.com/ns/ical/"><d:prop><ical:calendar-color/></d:prop></d:propfind>'
 
 echo "[dav-probe] PROPFIND $URL"
