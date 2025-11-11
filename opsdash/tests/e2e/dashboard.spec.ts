@@ -50,20 +50,45 @@ async function loginUser(page: Page, baseURL: string, username: string, password
   await page.goto(baseURL + '/index.php/login?clear=1')
   const userInput = page.locator('input#user')
   const passwordInput = page.locator('input#password')
-  const ensureVisible = async () => {
-    const visible = await userInput.isVisible({ timeout: 15000 }).catch(() => false)
-    if (visible) {
+  const ensureAttached = async () => {
+    try {
+      await page.waitForSelector('input#user', { state: 'attached', timeout: 15000 })
+      await page.waitForSelector('input#password', { state: 'attached', timeout: 15000 })
       return true
+    } catch {
+      await page.waitForLoadState('domcontentloaded').catch(() => {})
+      await page.reload().catch(() => {})
+      try {
+        await page.waitForSelector('input#user', { state: 'attached', timeout: 10000 })
+        await page.waitForSelector('input#password', { state: 'attached', timeout: 10000 })
+        return true
+      } catch {
+        return false
+      }
     }
-    await page.waitForLoadState('domcontentloaded').catch(() => {})
-    await page.reload().catch(() => {})
-    return userInput.isVisible({ timeout: 10000 }).catch(() => false)
   }
-  if (!(await ensureVisible())) {
+  if (!(await ensureAttached())) {
     throw new Error('Login form did not become available')
   }
-  await userInput.fill(username)
-  await passwordInput.fill(password)
+  const visible = await userInput.isVisible({ timeout: 2000 }).catch(() => false)
+  if (visible) {
+    await userInput.fill(username)
+    await passwordInput.fill(password)
+  } else {
+    const filled = await page.evaluate(([u, p]) => {
+      const userEl = document.querySelector<HTMLInputElement>('input#user')
+      const passEl = document.querySelector<HTMLInputElement>('input#password')
+      if (!userEl || !passEl) {
+        return false
+      }
+      userEl.value = u
+      passEl.value = p
+      return true
+    }, [username, password])
+    if (!filled) {
+      throw new Error('Login inputs not found in DOM')
+    }
+  }
   await Promise.all([
     page.waitForNavigation({ url: /index.php\/(apps|login)/ }),
     page.click('button[type="submit"]'),
