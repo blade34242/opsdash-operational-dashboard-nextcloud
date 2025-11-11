@@ -2,27 +2,32 @@
 
 ![Nextcloud Server Tests](https://github.com/blade34242/nexcloud-operational-cal-deck-dashboard/actions/workflows/server-tests.yml/badge.svg)
 
-Opsdash turns raw calendar data into actionable week/month insights inside Nextcloud. It ships as a privacy-preserving app (no telemetry, user-scoped config storage) and targets the NC 31 line today while we stage NC 32 support.
+Opsdash is a privacy-minded Nextcloud app that turns your calendars into actionable dashboards. The SPA (Vue 3 + Vite + TypeScript) loads directly inside Nextcloud and keeps every config per-user—no telemetry, no SaaS dependency.
 
-## Feature Highlights
-- **Dedicated SPA** powered by Vue 3 + Vite: fast navigation, collapsible sidebar, onboarding wizard, and dark/light auto theme.
-- **Targets + pacing**: per-calendar weekly/monthly targets, Δ, badges, pace hints, and forecast overlay (linear vs. calendar/category modes).
-- **Charts & tables**: stacked bars, pie, calendar-by-category tables, longest tasks, heatmap, balance index, and activity breakdowns (weekend share, overlaps, earliest/latest, etc.).
-- **Notes & presets**: jot context per range and save/load named presets (sanitised and scoped per user).
-- **No telemetry**: the app never leaves your server; all configs live in Nextcloud’s config backend.
+## Screenshots (WIP)
+| Overview (week) |
+| --- |
+| ![Overview screenshot](docs-private/opsdash-docs/screenshots/overview.png) |
 
-## Compatibility & Branching
+*(Replace `docs-private/.../overview.png` with final public assets before publishing. For now the repo keeps only a placeholder path.)*
 
-| Branch | NC support | Version line | Notes |
-| --- | --- | --- | --- |
-| `master` | NC 31 | 0.4.x | Active development (architecture refactor, onboarding revamp). |
-| `release/0.4.x` | NC 31 | 0.4.x | Cut from `master` for App Store submissions (e.g., `release/0.4.5`). |
-| *(staged)* | NC 32 | 0.5.x | Matrix entries exist in `.github/ci-matrix.json` but stay disabled until `info.xml` widens. |
+## Highlights
+- **Time insights**: total/avg/median hours per week, busiest days, workday vs weekend split.
+- **Targets & pacing**: per-calendar + per-category goals, Δ badges, pace hints, forecast overlays.
+- **Balance view**: chart your focus areas, keep ratios in check, see trend deltas at a glance.
+- **Presets & onboarding**: save/load full sidebar configurations and re-run the onboarding wizard any time.
+- **Notes**: week/month notes with HTML safely escaped on rendering.
+- **Dark/light aware**: follow Nextcloud or force your preferred theme (per user).
 
-Detailed branching/roadmap docs now live in our private knowledge base; the repo stays focused on runtime code + this README.
+## Compatibility
+| Branch | NC target | Version line |
+| --- | --- | --- |
+| `master` | NC 31 | 0.4.x (current line) |
+| `release/0.4.x` | NC 31 | Frozen releases for App Store submissions |
+| *(future)* `feature/nc32` | NC 32 | 0.5.x once CI matrix is green |
 
-## Local Development
-1. **Bootstrap Nextcloud**: use the provided docker-compose files (`docker-compose31.yml` or `docker-compose.yml`) to mount the app under `custom_apps/opsdash`.
+## Quick Start
+1. **Clone + mount**: place `opsdash/` under `custom_apps/opsdash` in your Nextcloud dev stack (Docker compose files live in this repo for reference, but are `.gitignore`d by default).
 2. **Install deps & build**:
    ```bash
    cd opsdash
@@ -30,31 +35,28 @@ Detailed branching/roadmap docs now live in our private knowledge base; the repo
    npm run build
    composer install
    ```
-3. **Enable + seed**: `occ app:enable opsdash`, install the Calendar app, then run the seeding helpers from `opsdash/tools/seed/` (documented in `docs/SEEDING.md`).
-4. **Vite dev server** (optional): `cd opsdash && npm run dev` to hot-reload the SPA; Nextcloud still serves the built assets, so rebuild before packaging.
+3. **Enable & seed**: `occ app:enable opsdash`; install the Calendar app; use the scripts in `opsdash/tools/seed/` to preload sample data if desired.
+4. **Dev server** (optional): `npm run dev` for Vite HMR (Nextcloud still serves built assets, so rebuild before packaging).
 
-## Testing & CI
-- **Local commands**
-  - `npm run test -- --run` (Vitest suites for composables/components/services).
-  - `composer run test:unit` (PHPUnit controllers/services).
-  - `npm run test:e2e` (Playwright smoke tests for dashboard load, onboarding rerun, and preset saves; requires `npx playwright install --with-deps chromium`).
-  - `npm run build` (ensures `js/.vite/manifest.json` matches hashed assets).
-- **GitHub Actions** (`.github/workflows/server-tests.yml`)
-  - Reads `.github/ci-matrix.json` and runs every enabled combo (currently `stable30/stable31 × PHP 8.2/8.3`).
-  - Steps: checkout `nextcloud/server@branch`, rsync Opsdash into `server/apps/opsdash`, `npm ci → test → build`, install PHP deps, `occ maintenance:install`, run PHPUnit + Playwright, upload per-matrix artifacts.
-- **Security smoke scripts**
-  - `tools/security/run_curl_checks.sh` (range/offset clamp, CSRF header, preset sanitisation, notes injection) now relies on basic auth instead of the legacy form login.
-  - Additional helpers (`tools/security/import_fuzz.sh`, `tools/security/preset_roundtrip.sh`, `opsdash/tools/security/run_notes_csrf.sh`) cover config import/export, preset roundtrips, and notes CSRF scenarios.
-
-## Security & Pentest Workflow
-- Pentest plan/log, integration instructions, and security hardening guides remain in the internal docs portal. Public repo keeps only the automation scripts under `tools/security/`.
+## Testing & Security
+- **Unit tests**: `npm run test -- --run` (Vitest), `composer run test:unit` (PHPUnit).
+- **E2E smoke**: `npm run test:e2e` (Playwright) covers dashboard load, onboarding rerun, and preset saves (requires `npx playwright install --with-deps chromium`).
+- **Security scripts** (manual white-box checks):
+  - `tools/security/run_curl_checks.sh` → range/offset clamps, CSRF enforcement, preset + notes fuzz.
+  - `tools/security/import_fuzz.sh` → config envelope import.
+  - `tools/security/preset_roundtrip.sh` → preset save/load/delete sanitisation.
+  - `opsdash/tools/security/run_notes_csrf.sh` → notes CSRF guard.
 
 ## Release Workflow
-1. Bump versions (`opsdash/VERSION`, `appinfo/info.xml`, `package.json`) and update the private changelog.
-2. Run the full test suite + security scripts.
-3. `make appstore VERSION=<x.y.z>` → copies a clean app tree into `build/`, runs `npm ci && npm run build` and `composer install --no-dev`, strips dev files, and produces `build/opsdash-<x.y.z>.tar.gz`.
-4. Sign the tarball via `occ integrity:sign-app` once your App Store certificate is available (the `Makefile` echoes the command to use).
-5. Cut `release/<line>` branch, create Git tag (e.g., `v0.4.5`), and upload to the App Store.
+1. Bump `opsdash/VERSION`, `appinfo/info.xml`, `package.json`; update the private changelog.
+2. Run all tests + security scripts.
+3. `VERSION=<x.y.z> make appstore` → copies a clean tree to `build/opsdash`, runs prod builds, strips dev files, and emits `build/opsdash-<x.y.z>.tar.gz`.
+4. Sign the tarball via `occ integrity:sign-app` once your App Store cert/private key is configured (Makefile prints the exact command).
+5. Tag (`git tag v<x.y.z> && git push --tags`), create the GitHub Release, and upload the signed tarball before submitting to the Nextcloud App Store.
+
+## Notes
+- Full documentation (architecture, branching strategy, pentest plan, etc.) now lives in our private knowledge base; this repo stays lean for public consumption.
+- Dummy screenshots live under `docs-private/opsdash-docs/screenshots/`; replace the README image path when you’re ready to publish.
 
 ## License
-AGPL‑3.0-or-later. See `LICENSE` for details.
+AGPL-3.0-or-later. See `LICENSE`.
