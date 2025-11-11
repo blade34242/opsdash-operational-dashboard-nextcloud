@@ -11,29 +11,25 @@ env:
   APP_NAME: opsdash
 
 jobs:
+  matrix-config:
+    runs-on: ubuntu-latest
+    outputs:
+      matrix: ${{ steps.load-matrix.outputs.matrix }}
+    steps:
+      - uses: actions/checkout@v4
+      - id: load-matrix
+        run: |
+          file=".github/ci-matrix.json"
+          matrix=$(jq '[.[] | select(.enabled == true) | {nextcloud_branch, php_version}]' "$file")
+          echo "matrix=$matrix" >> "$GITHUB_OUTPUT"
+
   server-tests:
-    if: ${{ matrix.enabled != 'false' }}
+    needs: matrix-config
     name: Nextcloud ${{ matrix.nextcloud_branch }} / PHP ${{ matrix.php_version }}
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
-      matrix:
-        include:
-          - nextcloud_branch: stable30
-            php_version: '8.2'
-            enabled: true
-          - nextcloud_branch: stable31
-            php_version: '8.2'
-            enabled: true
-          - nextcloud_branch: stable31
-            php_version: '8.3'
-            enabled: true
-          - nextcloud_branch: stable32
-            php_version: '8.2'
-            enabled: false
-          - nextcloud_branch: stable32
-            php_version: '8.3'
-            enabled: false
+      matrix: ${{ fromJSON(needs.matrix-config.outputs.matrix) }}
     steps:
       - name: Checkout Nextcloud server
         uses: actions/checkout@v4

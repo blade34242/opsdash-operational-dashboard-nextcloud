@@ -40,6 +40,6 @@ This checklist ensures changes show up reliably in a Nextcloud dev container.
 - **Tests:** `composer run test:unit` exercises PHP services/controllers, `npx playwright install --with-deps chromium` ensures the browser binary exists, a PHP built-in server serves Nextcloud, and `npm run test:e2e` runs the Playwright smoke test before artifacts are uploaded and the server is stopped.
 
 ## Going further (PHP & Nextcloud versions)
-- The CI job fans out across explicit matrix entries (`stable30/31` × PHP `8.2/8.3`). Each combo is defined in `.github/workflows/server-tests.yml` with an `enabled` flag so we can keep speculative entries (e.g., `stable32`) in place but skipped until the manifest supports them.
-- To disable or enable a target, flip the `enabled` boolean for that matrix entry. The job-level `if` prevents disabled combos from running while keeping the definition handy for future support.
-- When we need wider coverage (stable33 previews, PHP 8.4), append new include objects with `enabled: false` until they are ready, mirroring the workflow used by Nextcloud’s official app template.
+- The CI job fans out across explicit matrix entries (`stable30/31` × PHP `8.2/8.3`). The list lives in `.github/ci-matrix.json`; `matrix-config` reads that file and passes only the objects with `"enabled": true` into the workflow.
+- To disable or enable a target, flip the `enabled` boolean inside `ci-matrix.json`. We keep speculative entries (e.g., `stable32`) in the file with `enabled: false` so it’s a one-line change when support lands.
+- When we need wider coverage (stable33 previews, PHP 8.4), append new objects to `ci-matrix.json` with `enabled: false` until the manifest and manual testing are ready, mirroring the workflow used by Nextcloud’s official app template.
