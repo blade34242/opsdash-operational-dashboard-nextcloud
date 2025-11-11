@@ -21,3 +21,5 @@ opsdash/dist/
 build/
 docs-private/
 docker-compose*.yml
+
+AGENTS.md
