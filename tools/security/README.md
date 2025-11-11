@@ -89,5 +89,5 @@ The script fetches `/overview/load`, builds the persist payload, and posts it to
 ```
 OPSDASH_BASE=http://localhost:8088/index.php/apps/opsdash \
   OPSDASH_USER=admin OPSDASH_PASS=admin \
-  ./tools/security/rerun_onboarding.sh
+  ./opsdash/tools/security/rerun_onboarding.sh
 ```
