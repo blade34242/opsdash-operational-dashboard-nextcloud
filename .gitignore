@@ -18,3 +18,4 @@ aaacalstatsdashxyz/dist/
 opsdash/node_modules/
 opsdash/.vite/
 opsdash/dist/
+build/

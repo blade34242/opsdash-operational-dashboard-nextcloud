@@ -68,8 +68,8 @@ See `opsdash/docs/BRANCHING.md` for the full branching + release plan.
 ## Release Workflow
 1. Bump versions (`opsdash/VERSION`, `appinfo/info.xml`, `package.json`) and update `opsdash/docs/CHANGELOG.md`.
 2. Run the full test suite + security scripts.
-3. `npm run build && composer install --no-dev` to prep artifacts.
-4. Package/sign via `pack_opsdash.sh` (calls Nextcloud’s `integrity:sign-app`).
+3. `make appstore VERSION=<x.y.z>` → copies a clean app tree into `build/`, runs `npm ci && npm run build` and `composer install --no-dev`, strips dev files, and produces `build/opsdash-<x.y.z>.tar.gz`.
+4. Sign the tarball via `occ integrity:sign-app` once your App Store certificate is available (the `Makefile` echoes the command to use).
 5. Cut `release/<line>` branch, create Git tag (e.g., `v0.4.5`), and upload to the App Store.
 
 ## License

@@ -16,7 +16,8 @@ Checklist
    - `npm ci && npm run build` → JS + manifest present.
    - Local run on dev container: verify nav, route, charts, targets.
 4) Package & sign
-   - Follow `docs/PACKAGING.md` to stage, sign, and tar.
+   - Run `VERSION=<x.y.z> make appstore` (see `docs/PACKAGING.md`).
+   - Sign the resulting tarball with `occ integrity:sign-app` once certificates are available.
 5) Upload
    - App Store upload, fill metadata, submit for review.
 6) Tag and announce
@@ -28,4 +29,3 @@ CI/CD (optional)
 - Add a GitHub Actions workflow to:
   - Build on tag → stage → sign (using stored secrets) → upload via API → attach tarball.
   - Prevents human error and ensures repeatability.
-

@@ -6,46 +6,30 @@ Prerequisites
 - Nextcloud dev environment with `occ` (or a local NC container) to run `integrity:sign-app`.
 - App Store certificate and private key (from your Nextcloud App Store account).
 
-1) Build assets
-- Align versions: set the new version in `appinfo/info.xml` and `package.json`.
-- Build frontend:
-```
-npm ci
-npm run build
-```
-- Verify: `js/.vite/manifest.json` exists; controller resolves entry via manifest.
+1) Build + stage via Makefile
 
-2) Stage a clean app directory (exclude dev files)
-
-Run the release helper from repo root:
+From the repo root run:
 ```
-./tools/release/package.sh <version>
+VERSION=<x.y.z> make appstore
 ```
-This script will:
-- Run `npm ci && npm run build` if needed.
-- Run `composer install --no-dev --optimize-autoloader`.
-- Copy `opsdash/` into `dist/opsdash` and remove dev-only folders (`node_modules`,
-  `src`, `tests`, `tools`, docker files, docs marked dev-only).
-- Produce `dist/opsdash-<version>.tar.gz` and `dist/opsdash-<version>.zip`.
+The target copies `opsdash/` into `build/opsdash`, runs `npm ci && npm run build` and
+`composer install --no-dev --optimize-autoloader`, strips dev-only folders (`src`,
+`tests`, `tools`, docs, docker files, node_modules, etc.), and produces
+`build/opsdash-<x.y.z>.tar.gz`.
 
-3) Sign the app
+2) Sign the app (once certificates are ready)
 ```
 # inside a host/container where occ is available
 php /var/www/html/occ integrity:sign-app \
   --privateKey=/path/privkey.pem \
   --certificate=/path/cert.crt \
-  --path=/path/to/dist/opsdash
+  --path=/absolute/path/to/build/opsdash
 ```
-- This creates JSON signatures in `dist/opsdash/appinfo/`.
-- Optional verify: install the app locally and check no integrity warnings.
+- This injects signatures into `appinfo/signature.json`. The Makefile prints the
+  exact command to run (commented out) so you can drop in your key paths later.
 
-4) Create tarball
-```
-(cd dist && tar -czf opsdash-<version>.tar.gz opsdash)
-```
-
-5) Upload to App Store
-- Upload via Web UI or REST API.
+3) Upload to App Store
+- Upload the signed tarball via the Nextcloud App Store UI or REST API.
 - Provide release notes and metadata; submit for review.
 
 Notes
