@@ -14,7 +14,9 @@ class Application extends App implements IBootstrap {
         parent::__construct('opsdash');
     }
 
-    public function register(IRegistrationContext $context): void { /* no admin settings */ }
+    public function register(IRegistrationContext $context): void {
+        $context->registerCommand(\OCA\Opsdash\Command\SeedDeckCommand::class);
+    }
 
     public function boot(IBootContext $context): void {
         // Ensure navigation entry exists at runtime on servers that do not

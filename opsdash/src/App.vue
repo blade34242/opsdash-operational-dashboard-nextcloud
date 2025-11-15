@@ -185,10 +185,14 @@
                 :range-label="rangeLabel"
                 :category-hint="categoryMappingHint"
                 :config="activityCardConfig"
+                :day-off-trend="activityDayOffTrend"
+                :trend-unit="range === 'month' ? 'mo' : 'wk'"
               />
               <BalanceOverviewCard
                 :overview="balanceOverview"
                 :range-label="rangeLabel"
+                :range-mode="range"
+                :lookback-weeks="trendLookbackWeeks"
                 :config="balanceCardConfig"
                 :note="balanceNote"
               />
@@ -802,6 +806,9 @@ const balanceCardConfig = computed(() => ({
   showDailyStacks: !!balanceConfigFull.value.ui.showDailyStacks,
   showNotes: !!balanceConfigFull.value.ui.showNotes,
 }))
+const trendLookbackWeeks = computed(() =>
+  Math.max(1, Math.min(12, balanceConfigFull.value.trend?.lookbackWeeks ?? 1)),
+)
 
 const balanceNote = computed(() => {
   if (!balanceConfigFull.value.ui.showNotes) {
@@ -868,7 +875,7 @@ const topCategory = computed(() => {
   return ranked[0] || null
 })
 
-const { timeSummary, activitySummary } = useSummaries({
+const { timeSummary, activitySummary, activityDayOffTrend } = useSummaries({
   stats,
   byDay,
   charts,

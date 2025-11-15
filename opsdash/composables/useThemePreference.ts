@@ -15,16 +15,35 @@ const effectiveTheme = computed<ThemeMode>(() => {
 })
 
 function readStoredPreference(): ThemePreference {
-  if (typeof window === 'undefined') return 'auto'
+  const bootstrap = readBootstrapPreference()
+  if (typeof window === 'undefined') return bootstrap ?? 'auto'
   try {
     const stored = window.localStorage.getItem(STORAGE_KEY)
     if (stored === 'light' || stored === 'dark' || stored === 'auto') {
       return stored
     }
+    if (bootstrap) {
+      window.localStorage.setItem(STORAGE_KEY, bootstrap)
+    }
   } catch (error) {
     console.warn('[opsdash] theme preference read failed', error)
   }
-  return 'auto'
+  return bootstrap ?? 'auto'
+}
+
+function readBootstrapPreference(): ThemePreference | null {
+  if (typeof document === 'undefined') {
+    return null
+  }
+  const el = document.getElementById('app')
+  if (!el) {
+    return null
+  }
+  const attr = el.getAttribute('data-opsdash-theme-preference')
+  if (attr === 'light' || attr === 'dark' || attr === 'auto') {
+    return attr
+  }
+  return null
 }
 
 function persistPreference(value: ThemePreference) {

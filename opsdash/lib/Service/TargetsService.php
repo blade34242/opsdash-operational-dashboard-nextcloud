@@ -90,6 +90,7 @@ class TargetsService {
             'showOverlaps' => true,
             'showLongestSession' => true,
             'showLastDayOff' => true,
+            'showDayOffTrend' => true,
             'showHint' => true,
         ];
     }

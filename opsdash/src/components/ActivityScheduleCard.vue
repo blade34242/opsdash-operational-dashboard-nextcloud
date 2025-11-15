@@ -20,6 +20,28 @@
         <strong>{{ item.label }}</strong> {{ item.value }}
       </span>
     </div>
+    <div class="activity-card__trend" v-if="settings.showDayOffTrend && dayOffRows.length">
+      <div class="dayoff-header">
+        <span>Days off trend</span>
+        <span class="dayoff-meta" v-if="lookbackLabel">
+          Last {{ lookbackLabel }}
+        </span>
+      </div>
+      <div class="dayoff-grid">
+        <div
+          v-for="entry in dayOffRows"
+          :key="entry.offset"
+          class="dayoff-row"
+          :class="{ 'dayoff-row--current': entry.offset === 0 }"
+        >
+          <div class="dayoff-row__label">{{ entry.label }}</div>
+          <div class="dayoff-row__bar">
+            <div class="dayoff-row__fill" :style="barStyle(entry)" />
+          </div>
+          <div class="dayoff-row__value">{{ entry.daysOff }} / {{ entry.totalDays }}</div>
+        </div>
+      </div>
+    </div>
     <div class="activity-card__hint" v-if="settings.showHint && categoryHint">
       {{ categoryHint }}
     </div>
@@ -46,6 +68,16 @@ type ActivitySummary = {
   lastHalfDayOff: string | null
 }
 
+type DayOffTrendEntry = {
+  offset: number
+  label: string
+  from: string
+  to: string
+  totalDays: number
+  daysOff: number
+  daysWorked: number
+}
+
 const defaultConfig: ActivityCardConfig = createDefaultActivityCardConfig()
 
 const props = defineProps<{
@@ -53,6 +85,8 @@ const props = defineProps<{
   rangeLabel: string
   categoryHint?: string
   config?: Partial<ActivityCardConfig>
+  dayOffTrend?: DayOffTrendEntry[]
+  trendUnit?: string
 }>()
 
 const settings = computed<ActivityCardConfig>(() => Object.assign({}, defaultConfig, props.config ?? {}))
@@ -110,6 +144,17 @@ const extraLine = computed(() => {
   return items
 })
 
+const dayOffRows = computed<DayOffTrendEntry[]>(() => props.dayOffTrend ?? [])
+
+const lookbackLabel = computed(() => {
+  const history = dayOffRows.value.length - 1
+  if (history <= 0) return ''
+  if (props.trendUnit === 'mo') {
+    return `${history} ${history === 1 ? 'month' : 'months'}`
+  }
+  return `${history} ${history === 1 ? 'week' : 'weeks'}`
+})
+
 function typicalRange(start: string | null, end: string | null): string {
   if (start && end) return `${start}–${end}`
   if (start) return `${start}→`
@@ -144,6 +189,12 @@ function shortDate(value: string): string {
     }
   }
   return str
+}
+
+function barStyle(entry: DayOffTrendEntry) {
+  const share = entry.totalDays > 0 ? entry.daysOff / entry.totalDays : 0
+  const pct = Math.max(0, Math.min(1, share)) * 100
+  return { width: `${pct}%` }
 }
 </script>
 
@@ -187,6 +238,61 @@ function shortDate(value: string): string {
   font-size: 11px;
   color: var(--muted);
   opacity: .8;
+}
+.activity-card__trend {
+  border-top: 1px solid var(--color-border-maxcontrast, rgba(125, 125, 125, 0.2));
+  padding-top: 8px;
+}
+.dayoff-header {
+  display: flex;
+  justify-content: space-between;
+  font-size: 11px;
+  color: var(--muted);
+  margin-bottom: 4px;
+}
+.dayoff-meta {
+  opacity: 0.9;
+}
+.dayoff-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.dayoff-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 11px;
+  color: var(--muted);
+}
+.dayoff-row--current .dayoff-row__label {
+  font-weight: 600;
+  color: var(--fg);
+}
+.dayoff-row__label {
+  width: 80px;
+}
+.dayoff-row__bar {
+  flex: 1;
+  position: relative;
+  height: 6px;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--brand) 8%, transparent);
+  overflow: hidden;
+}
+.dayoff-row__fill {
+  position: absolute;
+  top: 0;
+  left: 0;
+  bottom: 0;
+  background: color-mix(in srgb, var(--brand) 55%, transparent);
+  border-radius: 999px;
+}
+.dayoff-row__value {
+  width: 56px;
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+  color: var(--fg);
 }
 .pill {
   display: inline-flex;

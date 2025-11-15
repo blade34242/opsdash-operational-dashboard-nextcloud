@@ -43,6 +43,16 @@ export interface ActivitySummary {
   lastHalfDayOff: string | null
 }
 
+export interface ActivityDayOffTrendEntry {
+  offset: number
+  label: string
+  from: string
+  to: string
+  totalDays: number
+  daysOff: number
+  daysWorked: number
+}
+
 export interface TopSlice {
   name: string
   share: number
@@ -207,11 +217,35 @@ export function useSummaries(input: UseSummariesInput) {
     }
   })
 
+  const activityDayOffTrend = computed<ActivityDayOffTrendEntry[]>(() => {
+    const trendRaw: any = (input.stats as any)?.day_off_trend
+    if (!Array.isArray(trendRaw)) {
+      return []
+    }
+    return trendRaw
+      .map((entry: any) => {
+        const total = Number(entry?.totalDays ?? entry?.total_days ?? 0)
+        const daysOff = Number(entry?.daysOff ?? entry?.days_off ?? 0)
+        const daysWorked = Number(entry?.daysWorked ?? entry?.days_worked ?? 0)
+        return {
+          offset: Number(entry?.offset ?? 0) || 0,
+          label: String(entry?.label ?? ''),
+          from: String(entry?.from ?? ''),
+          to: String(entry?.to ?? ''),
+          totalDays: Number.isFinite(total) ? Math.max(0, total) : 0,
+          daysOff: Number.isFinite(daysOff) ? Math.max(0, daysOff) : 0,
+          daysWorked: Number.isFinite(daysWorked) ? Math.max(0, daysWorked) : 0,
+        }
+      })
+      .filter((entry) => entry.totalDays > 0)
+  })
+
   return {
     topThree,
     topCalendarsSummary: calendarSummary,
     timeSummary,
     activitySummary,
+    activityDayOffTrend,
   }
 }
 

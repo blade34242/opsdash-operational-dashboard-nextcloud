@@ -263,7 +263,6 @@
       :help-display="helpState.balanceDisplay"
       @toggle-help="toggleBalanceHelp"
       @set-threshold="handleBalanceThreshold"
-      @set-relation="setBalanceRelation"
       @set-lookback="setBalanceLookback"
       @set-ui-toggle="handleBalanceUiToggle"
       @set-ui-precision="handleBalanceUiPrecision"
@@ -431,6 +430,7 @@ const activityLabels: Record<ActivityToggleKey, string> = {
   showOverlaps: 'Overlaps',
   showLongestSession: 'Longest session',
   showLastDayOff: 'Last day off',
+  showDayOffTrend: 'Days off trend chart',
   showHint: 'Show mapping hint',
 }
 
@@ -733,13 +733,6 @@ function setBalanceThreshold(which: 'noticeMaxShare' | 'warnMaxShare' | 'warnInd
       cfg.balance.thresholds[which] = Number(num.toFixed(2))
     }),
   )
-}
-
-function setBalanceRelation(mode: string){
-  const resolved = mode === 'factor' ? 'factor' : 'ratio'
-  updateConfig(cfg => {
-    cfg.balance.relations.displayMode = resolved
-  })
 }
 
 function setBalanceLookback(value: string){

@@ -33,7 +33,7 @@ Explore how Opsdash can surface Deck board activity (cards, due dates, assignees
 ## 0.4.6 Progress (Dec 2025)
 
 ### Seed script + fixtures
-- `apps/opsdash/tools/seed_deck_boards.php` bootstraps a QA board (“Opsdash Deck QA”) for the `QA_USER` (defaults to `qa`).
+- `apps/opsdash/tools/seed_deck_boards.php` (and the OCC wrapper `php occ opsdash:seed-deck --user qa`) bootstraps a QA board (“Opsdash Deck QA”) for the `QA_USER` (defaults to `qa`).
 - Script deletes previous stacks/cards, recreates Inbox/In Progress/Done stacks, and inserts deterministic cards:
   - Active cards due in the current Opsdash week (Prep Opsdash Deck sync, Resolve Deck blockers).
   - Completed/archived cards (Publish Ops report cards, Archive completed Ops tasks) so the “completed” path has data.

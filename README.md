@@ -62,9 +62,11 @@ npm run test:e2e
 ```bash
 # run from Nextcloud root
 php apps/opsdash/tools/seed_qa_calendars.php
+php occ opsdash:seed-deck --user qa
+# optional: legacy helper still works
 php apps/opsdash/tools/seed_deck_boards.php
 ```
-Seeds the `opsdash-focus` calendar + deterministic Deck boards/cards used by Playwright and fixture captures. Additional fixtures (load/persist/notes/deck) live under `opsdash/test/fixtures/` with capture instructions.
+Seeds the `opsdash-focus` calendar plus deterministic Deck boards/cards used by Playwright and fixture captures. The OCC command is CI-friendly (resets stacks by default, supports `--board-title`, `--board-color`, `--keep-stacks`). Additional fixtures (load/persist/notes/deck) live under `opsdash/test/fixtures/` with capture instructions.
 
 ## 📋 Roadmap Highlights
 - NC 31 releases in `0.4.x` stream; NC 32 (`0.5.x`) lands once CI matrices stabilize.

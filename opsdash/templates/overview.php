@@ -5,8 +5,14 @@
 // Template receives optional $version and $changelog from controller
 $ver = isset($version) ? (string)$version : '';
 $chg = isset($changelog) ? (string)$changelog : '';
+$themePref = isset($themePreference) ? (string)$themePreference : '';
 ?>
-<div id="app" data-opsdash-version="<?php echo htmlspecialchars($ver, ENT_QUOTES); ?>" data-opsdash-changelog="<?php echo htmlspecialchars($chg, ENT_QUOTES); ?>">
+<div
+  id="app"
+  data-opsdash-version="<?php echo htmlspecialchars($ver, ENT_QUOTES); ?>"
+  data-opsdash-changelog="<?php echo htmlspecialchars($chg, ENT_QUOTES); ?>"
+  data-opsdash-theme-preference="<?php echo htmlspecialchars($themePref, ENT_QUOTES); ?>"
+>
   <div class="fallback-msg">
     Operational Dashboard is loading… If this message stays,
     the JS bundle may be missing.

@@ -74,9 +74,20 @@ final class OverviewController extends Controller {
         try {
             $changelog = (string)$this->config->getAppValue($this->appName, 'changelog_url', '');
         } catch (\Throwable) { }
+        $uid = (string)($this->userSession->getUser()?->getUID() ?? '');
+        $bootstrapTheme = 'auto';
+        if ($uid !== '') {
+            try {
+                $bootstrapTheme = $this->readThemePreference($uid);
+            } catch (\Throwable) {
+                $bootstrapTheme = 'auto';
+            }
+        }
+
         return new TemplateResponse($this->appName, 'overview', [
             'version' => $version,
             'changelog' => $changelog,
+            'themePreference' => $bootstrapTheme,
         ]);
     }
 
@@ -986,6 +997,25 @@ final class OverviewController extends Controller {
             $cursor = $nextCursor;
         }
 
+        $trendLookback = (int)($balanceConfig['trend']['lookbackWeeks'] ?? 1);
+        $precomputedDaysWorked = [];
+        if (!empty($prevDaysSeen)) {
+            $precomputedDaysWorked[1] = count($prevDaysSeen);
+        }
+        $dayOffTrend = $this->buildDayOffTrend(
+            $range,
+            $offset,
+            $from,
+            $to,
+            $byDay,
+            $selectedIds,
+            $cals,
+            $principal,
+            $userTz,
+            $trendLookback,
+            $precomputedDaysWorked,
+        );
+
         // Balance calculations
         $balanceConfig = $targetsConfig['balance'];
         $balanceCategories = [];
@@ -1225,6 +1255,7 @@ final class OverviewController extends Controller {
                 'delta'          => $delta,
                 'balance_index'  => round($balanceIndex, 3),
                 'balance_overview' => $balanceOverview,
+                'day_off_trend'  => $dayOffTrend,
             ],
             'byCal'     => $byCalList,
             'byDay'     => array_values($byDay),
@@ -1962,6 +1993,7 @@ final class OverviewController extends Controller {
             'showOverlaps' => true,
             'showLongestSession' => true,
             'showLastDayOff' => true,
+            'showDayOffTrend' => true,
             'showHint' => true,
             'forecastMode' => 'total',
         ];
@@ -2318,6 +2350,7 @@ final class OverviewController extends Controller {
             'showOverlaps',
             'showLongestSession',
             'showLastDayOff',
+            'showDayOffTrend',
             'showHint',
         ];
         foreach ($booleanKeys as $key) {
@@ -2519,6 +2552,247 @@ final class OverviewController extends Controller {
         }
         $normalized = $this->sanitizeThemePreference($stored);
         return $normalized ?? 'auto';
+    }
+
+    /**
+     * @param array<string, array{total_hours: float}> $currentByDay
+     * @param array<int, int> $precomputedDaysWorked
+     */
+    private function buildDayOffTrend(
+        string $range,
+        int $offset,
+        \DateTimeImmutable $currentFrom,
+        \DateTimeImmutable $currentTo,
+        array $currentByDay,
+        array $selectedIds,
+        array $calendars,
+        string $principal,
+        \DateTimeZone $userTz,
+        int $lookbackWeeks,
+        array $precomputedDaysWorked = [],
+    ): array {
+        $maxLookback = max(1, min(4, $lookbackWeeks ?: 1));
+        $trend = [];
+        $dayMap = [];
+        foreach ($currentByDay as $key => $payload) {
+            if (!is_array($payload)) {
+                continue;
+            }
+            $dateKey = (string)($payload['date'] ?? ($key ?? ''));
+            $dateKey = trim($dateKey);
+            if ($dateKey === '') {
+                continue;
+            }
+            $dayMap[$dateKey] = $payload;
+        }
+        $trend[] = $this->summarizeCurrentDayOff($dayMap, $currentFrom, $currentTo, $range);
+        for ($step = 1; $step <= $maxLookback; $step++) {
+            [$lookFrom, $lookTo] = $this->rangeBounds($range, $offset - $step);
+            $workedDays = $precomputedDaysWorked[$step] ?? $this->countWorkedDaysForRange(
+                $calendars,
+                $selectedIds,
+                $principal,
+                $lookFrom,
+                $lookTo,
+                $userTz,
+            );
+            $trend[] = $this->summarizeDayOffWindow($lookFrom, $lookTo, $workedDays, $step, $range);
+        }
+        return $trend;
+    }
+
+    /**
+     * @param array<string, array{total_hours: float}> $currentByDay
+     */
+    private function summarizeCurrentDayOff(
+        array $currentByDay,
+        \DateTimeImmutable $from,
+        \DateTimeImmutable $to,
+        string $range,
+    ): array {
+        $totalDays = $this->countDaysInclusive($from, $to);
+        $daysOff = 0;
+        $daysWorked = 0;
+        $cursor = $from;
+        while ($cursor->getTimestamp() <= $to->getTimestamp()) {
+            $key = $cursor->format('Y-m-d');
+            $hours = isset($currentByDay[$key]) ? (float)($currentByDay[$key]['total_hours'] ?? 0.0) : 0.0;
+            if ($hours <= 0.01) {
+                $daysOff++;
+            } else {
+                $daysWorked++;
+            }
+            $next = $cursor->modify('+1 day');
+            if ($next->getTimestamp() === $cursor->getTimestamp()) {
+                break;
+            }
+            $cursor = $next;
+        }
+        return [
+            'offset' => 0,
+            'label' => $this->formatDayOffLabel($range, 0),
+            'from' => $from->format('Y-m-d'),
+            'to' => $to->format('Y-m-d'),
+            'totalDays' => $totalDays,
+            'daysOff' => $daysOff,
+            'daysWorked' => $daysWorked,
+        ];
+    }
+
+    private function summarizeDayOffWindow(
+        \DateTimeImmutable $from,
+        \DateTimeImmutable $to,
+        int $daysWorked,
+        int $offsetStep,
+        string $range,
+    ): array {
+        $totalDays = $this->countDaysInclusive($from, $to);
+        $clampedWorked = max(0, min($totalDays, $daysWorked));
+        $daysOff = max(0, $totalDays - $clampedWorked);
+        return [
+            'offset' => $offsetStep,
+            'label' => $this->formatDayOffLabel($range, $offsetStep),
+            'from' => $from->format('Y-m-d'),
+            'to' => $to->format('Y-m-d'),
+            'totalDays' => $totalDays,
+            'daysOff' => $daysOff,
+            'daysWorked' => $clampedWorked,
+        ];
+    }
+
+    private function formatDayOffLabel(string $range, int $offsetStep): string {
+        if ($offsetStep === 0) {
+            return $range === 'month' ? 'This month' : 'This week';
+        }
+        $unit = $range === 'month' ? 'mo' : 'wk';
+        return sprintf('-%d %s', $offsetStep, $unit);
+    }
+
+    private function countDaysInclusive(\DateTimeImmutable $from, \DateTimeImmutable $to): int {
+        $start = $from->setTime(0, 0, 0);
+        $end = $to->setTime(0, 0, 0);
+        if ($end->getTimestamp() < $start->getTimestamp()) {
+            return 0;
+        }
+        $diffDays = (int)$end->diff($start)->format('%a');
+        return $diffDays + 1;
+    }
+
+    private function countWorkedDaysForRange(
+        array $calendars,
+        array $selectedIds,
+        string $principal,
+        \DateTimeImmutable $from,
+        \DateTimeImmutable $to,
+        \DateTimeZone $userTz,
+    ): int {
+        if ($to->getTimestamp() < $from->getTimestamp()) {
+            return 0;
+        }
+        $daysSeen = [];
+        foreach ($calendars as $cal) {
+            $cid = (string)($cal->getUri() ?? spl_object_id($cal));
+            if (!empty($selectedIds) && !in_array($cid, $selectedIds, true)) {
+                continue;
+            }
+            $rawRows = [];
+            try {
+                if (method_exists($this->calendarManager, 'newQuery') && method_exists($this->calendarManager, 'searchForPrincipal')) {
+                    $q = $this->calendarManager->newQuery($principal);
+                    if (method_exists($q, 'addSearchCalendar')) {
+                        $q->addSearchCalendar((string)$cal->getUri());
+                    }
+                    if (method_exists($q, 'setTimerangeStart')) {
+                        $q->setTimerangeStart($from);
+                    }
+                    if (method_exists($q, 'setTimerangeEnd')) {
+                        $q->setTimerangeEnd($to);
+                    }
+                    $res = $this->calendarManager->searchForPrincipal($q);
+                    if (is_array($res)) {
+                        $rawRows = $res;
+                    }
+                }
+            } catch (\Throwable) {
+                continue;
+            }
+            $rows = $this->parseRows($rawRows, (string)($cal->getDisplayName() ?: ($cal->getUri() ?? 'calendar')), $cid);
+            foreach ($rows as $event) {
+                $this->markWorkedDays($event, $userTz, $from, $to, $daysSeen);
+            }
+        }
+        return count($daysSeen);
+    }
+
+    /**
+     * @param array<string, mixed> $event
+     * @param array<string, bool> $daysSeen
+     */
+    private function markWorkedDays(
+        array $event,
+        \DateTimeZone $userTz,
+        \DateTimeImmutable $rangeStart,
+        \DateTimeImmutable $rangeEnd,
+        array &$daysSeen,
+    ): void {
+        $isAllDay = !empty($event['allday']);
+        $startStr = (string)($event['start'] ?? '');
+        $endStr = (string)($event['end'] ?? '');
+        $startTzName = (string)($event['startTz'] ?? '');
+        $endTzName = (string)($event['endTz'] ?? '');
+        try {
+            $srcTzStart = new \DateTimeZone($startTzName ?: 'UTC');
+        } catch (\Throwable) {
+            $srcTzStart = new \DateTimeZone('UTC');
+        }
+        try {
+            $srcTzEnd = new \DateTimeZone($endTzName ?: 'UTC');
+        } catch (\Throwable) {
+            $srcTzEnd = new \DateTimeZone('UTC');
+        }
+        $dtStart = $startStr !== '' ? new \DateTimeImmutable($startStr, $srcTzStart) : null;
+        $dtEnd = $endStr !== '' ? new \DateTimeImmutable($endStr, $srcTzEnd) : null;
+        $dtStartUser = $dtStart?->setTimezone($userTz);
+        $dtEndUser = $dtEnd?->setTimezone($userTz);
+        if ($isAllDay && $dtStartUser) {
+            $dtStartUser = $dtStartUser->setTime(0, 0, 0);
+        }
+        if ($isAllDay) {
+            if ($dtEndUser) {
+                $dtEndUser = $dtEndUser->setTime(0, 0, 0);
+            }
+            if (!$dtEndUser && $dtStartUser) {
+                $dtEndUser = $dtStartUser->modify('+1 day');
+            }
+        }
+        $spanStart = $dtStartUser ?? $dtEndUser;
+        $spanEnd = $dtEndUser ?? $dtStartUser;
+        if ($spanStart === null) {
+            return;
+        }
+        if ($spanEnd === null) {
+            $spanEnd = $spanStart;
+        }
+        if ($spanEnd->getTimestamp() < $spanStart->getTimestamp()) {
+            $spanEnd = $spanStart;
+        }
+        $current = $spanStart->setTime(0, 0, 0);
+        $endDay = $spanEnd->setTime(0, 0, 0);
+        $rangeStartDay = $rangeStart->setTime(0, 0, 0);
+        $rangeEndDay = $rangeEnd->setTime(0, 0, 0);
+        while ($current->getTimestamp() <= $endDay->getTimestamp()) {
+            if (
+                $current->getTimestamp() >= $rangeStartDay->getTimestamp() &&
+                $current->getTimestamp() <= $rangeEndDay->getTimestamp()
+            ) {
+                $daysSeen[$current->format('Y-m-d')] = true;
+            }
+            $nextDay = $current->modify('+1 day');
+            if ($nextDay->getTimestamp() === $current->getTimestamp()) {
+                break;
+            }
+            $current = $nextDay;
+        }
     }
 
     // ---- Validation helpers ----

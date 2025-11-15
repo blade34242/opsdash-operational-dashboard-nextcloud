@@ -125,12 +125,19 @@ export async function fetchDeckCardsInRange(request: DeckRangeRequest): Promise<
     if (board.id == null) continue
     let stacksPayload: any
     try {
-      stacksPayload = await requestJson(buildDeckUrl(`/apps/deck/api/v1/boards/${board.id}/stacks`))
+      stacksPayload = await requestJson(
+        buildDeckUrl(`/apps/deck/api/v1/boards/${board.id}/stacks`, { details: 1 }),
+      )
     } catch (error) {
       if (isDeckUnavailable(error)) {
         continue
       }
-      throw error
+      if (error instanceof DeckHttpError && error.status === 400) {
+        // Older Deck versions do not support ?details=1; retry without it.
+        stacksPayload = await requestJson(buildDeckUrl(`/apps/deck/api/v1/boards/${board.id}/stacks`))
+      } else {
+        throw error
+      }
     }
     const stacks = normalizeStacks(stacksPayload)
     for (const stack of stacks) {

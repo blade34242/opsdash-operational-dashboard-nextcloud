@@ -108,16 +108,6 @@
       </p>
       <div class="field-grid">
         <label class="field">
-          <span class="label">Relation display</span>
-          <select
-            :value="balanceSettings.relations.displayMode"
-            @change="emit('set-relation', ($event.target as HTMLSelectElement).value)"
-          >
-            <option value="ratio">Ratio (A : B)</option>
-            <option value="factor">Factor (A×)</option>
-          </select>
-        </label>
-        <label class="field">
           <span class="label">Trend lookback (weeks)</span>
           <input
             type="number"
@@ -258,7 +248,6 @@ const rawProps = defineProps<{
 const emit = defineEmits<{
   (e: 'toggle-help', target: 'all' | 'thresholds' | 'trend' | 'display'): void
   (e: 'set-threshold', payload: { key: 'noticeMaxShare' | 'warnMaxShare' | 'warnIndex'; value: string }): void
-  (e: 'set-relation', mode: string): void
   (e: 'set-lookback', value: string): void
   (e: 'set-ui-toggle', payload: { key: 'showInsights' | 'showDailyStacks' | 'showNotes' | 'dayparts'; value: boolean }): void
   (e: 'set-ui-precision', payload: { key: 'roundPercent' | 'roundRatio'; value: string }): void

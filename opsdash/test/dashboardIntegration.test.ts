@@ -225,14 +225,20 @@ describe('Dashboard integration fixtures', () => {
     expect(harness.fixture.meta.offset).toBe(1)
     expect(harness.dashboard.from.value).toBe('2025-11-03')
     expect(harness.dashboard.to.value).toBe('2025-11-30')
-    expect(Array.isArray(harness.dashboard.byDay.value)).toBe(true)
+    expect(harness.dashboard.themePreference.value).toBe('dark')
+    expect(harness.dashboard.targetsWeek.value.personal).toBe(12)
+    expect(harness.dashboard.targetsMonth.value['opsdash-focus']).toBe(32)
+    expect(harness.dashboard.selected.value).toEqual(['personal', 'opsdash-focus'])
   })
 
   it('handles month fixtures with multiple calendars selected', async () => {
     vi.setSystemTime(new Date('2025-10-15T12:00:00Z'))
     const harness = await createIntegrationHarness({ range: 'month', fixture: 'load-month-multiuser.json', offset: 0 })
     expect(harness.dashboard.selected.value).toEqual(['personal', 'opsdash-focus'])
+    const calendars = harness.dashboard.calendars.value
+    expect(calendars.filter((cal: any) => cal.checked === false).map((cal: any) => cal.id)).toContain('asdsad')
     expect(harness.currentTargets.value['opsdash-focus']).toBeGreaterThan(0)
+    expect(harness.dashboard.groupsById.value.personal).toBe(0)
   })
 
   it('replays QA month payload with limit metadata intact', async () => {
