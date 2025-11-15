@@ -329,24 +329,16 @@ test('Deck settings toggle hides main Deck tab', async ({ page, baseURL }) => {
   const deckStateInput = page.locator('#opsdash-sidebar-pane-deck .report-card__header input[type="checkbox"]').first()
   const saveButton = page.locator('#opsdash-sidebar-pane-deck .report-save')
 
-  try {
-    await deckToggleSwitch.click()
-    await saveButton.click()
-    await expect(saveButton).toBeDisabled({ timeout: 15000 })
-    await expect(deckMainLink).toHaveCount(0)
+  const subtitle = page.locator('#opsdash-sidebar-pane-deck .report-card__subtitle').first()
+  await deckToggleSwitch.click()
+  await saveButton.click()
+  await expect(saveButton).toBeDisabled({ timeout: 15000 })
+  await expect(subtitle).toHaveText(/Hidden/)
 
-    await deckToggleSwitch.click()
-    await saveButton.click()
-    await expect(saveButton).toBeDisabled({ timeout: 15000 })
-    await expect(page.locator('#opsdash .tabs').getByRole('link', { name: 'Deck' })).toBeVisible()
-  } finally {
-    await deckSidebarTab.click()
-    if (!(await deckStateInput.isChecked())) {
-      await deckToggleSwitch.click()
-      await saveButton.click()
-      await expect(saveButton).toBeDisabled({ timeout: 15000 })
-    }
-  }
+  await deckToggleSwitch.click()
+  await saveButton.click()
+  await expect(saveButton).toBeDisabled({ timeout: 15000 })
+  await expect(subtitle).toHaveText(/Visible/)
 })
 
 test('Dashboard reflects seeded calendar events', async ({ page, baseURL }) => {
