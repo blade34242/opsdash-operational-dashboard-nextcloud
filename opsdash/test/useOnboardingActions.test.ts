@@ -1,0 +1,91 @@
+import { describe, it, expect, vi, beforeEach } from 'vitest'
+import { ref } from 'vue'
+
+import { useOnboardingActions } from '../composables/useOnboardingActions'
+import type { OnboardingState } from '../composables/useDashboard'
+import { createDefaultTargetsConfig } from '../src/services/targets'
+
+function setup(overrides: Partial<Parameters<typeof useOnboardingActions>[0]> = {}) {
+  const onboardingState = ref<OnboardingState | null>({
+    completed: false,
+    version: 0,
+    strategy: 'total_only',
+    completed_at: '',
+  })
+  const route = vi.fn().mockReturnValue('/persist')
+  const postJson = vi.fn().mockResolvedValue({})
+  const notifySuccess = vi.fn()
+  const notifyError = vi.fn()
+  const setThemePreference = vi.fn()
+  const savePreset = vi.fn().mockResolvedValue(undefined)
+  const reloadAfterPersist = vi.fn().mockResolvedValue(undefined)
+
+  const actions = useOnboardingActions({
+    onboardingState,
+    route,
+    postJson,
+    notifySuccess,
+    notifyError,
+    setThemePreference,
+    savePreset,
+    reloadAfterPersist,
+    ...overrides,
+  })
+
+  return {
+    onboardingState,
+    route,
+    postJson,
+    notifySuccess,
+    notifyError,
+    setThemePreference,
+    savePreset,
+    reloadAfterPersist,
+    ...actions,
+  }
+}
+
+describe('useOnboardingActions', () => {
+  beforeEach(() => {
+    vi.clearAllMocks()
+  })
+
+  it('persists onboarding completion payload and reloads', async () => {
+    const ctx = setup()
+    await ctx.complete({
+      strategy: 'total_only',
+      selected: ['cal-1'],
+      targetsConfig: createDefaultTargetsConfig(),
+      groups: {},
+      targetsWeek: {},
+      targetsMonth: {},
+      themePreference: 'auto',
+    })
+
+    expect(ctx.postJson).toHaveBeenCalledWith('/persist', expect.objectContaining({
+      theme_preference: 'auto',
+      onboarding: expect.objectContaining({ completed: true }),
+    }))
+    expect(ctx.reloadAfterPersist).toHaveBeenCalledTimes(1)
+    expect(ctx.notifySuccess).toHaveBeenCalledWith('Onboarding saved')
+  })
+
+  it('saves preset snapshots and surfaces a notice', async () => {
+    const ctx = setup()
+    await ctx.saveSnapshot()
+
+    expect(ctx.savePreset).toHaveBeenCalledTimes(1)
+    expect(ctx.snapshotNotice.value).not.toBeNull()
+    expect(ctx.snapshotNotice.value?.type).toBe('success')
+  })
+
+  it('skips onboarding and reloads configuration', async () => {
+    const ctx = setup()
+    await ctx.skip()
+
+    expect(ctx.postJson).toHaveBeenCalledWith('/persist', expect.objectContaining({
+      onboarding: expect.objectContaining({ completed: true }),
+    }))
+    expect(ctx.reloadAfterPersist).toHaveBeenCalledTimes(1)
+  })
+})

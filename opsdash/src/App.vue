@@ -333,6 +333,7 @@ import { useDetailsToggle } from '../composables/useDetailsToggle'
 import { useNotesLabels } from '../composables/useNotesLabels'
 import { useSidebarState } from '../composables/useSidebarState'
 import { useKeyboardShortcuts } from '../composables/useKeyboardShortcuts'
+import { useOnboardingActions } from '../composables/useOnboardingActions'
 import { trackTelemetry } from './services/telemetry'
 // Ensure a visible version even if backend attrs are empty: use package.json as fallback
 // @ts-ignore
@@ -531,6 +532,17 @@ const {
   userChangedSelection,
 })
 
+const onboardingActions = useOnboardingActions({
+  onboardingState,
+  route: (name) => route(name),
+  postJson,
+  notifySuccess,
+  notifyError,
+  setThemePreference,
+  savePreset,
+  reloadAfterPersist: () => performLoad(),
+})
+
 const {
   autoWizardNeeded,
   manualWizardOpen,
@@ -557,13 +569,7 @@ const {
   selected,
   targetsConfig,
   hasInitialLoad,
-  route: (name) => route(name),
-  postJson,
-  notifySuccess,
-  notifyError,
-  setThemePreference,
-  savePreset,
-  reloadAfterPersist: () => performLoad(),
+  actions: onboardingActions,
 })
 
 async function performLoad() {

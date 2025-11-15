@@ -5,22 +5,7 @@ import type { TargetsConfig } from '../src/services/targets'
 
 import { createOnboardingWizardState } from './useOnboardingWizard'
 import type { OnboardingState } from './useDashboard'
-import type { ThemePreference } from './useThemePreference'
-
-export type WizardSnapshotNotice = {
-  type: 'success' | 'error'
-  message: string
-}
-
-interface WizardCompletePayload {
-  strategy: StrategyDefinition['id']
-  selected: string[]
-  targetsConfig: TargetsConfig
-  groups: Record<string, number>
-  targetsWeek: Record<string, number>
-  targetsMonth: Record<string, number>
-  themePreference: ThemePreference
-}
+import type { OnboardingActions, WizardSnapshotNotice, WizardCompletePayload } from './useOnboardingActions'
 
 interface OnboardingFlowDeps {
   onboardingState: Ref<OnboardingState | null>
@@ -28,13 +13,7 @@ interface OnboardingFlowDeps {
   selected: Ref<string[]>
   targetsConfig: Ref<TargetsConfig>
   hasInitialLoad: Ref<boolean>
-  route: (name: 'persist') => string
-  postJson: (url: string, body: Record<string, unknown>) => Promise<any>
-  notifySuccess: (message: string) => void
-  notifyError: (message: string) => void
-  setThemePreference: (value: ThemePreference, options?: { persist?: boolean }) => void
-  savePreset: (name: string) => Promise<void>
-  reloadAfterPersist: () => Promise<void>
+  actions: OnboardingActions
 }
 
 export function useOnboardingFlow(deps: OnboardingFlowDeps) {
@@ -47,9 +26,9 @@ export function useOnboardingFlow(deps: OnboardingFlowDeps) {
   } = createOnboardingWizardState()
 
   const hasExistingConfig = computed(() => Boolean(deps.onboardingState.value?.completed))
-  const isOnboardingSaving = ref(false)
-  const isSnapshotSaving = ref(false)
-  const snapshotNotice = ref<WizardSnapshotNotice | null>(null)
+  const isOnboardingSaving = deps.actions.isOnboardingSaving
+  const isSnapshotSaving = deps.actions.isSnapshotSaving
+  const snapshotNotice = deps.actions.snapshotNotice
 
   const wizardCalendars = computed<CalendarSummary[]>(() =>
     (deps.calendars.value || [])
@@ -97,56 +76,21 @@ export function useOnboardingFlow(deps: OnboardingFlowDeps) {
 
   async function handleWizardComplete(payload: WizardCompletePayload) {
     try {
-      isOnboardingSaving.value = true
-      snapshotNotice.value = null
-      deps.setThemePreference(payload.themePreference, { persist: false })
-      await deps.postJson(deps.route('persist'), {
-        cals: payload.selected,
-        groups: payload.groups,
-        targets_week: payload.targetsWeek,
-        targets_month: payload.targetsMonth,
-        targets_config: payload.targetsConfig,
-        theme_preference: payload.themePreference,
-        onboarding: {
-          completed: true,
-          version: ONBOARDING_VERSION,
-          strategy: payload.strategy,
-          completed_at: new Date().toISOString(),
-        },
-      })
+      await deps.actions.complete(payload)
       manualWizardOpen.value = false
       autoWizardNeeded.value = false
-      await deps.reloadAfterPersist()
-      deps.notifySuccess('Onboarding saved')
     } catch (error) {
-      console.error(error)
-      deps.notifyError('Failed to save onboarding')
-    } finally {
-      isOnboardingSaving.value = false
+      console.error('[opsdash] onboarding complete failed', error)
     }
   }
 
   async function handleWizardSkip() {
     try {
-      isOnboardingSaving.value = true
-      snapshotNotice.value = null
-      await deps.postJson(deps.route('persist'), {
-        onboarding: {
-          completed: true,
-          version: ONBOARDING_VERSION,
-          strategy: deps.onboardingState.value?.strategy ?? 'total_only',
-          completed_at: new Date().toISOString(),
-        },
-      })
+      await deps.actions.skip()
       manualWizardOpen.value = false
       autoWizardNeeded.value = false
-      await deps.reloadAfterPersist()
-      deps.notifySuccess('You can revisit onboarding from the Targets tab any time.')
     } catch (error) {
-      console.error(error)
-      deps.notifyError('Failed to update onboarding state')
-    } finally {
-      isOnboardingSaving.value = false
+      console.error('[opsdash] onboarding skip failed', error)
     }
   }
 
@@ -157,23 +101,9 @@ export function useOnboardingFlow(deps: OnboardingFlowDeps) {
 
   async function handleWizardSaveSnapshot() {
     try {
-      isSnapshotSaving.value = true
-      snapshotNotice.value = null
-      const stamp = new Date()
-      const name = `Before onboarding ${stamp.toISOString().slice(0, 16).replace('T', ' ')}`
-      await deps.savePreset(name)
-      snapshotNotice.value = {
-        type: 'success',
-        message: `Preset "${name}" saved — find it under Config & Setup.`,
-      }
+      await deps.actions.saveSnapshot()
     } catch (error) {
-      console.error('[opsdash] preset backup failed', error)
-      snapshotNotice.value = {
-        type: 'error',
-        message: 'Failed to save preset backup. Please try again.',
-      }
-    } finally {
-      isSnapshotSaving.value = false
+      console.error('[opsdash] onboarding snapshot failed', error)
     }
   }
 
@@ -199,3 +129,5 @@ export function useOnboardingFlow(deps: OnboardingFlowDeps) {
     handleWizardSaveSnapshot,
   }
 }
+
+export type { WizardSnapshotNotice, WizardCompletePayload } from './useOnboardingActions'

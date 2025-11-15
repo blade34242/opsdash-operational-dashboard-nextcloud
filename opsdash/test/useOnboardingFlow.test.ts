@@ -4,6 +4,7 @@ import { ref, nextTick } from 'vue'
 import { useOnboardingFlow } from '../composables/useOnboardingFlow'
 import type { OnboardingState } from '../composables/useDashboard'
 import { createDefaultTargetsConfig } from '../src/services/targets'
+import type { OnboardingActions } from '../composables/useOnboardingActions'
 
 function setupFlow(overrides: Partial<Parameters<typeof useOnboardingFlow>[0]> = {}) {
   const onboardingState = ref<OnboardingState | null>(null)
@@ -11,13 +12,14 @@ function setupFlow(overrides: Partial<Parameters<typeof useOnboardingFlow>[0]> =
   const selected = ref<string[]>(['cal-1'])
   const targetsConfig = ref(createDefaultTargetsConfig())
   const hasInitialLoad = ref(false)
-  const postJson = vi.fn().mockResolvedValue({})
-  const route = vi.fn().mockReturnValue('/persist')
-  const notifySuccess = vi.fn()
-  const notifyError = vi.fn()
-  const setThemePreference = vi.fn()
-  const savePreset = vi.fn().mockResolvedValue(undefined)
-  const reloadAfterPersist = vi.fn().mockResolvedValue(undefined)
+  const actions: OnboardingActions = {
+    isOnboardingSaving: ref(false),
+    isSnapshotSaving: ref(false),
+    snapshotNotice: ref(null),
+    complete: vi.fn().mockResolvedValue(undefined),
+    skip: vi.fn().mockResolvedValue(undefined),
+    saveSnapshot: vi.fn().mockResolvedValue(undefined),
+  }
 
   const flow = useOnboardingFlow({
     onboardingState,
@@ -25,13 +27,7 @@ function setupFlow(overrides: Partial<Parameters<typeof useOnboardingFlow>[0]> =
     selected,
     targetsConfig,
     hasInitialLoad,
-    route,
-    postJson,
-    notifySuccess,
-    notifyError,
-    setThemePreference,
-    savePreset,
-    reloadAfterPersist,
+    actions,
     ...overrides,
   })
 
@@ -41,13 +37,7 @@ function setupFlow(overrides: Partial<Parameters<typeof useOnboardingFlow>[0]> =
     selected,
     targetsConfig,
     hasInitialLoad,
-    postJson,
-    route,
-    notifySuccess,
-    notifyError,
-    setThemePreference,
-    savePreset,
-    reloadAfterPersist,
+    actions,
     ...flow,
   }
 }
@@ -77,17 +67,13 @@ describe('useOnboardingFlow', () => {
     expect(ctx.autoWizardNeeded.value).toBe(false)
   })
 
-  it('saves preset snapshots and surfaces a notice', async () => {
+  it('delegates snapshot saving through onboarding actions', async () => {
     const ctx = setupFlow()
     await ctx.handleWizardSaveSnapshot()
-
-    expect(ctx.isSnapshotSaving.value).toBe(false)
-    expect(ctx.snapshotNotice.value).not.toBeNull()
-    expect(ctx.snapshotNotice.value?.type).toBe('success')
-    expect(ctx.savePreset).toHaveBeenCalledTimes(1)
+    expect(ctx.actions.saveSnapshot).toHaveBeenCalledTimes(1)
   })
 
-  it('persists onboarding completion payload and reloads', async () => {
+  it('delegates completion to onboarding actions and updates flags', async () => {
     const ctx = setupFlow()
     ctx.hasInitialLoad.value = true
 
@@ -101,14 +87,7 @@ describe('useOnboardingFlow', () => {
       themePreference: 'auto',
     })
 
-    expect(ctx.postJson).toHaveBeenCalledWith('/persist', expect.objectContaining({
-      onboarding: expect.objectContaining({
-        completed: true,
-        version: expect.any(Number),
-      }),
-      theme_preference: 'auto',
-    }))
-    expect(ctx.reloadAfterPersist).toHaveBeenCalledTimes(1)
-    expect(ctx.notifySuccess).toHaveBeenCalledWith('Onboarding saved')
+    expect(ctx.actions.complete).toHaveBeenCalledTimes(1)
+    expect(ctx.autoWizardNeeded.value).toBe(false)
   })
 })
