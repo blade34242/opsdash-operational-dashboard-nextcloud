@@ -200,6 +200,7 @@ test('Config preset can be saved via UI', async ({ page, baseURL }) => {
 
   await page.getByLabel('Profile name').fill(presetName)
   await page.getByRole('button', { name: 'Save current configuration' }).click()
+  await page.getByRole('button', { name: /Refresh list/i }).click()
 
   const presetNameLocator = page.locator('.preset-name', { hasText: presetName })
   await expect(presetNameLocator).toBeVisible({ timeout: 15000 })
@@ -308,6 +309,12 @@ test('Deck tab surfaces seeded QA cards', async ({ page, baseURL }) => {
     return
   }
 
+  const deckSeeded = await seedDeckData(page, baseURL)
+  if (!deckSeeded) {
+    test.skip(true, 'Deck API unavailable or seeding failed')
+    return
+  }
+
   await page.goto(baseURL + '/index.php/apps/opsdash/overview')
   await dismissOnboardingIfVisible(page)
 
@@ -327,7 +334,7 @@ test('Deck tab surfaces seeded QA cards', async ({ page, baseURL }) => {
   await expect(deckPanel).toBeVisible({ timeout: 15000 })
   const cardCount = await deckPanel.locator('.deck-card').count()
   if (cardCount === 0) {
-    test.skip(true, 'Deck payload empty')
+    test.skip(true, 'Deck payload empty; Deck seed missing?')
   }
   await expect(page.locator('.deck-card__title', { hasText: 'Prep Opsdash Deck sync' })).toBeVisible()
   await expect(page.locator('.deck-card__title', { hasText: 'Publish Ops report cards' })).toBeVisible()
@@ -340,3 +347,117 @@ test('Deck tab surfaces seeded QA cards', async ({ page, baseURL }) => {
   await page.getByRole('button', { name: 'All cards' }).click()
   await expect(page.locator('.deck-card__title', { hasText: 'Archive completed Ops tasks' })).toBeVisible()
 })
+
+async function seedDeckData(page: Page, baseURL: string): Promise<boolean> {
+  const password = process.env.PLAYWRIGHT_PASS || 'admin'
+  const authHeader = 'Basic ' + Buffer.from(`${PRIMARY_USER}:${password}`).toString('base64')
+  const deckFetch = (path: string, init: Parameters<Page['request']['fetch']>[1] = {}) => {
+    return page.request.fetch(`${baseURL}${path}`, {
+      ...init,
+      headers: {
+        Accept: 'application/json',
+        'Content-Type': 'application/json',
+        'OCS-APIREQUEST': 'true',
+        Authorization: authHeader,
+        ...(init.headers || {}),
+      },
+    })
+  }
+  try {
+    const board = await ensureBoard(deckFetch)
+    if (!board) return false
+    const stacks = await ensureStacks(deckFetch, board.id)
+    if (!stacks) return false
+    await Promise.all([
+      ensureCard(deckFetch, board.id, stacks.inbox, 'Prep Opsdash Deck sync', 1),
+      ensureCard(deckFetch, board.id, stacks.progress, 'Publish Ops report cards', 3),
+      ensureCard(deckFetch, board.id, stacks.done, 'Archive completed Ops tasks', -1, true),
+    ])
+    return true
+  } catch (error) {
+    console.warn('[deck seed failed]', error)
+    return false
+  }
+}
+
+async function ensureBoard(
+  fetcher: (path: string, init?: Parameters<Page['request']['fetch']>[1]) => Promise<Response>,
+) {
+  const title = 'Opsdash Deck QA'
+  const res = await fetcher('/ocs/v2.php/apps/deck/api/v1/boards')
+  if (!res.ok) return null
+  const payload = await res.json().catch(() => null)
+  const boards = payload?.ocs?.data ?? []
+  let board = boards.find((b: any) => b?.title === title)
+  if (!board) {
+    const create = await fetcher('/ocs/v2.php/apps/deck/api/v1/boards', {
+      method: 'POST',
+      data: { title, color: '#2563EB' },
+    })
+    if (!create.ok) return null
+    const created = await create.json().catch(() => null)
+    board = created?.ocs?.data ?? null
+  }
+  return board
+}
+
+async function ensureStacks(
+  fetcher: (path: string, init?: Parameters<Page['request']['fetch']>[1]) => Promise<Response>,
+  boardId: number,
+) {
+  const stackRes = await fetcher(`/ocs/v2.php/apps/deck/api/v1/boards/${boardId}/stacks`)
+  if (!stackRes.ok) return null
+  const stackPayload = await stackRes.json().catch(() => null)
+  let stacks = stackPayload?.ocs?.data ?? []
+  const getOrCreate = async (title: string, order: number) => {
+    let stack = stacks.find((s: any) => s?.title === title)
+    if (stack) return stack
+    const create = await fetcher(`/ocs/v2.php/apps/deck/api/v1/boards/${boardId}/stacks`, {
+      method: 'POST',
+      data: { title, order },
+    })
+    if (!create.ok) return null
+    const json = await create.json().catch(() => null)
+    stack = json?.ocs?.data ?? null
+    stacks = [...stacks, stack].filter(Boolean)
+    return stack
+  }
+  const inbox = await getOrCreate('Inbox', 10)
+  const progress = await getOrCreate('In Progress', 20)
+  const done = await getOrCreate('Done', 30)
+  if (!inbox || !progress || !done) return null
+  return { inbox, progress, done }
+}
+
+async function ensureCard(
+  fetcher: (path: string, init?: Parameters<Page['request']['fetch']>[1]) => Promise<Response>,
+  boardId: number,
+  stack: any,
+  title: string,
+  daysFromNow: number,
+  archived = false,
+) {
+  const due = new Date()
+  due.setDate(due.getDate() + daysFromNow)
+  const create = await fetcher(
+    `/ocs/v2.php/apps/deck/api/v1/boards/${boardId}/stacks/${stack.id}/cards`,
+    {
+      method: 'POST',
+      data: {
+        title,
+        order: Date.now(),
+        type: 'plain',
+        duedate: Math.floor(due.getTime() / 1000),
+        description: 'Seeded by Opsdash e2e',
+      },
+    },
+  )
+  if (!create.ok) return
+  if (archived) {
+    const cardJson = await create.json().catch(() => null)
+    const cardId = cardJson?.ocs?.data?.id
+    if (cardId) {
+      await fetcher(`/ocs/v2.php/apps/deck/api/v1/cards/${cardId}/archive`, { method: 'POST' })
+    }
+  }
+}
