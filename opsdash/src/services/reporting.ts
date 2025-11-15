@@ -19,6 +19,7 @@ export interface DeckFeatureSettings {
   enabled: boolean
   filtersEnabled: boolean
   defaultFilter: DeckFilterMode
+  hiddenBoards: number[]
 }
 
 export function createDefaultReportingConfig(): ReportingConfig {
@@ -67,6 +68,7 @@ export function createDefaultDeckSettings(): DeckFeatureSettings {
     enabled: true,
     filtersEnabled: true,
     defaultFilter: 'all',
+    hiddenBoards: [],
   }
 }
 
@@ -76,9 +78,19 @@ export function normalizeDeckSettings(input: any, fallback?: DeckFeatureSettings
     return { ...base }
   }
   const defaultFilter: DeckFilterMode = input.defaultFilter === 'mine' ? 'mine' : 'all'
+  const hiddenBoards = Array.isArray(input.hiddenBoards)
+    ? Array.from(
+        new Set(
+          input.hiddenBoards
+            .map((value: any) => Number(value))
+            .filter((value: number) => Number.isInteger(value) && value > 0),
+        ),
+      )
+    : base.hiddenBoards.slice()
   return {
     enabled: input.enabled !== false,
     filtersEnabled: input.filtersEnabled !== false,
     defaultFilter,
+    hiddenBoards,
   }
 }

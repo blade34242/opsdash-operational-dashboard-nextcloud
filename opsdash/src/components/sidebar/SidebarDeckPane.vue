@@ -10,11 +10,11 @@
       Control whether the Deck tab is available and which filter is applied by default.
     </p>
 
-    <div class="report-card">
-      <div class="report-card__header">
-        <div>
-          <div class="report-card__title">Deck tab</div>
-          <div class="report-card__subtitle">
+<div class="report-card">
+  <div class="report-card__header">
+    <div>
+      <div class="report-card__title">Deck tab</div>
+      <div class="report-card__subtitle">
             {{ localDeck.enabled ? 'Visible in dashboard' : 'Hidden for this user' }}
           </div>
         </div>
@@ -50,24 +50,59 @@
           />
           Enable filter buttons
         </label>
-      </div>
     </div>
+  </div>
 
-    <div class="report-actions">
+  <div class="deck-board-section">
+    <div class="report-card__header deck-board-header">
+      <div>
+        <div class="report-card__title">Boards</div>
+        <div class="report-card__subtitle">Choose which Deck boards appear in Opsdash</div>
+      </div>
       <button
         type="button"
         class="report-save"
-        :disabled="saving || !hasChanges"
-        @click="saveDeck"
+        :disabled="boardsLoading"
+        @click="loadBoards"
       >
-        {{ saving ? 'Saving…' : hasChanges ? 'Save Deck settings' : 'Saved' }}
+        {{ boardsLoading ? 'Loading…' : 'Refresh boards' }}
       </button>
     </div>
+    <p v-if="boardsError" class="report-error">{{ boardsError }}</p>
+    <p v-else-if="boardsLoading" class="section-hint">Fetching Deck boards…</p>
+    <div v-else class="deck-board-list">
+      <p v-if="!boards.length" class="section-hint">No Deck boards detected. Open Deck first to create one.</p>
+      <label
+        v-for="board in boards"
+        :key="board.id"
+        class="report-field report-field--checkbox deck-board-checkbox"
+      >
+        <input
+          type="checkbox"
+          :checked="isBoardVisible(board.id)"
+          :disabled="!localDeck.enabled"
+          @change="toggleBoard(board.id, ($event.target as HTMLInputElement).checked)"
+        />
+        <span>{{ board.title }}</span>
+      </label>
+    </div>
   </div>
+</div>
+
+<div class="report-actions">
+  <button
+    type="button"
+    class="report-save"
+    :disabled="saving || !hasChanges"
+    @click="saveDeck"
+  >
+    {{ saving ? 'Saving…' : hasChanges ? 'Save Deck settings' : 'Saved' }}
+  </button>
+</div>
 </template>
 
 <script setup lang="ts">
-import { computed, ref, watch } from 'vue'
+import { computed, onMounted, ref, watch } from 'vue'
 import type { DeckFeatureSettings } from '../../services/reporting'
 
 const props = defineProps<{
@@ -80,6 +115,9 @@ const emit = defineEmits<{
 }>()
 
 const localDeck = ref<DeckFeatureSettings>(cloneDeck(props.deckSettings))
+const boards = ref<Array<{ id: number; title: string }>>([])
+const boardsLoading = ref(false)
+const boardsError = ref('')
 
 watch(
   () => props.deckSettings,
@@ -93,6 +131,57 @@ const hasChanges = computed(
   () => JSON.stringify(localDeck.value) !== JSON.stringify(props.deckSettings),
 )
 
+async function loadBoards() {
+  boardsLoading.value = true
+  boardsError.value = ''
+  try {
+    const response = await fetch(deckUrl('/ocs/v2.php/apps/deck/api/v1/boards'), {
+      headers: {
+        Accept: 'application/json',
+        'OCS-APIREQUEST': 'true',
+      },
+      credentials: 'same-origin',
+    })
+    if (!response.ok) {
+      throw new Error(`Deck boards request failed (${response.status})`)
+    }
+    const payload = await response.json()
+    const list = Array.isArray(payload?.ocs?.data)
+      ? payload.ocs.data
+      : Array.isArray(payload?.data)
+        ? payload.data
+        : []
+    boards.value = list
+      .map((entry: any) => ({
+        id: Number(entry?.id ?? 0),
+        title: String(entry?.title ?? 'Untitled board'),
+      }))
+      .filter((entry) => Number.isInteger(entry.id) && entry.id > 0)
+  } catch (error) {
+    console.error(error)
+    boardsError.value = 'Unable to load Deck boards. Open Deck to create one.'
+    boards.value = []
+  } finally {
+    boardsLoading.value = false
+  }
+}
+
+function deckUrl(path: string): string {
+  const relative = path.startsWith('/') ? path : `/${path}`
+  const w: any = typeof window !== 'undefined' ? window : {}
+  if (w.OC && typeof w.OC.generateUrl === 'function') {
+    return w.OC.generateUrl(relative)
+  }
+  const root = (w.OC && (w.OC.webroot || w.OC.getRootPath?.())) || w._oc_webroot || ''
+  return `${root}${relative}`
+}
+
+onMounted(() => {
+  loadBoards().catch((error) => {
+    console.error(error)
+  })
+})
+
 function updateDeck(patch: Partial<DeckFeatureSettings>) {
   localDeck.value = {
     ...localDeck.value,
@@ -102,6 +191,21 @@ function updateDeck(patch: Partial<DeckFeatureSettings>) {
 
 function saveDeck() {
   emit('save-deck-settings', cloneDeck(localDeck.value))
+}
+
+function isBoardVisible(boardId: number) {
+  const hidden = localDeck.value.hiddenBoards || []
+  return !hidden.includes(boardId)
+}
+
+function toggleBoard(boardId: number, visible: boolean) {
+  const current = new Set(localDeck.value.hiddenBoards || [])
+  if (visible) {
+    current.delete(boardId)
+  } else {
+    current.add(boardId)
+  }
+  updateDeck({ hiddenBoards: Array.from(current).sort((a, b) => a - b) })
 }
 
 function cloneDeck(value: DeckFeatureSettings): DeckFeatureSettings {
@@ -158,6 +262,29 @@ function cloneDeck(value: DeckFeatureSettings): DeckFeatureSettings {
 .report-actions {
   display: flex;
   justify-content: flex-end;
+}
+.deck-board-section {
+  margin-top: 1rem;
+  border-top: 1px solid var(--color-border-maxcontrast);
+  padding-top: 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+.deck-board-header {
+  align-items: center;
+}
+.deck-board-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+.deck-board-checkbox {
+  margin: 0;
+}
+.report-error {
+  color: var(--color-error, #dc2626);
+  font-size: 0.85rem;
 }
 .report-save {
   border-radius: 999px;

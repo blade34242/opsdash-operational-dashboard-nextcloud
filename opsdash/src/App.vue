@@ -526,14 +526,18 @@ const {
 
 const deckFilter = ref<'all' | 'mine'>(deckSettings.value.defaultFilter)
 const deckFilteredCards = computed(() => {
+  const hidden = new Set(
+    (deckSettings.value.hiddenBoards || []).map((id) => Number(id)).filter((id) => Number.isFinite(id)),
+  )
+  const boardVisibleCards = deckCards.value.filter((card) => !hidden.has(card.boardId))
   if (deckFilter.value !== 'mine') {
-    return deckCards.value
+    return boardVisibleCards
   }
   const userId = (uid.value || '').trim().toLowerCase()
   if (!userId) {
-    return deckCards.value
+    return boardVisibleCards
   }
-  return deckCards.value.filter((card) => {
+  return boardVisibleCards.filter((card) => {
     return (card.assignees || []).some((assignee) => {
       return typeof assignee.uid === 'string' && assignee.uid.toLowerCase() === userId
     })

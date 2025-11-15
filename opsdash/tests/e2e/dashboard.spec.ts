@@ -282,6 +282,73 @@ test('Config export downloads current envelope', async ({ page, baseURL }) => {
   expect(envelope.payload).toHaveProperty('targets_config')
 })
 
+test('Activity day-off trend toggle hides chart', async ({ page, baseURL }) => {
+  if (!baseURL) {
+    test.skip()
+    return
+  }
+
+  await page.goto(baseURL + '/index.php/apps/opsdash/overview')
+  await dismissOnboardingIfVisible(page)
+
+  const trendSection = page.locator('.activity-card__trend')
+  await expect(trendSection).toBeVisible()
+
+  await page.locator('#opsdash-sidebar-tab-activity').click()
+  const trendToggle = page.getByLabel('Days off trend chart').first()
+  await trendToggle.uncheck()
+  await expect(trendSection).toBeHidden()
+
+  await trendToggle.check()
+  await expect(trendSection).toBeVisible()
+})
+
+test('Deck settings toggle hides main Deck tab', async ({ page, baseURL }) => {
+  if (!baseURL) {
+    test.skip()
+    return
+  }
+
+  await page.goto(baseURL + '/index.php/apps/opsdash/overview')
+  await dismissOnboardingIfVisible(page)
+
+  const deckMainLink = page.locator('#opsdash .tabs').getByRole('link', { name: 'Deck' })
+  if ((await deckMainLink.count()) === 0) {
+    test.skip(true, 'Deck tab disabled for this user')
+    return
+  }
+
+  const deckSidebarTab = page.locator('#opsdash-sidebar-tab-deck')
+  if ((await deckSidebarTab.count()) === 0) {
+    test.skip(true, 'Deck sidebar tab unavailable')
+    return
+  }
+
+  await deckSidebarTab.click()
+  const deckToggleSwitch = page.locator('#opsdash-sidebar-pane-deck .switch').first()
+  const deckStateInput = page.locator('#opsdash-sidebar-pane-deck .report-card__header input[type="checkbox"]').first()
+  const saveButton = page.locator('#opsdash-sidebar-pane-deck .report-save')
+
+  try {
+    await deckToggleSwitch.click()
+    await saveButton.click()
+    await expect(saveButton).toBeDisabled({ timeout: 15000 })
+    await expect(deckMainLink).toHaveCount(0)
+
+    await deckToggleSwitch.click()
+    await saveButton.click()
+    await expect(saveButton).toBeDisabled({ timeout: 15000 })
+    await expect(page.locator('#opsdash .tabs').getByRole('link', { name: 'Deck' })).toBeVisible()
+  } finally {
+    await deckSidebarTab.click()
+    if (!(await deckStateInput.isChecked())) {
+      await deckToggleSwitch.click()
+      await saveButton.click()
+      await expect(saveButton).toBeDisabled({ timeout: 15000 })
+    }
+  }
+})
+
 test('Dashboard reflects seeded calendar events', async ({ page, baseURL }) => {
   if (!baseURL) {
     test.skip()

@@ -1612,6 +1612,7 @@ final class OverviewController extends Controller {
             'enabled' => true,
             'filtersEnabled' => true,
             'defaultFilter' => 'all',
+            'hiddenBoards' => [],
         ];
     }
 
@@ -1621,10 +1622,18 @@ final class OverviewController extends Controller {
             return $defaults;
         }
         $defaultFilter = ($value['defaultFilter'] ?? 'all') === 'mine' ? 'mine' : 'all';
+        $hiddenBoards = [];
+        if (!empty($value['hiddenBoards']) && is_array($value['hiddenBoards'])) {
+            $hiddenBoards = array_values(array_unique(array_filter(array_map(function ($id) {
+                $num = (int)$id;
+                return $num > 0 ? $num : null;
+            }, $value['hiddenBoards']), fn ($id) => $id !== null)));
+        }
         return [
             'enabled' => array_key_exists('enabled', $value) ? (bool)$value['enabled'] : true,
             'filtersEnabled' => array_key_exists('filtersEnabled', $value) ? (bool)$value['filtersEnabled'] : true,
             'defaultFilter' => $defaultFilter,
+            'hiddenBoards' => $hiddenBoards,
         ];
     }
 
