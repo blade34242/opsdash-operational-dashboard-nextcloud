@@ -14,6 +14,7 @@
   "deck_settings_read": {
     "enabled": false,
     "filtersEnabled": true,
-    "defaultFilter": "mine"
+    "defaultFilter": "mine",
+    "hiddenBoards": [42]
   }
 }

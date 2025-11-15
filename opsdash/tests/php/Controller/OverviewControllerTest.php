@@ -265,6 +265,25 @@ class OverviewControllerTest extends TestCase {
     $this->assertArrayHasKey('reporting_config_read', $fixture);
     $this->assertArrayHasKey('deck_settings_read', $fixture);
     $this->assertSame('mine', $fixture['deck_settings_read']['defaultFilter']);
+    $this->assertSame([42], $fixture['deck_settings_read']['hiddenBoards']);
+  }
+
+  public function testDeckSettingsSanitizeHiddenBoards(): void {
+    $method = new \ReflectionMethod(OverviewController::class, 'sanitizeDeckSettings');
+    $method->setAccessible(true);
+
+    /** @var array<string,mixed> $result */
+    $result = $method->invoke($this->controller, [
+      'enabled' => false,
+      'filtersEnabled' => false,
+      'defaultFilter' => 'mine',
+      'hiddenBoards' => [2, '5', 'foo', -4, 0, 2],
+    ]);
+
+    $this->assertFalse($result['enabled']);
+    $this->assertFalse($result['filtersEnabled']);
+    $this->assertSame('mine', $result['defaultFilter']);
+    $this->assertSame([2, 5], $result['hiddenBoards']);
   }
 
   public function testNotesFixtureStructure(): void {

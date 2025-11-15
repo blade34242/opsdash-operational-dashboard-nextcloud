@@ -236,6 +236,7 @@ describe('useDashboardPersistence', () => {
     reportingConfig.value.enabled = false
     const deckSettings = ref(createDefaultDeckSettings())
     deckSettings.value.defaultFilter = 'all'
+    deckSettings.value.hiddenBoards = []
 
     const { queueSave } = createPersistence({
       postJson,
@@ -251,5 +252,6 @@ describe('useDashboardPersistence', () => {
     expect(reportingConfig.value.notifyNotification).toBe(true)
     expect(deckSettings.value.enabled).toBe(false)
     expect(deckSettings.value.defaultFilter).toBe('mine')
+    expect(deckSettings.value.hiddenBoards).toEqual([42])
   })
 })
