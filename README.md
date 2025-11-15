@@ -2,57 +2,76 @@
 
 ![Nextcloud Server Tests](https://github.com/blade34242/nexcloud-operational-cal-deck-dashboard/actions/workflows/server-tests.yml/badge.svg)
 
-Opsdash keeps teams honest about their calendar time: it aggregates week/month totals, shows balance across focus areas, and turns raw events into targets, pacing badges, and dashboards — all without leaving your Nextcloud instance.
+> ✨ *Your calendar time, but actually useful.* Opsdash aggregates events, compares them to your targets, keeps balance visible, and stays 100 % inside your Nextcloud instance.
 
-## UI Preview (placeholders)
+## 📸 UI Preview *(placeholders for 0.4.x)*
 | Overview | Config & Setup |
 | --- | --- |
 | ![Overview](img/overview.png) | ![Config](img/config.png) |
 | Targets | Balance |
 | ![Targets](img/targets.png) | ![Balance](img/balance.png) |
 
-> Final screenshots will replace these placeholder images before the 0.4.5 release.
+## 💡 Why teams install Opsdash
+- **Know where the week went** – totals, averages, busiest days, workday/weekend split, top categories, longest tasks.
+- **Stay on target** – per-calendar & per-category goals with pacing badges, Δ indicators, and quick forecasting.
+- **Balance at a glance** – stacked bars, category pies, heatmaps, “By Calendar/Day/Top/Heatmap” tabs.
+- **Onboarding & presets** – snapshot the sidebar, rerun the wizard, and keep teammates aligned with shared profiles.
+- **Notes + theming** – week/month notes (editable + read-only history) and per-user theme preferences.
+- **Native & private** – Vue 3 SPA rendered via Nextcloud’s CSP, CSRF, and permissions. No telemetry, no external APIs.
 
-## Why Opsdash?
-- **Know where the week went**: totals, averages, busiest days, workday/weekend split, top categories.
-- **Stay on target**: per-calendar and per-category goals with pace hints, Δ badges, and simple forecasting.
-- **Keep balance visible**: dedicated charts for focus areas, longest tasks, daily/weekly heatmaps.
-- **Stay native**: Vue 3 SPA rendered inside Nextcloud, using its theme, permissions, and CSRF guard. No telemetry, no external services.
-
-## Compatibility & Installation
+## 🧭 Compatibility Matrix
 | Branch | NC support | Version |
 | --- | --- | --- |
 | `master` | NC 31 | 0.4.x (current) |
-| `release/0.4.x` | NC 31 | App Store releases |
+| `release/0.4.x` | NC 31 | App Store-ready builds |
 | `feature/nc32` *(planned)* | NC 32 | 0.5.x once CI passes |
 
-Install via the Nextcloud App Store (once published) or copy the folder under `custom_apps/opsdash`, then:
+Install via the Nextcloud App Store (once published) **or** drop the `opsdash` folder inside `custom_apps/` and enable it:
 ```bash
 occ app:enable opsdash
 ```
 
-## Feature Highlights
-- Calendar dashboard with totals, averages, busiest days, and share of workdays/weekend.
-- Targets & pacing (per calendar + per category) with badges, forecasts, and weekly/daypart insights.
-- Balance overview, stacked bars, pie chart, heatmap, and longest-task table.
-- Presets and onboarding wizard to keep sidebars in sync across teammates.
-- Notes per week/month (HTML safely escaped) and theme preference per user.
+## 🚀 Feature Rundown
+- 📅 **Dashboard** – KPIs for week/month, busiest days, averages, weekend share, per-category chips, longest events.
+- 🎯 **Targets & pacing** – per calendar/category goals, pace hints, momentum forecasts, daypart insights, and badges.
+- ⚖️ **Balance** – share cards, stacked bars, relations/ratios, trend lookback, heatmaps, longest sessions, daypart toggles.
+- 🧠 **Notes** – edit “This week/month”, read “Last week/month”, optional display on the Balance card.
+- 🧩 **Onboarding wizard & presets** – guided setup, rerun from Config & Setup, save/load/delete presets, export/import, theme selector.
+- 🔐 **Nextcloud-native** – same theme, request token, permissions, Dav colors, and zero external calls.
 
-## For Administrators & Contributors
+## 🛠 Local Development
 ```bash
 # install deps & build assets
-cd opsdash && npm ci && npm run build && composer install
+cd opsdash
+npm ci
+npm run build
+composer install
 
-# vitest + phpunit
-npm run test -- --run
-composer run test:unit
+# unit/integration tests
+npm run test -- --run    # Vitest
+composer run test:unit   # PHPUnit
 
- # Playwright smoke (dashboard load, onboarding rerun, preset save, multi-user)
-npm run test:e2e   # requires `npx playwright install --with-deps chromium`
-`.
-## QA Seeding
-Run this inside your Nextcloud root to create the QA calendar and import the demo ICS:
+# Playwright smoke suite (Chromium only)
+npx playwright install --with-deps chromium
+npm run test:e2e
+```
+
+## 🧪 QA Seeding & Fixtures
 ```bash
+# run from Nextcloud root
 php apps/opsdash/tools/seed_qa_calendars.php
 ```
-This seeds the `opsdash-focus` calendar with the sample events used by Playwright.
+Seeds the `opsdash-focus` calendar + demo events used by Playwright and fixture captures. Additional fixtures (load/persist/notes) live under `opsdash/test/fixtures/` with capture instructions.
+
+## 📋 Roadmap Highlights
+- NC 31 releases in `0.4.x` stream; NC 32 (`0.5.x`) lands once CI matrices stabilize.
+- Deck integration spike (see `docs-private/opsdash-docs/DECK_INTEGRATION.md`) and reporting concept for NC App Store metadata.
+- i18n workflow (`npm run i18n:scan` / `npm run i18n:extract`) ready — de/fr/es packs coming.
+
+## 🙌 Contributing
+1. Fork & clone.
+2. Work on a branch, keeping fixtures/docs updated.
+3. Run Vitest + PHPUnit before opening a PR.
+4. For Playwright fixes, add/update QA fixtures or seeding scripts as needed.
+
+Happy dashboarding! 🎉
