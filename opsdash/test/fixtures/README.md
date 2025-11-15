@@ -57,3 +57,5 @@ import loadWeek from '../fixtures/load-week.json'
 - `load-month-qa.json` (Month view payload seeded via QA user)
 - `notes-month-qa.json` (QA user month note payload captured after rerunning onboarding)
 - `load-week-qa.json` (QA user week payload with independent calendar selection)
+- `notes-week-offset1.json` (Previous week notes payload)
+- `persist-week-offset1.json` (Persist response fixture for previous-week scenario)

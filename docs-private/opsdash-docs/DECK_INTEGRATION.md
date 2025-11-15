@@ -24,5 +24,5 @@ Explore how Opsdash can surface Deck board activity (cards, due dates, assignees
 
 ## Next Steps
 - Prototype a service class that hits the Deck OCS API with the logged-in user context.
+- Create Seeds for deck
 - Capture sample JSON responses for fixtures.
-- Decide whether Deck data belongs in the main dashboard cards or a dedicated sidebar pane.
