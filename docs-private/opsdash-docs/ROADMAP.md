@@ -34,6 +34,7 @@ Single source of truth for the Opsdash backlog: high-level roadmap, target syste
   - Capture `/overview/load` payloads for week/month ± offsets, multi-calendar, and multi-user scenarios; mirror them in Vitest + PHPUnit so SPA and controller stay aligned.
   - Add `/overview/persist` + `/overview/notes` fixtures (per user) to validate sanitisation.
   - Extend Playwright flows with OCC seeding helpers (or nightly scripts) so each supported NC/PHP combo exercises real CalDAV data, not just mocked payloads.
+  - ✅ Playwright now clicks the Deck tab and asserts QA cards render, proving the Deck seed + SPA wiring end-to-end.
   - Document the workflow (seed via OCC → capture fixtures → replay in tests) as the blessed best practice for future contributors.
 - **CalDAV colour probe** — Add automated PROPFIND checks against `remote.php/dav/calendars/<user>/<cal>` (per NC version) to ensure `apple:calendar-color` responses stay compatible; fail builds if colours disappear.
 
@@ -55,6 +56,7 @@ Single source of truth for the Opsdash backlog: high-level roadmap, target syste
 - Roll out full theming phases + sidebar-collapsed controls.
 - ~~Surface keyboard shortcuts overlay.~~ ✅ overlay + shortcuts shipped in App.vue (0.4.6).
 - Add language/label packs for additional locales (de, fr, es). Track per-page label gaps and build i18n tooling before opening translations (`I18N_PLAN.md` covers extraction + review workflow).
+- Deck tab (preview) now renders real cards from the Deck API, caches range responses, links to Deck for follow-up, and exposes All/My cards filters.
 
 ### Watchlist / Questions
 - NC 33 support timeline; update `<nextcloud max-version>` when ready.

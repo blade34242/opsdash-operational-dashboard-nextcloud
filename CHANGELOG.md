@@ -8,6 +8,11 @@ All notable changes to this project will be documented in this file.
 - QA month + notes fixtures (`load-month-qa.json`, `notes-month-qa.json`) wired into Vitest + PHPUnit to keep `/overview/load` + `/overview/notes` schema coverage in sync.
 - Localization helpers: `npm run i18n:scan` highlights untranslated strings and `npm run i18n:extract` wraps `occ translations:create-app` for template generation.
 - Telemetry hook via `trackTelemetry('shortcuts_opened')` so overlay usage is observable.
+- Deck preview: `src/services/deck.ts` normalises Deck API payloads, `composables/useDeckCards.ts` wires them into the SPA, and App.vue now exposes a Deck tab powered by `DeckCardsPanel.vue`.
+- QA Deck seed script `apps/opsdash/tools/seed_deck_boards.php` (plus Vitest fixtures/tests) ensures CI and Playwright runs have deterministic Deck boards/cards.
+- Deck tab now caches responses per range, surfaces explicit error states, and links out to the Deck app for deeper triage.
+- Playwright e2e suite now exercises the Deck tab to confirm the seeded QA cards render end-to-end.
+- Deck tab adds an “All cards / My cards” filter driven by assignees so individual workload snapshots stay focused.
 
 ### Changed
 - Dashboard persistence now relies on server-provided `balance.ui.*` flags (fallback only triggers when an entire block is missing), matching the updated `/overview/persist` response.

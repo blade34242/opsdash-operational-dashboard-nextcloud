@@ -38,6 +38,7 @@ occ app:enable opsdash
 - 🧠 **Notes** – edit “This week/month”, read “Last week/month”, optional display on the Balance card.
 - 🧩 **Onboarding wizard & presets** – guided setup, rerun from Config & Setup, save/load/delete presets, export/import, theme selector.
 - 🔐 **Nextcloud-native** – same theme, request token, permissions, Dav colors, and zero external calls.
+- 🗂️ **Deck tab (preview)** – read-only list of Deck cards due or completed in the active week/month range, with All/My cards filters and a quick link to the Deck app.
 
 ## 🛠 Local Development
 ```bash
@@ -60,8 +61,9 @@ npm run test:e2e
 ```bash
 # run from Nextcloud root
 php apps/opsdash/tools/seed_qa_calendars.php
+php apps/opsdash/tools/seed_deck_boards.php
 ```
-Seeds the `opsdash-focus` calendar + demo events used by Playwright and fixture captures. Additional fixtures (load/persist/notes) live under `opsdash/test/fixtures/` with capture instructions.
+Seeds the `opsdash-focus` calendar + deterministic Deck boards/cards used by Playwright and fixture captures. Additional fixtures (load/persist/notes/deck) live under `opsdash/test/fixtures/` with capture instructions.
 
 ## 📋 Roadmap Highlights
 - NC 31 releases in `0.4.x` stream; NC 32 (`0.5.x`) lands once CI matrices stabilize.

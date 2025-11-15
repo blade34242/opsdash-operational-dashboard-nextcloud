@@ -194,6 +194,7 @@
               <a href="#" :class="{active: pane==='day'}" @click.prevent="pane='day'">By Day</a>
               <a href="#" :class="{active: pane==='top'}" @click.prevent="pane='top'">Longest Tasks</a>
               <a href="#" :class="{active: pane==='heat'}" @click.prevent="pane='heat'">Heatmap</a>
+              <a href="#" :class="{active: pane==='deck'}" @click.prevent="pane='deck'">Deck</a>
             </div>
 
             <div class="card full tab-panel" v-show="pane==='cal'">
@@ -262,6 +263,21 @@
               </template>
             </div>
 
+            <div class="card full tab-panel" v-show="pane==='deck'">
+              <DeckCardsPanel
+                :cards="deckFilteredCards"
+                :loading="deckLoading"
+                :range-label="rangeLabel"
+                :last-fetched-at="deckLastFetchedAt"
+                :deck-url="deckUrl"
+                :error="deckError"
+                :filter="deckFilter"
+                :can-filter-mine="deckCanFilterMine"
+                @refresh="refreshDeck(true)"
+                @update:filter="(value) => (deckFilter = value)"
+              />
+            </div>
+
             <div class="hint footer">
               <template v-if="appVersion">
                 Operational Dashboard • v{{ appVersion }} • Built by Blade34242 @ Gellert Innovation
@@ -297,6 +313,7 @@ import BalanceOverviewCard from './components/BalanceOverviewCard.vue'
 import Sidebar from './components/Sidebar.vue'
 import OnboardingWizard from './components/OnboardingWizard.vue'
 import KeyboardShortcutsModal from './components/KeyboardShortcutsModal.vue'
+import DeckCardsPanel from './components/DeckCardsPanel.vue'
 import { buildTargetsSummary, normalizeTargetsConfig, createEmptyTargetsSummary, createDefaultActivityCardConfig, createDefaultBalanceConfig, cloneTargetsConfig, convertWeekToMonth, type ActivityCardConfig, type BalanceConfig, type TargetsConfig } from './services/targets'
 import { ONBOARDING_VERSION } from './services/onboarding'
 // Lightweight notifications without @nextcloud/dialogs
@@ -334,6 +351,7 @@ import { useNotesLabels } from '../composables/useNotesLabels'
 import { useSidebarState } from '../composables/useSidebarState'
 import { useKeyboardShortcuts } from '../composables/useKeyboardShortcuts'
 import { useOnboardingActions } from '../composables/useOnboardingActions'
+import { useDeckCards } from '../composables/useDeckCards'
 import { trackTelemetry } from './services/telemetry'
 // Ensure a visible version even if backend attrs are empty: use package.json as fallback
 // @ts-ignore
@@ -368,7 +386,7 @@ function ensureSidebarVisible() {
   }
 }
 
-const pane = ref<'cal'|'day'|'top'|'heat'>('cal')
+const pane = ref<'cal'|'day'|'top'|'heat'|'deck'>('cal')
 const range = ref<'week'|'month'>('week')
 const offset = ref<number>(0)
 
@@ -438,6 +456,41 @@ const {
   fetchNotes,
   isDebug: isDbg,
   fetchDavColors,
+})
+
+const {
+  deckCards,
+  deckLoading,
+  deckLastFetchedAt,
+  deckError,
+  refreshDeck,
+} = useDeckCards({
+  from,
+  to,
+  notifyError,
+})
+
+const deckFilter = ref<'all' | 'mine'>('all')
+const deckFilteredCards = computed(() => {
+  if (deckFilter.value !== 'mine') {
+    return deckCards.value
+  }
+  const userId = (uid.value || '').trim().toLowerCase()
+  if (!userId) {
+    return deckCards.value
+  }
+  return deckCards.value.filter((card) => {
+    return (card.assignees || []).some((assignee) => {
+      return typeof assignee.uid === 'string' && assignee.uid.toLowerCase() === userId
+    })
+  })
+})
+
+const deckCanFilterMine = computed(() => Boolean((uid.value || '').trim()))
+
+const deckUrl = computed(() => {
+  const base = root.value || ''
+  return `${base}/apps/deck/`
 })
 
 const onboardingState = onboarding

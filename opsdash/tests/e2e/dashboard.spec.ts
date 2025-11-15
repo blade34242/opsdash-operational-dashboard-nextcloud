@@ -299,3 +299,34 @@ test('Dashboard reflects seeded calendar events', async ({ page, baseURL }) => {
     await removeCalendarResource(page, resourceUrl)
   }
 })
+
+test('Deck tab surfaces seeded QA cards', async ({ page, baseURL }) => {
+  if (!baseURL) {
+    test.skip()
+    return
+  }
+
+  await page.goto(baseURL + '/index.php/apps/opsdash/overview')
+  await dismissOnboardingIfVisible(page)
+
+  await page.getByRole('link', { name: 'Deck' }).click()
+  const deckPanel = page.locator('.deck-card-list')
+  const deckLoading = page.locator('.deck-panel__loading')
+  await deckLoading.first().waitFor({ state: 'visible', timeout: 5000 }).catch(() => {})
+  await deckLoading.first().waitFor({ state: 'hidden', timeout: 15000 }).catch(() => {})
+  const hasDeckList = await deckPanel.count()
+  if (!hasDeckList) {
+    test.skip(true, 'Deck cards unavailable (Deck app disabled?)')
+  }
+  await expect(deckPanel).toBeVisible({ timeout: 15000 })
+  await expect(page.locator('.deck-card__title', { hasText: 'Prep Opsdash Deck sync' })).toBeVisible()
+  await expect(page.locator('.deck-card__title', { hasText: 'Publish Ops report cards' })).toBeVisible()
+  await expect(page.getByRole('button', { name: 'Refresh' })).toBeVisible()
+  await expect(page.getByText('Open Deck', { exact: false })).toBeVisible()
+
+  await page.getByRole('button', { name: 'My cards' }).click()
+  await expect(page.locator('.deck-card__title', { hasText: 'Archive completed Ops tasks' })).toBeHidden()
+  await expect(page.locator('.deck-card__title', { hasText: 'Prep Opsdash Deck sync' })).toBeVisible()
+  await page.getByRole('button', { name: 'All cards' }).click()
+  await expect(page.locator('.deck-card__title', { hasText: 'Archive completed Ops tasks' })).toBeVisible()
+})
