@@ -244,4 +244,13 @@ describe('Dashboard integration fixtures', () => {
     expect(harness.dashboard.byCal.value.length).toBeGreaterThan(0)
     expect(harness.dashboard.charts.value?.perDaySeries).toBeTruthy()
   })
+
+  it('replays QA week payload with independent selection', async () => {
+    vi.setSystemTime(new Date('2025-11-14T12:00:00Z'))
+    const harness = await createIntegrationHarness({ range: 'week', fixture: 'load-week-qa.json', offset: 0 })
+    expect(harness.dashboard.uid.value).toBe('qa')
+    expect(harness.dashboard.selected.value).toEqual(['opsdash-focus'])
+    expect(harness.dashboard.colorsById.value['opsdash-focus']).toBe('#2563EB')
+    expect(harness.dashboard.groupsById.value['opsdash-focus']).toBe(2)
+  })
 })

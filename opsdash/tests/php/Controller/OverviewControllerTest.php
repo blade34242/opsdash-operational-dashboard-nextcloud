@@ -231,6 +231,15 @@ class OverviewControllerTest extends TestCase {
     $this->assertArrayHasKey('byDay', $fixture);
   }
 
+  public function testQaWeekFixtureStructure(): void {
+    $fixturePath = dirname(__DIR__, 3) . '/test/fixtures/load-week-qa.json';
+    $fixture = json_decode((string)file_get_contents($fixturePath), true, 512, JSON_THROW_ON_ERROR);
+    $this->assertSame('week', $fixture['meta']['range']);
+    $this->assertSame('qa', $fixture['meta']['uid']);
+    $this->assertSame(['opsdash-focus'], $fixture['selected']);
+    $this->assertArrayHasKey('colors', $fixture);
+  }
+
   public function testPersistResponseFixtureStructure(): void {
     $fixturePath = dirname(__DIR__, 3) . '/test/fixtures/persist-response.json';
     $fixture = json_decode((string)file_get_contents($fixturePath), true, 512, JSON_THROW_ON_ERROR);
