@@ -5,9 +5,9 @@
     role="tabpanel"
     aria-labelledby="opsdash-sidebar-tab-notes"
   >
-    <div class="sb-title">Notes</div>
+    <div class="sb-title">{{ t('Notes') }}</div>
     <p class="sb-description">
-      Keep quick context for the active week or month. Notes save with each range so you can revisit highlights later.
+      {{ t('Keep quick context for the active week or month. Notes save with each range so you can revisit highlights later.') }}
     </p>
     <div class="notes-config">
       <label class="notes-toggle">
@@ -16,7 +16,7 @@
           :checked="showNotesInBalance"
           @change="emit('toggle-balance-note', ($event.target as HTMLInputElement).checked)"
         />
-        <span>Show this note on the Balance card</span>
+        <span>{{ t('Show this note on the Balance card') }}</span>
       </label>
     </div>
     <NotesPanel
@@ -35,6 +35,7 @@
 
 <script setup lang="ts">
 import NotesPanel from '../NotesPanel.vue'
+import { t } from '../../services/i18n'
 
 const props = defineProps<{
   previous: string

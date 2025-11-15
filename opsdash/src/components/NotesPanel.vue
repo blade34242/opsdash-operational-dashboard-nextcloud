@@ -1,18 +1,19 @@
 <template>
   <div class="notes-section">
     <div class="hint" :title="prevTitle">{{ prevLabel }}</div>
-    <textarea :value="previous" readonly rows="5" class="notes-textarea" aria-label="Previous notes"></textarea>
+    <textarea :value="previous" readonly rows="5" class="notes-textarea" :aria-label="t('Previous notes')"></textarea>
     <div class="hint" :title="currTitle">{{ currLabel }}</div>
     <textarea :value="modelValue" @input="$emit('update:modelValue', ($event.target as HTMLTextAreaElement).value)"
-              rows="5" class="notes-textarea notes-textarea--editable" placeholder="Write your notes…" aria-label="Current notes"></textarea>
+              rows="5" class="notes-textarea notes-textarea--editable" :placeholder="t('Write your notes…')" :aria-label="t('Current notes')"></textarea>
     <div class="notes-actions">
-      <NcButton type="tertiary" :disabled="saving" @click="$emit('save')">Save</NcButton>
+      <NcButton type="tertiary" :disabled="saving" @click="$emit('save')">{{ t('Save') }}</NcButton>
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
 import { NcButton } from '@nextcloud/vue'
+import { t } from '../services/i18n'
 defineProps<{ previous: string; modelValue: string; prevLabel: string; currLabel: string; prevTitle: string; currTitle: string; saving: boolean }>()
 defineEmits(['update:modelValue','save'])
 </script>
