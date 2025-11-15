@@ -113,6 +113,7 @@ class TargetsService {
                 'roundRatio' => 1,
                 'showDailyStacks' => false,
                 'showInsights' => true,
+                'showNotes' => false,
             ],
         ];
     }
@@ -427,6 +428,9 @@ class TargetsService {
             }
             if (array_key_exists('showInsights', $ui)) {
                 $result['ui']['showInsights'] = !empty($ui['showInsights']);
+            }
+            if (array_key_exists('showNotes', $ui)) {
+                $result['ui']['showNotes'] = !empty($ui['showNotes']);
             }
         }
 

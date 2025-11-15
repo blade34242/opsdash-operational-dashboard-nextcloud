@@ -3,9 +3,11 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 
 import { useDashboardPersistence } from '../composables/useDashboardPersistence'
 import { createDefaultTargetsConfig } from '../src/services/targets'
+import { createDefaultDeckSettings, createDefaultReportingConfig } from '../src/services/reporting'
 import persistFixture from './fixtures/persist-response.json'
 import persistQaFixture from './fixtures/persist-qa.json'
 import persistWeekOffset from './fixtures/persist-week-offset1.json'
+import persistReportingDeck from './fixtures/persist-reporting-deck.json'
 
 function createPersistence(overrides: Partial<Parameters<typeof useDashboardPersistence>[0]> = {}) {
   const selected = ref<string[]>([])
@@ -226,5 +228,28 @@ describe('useDashboardPersistence', () => {
 
     expect(selected.value).toEqual(persistWeekOffset.saved)
     expect(targetsWeek.value).toEqual(initialWeek)
+  })
+
+  it('applies reporting + Deck settings from persist fixture', async () => {
+    const postJson = vi.fn().mockResolvedValue(persistReportingDeck)
+    const reportingConfig = ref(createDefaultReportingConfig())
+    reportingConfig.value.enabled = false
+    const deckSettings = ref(createDefaultDeckSettings())
+    deckSettings.value.defaultFilter = 'all'
+
+    const { queueSave } = createPersistence({
+      postJson,
+      reportingConfig,
+      deckSettings,
+    })
+
+    queueSave(false)
+    await vi.runOnlyPendingTimersAsync()
+
+    expect(reportingConfig.value.schedule).toBe('week')
+    expect(reportingConfig.value.notifyEmail).toBe(false)
+    expect(reportingConfig.value.notifyNotification).toBe(true)
+    expect(deckSettings.value.enabled).toBe(false)
+    expect(deckSettings.value.defaultFilter).toBe('mine')
   })
 })

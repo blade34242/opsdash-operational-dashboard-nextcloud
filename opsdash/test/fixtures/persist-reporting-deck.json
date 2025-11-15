@@ -1,0 +1,19 @@
+{
+  "ok": true,
+  "saved": ["personal", "opsdash-focus"],
+  "reporting_config_read": {
+    "enabled": true,
+    "schedule": "week",
+    "interim": "midweek",
+    "reminderLead": "1d",
+    "alertOnRisk": true,
+    "riskThreshold": 0.9,
+    "notifyEmail": false,
+    "notifyNotification": true
+  },
+  "deck_settings_read": {
+    "enabled": false,
+    "filtersEnabled": true,
+    "defaultFilter": "mine"
+  }
+}

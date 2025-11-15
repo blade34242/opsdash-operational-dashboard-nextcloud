@@ -134,11 +134,6 @@ function mergeIncomingTargetsConfig(
   if (!incoming) return undefined
 
   const raw = JSON.parse(JSON.stringify(incoming)) as any
-  const prevBalanceUi = previous?.balance?.ui
-  const rawBalance = raw.balance ?? (raw.balance = {})
-  if (!rawBalance.ui && prevBalanceUi) {
-    rawBalance.ui = { ...prevBalanceUi }
-  }
 
   const prevCategories = Array.isArray(previous?.categories) ? previous.categories : []
   const prevCategoryMap = new Map<string, any>()

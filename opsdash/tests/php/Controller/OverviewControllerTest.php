@@ -258,6 +258,15 @@ class OverviewControllerTest extends TestCase {
     $this->assertArrayHasKey('groups_read', $fixture);
   }
 
+  public function testPersistReportingDeckFixtureStructure(): void {
+    $fixturePath = dirname(__DIR__, 3) . '/test/fixtures/persist-reporting-deck.json';
+    $fixture = json_decode((string)file_get_contents($fixturePath), true, 512, JSON_THROW_ON_ERROR);
+    $this->assertTrue($fixture['ok']);
+    $this->assertArrayHasKey('reporting_config_read', $fixture);
+    $this->assertArrayHasKey('deck_settings_read', $fixture);
+    $this->assertSame('mine', $fixture['deck_settings_read']['defaultFilter']);
+  }
+
   public function testNotesFixtureStructure(): void {
     $fixturePath = dirname(__DIR__, 3) . '/test/fixtures/notes-week.json';
     $fixture = json_decode((string)file_get_contents($fixturePath), true, 512, JSON_THROW_ON_ERROR);

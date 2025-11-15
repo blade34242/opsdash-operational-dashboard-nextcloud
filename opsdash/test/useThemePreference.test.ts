@@ -7,6 +7,7 @@ let useThemePreference: typeof import('../composables/useThemePreference').useTh
 
 describe('useThemePreference', () => {
   let root: HTMLElement
+  let bootstrapEl: HTMLElement
 
   beforeEach(async () => {
     vi.resetModules()
@@ -14,7 +15,9 @@ describe('useThemePreference', () => {
     root = document.createElement('div')
     root.id = 'opsdash'
     document.body.appendChild(root)
-    window.localStorage.clear()
+    bootstrapEl = document.createElement('div')
+    bootstrapEl.id = 'app'
+    document.body.appendChild(bootstrapEl)
     ;(window as any).matchMedia = (query: string) => ({
       matches: false,
       media: query,
@@ -28,11 +31,11 @@ describe('useThemePreference', () => {
 
   afterEach(() => {
     document.body.removeChild(root)
-    window.localStorage.clear()
+    document.body.removeChild(bootstrapEl)
     delete (window as any).matchMedia
   })
 
-  it('applies theme classes and persists to localStorage', async () => {
+  it('applies theme classes when preference changes', async () => {
     let api: ReturnType<typeof useThemePreference> | null = null
     const wrapper = mount(defineComponent({
       setup() {
@@ -49,19 +52,19 @@ describe('useThemePreference', () => {
     await nextTick()
     expect(state.preference.value).toBe('dark')
     expect(root.classList.contains('opsdash-theme-dark')).toBe(true)
-    expect(window.localStorage.getItem('opsdash:theme-preference')).toBe('dark')
+    expect(window.localStorage.getItem('opsdash:theme-preference')).toBeNull()
 
     state.setThemePreference('light')
     await nextTick()
     expect(state.preference.value).toBe('light')
     expect(root.classList.contains('opsdash-theme-light')).toBe(true)
-    expect(window.localStorage.getItem('opsdash:theme-preference')).toBe('light')
+    expect(window.localStorage.getItem('opsdash:theme-preference')).toBeNull()
 
     wrapper.unmount()
   })
 
-  it('bootstraps preference from localStorage', async () => {
-    window.localStorage.setItem('opsdash:theme-preference', 'dark')
+  it('bootstraps preference from server data attribute', async () => {
+    bootstrapEl.setAttribute('data-opsdash-theme-preference', 'dark')
 
     let api: ReturnType<typeof useThemePreference> | null = null
     const wrapper = mount(defineComponent({

@@ -4,8 +4,6 @@ import { resolveCurrentTheme } from '../src/services/theme'
 export type ThemePreference = 'auto' | 'light' | 'dark'
 export type ThemeMode = 'light' | 'dark'
 
-const STORAGE_KEY = 'opsdash:theme-preference'
-
 const preference = ref<ThemePreference>('auto')
 const systemTheme = ref<ThemeMode>('light')
 const isBootstrapped = ref(false)
@@ -13,23 +11,6 @@ const isBootstrapped = ref(false)
 const effectiveTheme = computed<ThemeMode>(() => {
   return preference.value === 'auto' ? systemTheme.value : preference.value
 })
-
-function readStoredPreference(): ThemePreference {
-  const bootstrap = readBootstrapPreference()
-  if (typeof window === 'undefined') return bootstrap ?? 'auto'
-  try {
-    const stored = window.localStorage.getItem(STORAGE_KEY)
-    if (stored === 'light' || stored === 'dark' || stored === 'auto') {
-      return stored
-    }
-    if (bootstrap) {
-      window.localStorage.setItem(STORAGE_KEY, bootstrap)
-    }
-  } catch (error) {
-    console.warn('[opsdash] theme preference read failed', error)
-  }
-  return bootstrap ?? 'auto'
-}
 
 function readBootstrapPreference(): ThemePreference | null {
   if (typeof document === 'undefined') {
@@ -46,13 +27,9 @@ function readBootstrapPreference(): ThemePreference | null {
   return null
 }
 
-function persistPreference(value: ThemePreference) {
-  if (typeof window === 'undefined') return
-  try {
-    window.localStorage.setItem(STORAGE_KEY, value)
-  } catch (error) {
-    console.warn('[opsdash] theme preference write failed', error)
-  }
+function readStoredPreference(): ThemePreference {
+  const bootstrap = readBootstrapPreference()
+  return bootstrap ?? 'auto'
 }
 
 function applyTheme(theme: ThemeMode) {
@@ -127,7 +104,6 @@ export function useThemePreference() {
 
   function setThemePreference(value: ThemePreference) {
     preference.value = value
-    persistPreference(value)
     applyTheme(effectiveTheme.value)
   }
 
