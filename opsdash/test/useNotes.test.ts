@@ -4,6 +4,7 @@ import { ref } from 'vue'
 import { useNotes } from '../composables/useNotes'
 import notesFixture from './fixtures/notes-week.json'
 import notesMonthQa from './fixtures/notes-month-qa.json'
+import notesWeekOffset from './fixtures/notes-week-offset1.json'
 
 describe('useNotes', () => {
   it('fetches and saves notes', async () => {
@@ -57,5 +58,28 @@ describe('useNotes', () => {
     await notes.fetchNotes()
     expect(notes.notesCurrDraft.value).toBe(notesMonthQa.notes.current)
     expect(notes.notesPrev.value).toBe(notesMonthQa.notes.previous)
+  })
+
+  it('replays previous week fixture without persisting', async () => {
+    const range = ref<'week' | 'month'>('week')
+    const offset = ref(-1)
+    const getJson = vi.fn().mockResolvedValue(notesWeekOffset)
+    const postJson = vi.fn()
+    const notifySuccess = vi.fn()
+    const notifyError = vi.fn()
+
+    const notes = useNotes({
+      range,
+      offset,
+      route: () => '/notes',
+      getJson,
+      postJson,
+      notifySuccess,
+      notifyError,
+    })
+
+    await notes.fetchNotes()
+    expect(notes.notesPrev.value).toBe(notesWeekOffset.notes.previous)
+    expect(notes.notesCurrDraft.value).toBe(notesWeekOffset.notes.current)
   })
 })

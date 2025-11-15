@@ -5,6 +5,7 @@ import { useDashboardPersistence } from '../composables/useDashboardPersistence'
 import { createDefaultTargetsConfig } from '../src/services/targets'
 import persistFixture from './fixtures/persist-response.json'
 import persistQaFixture from './fixtures/persist-qa.json'
+import persistWeekOffset from './fixtures/persist-week-offset1.json'
 
 function createPersistence(overrides: Partial<Parameters<typeof useDashboardPersistence>[0]> = {}) {
   const selected = ref<string[]>([])
@@ -208,5 +209,22 @@ describe('useDashboardPersistence', () => {
     queueSave(false)
     await vi.runOnlyPendingTimersAsync()
     expect(selected.value).toEqual(['opsdash-focus'])
+  })
+
+  it('replays week offset persist fixture', async () => {
+    const postJson = vi.fn().mockResolvedValue(persistWeekOffset)
+    const initialWeek = { ...persistWeekOffset.targets_week_read }
+    const targetsWeek = ref<Record<string, number>>({ ...initialWeek })
+
+    const { queueSave, selected } = createPersistence({
+      postJson,
+      targetsWeek,
+    })
+
+    queueSave(false)
+    await vi.runOnlyPendingTimersAsync()
+
+    expect(selected.value).toEqual(persistWeekOffset.saved)
+    expect(targetsWeek.value).toEqual(initialWeek)
   })
 })

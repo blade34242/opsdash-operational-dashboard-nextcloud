@@ -249,6 +249,15 @@ class OverviewControllerTest extends TestCase {
     $this->assertArrayHasKey('targets_config_read', $fixture);
   }
 
+  public function testPersistWeekOffsetFixtureStructure(): void {
+    $fixturePath = dirname(__DIR__, 3) . '/test/fixtures/persist-week-offset1.json';
+    $fixture = json_decode((string)file_get_contents($fixturePath), true, 512, JSON_THROW_ON_ERROR);
+    $this->assertTrue($fixture['ok']);
+    $this->assertSame(['personal'], $fixture['saved']);
+    $this->assertArrayHasKey('targets_week_read', $fixture);
+    $this->assertArrayHasKey('groups_read', $fixture);
+  }
+
   public function testNotesFixtureStructure(): void {
     $fixturePath = dirname(__DIR__, 3) . '/test/fixtures/notes-week.json';
     $fixture = json_decode((string)file_get_contents($fixturePath), true, 512, JSON_THROW_ON_ERROR);
