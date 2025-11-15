@@ -122,6 +122,18 @@
       >
         Config & Setup
       </button>
+      <button
+        id="opsdash-sidebar-tab-report"
+        type="button"
+        class="sb-tab"
+        :class="{ active: activeTab === 'report' }"
+        role="tab"
+        :aria-selected="activeTab === 'report'"
+        aria-controls="opsdash-sidebar-pane-report"
+        @click="activeTab = 'report'"
+      >
+        Report
+      </button>
     </div>
 
     <SidebarCalendarsPane
@@ -201,6 +213,15 @@
       @open-shortcuts="(el) => emit('open-shortcuts', el)"
     />
 
+    <SidebarReportPane
+      v-else-if="activeTab === 'report'"
+      :reporting-config="props.reportingConfig"
+      :deck-settings="props.deckSettings"
+      :saving="props.reportingSaving"
+      @update:reporting-config="(value) => emit('update:reporting-config', value)"
+      @update:deck-settings="(value) => emit('update:deck-settings', value)"
+    />
+
     <SidebarActivityPane
       v-else-if="activeTab === 'activity'"
       :activity-settings="activitySettings"
@@ -260,6 +281,7 @@ import {
   type TargetsConfig,
   type TargetsMode,
 } from '../services/targets'
+import type { ReportingConfig, DeckFeatureSettings } from '../services/reporting'
 import SidebarCalendarsPane from './sidebar/SidebarCalendarsPane.vue'
 import SidebarTargetsPane from './sidebar/SidebarTargetsPane.vue'
 import SidebarSummaryPane from './sidebar/SidebarSummaryPane.vue'
@@ -267,6 +289,7 @@ import SidebarActivityPane from './sidebar/SidebarActivityPane.vue'
 import SidebarBalancePane from './sidebar/SidebarBalancePane.vue'
 import SidebarNotesPane from './sidebar/SidebarNotesPane.vue'
 import SidebarConfigPane from './sidebar/SidebarConfigPane.vue'
+import SidebarReportPane from './sidebar/SidebarReportPane.vue'
 import { applyNumericUpdate, type InputMessage } from './sidebar/validation'
 
 const props = defineProps<{
@@ -301,6 +324,9 @@ const props = defineProps<{
   themePreference: 'auto' | 'light' | 'dark'
   effectiveTheme: 'light' | 'dark'
   systemTheme: 'light' | 'dark'
+  reportingConfig: ReportingConfig
+  deckSettings: DeckFeatureSettings
+  reportingSaving: boolean
 }>()
 
 const emit = defineEmits([
@@ -326,9 +352,11 @@ const emit = defineEmits([
   'export-config',
   'import-config',
   'open-shortcuts',
+  'update:reporting-config',
+  'update:deck-settings',
 ])
 
-type SidebarTab = 'calendars'|'targets'|'summary'|'activity'|'balance'|'notes'|'config'
+type SidebarTab = 'calendars'|'targets'|'summary'|'activity'|'balance'|'notes'|'config'|'report'
 
 const activeTab = ref<SidebarTab>('calendars')
 

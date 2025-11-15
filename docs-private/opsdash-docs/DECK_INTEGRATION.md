@@ -63,6 +63,7 @@ Explore how Opsdash can surface Deck board activity (cards, due dates, assignees
   - Styling keeps parity with existing cards (chips, badges, dark-mode friendly palette).
   - All vs My cards filter buttons use the cached payload and the viewer’s UID to slice by assignees; the UI disables “My cards” when we can’t resolve the user.
 - `App.vue` gained a “Deck” tab (pane `'deck'`) and wires the composable’s state into the panel.
+- Config: Sidebar now exposes a “Report” tab where users can toggle Deck visibility, enable/disable filters, pick default filter mode, and configure weekly/monthly report cadences.
 - Playwright coverage clicks the Deck tab and asserts QA card titles exist so CI catches regressions.
 
 ### Follow-ups

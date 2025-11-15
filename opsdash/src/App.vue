@@ -55,6 +55,9 @@
           :theme-preference="themePreference"
           :effective-theme="effectiveTheme"
           :system-theme="systemTheme"
+          :reporting-config="reportingConfig"
+          :deck-settings="deckSettings"
+          :reporting-saving="reportingSaving"
           @load="performLoad"
           @update:range="(v)=>{ range=v as any; offset=0; performLoad() }"
           @update:offset="(v)=>{ offset=v as number; performLoad() }"
@@ -77,6 +80,8 @@
           @export-config="exportSidebarConfig"
           @import-config="importSidebarConfig"
           @open-shortcuts="handleOpenShortcuts"
+          @update:reporting-config="handleReportingConfigUpdate"
+          @update:deck-settings="handleDeckSettingsUpdate"
         />
       </template>
 
@@ -194,7 +199,14 @@
               <a href="#" :class="{active: pane==='day'}" @click.prevent="pane='day'">By Day</a>
               <a href="#" :class="{active: pane==='top'}" @click.prevent="pane='top'">Longest Tasks</a>
               <a href="#" :class="{active: pane==='heat'}" @click.prevent="pane='heat'">Heatmap</a>
-              <a href="#" :class="{active: pane==='deck'}" @click.prevent="pane='deck'">Deck</a>
+              <a
+                v-if="deckSettings.enabled"
+                href="#"
+                :class="{active: pane==='deck'}"
+                @click.prevent="pane='deck'"
+              >
+                Deck
+              </a>
             </div>
 
             <div class="card full tab-panel" v-show="pane==='cal'">
@@ -263,7 +275,7 @@
               </template>
             </div>
 
-            <div class="card full tab-panel" v-show="pane==='deck'">
+            <div v-if="deckSettings.enabled" class="card full tab-panel" v-show="pane==='deck'">
               <DeckCardsPanel
                 :cards="deckFilteredCards"
                 :loading="deckLoading"
@@ -273,6 +285,7 @@
                 :error="deckError"
                 :filter="deckFilter"
                 :can-filter-mine="deckCanFilterMine"
+                :filters-enabled="deckSettings.filtersEnabled && deckSettings.enabled"
                 @refresh="refreshDeck(true)"
                 @update:filter="(value) => (deckFilter = value)"
               />
@@ -315,6 +328,7 @@ import OnboardingWizard from './components/OnboardingWizard.vue'
 import KeyboardShortcutsModal from './components/KeyboardShortcutsModal.vue'
 import DeckCardsPanel from './components/DeckCardsPanel.vue'
 import { buildTargetsSummary, normalizeTargetsConfig, createEmptyTargetsSummary, createDefaultActivityCardConfig, createDefaultBalanceConfig, cloneTargetsConfig, convertWeekToMonth, type ActivityCardConfig, type BalanceConfig, type TargetsConfig } from './services/targets'
+import { normalizeReportingConfig, normalizeDeckSettings } from './services/reporting'
 import { ONBOARDING_VERSION } from './services/onboarding'
 // Lightweight notifications without @nextcloud/dialogs
 function notifySuccess(msg: string){
@@ -445,6 +459,8 @@ const {
   onboarding,
   load,
   themePreference: dashboardThemePreference,
+  reportingConfig,
+  deckSettings,
 } = useDashboard({
   range,
   offset,
@@ -458,6 +474,38 @@ const {
   fetchDavColors,
 })
 
+function handleReportingConfigUpdate(value: any) {
+  reportingConfig.value = normalizeReportingConfig(value, reportingConfig.value)
+}
+
+function handleDeckSettingsUpdate(value: any) {
+  deckSettings.value = normalizeDeckSettings(value, deckSettings.value)
+  if (deckSettings.value.defaultFilter !== deckFilter.value) {
+    deckFilter.value = deckSettings.value.defaultFilter
+  }
+  if (!deckSettings.value.filtersEnabled) {
+    deckFilter.value = deckSettings.value.defaultFilter
+  }
+}
+
+watch(
+  () => deckSettings.value.defaultFilter,
+  (next) => {
+    if (next !== deckFilter.value) {
+      deckFilter.value = next
+    }
+  },
+)
+
+watch(
+  () => deckSettings.value.enabled,
+  (enabled) => {
+    if (!enabled && pane.value === 'deck') {
+      pane.value = 'cal'
+    }
+  },
+)
+
 const {
   deckCards,
   deckLoading,
@@ -470,7 +518,7 @@ const {
   notifyError,
 })
 
-const deckFilter = ref<'all' | 'mine'>('all')
+const deckFilter = ref<'all' | 'mine'>(deckSettings.value.defaultFilter)
 const deckFilteredCards = computed(() => {
   if (deckFilter.value !== 'mine') {
     return deckCards.value
@@ -486,7 +534,9 @@ const deckFilteredCards = computed(() => {
   })
 })
 
-const deckCanFilterMine = computed(() => Boolean((uid.value || '').trim()))
+const deckCanFilterMine = computed(
+  () => deckSettings.value.filtersEnabled && deckSettings.value.enabled && Boolean((uid.value || '').trim()),
+)
 
 const deckUrl = computed(() => {
   const base = root.value || ''
@@ -525,7 +575,7 @@ const { exportSidebarConfig, importSidebarConfig } = useConfigExportImport({
   notifyError,
 })
 
-const { queueSave } = useDashboardPersistence({
+const { queueSave, isSaving: reportingSaving } = useDashboardPersistence({
   route: (name) => route(name),
   postJson,
   notifyError,
@@ -537,6 +587,8 @@ const { queueSave } = useDashboardPersistence({
   targetsMonth,
   targetsConfig,
   themePreference,
+  reportingConfig,
+  deckSettings,
 })
 
 const {

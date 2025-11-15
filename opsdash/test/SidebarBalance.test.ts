@@ -3,6 +3,7 @@ import { mount } from '@vue/test-utils'
 import { h } from 'vue'
 import Sidebar from '../src/components/Sidebar.vue'
 import { createDefaultTargetsConfig } from '../src/services/targets'
+import { createDefaultReportingConfig, createDefaultDeckSettings } from '../src/services/reporting'
 
 vi.mock('@nextcloud/vue', () => {
   const buttonStub = {
@@ -58,6 +59,8 @@ vi.mock('../src/components/NotesPanel.vue', () => ({
 
 function mountSidebar() {
   const targetsConfig = createDefaultTargetsConfig()
+  const reportingConfig = createDefaultReportingConfig()
+  const deckSettings = createDefaultDeckSettings()
   return mount(Sidebar, {
     props: {
       calendars: [],
@@ -89,6 +92,9 @@ function mountSidebar() {
       themePreference: 'auto',
       effectiveTheme: 'light',
       systemTheme: 'light',
+      reportingConfig,
+      deckSettings,
+      reportingSaving: false,
     },
   })
 }

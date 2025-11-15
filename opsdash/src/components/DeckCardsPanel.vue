@@ -31,7 +31,12 @@
     </div>
   </div>
 
-  <div class="deck-panel__filters" role="group" aria-label="Deck card filters">
+  <div
+    v-if="filtersEnabledFlag"
+    class="deck-panel__filters"
+    role="group"
+    aria-label="Deck card filters"
+  >
     <button
       type="button"
       class="deck-filter-btn"
@@ -127,6 +132,7 @@ const props = defineProps<{
   error?: string
   filter?: 'all' | 'mine'
   canFilterMine?: boolean
+  filtersEnabled?: boolean
 }>()
 
 defineEmits<{
@@ -136,6 +142,7 @@ defineEmits<{
 
 const activeFilter = computed(() => props.filter ?? 'all')
 const allowMine = computed(() => props.canFilterMine !== false)
+const filtersEnabledFlag = computed(() => props.filtersEnabled !== false)
 
 const formatter = new Intl.DateTimeFormat(undefined, {
   weekday: 'short',

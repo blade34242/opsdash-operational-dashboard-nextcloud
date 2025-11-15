@@ -1179,6 +1179,8 @@ final class OverviewController extends Controller {
             'targets'   => ['week'=>$targetsWeek, 'month'=>$targetsMonth],
             'targetsConfig' => $targetsConfig,
             'themePreference' => $this->readThemePreference($uid),
+            'reportingConfig' => $this->readReportingConfig($uid),
+            'deckSettings' => $this->readDeckSettings($uid),
             'onboarding' => $onboardingPayload,
             'calDebug'  => $calDebug,
             // Always include debug envelope so clients can introspect easily
@@ -1343,6 +1345,8 @@ final class OverviewController extends Controller {
         $targetsConfigSaved = null; $targetsConfigRead = null;
         $onboardingSaved = null; $onboardingRead = null;
         $themeSaved = null; $themeRead = null;
+        $reportingSaved = null; $reportingRead = null;
+        $deckSaved = null; $deckRead = null;
         if (isset($data['targets_week'])) {
             $tw = $this->cleanTargets(is_array($data['targets_week'])?$data['targets_week']:[], $allowed);
             $this->config->setUserValue($uid, $this->appName, 'cal_targets_week', json_encode($tw));
@@ -1395,6 +1399,18 @@ final class OverviewController extends Controller {
             }
             $themeRead = $this->readThemePreference($uid);
         }
+        if (isset($data['reporting_config'])) {
+            $cleanReporting = $this->sanitizeReportingConfig($data['reporting_config']);
+            $this->config->setUserValue($uid, $this->appName, 'reporting_config', json_encode($cleanReporting));
+            $reportingSaved = $cleanReporting;
+        }
+        $reportingRead = $this->readReportingConfig($uid);
+        if (isset($data['deck_settings'])) {
+            $cleanDeck = $this->sanitizeDeckSettings($data['deck_settings']);
+            $this->config->setUserValue($uid, $this->appName, 'deck_settings', json_encode($cleanDeck));
+            $deckSaved = $cleanDeck;
+        }
+        $deckRead = $this->readDeckSettings($uid);
 
         // Read-back
         $readCsv = (string)$this->config->getUserValue($uid, $this->appName, 'selected_cals', '');
@@ -1422,6 +1438,10 @@ final class OverviewController extends Controller {
             'onboarding_read'  => $onboardingRead,
             'theme_preference_saved' => $themeSaved,
             'theme_preference_read' => $themeRead,
+            'reporting_config_saved' => $reportingSaved,
+            'reporting_config_read' => $reportingRead,
+            'deck_settings_saved' => $deckSaved,
+            'deck_settings_read' => $deckRead,
         ], Http::STATUS_OK);
     }
 
@@ -1494,6 +1514,101 @@ final class OverviewController extends Controller {
             if (method_exists($this->calendarManager, 'getCalendars'))       return $this->calendarManager->getCalendars($uid) ?? [];
         } catch (\Throwable $e) { $this->logger->error('getCalendars error: '.$e->getMessage()); }
         return [];
+    }
+
+    private function defaultReportingConfig(): array {
+        return [
+            'enabled' => false,
+            'schedule' => 'both',
+            'interim' => 'none',
+            'reminderLead' => '1d',
+            'alertOnRisk' => true,
+            'riskThreshold' => 0.85,
+            'notifyEmail' => true,
+            'notifyNotification' => true,
+        ];
+    }
+
+    private function sanitizeReportingConfig($value): array {
+        $defaults = $this->defaultReportingConfig();
+        if (!is_array($value)) {
+            return $defaults;
+        }
+        $schedule = $value['schedule'] ?? 'both';
+        if ($schedule !== 'week' && $schedule !== 'month') {
+            $schedule = 'both';
+        }
+        $interim = $value['interim'] ?? 'none';
+        if (!in_array($interim, ['none', 'midweek', 'daily'], true)) {
+            $interim = 'none';
+        }
+        $reminder = $value['reminderLead'] ?? 'none';
+        if (!in_array($reminder, ['none', '1d', '2d'], true)) {
+            $reminder = 'none';
+        }
+        $threshold = (float)($value['riskThreshold'] ?? $defaults['riskThreshold']);
+        if (!is_finite($threshold) || $threshold < 0 || $threshold > 1) {
+            $threshold = $defaults['riskThreshold'];
+        }
+        return [
+            'enabled' => !empty($value['enabled']),
+            'schedule' => $schedule,
+            'interim' => $interim,
+            'reminderLead' => $reminder,
+            'alertOnRisk' => array_key_exists('alertOnRisk', $value) ? (bool)$value['alertOnRisk'] : true,
+            'riskThreshold' => round($threshold, 3),
+            'notifyEmail' => array_key_exists('notifyEmail', $value) ? (bool)$value['notifyEmail'] : true,
+            'notifyNotification' => !empty($value['notifyNotification']),
+        ];
+    }
+
+    private function readReportingConfig(string $uid): array {
+        $defaults = $this->defaultReportingConfig();
+        try {
+            $raw = (string)$this->config->getUserValue($uid, $this->appName, 'reporting_config', '');
+            if ($raw !== '') {
+                $decoded = json_decode($raw, true);
+                if (is_array($decoded)) {
+                    return array_merge($defaults, $this->sanitizeReportingConfig($decoded));
+                }
+            }
+        } catch (\Throwable) {}
+        return $defaults;
+    }
+
+    private function defaultDeckSettings(): array {
+        return [
+            'enabled' => true,
+            'filtersEnabled' => true,
+            'defaultFilter' => 'all',
+        ];
+    }
+
+    private function sanitizeDeckSettings($value): array {
+        $defaults = $this->defaultDeckSettings();
+        if (!is_array($value)) {
+            return $defaults;
+        }
+        $defaultFilter = ($value['defaultFilter'] ?? 'all') === 'mine' ? 'mine' : 'all';
+        return [
+            'enabled' => array_key_exists('enabled', $value) ? (bool)$value['enabled'] : true,
+            'filtersEnabled' => array_key_exists('filtersEnabled', $value) ? (bool)$value['filtersEnabled'] : true,
+            'defaultFilter' => $defaultFilter,
+        ];
+    }
+
+    private function readDeckSettings(string $uid): array {
+        $defaults = $this->defaultDeckSettings();
+        try {
+            $raw = (string)$this->config->getUserValue($uid, $this->appName, 'deck_settings', '');
+            if ($raw !== '') {
+                $decoded = json_decode($raw, true);
+                if (is_array($decoded)) {
+                    return array_merge($defaults, $this->sanitizeDeckSettings($decoded));
+                }
+            }
+        } catch (\Throwable) {}
+        return $defaults;
     }
 
     private function rangeBounds(string $range, int $offset): array {

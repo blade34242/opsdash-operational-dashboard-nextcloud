@@ -13,6 +13,7 @@ All notable changes to this project will be documented in this file.
 - Deck tab now caches responses per range, surfaces explicit error states, and links out to the Deck app for deeper triage.
 - Playwright e2e suite now exercises the Deck tab to confirm the seeded QA cards render end-to-end.
 - Deck tab adds an “All cards / My cards” filter driven by assignees so individual workload snapshots stay focused.
+- Sidebar gains a “Report” tab to configure weekly/monthly digests, interim reminders, and Deck visibility/filter defaults (persisted per user).
 
 ### Changed
 - Dashboard persistence now relies on server-provided `balance.ui.*` flags (fallback only triggers when an entire block is missing), matching the updated `/overview/persist` response.

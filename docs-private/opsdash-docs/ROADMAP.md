@@ -57,6 +57,7 @@ Single source of truth for the Opsdash backlog: high-level roadmap, target syste
 - ~~Surface keyboard shortcuts overlay.~~ ✅ overlay + shortcuts shipped in App.vue (0.4.6).
 - Add language/label packs for additional locales (de, fr, es). Track per-page label gaps and build i18n tooling before opening translations (`I18N_PLAN.md` covers extraction + review workflow).
 - Deck tab (preview) now renders real cards from the Deck API, caches range responses, links to Deck for follow-up, and exposes All/My cards filters.
+- Reporting groundwork: Sidebar tab lets users configure weekly/monthly digests (email + NC notifications) and Deck visibility; next step is wiring cron + templated emails.
 
 ### Watchlist / Questions
 - NC 33 support timeline; update `<nextcloud max-version>` when ready.

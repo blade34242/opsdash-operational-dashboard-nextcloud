@@ -4,6 +4,14 @@ import {
   normalizeTargetsConfig,
   type TargetsConfig,
 } from '../src/services/targets'
+import {
+  createDefaultReportingConfig,
+  createDefaultDeckSettings,
+  normalizeReportingConfig,
+  normalizeDeckSettings,
+  type ReportingConfig,
+  type DeckFeatureSettings,
+} from '../src/services/reporting'
 
 export interface OnboardingState {
   completed: boolean
@@ -53,6 +61,8 @@ export function useDashboard(deps: DashboardDeps) {
   const targetsConfig = ref<TargetsConfig>(normalizeTargetsConfig(createDefaultTargetsConfig()))
   const onboarding = ref<OnboardingState | null>(null)
   const themePreference = ref<'auto' | 'light' | 'dark'>('auto')
+  const reportingConfig = ref<ReportingConfig>(createDefaultReportingConfig())
+  const deckSettings = ref<DeckFeatureSettings>(createDefaultDeckSettings())
 
   let loadSeq = 0
   async function load() {
@@ -140,6 +150,8 @@ export function useDashboard(deps: DashboardDeps) {
       colorsByName.value = nextColorsByName
       colorsById.value = nextColorsById
       onboarding.value = json.onboarding ? { ...json.onboarding } : null
+      reportingConfig.value = normalizeReportingConfig(json.reportingConfig, reportingConfig.value)
+      deckSettings.value = normalizeDeckSettings(json.deckSettings, deckSettings.value)
 
       const applyPaletteToCharts = () => {
         let changed = false
@@ -304,5 +316,7 @@ export function useDashboard(deps: DashboardDeps) {
     onboarding,
     load,
     themePreference,
+    reportingConfig,
+    deckSettings,
   }
 }

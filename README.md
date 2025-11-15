@@ -39,6 +39,7 @@ occ app:enable opsdash
 - 🧩 **Onboarding wizard & presets** – guided setup, rerun from Config & Setup, save/load/delete presets, export/import, theme selector.
 - 🔐 **Nextcloud-native** – same theme, request token, permissions, Dav colors, and zero external calls.
 - 🗂️ **Deck tab (preview)** – read-only list of Deck cards due or completed in the active week/month range, with All/My cards filters and a quick link to the Deck app.
+- 📨 **Report tab (preview)** – configure weekly/monthly digests, interim reminders, and Deck visibility using Nextcloud notifications + email.
 
 ## 🛠 Local Development
 ```bash

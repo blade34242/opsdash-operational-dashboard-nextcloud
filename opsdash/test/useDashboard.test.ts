@@ -89,6 +89,21 @@ describe('useDashboard load', () => {
       byDay: [{ date: '2024-01-02', total_hours: 6 }],
       longest: [],
       charts: { pie: { ids: ['cal-1'], colors: ['#ff0000'] } },
+      reportingConfig: {
+        enabled: true,
+        schedule: 'week',
+        interim: 'midweek',
+        reminderLead: '1d',
+        alertOnRisk: true,
+        riskThreshold: 0.75,
+        notifyEmail: true,
+        notifyNotification: false,
+      },
+      deckSettings: {
+        enabled: true,
+        filtersEnabled: false,
+        defaultFilter: 'mine',
+      },
     }
 
     const getJson = vi.fn().mockResolvedValue(response)
@@ -130,6 +145,8 @@ describe('useDashboard load', () => {
     expect(dashboard.onboarding.value).toEqual(response.onboarding)
 
     expect(dashboard.stats.totalHours).toBe(12)
+    expect(dashboard.reportingConfig.value.schedule).toBe('week')
+    expect(dashboard.deckSettings.value.filtersEnabled).toBe(false)
   expect(dashboard.byCal.value).toEqual(response.byCal)
   expect(dashboard.byDay.value).toEqual(response.byDay)
   expect(dashboard.charts.value).toEqual(response.charts)

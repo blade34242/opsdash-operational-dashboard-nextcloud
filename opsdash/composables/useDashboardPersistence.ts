@@ -1,4 +1,4 @@
-import { ref, type Ref } from 'vue'
+import { ref, type Ref, watch } from 'vue'
 
 import {
   cloneTargetsConfig,
@@ -6,6 +6,12 @@ import {
   type TargetsConfig,
 } from '../src/services/targets'
 import type { ThemePreference } from './useThemePreference'
+import {
+  normalizeDeckSettings,
+  normalizeReportingConfig,
+  type DeckFeatureSettings,
+  type ReportingConfig,
+} from '../src/services/reporting'
 
 interface DashboardPersistenceDeps {
   route: (name: 'persist') => string
@@ -19,6 +25,8 @@ interface DashboardPersistenceDeps {
   targetsMonth: Ref<Record<string, number>>
   targetsConfig: Ref<TargetsConfig>
   themePreference?: Ref<ThemePreference>
+  reportingConfig?: Ref<ReportingConfig>
+  deckSettings?: Ref<DeckFeatureSettings>
 }
 
 export function useDashboardPersistence(deps: DashboardPersistenceDeps) {
@@ -44,6 +52,12 @@ export function useDashboardPersistence(deps: DashboardPersistenceDeps) {
         if (deps.themePreference) {
           payload.theme_preference = deps.themePreference.value
         }
+        if (deps.reportingConfig) {
+          payload.reporting_config = deps.reportingConfig.value
+        }
+        if (deps.deckSettings) {
+          payload.deck_settings = deps.deckSettings.value
+        }
         const result = await deps.postJson(deps.route('persist'), payload)
 
         if (Array.isArray(result.read)) {
@@ -67,6 +81,24 @@ export function useDashboardPersistence(deps: DashboardPersistenceDeps) {
             deps.themePreference.value = nextTheme
           }
         }
+        if (deps.reportingConfig) {
+          const nextReporting = normalizeReportingConfig(
+            result.reporting_config_read ?? result.reporting_config_saved,
+            deps.reportingConfig.value,
+          )
+          if (nextReporting) {
+            deps.reportingConfig.value = nextReporting
+          }
+        }
+        if (deps.deckSettings) {
+          const nextDeck = normalizeDeckSettings(
+            result.deck_settings_read ?? result.deck_settings_saved,
+            deps.deckSettings.value,
+          )
+          if (nextDeck) {
+            deps.deckSettings.value = nextDeck
+          }
+        }
 
         if (reload && deps.onReload) {
           await deps.onReload()
@@ -80,6 +112,21 @@ export function useDashboardPersistence(deps: DashboardPersistenceDeps) {
         isSaving.value = false
       }
     }, 250)
+  }
+
+  if (deps.reportingConfig) {
+    watch(
+      () => deps.reportingConfig!.value,
+      () => queueSave(false),
+      { deep: true },
+    )
+  }
+  if (deps.deckSettings) {
+    watch(
+      () => deps.deckSettings!.value,
+      () => queueSave(false),
+      { deep: true },
+    )
   }
 
   return {
