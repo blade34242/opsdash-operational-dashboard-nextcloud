@@ -141,8 +141,8 @@ defineEmits<{
 }>()
 
 const activeFilter = computed(() => props.filter ?? 'all')
-const allowMine = computed(() => props.canFilterMine !== false)
 const filtersEnabledFlag = computed(() => props.filtersEnabled !== false)
+const allowMine = computed(() => filtersEnabledFlag.value && props.canFilterMine !== false)
 
 const formatter = new Intl.DateTimeFormat(undefined, {
   weekday: 'short',

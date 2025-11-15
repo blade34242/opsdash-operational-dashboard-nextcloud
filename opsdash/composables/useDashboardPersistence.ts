@@ -1,4 +1,4 @@
-import { ref, type Ref, watch } from 'vue'
+import { ref, type Ref } from 'vue'
 
 import {
   cloneTargetsConfig,
@@ -112,21 +112,6 @@ export function useDashboardPersistence(deps: DashboardPersistenceDeps) {
         isSaving.value = false
       }
     }, 250)
-  }
-
-  if (deps.reportingConfig) {
-    watch(
-      () => deps.reportingConfig!.value,
-      () => queueSave(false),
-      { deep: true },
-    )
-  }
-  if (deps.deckSettings) {
-    watch(
-      () => deps.deckSettings!.value,
-      () => queueSave(false),
-      { deep: true },
-    )
   }
 
   return {

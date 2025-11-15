@@ -80,8 +80,8 @@
           @export-config="exportSidebarConfig"
           @import-config="importSidebarConfig"
           @open-shortcuts="handleOpenShortcuts"
-          @update:reporting-config="handleReportingConfigUpdate"
-          @update:deck-settings="handleDeckSettingsUpdate"
+          @save-reporting="handleReportingConfigSave"
+          @save-deck-settings="handleDeckSettingsSave"
         />
       </template>
 
@@ -474,11 +474,12 @@ const {
   fetchDavColors,
 })
 
-function handleReportingConfigUpdate(value: any) {
+function handleReportingConfigSave(value: any) {
   reportingConfig.value = normalizeReportingConfig(value, reportingConfig.value)
+  queueSave(false)
 }
 
-function handleDeckSettingsUpdate(value: any) {
+function handleDeckSettingsSave(value: any) {
   deckSettings.value = normalizeDeckSettings(value, deckSettings.value)
   if (deckSettings.value.defaultFilter !== deckFilter.value) {
     deckFilter.value = deckSettings.value.defaultFilter
@@ -486,6 +487,7 @@ function handleDeckSettingsUpdate(value: any) {
   if (!deckSettings.value.filtersEnabled) {
     deckFilter.value = deckSettings.value.defaultFilter
   }
+  queueSave(false)
 }
 
 watch(

@@ -134,6 +134,18 @@
       >
         Report
       </button>
+      <button
+        id="opsdash-sidebar-tab-deck"
+        type="button"
+        class="sb-tab"
+        :class="{ active: activeTab === 'deck' }"
+        role="tab"
+        :aria-selected="activeTab === 'deck'"
+        aria-controls="opsdash-sidebar-pane-deck"
+        @click="activeTab = 'deck'"
+      >
+        Deck
+      </button>
     </div>
 
     <SidebarCalendarsPane
@@ -216,10 +228,15 @@
     <SidebarReportPane
       v-else-if="activeTab === 'report'"
       :reporting-config="props.reportingConfig"
+      :saving="props.reportingSaving"
+      @save-reporting="(value) => emit('save-reporting', value)"
+    />
+
+    <SidebarDeckPane
+      v-else-if="activeTab === 'deck'"
       :deck-settings="props.deckSettings"
       :saving="props.reportingSaving"
-      @update:reporting-config="(value) => emit('update:reporting-config', value)"
-      @update:deck-settings="(value) => emit('update:deck-settings', value)"
+      @save-deck-settings="(value) => emit('save-deck-settings', value)"
     />
 
     <SidebarActivityPane
@@ -290,6 +307,7 @@ import SidebarBalancePane from './sidebar/SidebarBalancePane.vue'
 import SidebarNotesPane from './sidebar/SidebarNotesPane.vue'
 import SidebarConfigPane from './sidebar/SidebarConfigPane.vue'
 import SidebarReportPane from './sidebar/SidebarReportPane.vue'
+import SidebarDeckPane from './sidebar/SidebarDeckPane.vue'
 import { applyNumericUpdate, type InputMessage } from './sidebar/validation'
 
 const props = defineProps<{
@@ -352,8 +370,8 @@ const emit = defineEmits([
   'export-config',
   'import-config',
   'open-shortcuts',
-  'update:reporting-config',
-  'update:deck-settings',
+  'save-reporting',
+  'save-deck-settings',
 ])
 
 type SidebarTab = 'calendars'|'targets'|'summary'|'activity'|'balance'|'notes'|'config'|'report'

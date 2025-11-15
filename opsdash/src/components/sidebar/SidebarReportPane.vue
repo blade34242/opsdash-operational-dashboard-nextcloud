@@ -15,25 +15,25 @@
         <div>
           <div class="report-card__title">Scheduled summaries</div>
           <div class="report-card__subtitle">
-            {{ reportingConfig.enabled ? 'Sending on schedule' : 'Disabled' }}
+            {{ localReporting.enabled ? 'Sending on schedule' : 'Disabled' }}
           </div>
         </div>
         <label class="switch">
           <input
             type="checkbox"
-            :checked="reportingConfig.enabled"
-            @change="updateReporting({ enabled: !reportingConfig.enabled })"
+            :checked="localReporting.enabled"
+            @change="updateReporting({ enabled: !localReporting.enabled })"
           />
           <span />
         </label>
       </div>
 
-      <div class="report-form" :class="{ 'report-form--disabled': !reportingConfig.enabled }">
+      <div class="report-form" :class="{ 'report-form--disabled': !localReporting.enabled }">
         <label class="report-field">
           <span>Cadence</span>
           <select
-            :value="reportingConfig.schedule"
-            :disabled="!reportingConfig.enabled"
+            :value="localReporting.schedule"
+            :disabled="!localReporting.enabled"
             @change="updateReporting({ schedule: ($event.target as HTMLSelectElement).value as any })"
           >
             <option value="week">Weekly only</option>
@@ -45,8 +45,8 @@
         <label class="report-field">
           <span>Interim updates</span>
           <select
-            :value="reportingConfig.interim"
-            :disabled="!reportingConfig.enabled"
+            :value="localReporting.interim"
+            :disabled="!localReporting.enabled"
             @change="updateReporting({ interim: ($event.target as HTMLSelectElement).value as any })"
           >
             <option value="none">None</option>
@@ -58,8 +58,8 @@
         <label class="report-field">
           <span>Reminder lead</span>
           <select
-            :value="reportingConfig.reminderLead"
-            :disabled="!reportingConfig.enabled"
+            :value="localReporting.reminderLead"
+            :disabled="!localReporting.enabled"
             @change="updateReporting({ reminderLead: ($event.target as HTMLSelectElement).value as any })"
           >
             <option value="none">No reminder</option>
@@ -73,42 +73,42 @@
             <label>
               <input
                 type="checkbox"
-                :checked="reportingConfig.alertOnRisk"
-                :disabled="!reportingConfig.enabled"
-                @change="updateReporting({ alertOnRisk: !reportingConfig.alertOnRisk })"
+                :checked="localReporting.alertOnRisk"
+                :disabled="!localReporting.enabled"
+                @change="updateReporting({ alertOnRisk: !localReporting.alertOnRisk })"
               />
               Alert when schedule is at risk
             </label>
-            <span>{{ Math.round(reportingConfig.riskThreshold * 100) }}%</span>
+            <span>{{ Math.round(localReporting.riskThreshold * 100) }}%</span>
           </div>
           <input
             type="range"
             min="50"
             max="100"
             step="5"
-            :disabled="!reportingConfig.enabled"
-            :value="Math.round(reportingConfig.riskThreshold * 100)"
-            @input="onRiskInput"
+            :disabled="!localReporting.enabled"
+            :value="Math.round(localReporting.riskThreshold * 100)"
+            @change="onRiskInput"
           />
         </div>
 
-        <fieldset class="report-notify" :disabled="!reportingConfig.enabled">
+        <fieldset class="report-notify" :disabled="!localReporting.enabled">
           <legend>Delivery channels</legend>
           <label>
             <input
               type="checkbox"
-              :checked="reportingConfig.notifyEmail"
-              :disabled="!reportingConfig.enabled"
-              @change="updateReporting({ notifyEmail: !reportingConfig.notifyEmail })"
+              :checked="localReporting.notifyEmail"
+              :disabled="!localReporting.enabled"
+              @change="updateReporting({ notifyEmail: !localReporting.notifyEmail })"
             />
             Send via email
           </label>
           <label>
             <input
               type="checkbox"
-              :checked="reportingConfig.notifyNotification"
-              :disabled="!reportingConfig.enabled"
-              @change="updateReporting({ notifyNotification: !reportingConfig.notifyNotification })"
+              :checked="localReporting.notifyNotification"
+              :disabled="!localReporting.enabled"
+              @change="updateReporting({ notifyNotification: !localReporting.notifyNotification })"
             />
             Nextcloud notification
           </label>
@@ -116,79 +116,55 @@
       </div>
     </div>
 
-    <div class="report-card">
-      <div class="report-card__header">
-        <div>
-          <div class="report-card__title">Deck tab</div>
-          <div class="report-card__subtitle">
-            {{ deckSettings.enabled ? 'Visible in dashboard' : 'Hidden for this user' }}
-          </div>
-        </div>
-        <label class="switch">
-          <input
-            type="checkbox"
-            :checked="deckSettings.enabled"
-            @change="updateDeck({ enabled: !deckSettings.enabled })"
-          />
-          <span />
-        </label>
-      </div>
-
-      <div class="report-form">
-        <label class="report-field">
-          <span>Default filter</span>
-          <select
-            :value="deckSettings.defaultFilter"
-            :disabled="!deckSettings.enabled"
-            @change="updateDeck({ defaultFilter: ($event.target as HTMLSelectElement).value as any })"
-          >
-            <option value="all">All cards</option>
-            <option value="mine">My cards</option>
-          </select>
-        </label>
-
-        <label class="report-field report-field--checkbox">
-          <input
-            type="checkbox"
-            :checked="deckSettings.filtersEnabled"
-            :disabled="!deckSettings.enabled"
-            @change="updateDeck({ filtersEnabled: !deckSettings.filtersEnabled })"
-          />
-          Enable filter buttons
-        </label>
-      </div>
+    <div class="report-actions">
+      <button
+        type="button"
+        class="report-save"
+        :disabled="saving || !hasChanges"
+        @click="saveConfig"
+      >
+        {{ saving ? 'Saving…' : hasChanges ? 'Save changes' : 'Saved' }}
+      </button>
     </div>
-
-    <div v-if="saving" class="report-saving">Saving changes…</div>
   </div>
 </template>
 
 <script setup lang="ts">
-import { type ReportingConfig, type DeckFeatureSettings } from '../../services/reporting'
+import { computed, ref, watch } from 'vue'
+import { type ReportingConfig } from '../../services/reporting'
 
 const props = defineProps<{
   reportingConfig: ReportingConfig
-  deckSettings: DeckFeatureSettings
   saving: boolean
 }>()
 
 const emit = defineEmits<{
-  (e: 'update:reporting-config', value: ReportingConfig): void
-  (e: 'update:deck-settings', value: DeckFeatureSettings): void
+  (e: 'save-reporting', value: ReportingConfig): void
 }>()
 
+const localReporting = ref<ReportingConfig>(cloneReporting(props.reportingConfig))
+
+watch(
+  () => props.reportingConfig,
+  (next) => {
+    localReporting.value = cloneReporting(next)
+  },
+  { deep: true },
+)
+
+const hasChanges = computed(
+  () => JSON.stringify(localReporting.value) !== JSON.stringify(props.reportingConfig),
+)
+
 function updateReporting(patch: Partial<ReportingConfig>) {
-  emit('update:reporting-config', {
-    ...props.reportingConfig,
+  localReporting.value = {
+    ...localReporting.value,
     ...patch,
-  })
+  }
 }
 
-function updateDeck(patch: Partial<DeckFeatureSettings>) {
-  emit('update:deck-settings', {
-    ...props.deckSettings,
-    ...patch,
-  })
+function saveConfig() {
+  emit('save-reporting', cloneReporting(localReporting.value))
 }
 
 function onRiskInput(event: Event) {
@@ -197,6 +173,10 @@ function onRiskInput(event: Event) {
   const percent = Number(target.value)
   if (!Number.isFinite(percent)) return
   updateReporting({ riskThreshold: Math.max(0.5, Math.min(1, percent / 100)) })
+}
+
+function cloneReporting(value: ReportingConfig): ReportingConfig {
+  return JSON.parse(JSON.stringify(value))
 }
 </script>
 
@@ -268,6 +248,22 @@ function onRiskInput(event: Event) {
 .report-notify legend {
   font-size: 0.85rem;
   font-weight: 600;
+}
+.report-actions {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 0.5rem;
+}
+.report-save {
+  border-radius: 999px;
+  border: 1px solid var(--color-border-maxcontrast);
+  padding: 0.35rem 0.9rem;
+  background: var(--color-main-background);
+  cursor: pointer;
+}
+.report-save:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
 }
 .switch {
   position: relative;
