@@ -1,51 +1,32 @@
 <template>
   <div class="card balance-card">
-    <div class="balance-card__header" :class="{'balance-card__header--compact': !showSummaryText}">
+    <div class="balance-card__header">
       <span>Balance Overview ({{ rangeLabel }})</span>
     </div>
-    <div class="balance-card__hero" v-if="heroLine && showSummaryText">
-      <span>{{ heroLine }}</span>
-    </div>
-    <div class="balance-card__relations" v-if="relationLine && showSummaryText">
-      {{ relationLine }}
-    </div>
-    <div class="balance-card__trend" v-if="trendLine && showSummaryText">
-      <strong>WoW-Δ:</strong> {{ trendLine }}
-    </div>
-    <div class="balance-card__heatmap" v-if="trendRows.length">
-      <div class="heatmap-header">
+    <div class="balance-card__mix" v-if="trendRows.length">
+      <div class="mix-header">
         <div>
-          <div class="heatmap-title">Category mix trend</div>
-          <div class="heatmap-subtitle">{{ lookbackLabel }}</div>
+          <div class="mix-title">Category mix trend</div>
+          <div class="mix-subtitle">{{ lookbackLabel }}</div>
         </div>
-        <span v-if="trendBadge" class="heatmap-badge">{{ trendBadge }}</span>
+        <span v-if="trendBadge" class="mix-badge">{{ trendBadge }}</span>
       </div>
-      <div class="heatmap-grid" :style="gridTemplateStyle">
-        <div class="heatmap-heading"></div>
-        <div
-          v-for="column in historyColumns"
-          :key="column.offset"
-          class="heatmap-head"
-        >
-          {{ column.label }}
-        </div>
-        <div class="heatmap-head">Current range</div>
-        <template v-for="row in trendRows" :key="row.id">
-          <div class="heatmap-label">{{ row.label }}</div>
-          <div
-            v-for="(share, idx) in row.historyShares"
-            :key="`${row.id}-h-${idx}`"
-            class="heatmap-cell"
-            :style="heatStyle(share)"
-          >
-            {{ formatShare(share) }}
-          </div>
-          <div class="heatmap-cell heatmap-cell--current" :style="heatStyle(row.currentShare)">
-            {{ formatShare(row.currentShare) }}
-            <span class="heatmap-delta">{{ formatDelta(row.delta) }}</span>
-          </div>
-        </template>
-      </div>
+      <ul class="mix-list">
+        <li v-for="row in trendRows" :key="row.id" class="mix-row">
+          <span class="mix-label">{{ row.label }}:</span>
+          <span class="mix-values">
+            <template v-if="row.historyEntries.length">
+              <template v-for="(entry, idx) in row.historyEntries" :key="`${row.id}-hist-${idx}`">
+                <span class="mix-value">{{ formatShare(entry.share) }}</span>
+                <span v-if="idx < row.historyEntries.length - 1" class="mix-sep">|</span>
+              </template>
+              <span class="mix-sep">|</span>
+            </template>
+            <span class="mix-value mix-value--current">{{ formatShare(row.currentShare) }}</span>
+            <span class="mix-delta">{{ formatDelta(row.delta) }}</span>
+          </span>
+        </li>
+      </ul>
     </div>
     <ul class="balance-card__insights" v-if="insights.length">
       <li v-for="ins in insights" :key="ins">💡 {{ ins }}</li>
@@ -122,34 +103,6 @@ const props = defineProps<{
 const settings = computed<BalanceCardConfig>(() => Object.assign({}, defaultConfig, props.config ?? {}))
 const noteText = computed(() => (props.note ?? '').trim())
 
-const heroLine = computed(() => {
-  if (!props.overview) return ''
-  const index = props.overview.index ?? 0
-  const catParts = props.overview.categories
-    .filter(cat => cat.share > 0.1)
-    .slice(0, 4)
-    .map(cat => `${cat.label} ${cat.share.toFixed(0)}%`)
-  const suffix = catParts.length ? ` • ${catParts.join(' | ')}` : ''
-  return `Balance Index ${index.toFixed(2)}${suffix}`
-})
-
-const relationLine = computed(() => {
-  if (!props.overview || !props.overview.relations?.length) return ''
-  return props.overview.relations.map(rel => `${rel.label} ${rel.value}`).join(' • ')
-})
-
-const trendLine = computed(() => {
-  if (!props.overview) return ''
-  const entries = props.overview.trend?.delta ?? []
-  if (!entries.length) return ''
-  return entries
-    .map(item => {
-      const sign = item.delta > 0 ? '+' : item.delta < 0 ? '−' : '±'
-      return `${item.label} ${sign}${Math.abs(item.delta).toFixed(1)} pp`
-    })
-    .join(', ')
-})
-
 const insights = computed(() => {
   if (!settings.value.showInsights) return [] as string[]
   return props.overview?.insights ?? []
@@ -188,13 +141,16 @@ const trendRows = computed(() => {
   if (!props.overview) return []
   const categories = props.overview.categories ?? []
   return categories.map((cat) => {
-    const historyShares = historyColumns.value.map((column) => {
+    const historyEntries = historyColumns.value.map((column) => {
       const entry = column.categories?.find((c) => c.id === cat.id)
-      return entry ? entry.share : 0
+      return {
+        label: column.label,
+        share: entry ? entry.share : 0,
+      }
     })
     const currentShare = typeof cat.share === 'number' ? cat.share : 0
-    const previousShare = historyShares.length
-      ? historyShares[historyShares.length - 1]
+    const previousShare = historyEntries.length
+      ? historyEntries[historyEntries.length - 1].share
       : typeof cat.prevShare === 'number'
         ? cat.prevShare
         : typeof cat.delta === 'number'
@@ -205,7 +161,7 @@ const trendRows = computed(() => {
       label: cat.label,
       currentShare,
       previousShare,
-      historyShares,
+      historyEntries,
       delta: currentShare - previousShare,
     }
   })
@@ -217,25 +173,11 @@ const lookbackLabel = computed(() => {
     const unit = props.rangeMode === 'month' ? 'months' : 'weeks'
     return `History · last ${historyCount} ${unit}`
   }
+  if (historyCount === 1) {
+    return `${historyColumns.value[0]?.label || 'Previous range'}`
+  }
   const weeks = Math.max(1, Math.min(12, props.lookbackWeeks || 1))
   return props.rangeMode === 'month' ? `Avg of last ${weeks} mo` : `Avg of last ${weeks} wk`
-})
-
-const showSummaryText = computed(() => historyColumns.value.length <= 1)
-const heatStyle = (value: number) => {
-  const clamped = Math.max(0, Math.min(100, value))
-  const intensity = Math.round((clamped / 100) * 80)
-  return {
-    background: `rgba(37, 99, 235, ${intensity / 100})`,
-    color: intensity > 45 ? '#fff' : 'var(--fg)',
-  }
-}
-
-const gridTemplateStyle = computed(() => {
-  const columns = historyColumns.value.length + 1
-  return {
-    gridTemplateColumns: `auto repeat(${columns}, minmax(0, 1fr))`,
-  }
 })
 
 const formatShare = (value: number) => `${Math.max(0, Math.round(value))}%`
@@ -259,20 +201,6 @@ const formatDelta = (value: number) =>
   font-weight: 600;
   color: var(--fg);
   font-size: 12px;
-}
-.balance-card__header--compact {
-  margin-bottom: 4px;
-}
-.balance-card__hero {
-  font-weight: 600;
-  color: var(--fg);
-}
-.balance-card__relations,
-.balance-card__trend {
-  font-size: 12px;
-}
-.balance-card__trend strong {
-  color: var(--fg);
 }
 .balance-card__insights,
 .balance-card__warnings {
@@ -305,27 +233,27 @@ const formatDelta = (value: number) =>
   text-transform: uppercase;
   letter-spacing: .05em;
 }
-.balance-card__heatmap {
+.balance-card__mix {
   border-top: 1px solid var(--border, rgba(125, 125, 125, 0.2));
   padding-top: 8px;
 }
-.heatmap-header {
+.mix-header {
   display: flex;
   justify-content: space-between;
   align-items: flex-start;
   gap: 8px;
   margin-bottom: 8px;
 }
-.heatmap-title {
+.mix-title {
   font-size: 12px;
   font-weight: 600;
   color: var(--fg);
 }
-.heatmap-subtitle {
+.mix-subtitle {
   font-size: 11px;
   color: var(--muted);
 }
-.heatmap-badge {
+.mix-badge {
   font-size: 10px;
   text-transform: uppercase;
   letter-spacing: 0.05em;
@@ -335,39 +263,44 @@ const formatDelta = (value: number) =>
   color: var(--brand);
   border: 1px solid color-mix(in oklab, var(--brand), transparent 60%);
 }
-.heatmap-grid {
-  display: grid;
-  gap: 4px;
-  font-size: 11px;
-}
-.heatmap-head {
-  font-weight: 600;
-  color: var(--fg);
-  text-align: center;
-}
-.heatmap-heading {
-  /* placeholder */
-}
-.heatmap-label {
-  display: flex;
-  align-items: center;
-  font-weight: 500;
-}
-.heatmap-cell {
-  border-radius: 6px;
-  padding: 4px;
-  text-align: center;
-  min-height: 28px;
+.mix-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
   display: flex;
   flex-direction: column;
-  align-items: center;
-  justify-content: center;
+  gap: 6px;
+  font-size: 12px;
 }
-.heatmap-cell--current {
-  border: 1px solid rgba(37, 99, 235, 0.2);
+.mix-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  align-items: baseline;
 }
-.heatmap-delta {
-  font-size: 10px;
-  opacity: 0.8;
+.mix-label {
+  font-weight: 600;
+  color: var(--fg);
+}
+.mix-values {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  color: var(--muted);
+  font-variant-numeric: tabular-nums;
+}
+.mix-value {
+  color: var(--muted);
+}
+.mix-value--current {
+  color: var(--fg);
+  font-weight: 600;
+}
+.mix-sep {
+  color: var(--border, rgba(125, 125, 125, 0.7));
+}
+.mix-delta {
+  font-weight: 600;
+  color: var(--muted);
 }
 </style>

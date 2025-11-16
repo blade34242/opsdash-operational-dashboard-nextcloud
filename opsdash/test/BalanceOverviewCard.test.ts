@@ -46,9 +46,9 @@ function mountCard(overrides: Record<string, any> = {}) {
 describe('BalanceOverviewCard', () => {
   it('uses prevShare when rendering lookback column', () => {
     const wrapper = mountCard()
-    const cells = wrapper.findAll('.heatmap-cell')
-    expect(cells[0].text()).toContain('48%')
-    expect(cells[1].text()).toContain('60%')
+    const rows = wrapper.findAll('.mix-row')
+    const compact = rows[0].text().replace(/\s+/g, '')
+    expect(compact).toContain('Work:48%|60%')
   })
 
   it('falls back to delta math when prevShare missing', () => {
@@ -69,12 +69,12 @@ describe('BalanceOverviewCard', () => {
         warnings: [],
       },
     })
-    const cells = wrapper.findAll('.heatmap-cell')
-    expect(cells[0].text()).toContain('32%')
-    expect(cells[1].text()).toContain('40%')
+    const rows = wrapper.findAll('.mix-row')
+    const compact = rows[0].text().replace(/\s+/g, '')
+    expect(compact).toContain('Sport:32%|40%')
   })
 
-  it('hides summary text when multiple history columns exist', () => {
+  it('renders multiple lookback columns when history provided', () => {
     const wrapper = mountCard({
       overview: {
         index: 0.81,
@@ -103,10 +103,8 @@ describe('BalanceOverviewCard', () => {
         warnings: [],
       },
     })
-    expect(wrapper.find('.balance-card__hero').exists()).toBe(false)
-    expect(wrapper.find('.balance-card__relations').exists()).toBe(false)
-    expect(wrapper.find('.balance-card__trend').exists()).toBe(false)
-    const headers = wrapper.findAll('.heatmap-head')
-    expect(headers.length).toBe(3) // two history columns + current range
+    const rows = wrapper.findAll('.mix-row')
+    const compact = rows[0].text().replace(/\s+/g, '')
+    expect(compact).toContain('40%|52%|55%')
   })
 })
