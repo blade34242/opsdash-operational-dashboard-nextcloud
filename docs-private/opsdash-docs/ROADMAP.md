@@ -9,7 +9,7 @@ Single source of truth for the Opsdash backlog: high-level roadmap, target syste
 - `useDashboard*`, `useTheme*`, `useCalendarLinks`, and onboarding composables now power `App.vue`, leaving it as an orchestration shell.
 - All-day events respect the configurable “All-day event (h per day)” slider; range switching keeps targets, charts, and KPIs aligned.
 - Config & Setup exposes a reliable “Re-run onboarding” action; wizard state is snapshot-safe, theming hooks persist, and the “Final tweaks” step now includes Deck boards, reporting cadence, and the Activity heatmap toggle.
-- Deck tab (preview) pulls real boards/cards via the Deck OCS API; CI seeds deterministic boards via `occ opsdash:seed-deck` so Playwright stays reliable.
+- Deck tab (preview) pulls real boards/cards via the Deck OCS API; CI seeds deterministic boards via `apps/opsdash/tools/seed_deck_boards.php` so Playwright stays reliable.
 - Activity & Schedule card surfaces the “Days off” comparison as a heatmap, matching Balance’s trend lookback UX.
 - Core docs (Architecture, API, Dev Workflow, Packaging, Troubleshooting) match the shipping behaviour.
 

@@ -36,18 +36,23 @@ run_occ() {
   docker exec "$CONTAINER" php occ "$@"
 }
 
+run_seed() {
+  local user="$1"
+  local envs=(-e "QA_USER=${user}" -e "QA_DECK_BOARD_TITLE=${BOARD_TITLE}" -e "QA_DECK_BOARD_COLOR=${BOARD_COLOR}")
+  if [[ -n "$KEEP_STACKS" ]]; then
+    envs+=(-e "QA_DECK_KEEP_STACKS=${KEEP_STACKS}")
+  fi
+  docker exec "${envs[@]}" "$CONTAINER" php apps/opsdash/tools/seed_deck_boards.php
+}
+
 echo "[deck-seed] enabling deck + opsdash apps inside ${CONTAINER}..."
 run_occ app:enable deck >/dev/null 2>&1 || true
 run_occ app:enable opsdash >/dev/null 2>&1 || true
 
-echo "[deck-seed] seeding Deck boards via OCC (container=${CONTAINER})"
+echo "[deck-seed] seeding Deck boards via PHP helper (container=${CONTAINER})"
 for user in "${USERS[@]}"; do
-  args=(opsdash:seed-deck --user "$user" --board-title "$BOARD_TITLE" --board-color "$BOARD_COLOR")
-  if [[ -n "$KEEP_STACKS" ]]; then
-    args+=("--keep-stacks")
-  fi
   echo "[deck-seed] -> user=${user}"
-  run_occ "${args[@]}"
+  run_seed "$user"
 done
 
 echo "[deck-seed] done."

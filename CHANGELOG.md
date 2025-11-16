@@ -14,13 +14,17 @@ All notable changes to this project will be documented in this file.
 - Playwright e2e suite now exercises the Deck tab to confirm the seeded QA cards render end-to-end.
 - Deck tab adds an “All cards / My cards” filter driven by assignees so individual workload snapshots stay focused.
 - Sidebar gains a “Report” tab to configure weekly/monthly digests, interim reminders, and Deck visibility/filter defaults (persisted per user).
+- Balance Overview mix rows now render as a heatmap grid that color-codes week/month deltas while keeping the exact share percentage inside every tile.
+- Activity & Schedule card’s “Days off” comparison has been redesigned as a mini heatmap with tone-aware tiles so the current range vs. lookback window is readable at a glance.
 
 ### Changed
 - Dashboard persistence now relies on server-provided `balance.ui.*` flags (fallback only triggers when an entire block is missing), matching the updated `/overview/persist` response.
 - Playwright multi-user scenario now logs in as the secondary user to persist selection state, eliminating the flaky hard-coded assumption.
+- Deck seeding is no longer exposed as an OCC command during CI packaging; use the PHP helper scripts directly when QA data is required.
 
 ### Fixed
 - `cleanBalanceConfig()` propagates `showNotes`, so `/overview/persist` always echoes all balance UI toggles and the client no longer re-injects missing fields.
+- Fixed `/overview/load` crashes when all-day events were normalised without a pass-by-reference day map (Nextcloud 31’s controller now updates the accumulator safely).
 
 ## [0.4.5] - 2025-11-10
 ### Added
