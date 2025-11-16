@@ -11,20 +11,33 @@
         </div>
         <span v-if="trendBadge" class="mix-badge">{{ trendBadge }}</span>
       </div>
+      <div class="mix-columns" :style="mixGridStyle">
+        <span
+          v-for="column in historyColumns"
+          :key="`col-${column.offset}`"
+          class="mix-column-label"
+        >
+          {{ column.label }}
+        </span>
+        <span class="mix-column-label mix-column-label--current">{{ currentColumnLabel }}</span>
+      </div>
       <ul class="mix-list">
         <li v-for="row in trendRows" :key="row.id" class="mix-row">
           <span class="mix-label">{{ row.label }}:</span>
-          <span class="mix-values">
-            <template v-if="row.historyEntries.length">
-              <template v-for="(entry, idx) in row.historyEntries" :key="`${row.id}-hist-${idx}`">
-                <span class="mix-value">{{ formatShare(entry.share) }}</span>
-                <span v-if="idx < row.historyEntries.length - 1" class="mix-sep">|</span>
-              </template>
-              <span class="mix-sep">|</span>
-            </template>
-            <span class="mix-value mix-value--current">{{ formatShare(row.currentShare) }}</span>
-            <span class="mix-delta">{{ formatDelta(row.delta) }}</span>
-          </span>
+          <div class="mix-cells" :style="mixGridStyle">
+            <div
+              v-for="(cell, idx) in row.cells"
+              :key="`${row.id}-cell-${idx}`"
+              class="mix-cell"
+              :class="[
+                `mix-cell--trend-${cell.trend}`,
+                { 'mix-cell--current': cell.isCurrent },
+              ]"
+              :title="`${row.label} · ${cell.label} · ${formatShare(cell.share)}`"
+            >
+              <span class="mix-cell__value">{{ formatShare(cell.share) }}</span>
+            </div>
+          </div>
         </li>
       </ul>
     </div>
@@ -110,79 +123,137 @@ const insights = computed(() => {
 const warnings = computed(() => props.overview?.warnings ?? [])
 const trendBadge = computed(() => props.overview?.trend?.badge ?? '')
 
-const historyColumns = computed(() => {
-  const history = props.overview?.trend?.history ?? []
-  if (history.length) {
-    return history
-  }
-  const deltas = props.overview?.trend?.delta ?? []
-  if (!deltas.length) {
+const currentColumnLabel = computed(() =>
+  props.rangeMode === 'month' ? 'This month' : 'This week',
+)
+
+type TrendHistoryEntry = {
+  offset: number
+  label: string
+  categories: Array<{ id: string; label: string; share: number }>
+}
+
+type TrendHistoryColumn = {
+  offset: number
+  label: string
+  shares: Record<string, number>
+}
+
+const lookbackCount = computed(() => Math.max(1, Math.min(12, props.lookbackWeeks || 1)))
+
+const rawHistoryEntries = computed<TrendHistoryEntry[]>(() => {
+  const history = props.overview?.trend?.history ?? (props.overview as any)?.trendHistory ?? []
+  if (!Array.isArray(history)) {
     return []
   }
-  const fallbackCategories = (props.overview?.categories ?? []).map((cat) => {
-    const currentShare = typeof cat.share === 'number' ? cat.share : 0
-    const fallback =
-      typeof cat.prevShare === 'number'
-        ? cat.prevShare
-        : typeof cat.delta === 'number'
-          ? currentShare - cat.delta
-          : currentShare
-    return {
-      id: cat.id,
-      label: cat.label,
-      share: Math.max(0, fallback),
-    }
-  })
-  return [
-    { offset: 1, label: props.rangeMode === 'month' ? 'Prev month' : 'Prev week', categories: fallbackCategories },
-  ]
+  return history
+    .map((entry: any) => ({
+      offset: Number(entry?.offset ?? entry?.step ?? 0) || 0,
+      label: String(entry?.label ?? ''),
+      categories: Array.isArray(entry?.categories)
+        ? entry.categories.map((cat: any) => ({
+            id: String(cat?.id ?? ''),
+            label: String(cat?.label ?? ''),
+            share: Number(cat?.share ?? 0) || 0,
+          }))
+        : [],
+    }))
+    .filter((entry) => entry.offset > 0)
 })
+
+const fallbackHistoryLabel = (offset: number) => {
+  const unit = props.rangeMode === 'month' ? 'mo' : 'wk'
+  return `-${offset} ${unit}`
+}
+
+const historyColumns = computed<TrendHistoryColumn[]>(() => {
+  if (!props.overview) {
+    return []
+  }
+  const lookback = lookbackCount.value
+  const byOffset = new Map<number, TrendHistoryColumn>()
+  rawHistoryEntries.value.forEach((entry) => {
+    const offset = Math.max(1, Math.min(12, Math.round(entry.offset)))
+    if (!offset) return
+    const shares: Record<string, number> = {}
+    entry.categories.forEach((cat) => {
+      if (!cat.id) return
+      shares[cat.id] = Number.isFinite(cat.share) ? cat.share : 0
+    })
+    byOffset.set(offset, {
+      offset,
+      label: entry.label,
+      shares,
+    })
+  })
+  const columns: TrendHistoryColumn[] = []
+  for (let offset = lookback; offset >= 1; offset -= 1) {
+    const existing = byOffset.get(offset)
+    columns.push({
+      offset,
+      label: existing && existing.label ? existing.label : fallbackHistoryLabel(offset),
+      shares: existing?.shares ?? {},
+    })
+  }
+  return columns
+})
+const columnCount = computed(() => historyColumns.value.length + 1)
+const mixGridStyle = computed(() => ({
+  gridTemplateColumns: `repeat(${Math.max(columnCount.value, 1)}, minmax(52px, 1fr))`,
+}))
+
+const classifyTrend = (delta: number) => {
+  const threshold = 1
+  if (delta > threshold) return 'up'
+  if (delta < -threshold) return 'down'
+  return 'flat'
+}
+
 const trendRows = computed(() => {
   if (!props.overview) return []
   const categories = props.overview.categories ?? []
   return categories.map((cat) => {
-    const historyEntries = historyColumns.value.map((column) => {
-      const entry = column.categories?.find((c) => c.id === cat.id)
+    const historyEntries = historyColumns.value.map((column) => ({
+      label: column.label,
+      share: column.shares[cat.id] ?? 0,
+      isCurrent: false,
+    }))
+    const currentShare = typeof cat.share === 'number' ? cat.share : 0
+    const slots = [
+      ...historyEntries,
+      { label: currentColumnLabel.value, share: currentShare, isCurrent: true },
+    ]
+    const cells = slots.map((slot, idx) => {
+      const prevShare = idx === 0 ? slot.share : slots[idx - 1].share
+      const delta = slot.share - prevShare
       return {
-        label: column.label,
-        share: entry ? entry.share : 0,
+        label: slot.label,
+        share: slot.share,
+        isCurrent: !!slot.isCurrent,
+        trend: idx === 0 ? 'flat' : classifyTrend(delta),
       }
     })
-    const currentShare = typeof cat.share === 'number' ? cat.share : 0
-    const previousShare = historyEntries.length
-      ? historyEntries[historyEntries.length - 1].share
-      : typeof cat.prevShare === 'number'
-        ? cat.prevShare
-        : typeof cat.delta === 'number'
-          ? currentShare - cat.delta
-          : 0
     return {
       id: cat.id,
       label: cat.label,
-      currentShare,
-      previousShare,
-      historyEntries,
-      delta: currentShare - previousShare,
+      cells,
     }
   })
 })
 
 const lookbackLabel = computed(() => {
-  const historyCount = historyColumns.value.length
+  const historyCount = lookbackCount.value
   if (historyCount > 1) {
     const unit = props.rangeMode === 'month' ? 'months' : 'weeks'
     return `History · last ${historyCount} ${unit}`
   }
-  if (historyCount === 1) {
-    return `${historyColumns.value[0]?.label || 'Previous range'}`
+  if (historyCount === 1 && historyColumns.value.length) {
+    return historyColumns.value[historyColumns.value.length - 1]?.label || fallbackHistoryLabel(1)
   }
-  const weeks = Math.max(1, Math.min(12, props.lookbackWeeks || 1))
-  return props.rangeMode === 'month' ? `Avg of last ${weeks} mo` : `Avg of last ${weeks} wk`
+  return fallbackHistoryLabel(historyCount || 1)
 })
 
 const formatShare = (value: number) => `${Math.max(0, Math.round(value))}%`
-const formatDelta = (value: number) =>
-  `${value > 0 ? '+' : value < 0 ? '−' : '±'}${Math.abs(value).toFixed(1)}pp`
 </script>
 
 <style scoped>
@@ -269,38 +340,65 @@ const formatDelta = (value: number) =>
   padding: 0;
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: 8px;
   font-size: 12px;
 }
 .mix-row {
   display: flex;
-  flex-wrap: wrap;
-  gap: 6px;
-  align-items: baseline;
+  gap: 8px;
+  align-items: center;
 }
 .mix-label {
+  flex: 0 0 96px;
   font-weight: 600;
   color: var(--fg);
 }
-.mix-values {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 4px;
+.mix-columns {
+  display: grid;
+  gap: 6px;
+  margin-bottom: 6px;
+  font-size: 11px;
   color: var(--muted);
+  text-transform: uppercase;
+}
+.mix-column-label {
+  text-align: center;
+}
+.mix-column-label--current {
+  color: var(--brand);
+}
+.mix-cells {
+  display: grid;
+  gap: 6px;
+  flex: 1 1 auto;
+}
+.mix-cell {
+  border-radius: 6px;
+  padding: 6px 4px;
+  text-align: center;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--fg);
+  background: color-mix(in oklab, var(--muted), transparent 85%);
+  transition: background .2s ease;
+}
+.mix-cell--current {
+  outline: 1px solid color-mix(in oklab, var(--brand), transparent 35%);
+  outline-offset: 1px;
+}
+.mix-cell--trend-up {
+  background: color-mix(in oklab, #16a34a, white 65%);
+  color: #14532d;
+}
+.mix-cell--trend-down {
+  background: color-mix(in oklab, #dc2626, white 65%);
+  color: #7f1d1d;
+}
+.mix-cell--trend-flat {
+  background: color-mix(in oklab, #f97316, white 70%);
+  color: #7c2d12;
+}
+.mix-cell__value {
   font-variant-numeric: tabular-nums;
-}
-.mix-value {
-  color: var(--muted);
-}
-.mix-value--current {
-  color: var(--fg);
-  font-weight: 600;
-}
-.mix-sep {
-  color: var(--border, rgba(125, 125, 125, 0.7));
-}
-.mix-delta {
-  font-weight: 600;
-  color: var(--muted);
 }
 </style>

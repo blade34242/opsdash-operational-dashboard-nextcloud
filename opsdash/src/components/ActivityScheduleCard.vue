@@ -27,19 +27,20 @@
           Last {{ lookbackLabel }}
         </span>
       </div>
-      <div class="dayoff-grid">
+      <div class="dayoff-heatmap">
         <div
           v-for="entry in dayOffTiles"
           :key="entry.offset"
-          class="dayoff-cell"
-          :class="{ 'dayoff-cell--current': entry.offset === 0 }"
+          class="dayoff-tile"
+          :class="[
+            `dayoff-tile--${entry.tone}`,
+            { 'dayoff-tile--current': entry.offset === 0 },
+          ]"
+          :title="`${entry.label} · ${shareLabel(entry.share)}`"
         >
-          <div class="dayoff-cell__label">{{ entry.label }}</div>
-          <div class="dayoff-cell__bar">
-            <div class="dayoff-cell__fill" :style="cellStyle(entry.share)" />
-          </div>
-          <div class="dayoff-cell__value">{{ shareLabel(entry.share) }}</div>
-          <div class="dayoff-cell__meta">
+          <div class="dayoff-tile__label">{{ entry.label }}</div>
+          <div class="dayoff-tile__value">{{ shareLabel(entry.share) }}</div>
+          <div class="dayoff-tile__meta">
             {{ entry.daysOff }} off · {{ entry.daysWorked }} on
           </div>
         </div>
@@ -81,7 +82,7 @@ type DayOffTrendEntry = {
   daysWorked: number
 }
 
-type DayOffTrendTile = DayOffTrendEntry & { share: number }
+type DayOffTrendTile = DayOffTrendEntry & { share: number; tone: 'low' | 'mid' | 'high' }
 
 const defaultConfig: ActivityCardConfig = createDefaultActivityCardConfig()
 
@@ -92,6 +93,7 @@ const props = defineProps<{
   config?: Partial<ActivityCardConfig>
   dayOffTrend?: DayOffTrendEntry[]
   trendUnit?: string
+  dayOffLookback?: number
 }>()
 
 const settings = computed<ActivityCardConfig>(() => Object.assign({}, defaultConfig, props.config ?? {}))
@@ -149,22 +151,73 @@ const extraLine = computed(() => {
   return items
 })
 
+const dayOffHistoryCount = computed(() => {
+  const configured = typeof props.dayOffLookback === 'number' ? props.dayOffLookback : null
+  if (configured != null) {
+    return Math.max(0, Math.min(12, Math.floor(configured)))
+  }
+  const historyEntries = (props.dayOffTrend ?? []).filter((entry) => Number(entry?.offset ?? 0) > 0)
+  return Math.max(0, Math.min(12, historyEntries.length))
+})
+
+const normalizedDayOffTrend = computed<DayOffTrendEntry[]>(() => {
+  const raw = Array.isArray(props.dayOffTrend) ? props.dayOffTrend : []
+  const byOffset = new Map<number, DayOffTrendEntry>()
+  raw.forEach((entry) => {
+    const offset = Number(entry?.offset ?? 0) || 0
+    byOffset.set(offset, {
+      offset,
+      label: entry?.label ?? '',
+      from: entry?.from ?? '',
+      to: entry?.to ?? '',
+      totalDays: Number(entry?.totalDays ?? entry?.total_days ?? 0) || 0,
+      daysOff: Number(entry?.daysOff ?? entry?.days_off ?? 0) || 0,
+      daysWorked: Number(entry?.daysWorked ?? entry?.days_worked ?? 0) || 0,
+    })
+  })
+  const unit = props.trendUnit === 'mo' ? 'mo' : 'wk'
+  const nowLabel = props.trendUnit === 'mo' ? 'This month' : 'This week'
+  const entries: DayOffTrendEntry[] = []
+  const current = byOffset.get(0) ?? {
+    offset: 0,
+    label: nowLabel,
+    from: '',
+    to: '',
+    totalDays: 0,
+    daysOff: 0,
+    daysWorked: 0,
+  }
+  entries.push(current)
+  const lookback = dayOffHistoryCount.value
+  for (let offset = 1; offset <= lookback; offset += 1) {
+    const resolved = byOffset.get(offset) ?? {
+      offset,
+      label: `-${offset} ${unit}`,
+      from: '',
+      to: '',
+      totalDays: 0,
+      daysOff: 0,
+      daysWorked: 0,
+    }
+    entries.push(resolved)
+  }
+  return entries
+})
+
 const dayOffTiles = computed<DayOffTrendTile[]>(() => {
-  return (props.dayOffTrend ?? []).map((entry) => {
+  return normalizedDayOffTrend.value.map((entry) => {
     const total = Math.max(0, Number(entry.totalDays) || 0)
     const daysOff = Math.max(0, Math.min(total, Number(entry.daysOff) || 0))
     const share = total > 0 ? daysOff / total : 0
-    return { ...entry, share }
+    return { ...entry, share, tone: classifyDayOffTone(share) }
   })
 })
 
 const lookbackLabel = computed(() => {
-  const history = dayOffTiles.value.length - 1
+  const history = dayOffHistoryCount.value
   if (history <= 0) return ''
-  if (props.trendUnit === 'mo') {
-    return `${history} ${history === 1 ? 'month' : 'months'}`
-  }
-  return `${history} ${history === 1 ? 'week' : 'weeks'}`
+  const unitWord = props.trendUnit === 'mo' ? 'month' : 'week'
+  return `${history} ${history === 1 ? unitWord : `${unitWord}s`}`
 })
 
 function typicalRange(start: string | null, end: string | null): string {
@@ -208,12 +261,10 @@ function shareLabel(value: number) {
   return `${Math.round(pct * 100)}% off`
 }
 
-function cellStyle(value: number) {
-  const pct = Math.max(0, Math.min(1, value))
-  const alpha = 0.25 + pct * 0.5
-  return {
-    background: `rgba(37, 99, 235, ${alpha})`,
-  }
+function classifyDayOffTone(value: number): 'low' | 'mid' | 'high' {
+  if (value >= 0.5) return 'high'
+  if (value >= 0.25) return 'mid'
+  return 'low'
 }
 </script>
 
@@ -274,49 +325,50 @@ function cellStyle(value: number) {
 .dayoff-meta {
   opacity: 0.85;
 }
-.dayoff-grid {
+.dayoff-heatmap {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(110px, 1fr));
   gap: 8px;
 }
-.dayoff-cell {
-  border: 1px solid color-mix(in srgb, var(--color-border) 65%, transparent);
+.dayoff-tile {
   border-radius: 10px;
-  padding: 8px;
+  padding: 10px 8px;
   display: flex;
   flex-direction: column;
-  gap: 6px;
-  background: color-mix(in srgb, var(--color-main-background, #fff) 85%, transparent);
+  gap: 4px;
+  text-align: center;
+  background: color-mix(in oklab, var(--muted), transparent 85%);
+  color: var(--fg);
+  transition: transform .2s ease, background .2s ease;
 }
-.dayoff-cell--current {
-  border-color: color-mix(in srgb, var(--brand) 45%, transparent);
-  box-shadow: 0 0 0 1px color-mix(in srgb, var(--brand) 20%, transparent);
+.dayoff-tile--current {
+  outline: 1px solid color-mix(in oklab, var(--brand), transparent 30%);
+  outline-offset: 1px;
 }
-.dayoff-cell__label {
+.dayoff-tile--low {
+  background: color-mix(in oklab, #dc2626, white 70%);
+  color: #7f1d1d;
+}
+.dayoff-tile--mid {
+  background: color-mix(in oklab, #f97316, white 68%);
+  color: #7c2d12;
+}
+.dayoff-tile--high {
+  background: color-mix(in oklab, #16a34a, white 65%);
+  color: #14532d;
+}
+.dayoff-tile__label {
   font-size: 11px;
   font-weight: 600;
-  color: var(--fg);
 }
-.dayoff-cell__bar {
-  height: 6px;
-  border-radius: 999px;
-  background: color-mix(in srgb, var(--brand) 10%, transparent);
-  overflow: hidden;
+.dayoff-tile__value {
+  font-size: 14px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
 }
-.dayoff-cell__fill {
-  height: 100%;
-  width: 100%;
-  border-radius: inherit;
-  transition: background 0.2s ease;
-}
-.dayoff-cell__value {
-  font-size: 12px;
-  font-weight: 600;
-  color: var(--fg);
-}
-.dayoff-cell__meta {
+.dayoff-tile__meta {
   font-size: 10px;
-  color: var(--muted);
+  color: color-mix(in oklab, currentColor, transparent 55%);
   font-variant-numeric: tabular-nums;
 }
 .pill {

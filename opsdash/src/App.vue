@@ -189,6 +189,7 @@
                 :config="activityCardConfig"
                 :day-off-trend="activityDayOffTrend"
                 :trend-unit="range === 'month' ? 'mo' : 'wk'"
+                :day-off-lookback="trendLookbackWeeks"
               />
               <BalanceOverviewCard
                 :overview="balanceOverview"
