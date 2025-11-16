@@ -104,6 +104,7 @@
 <script setup lang="ts">
 import { computed, onMounted, ref, watch } from 'vue'
 import type { DeckFeatureSettings } from '../../services/reporting'
+import { fetchDeckBoardsMeta } from '../../services/deck'
 
 const props = defineProps<{
   deckSettings: DeckFeatureSettings
@@ -134,25 +135,16 @@ const hasChanges = computed(
 async function loadBoards() {
   boardsLoading.value = true
   boardsError.value = ''
+  const hasOcGlobal = typeof window !== 'undefined' && typeof (window as any).OC !== 'undefined'
+  if (!hasOcGlobal) {
+    boardsLoading.value = false
+    boards.value = []
+    return
+  }
   try {
-    const response = await fetch(deckUrl('/ocs/v2.php/apps/deck/api/v1/boards'), {
-      headers: {
-        Accept: 'application/json',
-        'OCS-APIREQUEST': 'true',
-      },
-      credentials: 'same-origin',
-    })
-    if (!response.ok) {
-      throw new Error(`Deck boards request failed (${response.status})`)
-    }
-    const payload = await response.json()
-    const list = Array.isArray(payload?.ocs?.data)
-      ? payload.ocs.data
-      : Array.isArray(payload?.data)
-        ? payload.data
-        : []
+    const list = await fetchDeckBoardsMeta()
     boards.value = list
-      .map((entry: any) => ({
+      .map((entry) => ({
         id: Number(entry?.id ?? 0),
         title: String(entry?.title ?? 'Untitled board'),
       }))
@@ -164,16 +156,6 @@ async function loadBoards() {
   } finally {
     boardsLoading.value = false
   }
-}
-
-function deckUrl(path: string): string {
-  const relative = path.startsWith('/') ? path : `/${path}`
-  const w: any = typeof window !== 'undefined' ? window : {}
-  if (w.OC && typeof w.OC.generateUrl === 'function') {
-    return w.OC.generateUrl(relative)
-  }
-  const root = (w.OC && (w.OC.webroot || w.OC.getRootPath?.())) || w._oc_webroot || ''
-  return `${root}${relative}`
 }
 
 onMounted(() => {

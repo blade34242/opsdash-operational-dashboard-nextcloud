@@ -476,6 +476,7 @@ import {
   type ReportingConfig,
 } from '../services/reporting'
 import { createDefaultActivityCardConfig, type ActivityCardConfig } from '../services/targets'
+import { fetchDeckBoardsMeta } from '../services/deck'
 
 const props = defineProps<{
   visible: boolean
@@ -857,50 +858,22 @@ function cloneDeckSettings(value: DeckFeatureSettings): DeckFeatureSettings {
   return JSON.parse(JSON.stringify(value))
 }
 
-function deckUrl(path: string): string {
-  const relative = path.startsWith('/') ? path : `/${path}`
-  const w: any = typeof window !== 'undefined' ? window : {}
-  if (w.OC && typeof w.OC.generateUrl === 'function') {
-    return w.OC.generateUrl(relative)
-  }
-  const root = (w.OC && (w.OC.webroot || w.OC.getRootPath?.())) || w._oc_webroot || ''
-  if (root) {
-    return `${root}${relative}`
-  }
-  const origin = typeof w.location?.origin === 'string' ? w.location.origin : ''
-  if (origin) {
-    return `${origin}${relative}`
-  }
-  return relative
-}
-
 async function loadDeckBoards() {
   deckBoardsLoading.value = true
   deckBoardsError.value = ''
   const hasOcGlobal = typeof window !== 'undefined' && typeof (window as any).OC !== 'undefined'
   if (!hasOcGlobal) {
     deckBoardsLoading.value = false
+    deckBoards.value = []
     return
   }
   try {
-    const response = await fetch(deckUrl('/ocs/v2.php/apps/deck/api/v1/boards'), {
-      headers: {
-        Accept: 'application/json',
-        'OCS-APIREQUEST': 'true',
-      },
-      credentials: 'same-origin',
-    })
-    if (!response.ok) {
-      throw new Error(`Deck boards request failed (${response.status})`)
-    }
-    const payload = await response.json().catch(() => null)
-    const list = Array.isArray(payload?.ocs?.data)
-      ? payload.ocs.data
-      : Array.isArray(payload?.data)
-        ? payload.data
-        : []
+    const list = await fetchDeckBoardsMeta()
     deckBoards.value = list
-      .map((entry: any) => ({ id: Number(entry?.id ?? 0), title: String(entry?.title ?? 'Untitled board') }))
+      .map((entry) => ({
+        id: Number(entry?.id ?? 0),
+        title: String(entry?.title ?? 'Untitled board'),
+      }))
       .filter((entry) => Number.isInteger(entry.id) && entry.id > 0)
   } catch (error) {
     console.error('[opsdash] deck board request failed', error)

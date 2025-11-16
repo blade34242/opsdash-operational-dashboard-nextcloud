@@ -96,16 +96,7 @@ export async function fetchDeckCardsInRange(request: DeckRangeRequest): Promise<
   const includeCompleted = request.includeCompleted !== false
   const includeArchived = request.includeArchived !== false
 
-  let boardsPayload: any
-  try {
-    boardsPayload = await requestJson(buildDeckUrl('/apps/deck/api/v1/boards', { details: 0 }))
-  } catch (error) {
-    if (isDeckUnavailable(error)) {
-      return []
-    }
-    throw error
-  }
-  const boards = normalizeBoards(boardsPayload)
+  const boards = await fetchDeckBoardsMeta()
   if (boards.length === 0) {
     return []
   }
@@ -174,6 +165,19 @@ export async function fetchDeckCardsInRange(request: DeckRangeRequest): Promise<
     if (a.boardId !== b.boardId) return a.boardId - b.boardId
     return a.id - b.id
   })
+}
+
+export async function fetchDeckBoardsMeta(): Promise<DeckApiBoard[]> {
+  let boardsPayload: any
+  try {
+    boardsPayload = await requestJson(buildDeckUrl('/apps/deck/api/v1/boards', { details: 0 }))
+  } catch (error) {
+    if (isDeckUnavailable(error)) {
+      return []
+    }
+    throw error
+  }
+  return normalizeBoards(boardsPayload)
 }
 
 function normalizeBoards(payload: any): DeckApiBoard[] {
@@ -329,7 +333,11 @@ function buildDeckUrl(path: string, params?: Record<string, any>): string {
   }
   const root =
     (w.OC && (w.OC.webroot || w.OC.getRootPath?.())) || w._oc_webroot || ''
+  const origin = typeof w.location?.origin === 'string' ? w.location.origin : ''
   if (!root) {
+    if (origin) {
+      return query ? `${origin}${relative}?${query}` : `${origin}${relative}`
+    }
     return query ? `${relative}?${query}` : relative
   }
   return query ? `${root}${relative}?${query}` : `${root}${relative}`
