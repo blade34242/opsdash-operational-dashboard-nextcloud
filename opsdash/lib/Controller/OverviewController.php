@@ -2768,7 +2768,11 @@ final class OverviewController extends Controller {
                     $eventHours = 0.0;
                 }
                 if ($isAllDay) {
-                    $eventHours = $this->normalizeAllDayEventHours($row, $userTz, $allDayHours, $captureDays ? $daysSeen : null);
+                    $daysRef = $captureDays ? $daysSeen : null;
+                    $eventHours = $this->normalizeAllDayEventHours($row, $userTz, $allDayHours, $daysRef);
+                    if ($captureDays && $daysRef !== null) {
+                        $daysSeen = $daysRef;
+                    }
                 } elseif ($captureDays) {
                     $startStr = (string)($row['start'] ?? '');
                     $dayKey = substr($startStr, 0, 10);
