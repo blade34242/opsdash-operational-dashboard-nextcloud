@@ -20,14 +20,25 @@
         </div>
         <span v-if="trendBadge" class="heatmap-badge">{{ trendBadge }}</span>
       </div>
-      <div class="heatmap-grid">
+      <div class="heatmap-grid" :style="gridTemplateStyle">
         <div class="heatmap-heading"></div>
-        <div class="heatmap-head">Last {{ lookbackLabel }}</div>
+        <div
+          v-for="column in historyColumns"
+          :key="column.offset"
+          class="heatmap-head"
+        >
+          {{ column.label }}
+        </div>
         <div class="heatmap-head">Current range</div>
         <template v-for="row in trendRows" :key="row.id">
           <div class="heatmap-label">{{ row.label }}</div>
-          <div class="heatmap-cell" :style="heatStyle(row.lookbackShare)">
-            {{ formatShare(row.lookbackShare) }}
+          <div
+            v-for="(share, idx) in row.historyShares"
+            :key="`${row.id}-h-${idx}`"
+            class="heatmap-cell"
+            :style="heatStyle(share)"
+          >
+            {{ formatShare(share) }}
           </div>
           <div class="heatmap-cell heatmap-cell--current" :style="heatStyle(row.currentShare)">
             {{ formatShare(row.currentShare) }}
@@ -62,7 +73,15 @@ type BalanceCategory = {
 }
 
 type BalanceRelation = { label: string; value: string }
-type BalanceTrend = { delta: Array<{ id: string; label: string; delta: number }>; badge: string }
+type BalanceTrend = {
+  delta: Array<{ id: string; label: string; delta: number }>
+  badge: string
+  history?: Array<{
+    offset: number
+    label: string
+    categories: Array<{ id: string; label: string; share: number }>
+  }>
+}
 type BalanceDailyEntry = {
   date: string
   weekday: string
@@ -146,24 +165,56 @@ const lookbackLabel = computed(() => {
   return `${weeks} wk`
 })
 
+const historyColumns = computed(() => {
+  const history = props.overview?.trend?.history ?? []
+  if (history.length) {
+    return history
+  }
+  const deltas = props.overview?.trend?.delta ?? []
+  if (!deltas.length) {
+    return []
+  }
+  const fallbackCategories = (props.overview?.categories ?? []).map((cat) => {
+    const currentShare = typeof cat.share === 'number' ? cat.share : 0
+    const fallback =
+      typeof cat.prevShare === 'number'
+        ? cat.prevShare
+        : typeof cat.delta === 'number'
+          ? currentShare - cat.delta
+          : currentShare
+    return {
+      id: cat.id,
+      label: cat.label,
+      share: Math.max(0, fallback),
+    }
+  })
+  return [
+    { offset: 1, label: props.rangeMode === 'month' ? 'Prev month' : 'Prev week', categories: fallbackCategories },
+  ]
+})
 const trendRows = computed(() => {
   if (!props.overview) return []
-  const deltas = props.overview.trend?.delta ?? []
-  if (!deltas.length) return []
   const categories = props.overview.categories ?? []
-  return deltas.map(entry => {
-    const current = categories.find(cat => cat.id === entry.id)
-    const currentShare = current ? current.share : 0
-    const lookbackShare =
-      current && typeof current.prevShare === 'number'
-        ? current.prevShare
-        : currentShare - entry.delta
+  return categories.map((cat) => {
+    const historyShares = historyColumns.value.map((column) => {
+      const entry = column.categories?.find((c) => c.id === cat.id)
+      return entry ? entry.share : 0
+    })
+    const currentShare = typeof cat.share === 'number' ? cat.share : 0
+    const previousShare = historyShares.length
+      ? historyShares[historyShares.length - 1]
+      : typeof cat.prevShare === 'number'
+        ? cat.prevShare
+        : typeof cat.delta === 'number'
+          ? currentShare - cat.delta
+          : 0
     return {
-      id: entry.id,
-      label: entry.label,
+      id: cat.id,
+      label: cat.label,
       currentShare,
-      lookbackShare,
-      delta: entry.delta,
+      previousShare,
+      historyShares,
+      delta: currentShare - previousShare,
     }
   })
 })
@@ -176,6 +227,13 @@ const heatStyle = (value: number) => {
     color: intensity > 45 ? '#fff' : 'var(--fg)',
   }
 }
+
+const gridTemplateStyle = computed(() => {
+  const columns = historyColumns.value.length + 1
+  return {
+    gridTemplateColumns: `auto repeat(${columns}, minmax(0, 1fr))`,
+  }
+})
 
 const formatShare = (value: number) => `${Math.max(0, Math.round(value))}%`
 const formatDelta = (value: number) =>
@@ -273,7 +331,6 @@ const formatDelta = (value: number) =>
 }
 .heatmap-grid {
   display: grid;
-  grid-template-columns: auto 1fr 1fr;
   gap: 4px;
   font-size: 11px;
 }

@@ -17,6 +17,16 @@ function mountCard(overrides: Record<string, any> = {}) {
         { id: 'hobby', label: 'Hobby', delta: -12 },
       ],
       badge: 'Shifting to Work',
+      history: [
+        {
+          offset: 1,
+          label: 'Last week',
+          categories: [
+            { id: 'work', label: 'Work', share: 48 },
+            { id: 'hobby', label: 'Hobby', share: 32 },
+          ],
+        },
+      ],
     },
     daily: [],
     insights: [],
@@ -49,7 +59,11 @@ describe('BalanceOverviewCard', () => {
           { id: 'sport', label: 'Sport', hours: 12, share: 40, prevShare: undefined, delta: 8 },
         ],
         relations: [],
-        trend: { delta: [{ id: 'sport', label: 'Sport', delta: 8 }], badge: 'Shifting to Sport' },
+        trend: {
+          delta: [{ id: 'sport', label: 'Sport', delta: 8 }],
+          badge: 'Shifting to Sport',
+          history: [],
+        },
         daily: [],
         insights: [],
         warnings: [],

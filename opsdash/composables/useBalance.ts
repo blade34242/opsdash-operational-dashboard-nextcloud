@@ -15,7 +15,15 @@ export interface BalanceOverviewSummary {
   index: number
   categories: BalanceCategorySummary[]
   relations: { label: string; value: string }[]
-  trend: { delta: Array<{ id: string; label: string; delta: number }>; badge: string }
+  trend: {
+    delta: Array<{ id: string; label: string; delta: number }>
+    badge: string
+    history: Array<{
+      offset: number
+      label: string
+      categories: Array<{ id: string; label: string; share: number }>
+    }>
+  }
   daily: Array<{
     date: string
     weekday: string
@@ -58,6 +66,9 @@ export function useBalance(input: UseBalanceInput) {
         }))
       : []
 
+    const trendHistoryRaw = Array.isArray(raw.trend?.history)
+      ? raw.trend.history
+      : (Array.isArray(raw.trendHistory) ? raw.trendHistory : [])
     const trend = {
       delta: Array.isArray(raw.trend?.delta)
         ? raw.trend.delta.map((entry: any) => ({
@@ -67,6 +78,17 @@ export function useBalance(input: UseBalanceInput) {
           }))
         : [],
       badge: String(raw.trend?.badge ?? ''),
+      history: trendHistoryRaw.map((entry: any) => ({
+        offset: safeInt(entry?.offset) ?? 0,
+        label: String(entry?.label ?? ''),
+        categories: Array.isArray(entry?.categories)
+          ? entry.categories.map((cat: any) => ({
+              id: String(cat?.id ?? ''),
+              label: String(cat?.label ?? ''),
+              share: numOrNull(cat?.share) ?? 0,
+            }))
+          : [],
+      })),
     }
 
     const daily = Array.isArray(raw.daily)

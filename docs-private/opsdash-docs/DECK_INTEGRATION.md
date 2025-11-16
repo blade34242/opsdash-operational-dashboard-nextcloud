@@ -24,7 +24,7 @@ Explore how Opsdash can surface Deck board activity (cards, due dates, assignees
 
 ## Next Steps
 1. **Prototype Deck service** under `src/services/deck.ts` that calls `/ocs/v2.php/apps/deck/api/v1/boards` with the current request token/cookies. Reuse the `useOcHttp` composable.
-2. **Seed data** via `apps/opsdash/tools/seed_deck_boards.php` *or* `occ opsdash:seed-deck --user <uid>` so CI/fixtures have deterministic boards/cards for every relevant account (admin + QA).
+2. **Seed data** via `apps/opsdash/tools/seed_deck_boards.php`, `occ opsdash:seed-deck --user <uid>`, or the repo helper `./tools/seed_deck_occ.sh` (wraps OCC inside the docker container) so CI/fixtures have deterministic boards/cards for every relevant account (admin + QA).
 3. **Capture fixtures** (similar to calendar harness) and store them under `test/fixtures/deck-*` so Vitest can replay board payloads.
 4. **UI Spike**: start with a sidebar pane summarizing “Cards due this week” and link to the Deck app.
 

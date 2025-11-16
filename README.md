@@ -67,8 +67,13 @@ php occ opsdash:seed-deck --user admin    # seed primary Opsdash user
 php occ opsdash:seed-deck --user qa       # seed secondary QA account
 # optional: legacy helper still works
 php apps/opsdash/tools/seed_deck_boards.php
+
+# or from the repo root (executes OCC inside the docker container, default nc31-dev)
+./tools/seed_deck_occ.sh            # seeds admin + qa
+NEXTCLOUD_CONTAINER=nc-ci ./tools/seed_deck_occ.sh admin qa extrauser
 ```
-Seeds the `opsdash-focus` calendar plus deterministic Deck boards/cards used by Playwright and fixture captures. The OCC command is CI-friendly (resets stacks by default, supports `--board-title`, `--board-color`, `--keep-stacks`). Additional fixtures (load/persist/notes/deck) live under `opsdash/test/fixtures/` with capture instructions.
+Seeds the `opsdash-focus` calendar plus deterministic Deck boards/cards used by Playwright and fixture captures. The OCC command is CI-friendly (resets stacks by default, supports `--board-title`, `--board-color`, `--keep-stacks`). Additional fixtures (load/persist/notes/deck) live under `opsdash/test/fixtures/` with capture instructions.  
+The helper script respects `NEXTCLOUD_CONTAINER`, `QA_DECK_BOARD_TITLE`, `QA_DECK_BOARD_COLOR`, and `QA_DECK_KEEP_STACKS` so CI and local devs can reuse the same entry point.
 
 ## 📋 Roadmap Highlights
 - NC 31 releases in `0.4.x` stream; NC 32 (`0.5.x`) lands once CI matrices stabilize.

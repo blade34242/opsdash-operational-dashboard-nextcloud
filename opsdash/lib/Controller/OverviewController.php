@@ -869,90 +869,22 @@ final class OverviewController extends Controller {
 
         // --- Vorperiode (für Δ) ---
         [$pf,$pt] = $this->rangeBounds($range, $offset-1);
-        $pfStr=$pf->format('Y-m-d H:i:s'); $ptStr=$pt->format('Y-m-d H:i:s');
-        $prevTotal=0.0; $prevEvents=0; $prevDaysSeen=[];
-        foreach ($cals as $cal) {
-            $cid = (string)($cal->getUri() ?? spl_object_id($cal));
-            if (!empty($selectedIds) && !in_array($cid,$selectedIds,true)) continue;
-            $rawRows = [];
-            try {
-                if (method_exists($this->calendarManager, 'newQuery') && method_exists($this->calendarManager, 'searchForPrincipal')) {
-                    $q = $this->calendarManager->newQuery($principal);
-                    if (method_exists($q, 'addSearchCalendar')) $q->addSearchCalendar((string)$cal->getUri());
-                    if (method_exists($q, 'setTimerangeStart')) $q->setTimerangeStart($pf);
-                    if (method_exists($q, 'setTimerangeEnd'))   $q->setTimerangeEnd($pt);
-                    $res = $this->calendarManager->searchForPrincipal($q);
-                    if (is_array($res)) $rawRows = $res;
-                }
-            } catch (\Throwable) {}
-            $mode='empty'; $first=$rawRows[0]??null;
-            if (is_array($first) && isset($first['objects'])) $mode='structured';
-            elseif (is_array($first) && (isset($first['calendardata'])||isset($first['object']))) $mode='ics';
-            if ($this->isDebugEnabled()) {
-                $this->logger->debug('calendar prev-period result', ['app'=>$this->appName,'cal'=>$cid,'mode'=>$mode,'rows'=>is_array($rawRows)?count($rawRows):0]);
-            }
-            $rows = $this->parseRows($rawRows, (string)($cal->getDisplayName() ?: ($cal->getUri() ?? 'calendar')));
-            foreach ($rows as $r){
-                $isAllDayPrev = !empty($r['allday']);
-                $eventHours = (float)($r['hours'] ?? 0.0);
-                if ($eventHours < 0) {
-                    $eventHours = 0.0;
-                }
-                $prevCalId = (string)($r['calendar_id'] ?? ($r['calendar'] ?? ''));
-                $prevCat = $mapCalToCategory($prevCalId);
-
-                $startStr = (string)($r['start'] ?? '');
-                $endStr   = (string)($r['end'] ?? '');
-                $startTzName = (string)($r['startTz'] ?? '');
-                $endTzName   = (string)($r['endTz'] ?? '');
-
-                $dtStartUser = null;
-                $dtEndUser = null;
-
-                if ($isAllDayPrev) {
-                    try { $srcTzStart = new \DateTimeZone($startTzName ?: 'UTC'); } catch (\Throwable) { $srcTzStart = new \DateTimeZone('UTC'); }
-                    try { $srcTzEnd   = new \DateTimeZone($endTzName ?: 'UTC'); } catch (\Throwable) { $srcTzEnd   = new \DateTimeZone('UTC'); }
-                    $dtStart = $startStr !== '' ? new \DateTimeImmutable($startStr, $srcTzStart) : null;
-                    $dtEnd   = $endStr !== '' ? new \DateTimeImmutable($endStr, $srcTzEnd) : null;
-                    $dtStartUser = $dtStart?->setTimezone($userTz);
-                    $dtEndUser   = $dtEnd?->setTimezone($userTz);
-                    if ($dtStartUser) {
-                        $dtStartUser = $dtStartUser->setTime(0, 0, 0);
-                    }
-                    if ($dtEndUser) {
-                        $dtEndUser = $dtEndUser->setTime(0, 0, 0);
-                    }
-                    if (!$dtEndUser && $dtStartUser) {
-                        $dtEndUser = $dtStartUser->modify('+1 day');
-                    }
-                    $daysSpannedPrev = 1;
-                    if ($dtStartUser && $dtEndUser) {
-                        $eventDurSecondsPrev = max(0, $dtEndUser->getTimestamp() - $dtStartUser->getTimestamp());
-                        if ($eventDurSecondsPrev <= 0) {
-                            $eventDurSecondsPrev = 86400;
-                        }
-                        $daysSpannedPrev = max(1, (int)ceil($eventDurSecondsPrev / 86400));
-                    }
-                    $eventHours = $allDayHours * $daysSpannedPrev;
-                    if ($dtStartUser) {
-                        $currentDayPrev = $dtStartUser;
-                        for ($i = 0; $i < $daysSpannedPrev; $i++) {
-                            $prevDaysSeen[$currentDayPrev->format('Y-m-d')] = true;
-                            $currentDayPrev = $currentDayPrev->modify('+1 day');
-                        }
-                    }
-                } else {
-                    $dayKeyPrev = substr($startStr, 0, 10);
-                    if ($dayKeyPrev !== '') {
-                        $prevDaysSeen[$dayKeyPrev] = true;
-                    }
-                }
-
-                $prevTotal += $eventHours;
-                $prevEvents++;
-                $categoryTotalsPrev[$prevCat] = ($categoryTotalsPrev[$prevCat] ?? 0.0) + $eventHours;
-            }
-        }
+        $previousMetrics = $this->collectRangeCategoryTotals(
+            $pf,
+            $pt,
+            $categoryMeta,
+            $cals,
+            $selectedIds,
+            $principal,
+            $mapCalToCategory,
+            $userTz,
+            $allDayHours,
+            true
+        );
+        $categoryTotalsPrev = $previousMetrics['totals'];
+        $prevTotal = $previousMetrics['total'];
+        $prevEvents = $previousMetrics['events'];
+        $prevDaysSeen = $previousMetrics['daysSeen'];
         $prevDaysCount   = count($prevDaysSeen);
         $prevAvgPerDay   = $prevDaysCount   ? ($prevTotal / $prevDaysCount)   : 0;
         $prevAvgPerEvent = $prevEvents      ? ($prevTotal / $prevEvents)      : 0;
@@ -1015,6 +947,32 @@ final class OverviewController extends Controller {
             $trendLookback,
             $precomputedDaysWorked,
         );
+
+        $trendHistory = [];
+        $historySteps = max(1, min(12, $trendLookback));
+        for ($step = $historySteps; $step >= 1; $step--) {
+            if ($step === 1) {
+                $historyTotals = $categoryTotalsPrev;
+                $historyTotal = $prevTotal;
+            } else {
+                [$histFrom, $histTo] = $this->rangeBounds($range, $offset - $step);
+                $historyMetrics = $this->collectRangeCategoryTotals(
+                    $histFrom,
+                    $histTo,
+                    $categoryMeta,
+                    $cals,
+                    $selectedIds,
+                    $principal,
+                    $mapCalToCategory,
+                    $userTz,
+                    $allDayHours,
+                    false
+                );
+                $historyTotals = $historyMetrics['totals'];
+                $historyTotal = $historyMetrics['total'];
+            }
+            $trendHistory[] = $this->buildTrendHistoryEntry($range, $step, $historyTotals, $historyTotal, $categoryMeta);
+        }
 
         // Balance calculations
         $balanceConfig = $targetsConfig['balance'];
@@ -1095,7 +1053,7 @@ final class OverviewController extends Controller {
                 $trendBadge = 'Dropping ' . substr($maxDeltaLabel, 5);
             }
         }
-        $balanceTrend = ['delta'=>$trendEntries, 'badge'=>$trendBadge];
+        $balanceTrend = ['delta'=>$trendEntries, 'badge'=>$trendBadge, 'history'=>$trendHistory];
 
         // Daily stacks per category
         $balanceDaily = [];
@@ -1170,6 +1128,7 @@ final class OverviewController extends Controller {
             'daily' => $balanceDaily,
             'insights' => $balanceInsights,
             'warnings' => $balanceWarnings,
+            'trendHistory' => $trendHistory,
         ];
 
         $delta = [
@@ -2746,6 +2705,175 @@ final class OverviewController extends Controller {
             }
         }
         return count($daysSeen);
+    }
+
+    /**
+     * @return array{totals: array<string,float>, total: float, events: int, daysSeen: array<string>}
+     */
+    private function collectRangeCategoryTotals(
+        \DateTimeImmutable $from,
+        \DateTimeImmutable $to,
+        array $categoryMeta,
+        array $calendars,
+        array $selectedIds,
+        string $principal,
+        callable $mapCalToCategory,
+        \DateTimeZone $userTz,
+        float $allDayHours,
+        bool $captureDays = false
+    ): array {
+        $categoryTotals = [];
+        foreach ($categoryMeta as $catId => $_meta) {
+            $categoryTotals[$catId] = 0.0;
+        }
+        $totalHours = 0.0;
+        $eventCount = 0;
+        $daysSeen = [];
+
+        foreach ($calendars as $cal) {
+            $cid = (string)($cal->getUri() ?? spl_object_id($cal));
+            if (!empty($selectedIds) && !in_array($cid, $selectedIds, true)) {
+                continue;
+            }
+            $rawRows = [];
+            try {
+                if (method_exists($this->calendarManager, 'newQuery') && method_exists($this->calendarManager, 'searchForPrincipal')) {
+                    $q = $this->calendarManager->newQuery($principal);
+                    if (method_exists($q, 'addSearchCalendar')) {
+                        $q->addSearchCalendar((string)$cal->getUri());
+                    }
+                    if (method_exists($q, 'setTimerangeStart')) {
+                        $q->setTimerangeStart($from);
+                    }
+                    if (method_exists($q, 'setTimerangeEnd')) {
+                        $q->setTimerangeEnd($to);
+                    }
+                    $res = $this->calendarManager->searchForPrincipal($q);
+                    if (is_array($res)) {
+                        $rawRows = $res;
+                    }
+                }
+            } catch (\Throwable) {
+                // ignore failures for individual calendars
+            }
+            $rows = $this->parseRows(
+                $rawRows,
+                (string)($cal->getDisplayName() ?: ($cal->getUri() ?? 'calendar')),
+                (string)($cal->getUri() ?? spl_object_id($cal))
+            );
+            foreach ($rows as $row) {
+                $isAllDay = !empty($row['allday']);
+                $eventHours = (float)($row['hours'] ?? 0.0);
+                if ($eventHours < 0) {
+                    $eventHours = 0.0;
+                }
+                if ($isAllDay) {
+                    $eventHours = $this->normalizeAllDayEventHours($row, $userTz, $allDayHours, $captureDays ? $daysSeen : null);
+                } elseif ($captureDays) {
+                    $startStr = (string)($row['start'] ?? '');
+                    $dayKey = substr($startStr, 0, 10);
+                    if ($dayKey !== '') {
+                        $daysSeen[$dayKey] = true;
+                    }
+                }
+
+                $calId = (string)($row['calendar_id'] ?? ($row['calendar'] ?? ''));
+                $catId = $mapCalToCategory($calId);
+                $categoryTotals[$catId] = ($categoryTotals[$catId] ?? 0.0) + $eventHours;
+                $totalHours += $eventHours;
+                $eventCount++;
+            }
+        }
+
+        return [
+            'totals' => $categoryTotals,
+            'total' => $totalHours,
+            'events' => $eventCount,
+            'daysSeen' => $captureDays ? array_keys($daysSeen) : [],
+        ];
+    }
+
+    /**
+     * @param array<string,mixed> $row
+     * @param array<string,bool>|null $daysSeen
+     */
+    private function normalizeAllDayEventHours(
+        array $row,
+        \DateTimeZone $userTz,
+        float $allDayHours,
+        ?array &$daysSeen
+    ): float {
+        $startStr = (string)($row['start'] ?? '');
+        $endStr   = (string)($row['end'] ?? '');
+        $startTzName = (string)($row['startTz'] ?? '');
+        $endTzName   = (string)($row['endTz'] ?? '');
+
+        try { $srcTzStart = new \DateTimeZone($startTzName ?: 'UTC'); } catch (\Throwable) { $srcTzStart = new \DateTimeZone('UTC'); }
+        try { $srcTzEnd   = new \DateTimeZone($endTzName ?: 'UTC'); } catch (\Throwable) { $srcTzEnd   = new \DateTimeZone('UTC'); }
+        $dtStart = $startStr !== '' ? new \DateTimeImmutable($startStr, $srcTzStart) : null;
+        $dtEnd   = $endStr !== '' ? new \DateTimeImmutable($endStr, $srcTzEnd)   : null;
+        $dtStartUser = $dtStart?->setTimezone($userTz);
+        $dtEndUser   = $dtEnd?->setTimezone($userTz);
+        if ($dtStartUser) {
+            $dtStartUser = $dtStartUser->setTime(0, 0, 0);
+        }
+        if ($dtEndUser) {
+            $dtEndUser = $dtEndUser->setTime(0, 0, 0);
+        }
+        if (!$dtEndUser && $dtStartUser) {
+            $dtEndUser = $dtStartUser->modify('+1 day');
+        }
+        $daysSpanned = 1;
+        if ($dtStartUser && $dtEndUser) {
+            $eventDurSeconds = max(0, $dtEndUser->getTimestamp() - $dtStartUser->getTimestamp());
+            if ($eventDurSeconds <= 0) {
+                $eventDurSeconds = 86400;
+            }
+            $daysSpanned = max(1, (int)ceil($eventDurSeconds / 86400));
+        }
+        if ($dtStartUser && $daysSeen !== null) {
+            $currentDay = $dtStartUser;
+            for ($i = 0; $i < $daysSpanned; $i++) {
+                $daysSeen[$currentDay->format('Y-m-d')] = true;
+                $currentDay = $currentDay->modify('+1 day');
+            }
+        }
+        return $allDayHours * $daysSpanned;
+    }
+
+    /**
+     * @param array<string,float> $categoryTotals
+     * @param array<string,array{id:string,label:string}> $categoryMeta
+     */
+    private function buildTrendHistoryEntry(
+        string $range,
+        int $offsetStep,
+        array $categoryTotals,
+        float $totalHours,
+        array $categoryMeta
+    ): array {
+        $categories = [];
+        foreach ($categoryMeta as $catId => $meta) {
+            $share = $totalHours > 0 ? round((($categoryTotals[$catId] ?? 0.0) / $totalHours) * 100, 1) : 0.0;
+            $categories[] = [
+                'id' => $catId,
+                'label' => $meta['label'],
+                'share' => $share,
+            ];
+        }
+        return [
+            'offset' => $offsetStep,
+            'label' => $this->formatTrendHistoryLabel($range, $offsetStep),
+            'categories' => $categories,
+        ];
+    }
+
+    private function formatTrendHistoryLabel(string $range, int $offsetStep): string {
+        if ($offsetStep === 1) {
+            return $range === 'month' ? 'Last month' : 'Last week';
+        }
+        $unit = $range === 'month' ? 'mo' : 'wk';
+        return sprintf('-%d %s', $offsetStep, $unit);
     }
 
     /**
