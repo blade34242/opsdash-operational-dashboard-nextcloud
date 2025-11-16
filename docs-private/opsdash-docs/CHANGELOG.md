@@ -3,6 +3,9 @@
 All notable changes to this project are documented here. This file is served locally for development.
 
 ## [Unreleased]
+- Pending changes.
+
+## [0.4.6] - Unreleased
 - Feat: Onboarding wizard “Final tweaks” step now covers Deck boards, reporting cadence/reminders, and the Activity day-off heatmap toggle, and the review summary reflects those choices.
 - Feat: Reporting cadence + Activity heatmap preferences persist via `/overview/persist` (wizard + sidebar share the same payload), closing the loop on client/server defaults.
 - UI: Activity & Schedule card renders the “Days off” comparison as a compact heatmap grid that highlights the current week/month vs lookback windows.

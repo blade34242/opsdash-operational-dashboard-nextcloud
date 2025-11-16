@@ -1,5 +1,5 @@
 {
-  "version": "0.4.5",
+  "version": "0.4.6",
   "generated": "2025-11-10T12:00:00Z",
   "payload": {
     "cals": ["personal", "opsdash-focus", "opsdash-support"],

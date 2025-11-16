@@ -3,6 +3,9 @@
 All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
+- Pending changes.
+
+## [0.4.6] - Unreleased
 ### Added
 - Keyboard shortcuts overlay + `useKeyboardShortcuts` composable: Alt+←/→ navigation, Alt+N notes pane, Alt+T Config & Setup, Ctrl/⌘+S note save, and `?` cheat sheet.
 - QA month + notes fixtures (`load-month-qa.json`, `notes-month-qa.json`) wired into Vitest + PHPUnit to keep `/overview/load` + `/overview/notes` schema coverage in sync.
