@@ -1,22 +1,22 @@
 <template>
   <div class="card balance-card">
-    <div class="balance-card__header">
+    <div class="balance-card__header" :class="{'balance-card__header--compact': !showSummaryText}">
       <span>Balance Overview ({{ rangeLabel }})</span>
     </div>
-    <div class="balance-card__hero" v-if="heroLine">
+    <div class="balance-card__hero" v-if="heroLine && showSummaryText">
       <span>{{ heroLine }}</span>
     </div>
-    <div class="balance-card__relations" v-if="relationLine">
+    <div class="balance-card__relations" v-if="relationLine && showSummaryText">
       {{ relationLine }}
     </div>
-    <div class="balance-card__trend" v-if="trendLine">
+    <div class="balance-card__trend" v-if="trendLine && showSummaryText">
       <strong>WoW-Δ:</strong> {{ trendLine }}
     </div>
     <div class="balance-card__heatmap" v-if="trendRows.length">
       <div class="heatmap-header">
         <div>
           <div class="heatmap-title">Category mix trend</div>
-          <div class="heatmap-subtitle">Avg of last {{ lookbackLabel }}</div>
+          <div class="heatmap-subtitle">{{ lookbackLabel }}</div>
         </div>
         <span v-if="trendBadge" class="heatmap-badge">{{ trendBadge }}</span>
       </div>
@@ -157,14 +157,6 @@ const insights = computed(() => {
 const warnings = computed(() => props.overview?.warnings ?? [])
 const trendBadge = computed(() => props.overview?.trend?.badge ?? '')
 
-const lookbackLabel = computed(() => {
-  const weeks = Math.max(1, Math.min(12, props.lookbackWeeks || 1))
-  if (props.rangeMode === 'month') {
-    return `${weeks} mo`
-  }
-  return `${weeks} wk`
-})
-
 const historyColumns = computed(() => {
   const history = props.overview?.trend?.history ?? []
   if (history.length) {
@@ -219,6 +211,17 @@ const trendRows = computed(() => {
   })
 })
 
+const lookbackLabel = computed(() => {
+  const historyCount = historyColumns.value.length
+  if (historyCount > 1) {
+    const unit = props.rangeMode === 'month' ? 'months' : 'weeks'
+    return `History · last ${historyCount} ${unit}`
+  }
+  const weeks = Math.max(1, Math.min(12, props.lookbackWeeks || 1))
+  return props.rangeMode === 'month' ? `Avg of last ${weeks} mo` : `Avg of last ${weeks} wk`
+})
+
+const showSummaryText = computed(() => historyColumns.value.length <= 1)
 const heatStyle = (value: number) => {
   const clamped = Math.max(0, Math.min(100, value))
   const intensity = Math.round((clamped / 100) * 80)
@@ -256,6 +259,9 @@ const formatDelta = (value: number) =>
   font-weight: 600;
   color: var(--fg);
   font-size: 12px;
+}
+.balance-card__header--compact {
+  margin-bottom: 4px;
 }
 .balance-card__hero {
   font-weight: 600;

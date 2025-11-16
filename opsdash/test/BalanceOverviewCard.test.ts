@@ -73,4 +73,40 @@ describe('BalanceOverviewCard', () => {
     expect(cells[0].text()).toContain('32%')
     expect(cells[1].text()).toContain('40%')
   })
+
+  it('hides summary text when multiple history columns exist', () => {
+    const wrapper = mountCard({
+      overview: {
+        index: 0.81,
+        categories: [
+          { id: 'work', label: 'Work', hours: 15, share: 55, prevShare: 52, delta: 3 },
+        ],
+        relations: [{ label: 'Work:Hobby', value: '2:1' }],
+        trend: {
+          delta: [{ id: 'work', label: 'Work', delta: 3 }],
+          badge: 'Shifting to Work',
+          history: [
+            {
+              offset: 2,
+              label: '-2 wk',
+              categories: [{ id: 'work', label: 'Work', share: 40 }],
+            },
+            {
+              offset: 1,
+              label: 'Last week',
+              categories: [{ id: 'work', label: 'Work', share: 52 }],
+            },
+          ],
+        },
+        daily: [],
+        insights: [],
+        warnings: [],
+      },
+    })
+    expect(wrapper.find('.balance-card__hero').exists()).toBe(false)
+    expect(wrapper.find('.balance-card__relations').exists()).toBe(false)
+    expect(wrapper.find('.balance-card__trend').exists()).toBe(false)
+    const headers = wrapper.findAll('.heatmap-head')
+    expect(headers.length).toBe(3) // two history columns + current range
+  })
 })
