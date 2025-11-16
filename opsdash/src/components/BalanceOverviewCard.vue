@@ -13,11 +13,17 @@
       <strong>WoW-Δ:</strong> {{ trendLine }}
     </div>
     <div class="balance-card__heatmap" v-if="trendRows.length">
-      <div class="heatmap-header">Trend vs last {{ lookbackLabel }}</div>
+      <div class="heatmap-header">
+        <div>
+          <div class="heatmap-title">Category mix trend</div>
+          <div class="heatmap-subtitle">Avg of last {{ lookbackLabel }}</div>
+        </div>
+        <span v-if="trendBadge" class="heatmap-badge">{{ trendBadge }}</span>
+      </div>
       <div class="heatmap-grid">
         <div class="heatmap-heading"></div>
-        <div class="heatmap-head">Lookback</div>
-        <div class="heatmap-head">Current</div>
+        <div class="heatmap-head">Last {{ lookbackLabel }}</div>
+        <div class="heatmap-head">Current range</div>
         <template v-for="row in trendRows" :key="row.id">
           <div class="heatmap-label">{{ row.label }}</div>
           <div class="heatmap-cell" :style="heatStyle(row.lookbackShare)">
@@ -130,6 +136,7 @@ const insights = computed(() => {
   return props.overview?.insights ?? []
 })
 const warnings = computed(() => props.overview?.warnings ?? [])
+const trendBadge = computed(() => props.overview?.trend?.badge ?? '')
 
 const lookbackLabel = computed(() => {
   const weeks = Math.max(1, Math.min(12, props.lookbackWeeks || 1))
@@ -147,7 +154,10 @@ const trendRows = computed(() => {
   return deltas.map(entry => {
     const current = categories.find(cat => cat.id === entry.id)
     const currentShare = current ? current.share : 0
-    const lookbackShare = currentShare - entry.delta
+    const lookbackShare =
+      current && typeof current.prevShare === 'number'
+        ? current.prevShare
+        : currentShare - entry.delta
     return {
       id: entry.id,
       label: entry.label,
@@ -236,9 +246,30 @@ const formatDelta = (value: number) =>
   padding-top: 8px;
 }
 .heatmap-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+.heatmap-title {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--fg);
+}
+.heatmap-subtitle {
   font-size: 11px;
   color: var(--muted);
-  margin-bottom: 4px;
+}
+.heatmap-badge {
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: color-mix(in oklab, var(--brand), transparent 80%);
+  color: var(--brand);
+  border: 1px solid color-mix(in oklab, var(--brand), transparent 60%);
 }
 .heatmap-grid {
   display: grid;
