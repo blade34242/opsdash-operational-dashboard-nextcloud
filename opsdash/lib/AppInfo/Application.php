@@ -15,7 +15,7 @@ class Application extends App implements IBootstrap {
     }
 
     public function register(IRegistrationContext $context): void {
-        $context->registerCommand(\OCA\Opsdash\Command\SeedDeckCommand::class);
+        // Deck seeding command is disabled; nothing to register
     }
 
     public function boot(IBootContext $context): void {
