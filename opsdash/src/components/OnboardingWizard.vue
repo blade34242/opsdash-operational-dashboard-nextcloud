@@ -141,6 +141,97 @@
               </label>
               <p class="pref-hint">Default is 8 h — adjust if your organisation tracks different durations.</p>
             </article>
+
+            <article class="pref-card pref-card--deck">
+              <h4>Deck cards</h4>
+              <p class="pref-desc">Bring Deck boards into Opsdash. Cards remain read-only so you can focus on status.</p>
+              <label class="toggle-row">
+                <input
+                  type="checkbox"
+                  :checked="deckSettingsDraft.enabled"
+                  @change="setDeckEnabled(($event.target as HTMLInputElement).checked)"
+                />
+                <span>Show Deck tab inside Config &amp; Setup</span>
+              </label>
+              <template v-if="deckSettingsDraft.enabled">
+                <p class="pref-hint">Select which boards appear. Deck permissions still apply.</p>
+                <div class="deck-board-list">
+                  <p v-if="deckBoardsLoading" class="deck-status">Loading Deck boards…</p>
+                  <p v-else-if="deckBoardsError" class="deck-status deck-status--error">{{ deckBoardsError }}</p>
+                  <template v-else>
+                    <p v-if="!deckBoards.length" class="deck-status">Open the Deck app to create a board.</p>
+                    <div v-else class="deck-board-options" role="list">
+                      <label
+                        v-for="board in deckBoards"
+                        :key="board.id"
+                        class="deck-board-option"
+                        role="listitem"
+                      >
+                        <input
+                          type="checkbox"
+                          :checked="isDeckBoardVisible(board.id)"
+                          @change="toggleDeckBoard(board.id, ($event.target as HTMLInputElement).checked)"
+                        />
+                        <span>{{ board.title }}</span>
+                      </label>
+                    </div>
+                  </template>
+                </div>
+              </template>
+            </article>
+
+            <article class="pref-card pref-card--reporting">
+              <h4>Weekly/monthly recap</h4>
+              <p class="pref-desc">Opsdash can send a summary of targets, balance, and notes so you stay aligned.</p>
+              <label class="toggle-row">
+                <input
+                  type="checkbox"
+                  :checked="reportingDraft.enabled"
+                  @change="setReportingEnabled(($event.target as HTMLInputElement).checked)"
+                />
+                <span>Send a recap automatically</span>
+              </label>
+              <template v-if="reportingDraft.enabled">
+                <label class="field">
+                  <span class="label">Schedule</span>
+                  <select :value="reportingDraft.schedule" @change="setReportingSchedule(($event.target as HTMLSelectElement).value as ReportingConfig['schedule'])">
+                    <option value="week">Weekly</option>
+                    <option value="month">Monthly</option>
+                    <option value="both">Weekly + Monthly</option>
+                  </select>
+                </label>
+                <label class="field">
+                  <span class="label">Mid-range reminders</span>
+                  <select :value="reportingDraft.interim" @change="setReportingInterim(($event.target as HTMLSelectElement).value as ReportingConfig['interim'])">
+                    <option value="none">No interim reminder</option>
+                    <option value="midweek">Mid-week / mid-month only</option>
+                    <option value="daily">Daily nudge while enabled</option>
+                  </select>
+                </label>
+                <label class="field checkbox toggle-row">
+                  <input
+                    type="checkbox"
+                    :checked="reportingDraft.alertOnRisk"
+                    @change="updateReporting({ alertOnRisk: ($event.target as HTMLInputElement).checked })"
+                  />
+                  <span>Highlight when targets drift off-track</span>
+                </label>
+              </template>
+            </article>
+
+            <article class="pref-card pref-card--activity">
+              <h4>Activity insights</h4>
+              <p class="pref-desc">Choose whether the Activity &amp; Schedule card shows the day-off heatmap.</p>
+              <label class="toggle-row">
+                <input
+                  type="checkbox"
+                  :checked="activityDraft.showDayOffTrend"
+                  @change="setActivityDayOff(($event.target as HTMLInputElement).checked)"
+                />
+                <span>Show “Days off” trend heatmap</span>
+              </label>
+              <p class="pref-hint">Helps you compare recent weeks/months at a glance.</p>
+            </article>
           </div>
         </section>
 
@@ -327,6 +418,24 @@
                 <p>Total target: {{ draft.targetsConfig.totalHours }} h per week</p>
               </template>
             </div>
+            <div>
+              <h5>Deck tab</h5>
+              <p>{{ deckReviewSummary }}</p>
+              <ul v-if="deckSettingsDraft.enabled && deckVisibleBoards.length">
+                <li v-for="board in deckVisibleBoards.slice(0, 3)" :key="board.id">{{ board.title }}</li>
+                <li v-if="deckVisibleBoards.length > 3">+{{ deckVisibleBoards.length - 3 }} more</li>
+              </ul>
+            </div>
+            <div>
+              <h5>Reporting</h5>
+              <p>
+                {{ reportingDraft.enabled ? reportingSummary : 'Recap disabled' }}
+              </p>
+            </div>
+            <div>
+              <h5>Activity card</h5>
+              <p>{{ activityDraft.showDayOffTrend ? 'Days-off heatmap enabled' : 'Heatmap hidden' }}</p>
+            </div>
           </div>
           <p class="hint">You can fine-tune categories, goals, and pacing once the dashboard loads.</p>
         </section>
@@ -360,6 +469,13 @@ import {
   type CalendarSummary,
   type CategoryDraft,
 } from '../services/onboarding'
+import {
+  createDefaultDeckSettings,
+  createDefaultReportingConfig,
+  type DeckFeatureSettings,
+  type ReportingConfig,
+} from '../services/reporting'
+import { createDefaultActivityCardConfig, type ActivityCardConfig } from '../services/targets'
 
 const props = defineProps<{
   visible: boolean
@@ -373,6 +489,8 @@ const props = defineProps<{
   systemTheme?: 'light' | 'dark'
   initialAllDayHours?: number
   initialTotalHours?: number
+  initialDeckSettings?: DeckFeatureSettings
+  initialReportingConfig?: ReportingConfig
   hasExistingConfig?: boolean
   snapshotSaving?: boolean
   snapshotNotice?: { type: 'success' | 'error'; message: string } | null
@@ -389,6 +507,9 @@ const emit = defineEmits<{
     targetsWeek: Record<string, number>
     targetsMonth: Record<string, number>
     themePreference: 'auto' | 'light' | 'dark'
+    deckSettings: DeckFeatureSettings
+    reportingConfig: ReportingConfig
+    activityCard: Pick<ActivityCardConfig, 'showDayOffTrend'>
   }): void
   (e: 'save-current-config'): void
 }>()
@@ -404,6 +525,52 @@ const assignments = ref<Record<string, string>>({})
 const themePreference = ref<'auto' | 'light' | 'dark'>('auto')
 const allDayHoursInput = ref(8)
 const totalHoursInput = ref<number | null>(null)
+const deckSettingsDraft = ref<DeckFeatureSettings>(cloneDeckSettings(props.initialDeckSettings ?? createDefaultDeckSettings()))
+const reportingDraft = ref<ReportingConfig>({ ...(props.initialReportingConfig ?? createDefaultReportingConfig()) })
+const activityDraft = ref<Pick<ActivityCardConfig, 'showDayOffTrend'>>({
+  showDayOffTrend: props.initialTargetsConfig?.activityCard?.showDayOffTrend ?? true,
+})
+const deckBoards = ref<Array<{ id: number; title: string }>>([])
+const deckBoardsLoading = ref(false)
+const deckBoardsError = ref('')
+const deckVisibleBoards = computed(() => {
+  if (!deckSettingsDraft.value.enabled) return []
+  const hidden = new Set(deckSettingsDraft.value.hiddenBoards || [])
+  return deckBoards.value.filter((board) => !hidden.has(board.id))
+})
+const deckReviewSummary = computed(() => {
+  if (!deckSettingsDraft.value.enabled) return 'Deck tab disabled'
+  if (deckBoardsLoading.value) return 'Deck tab enabled — loading boards…'
+  if (deckBoardsError.value) return 'Deck tab enabled — open Deck to finish setup.'
+  if (!deckBoards.value.length) return 'Deck tab enabled — create a Deck board to see cards.'
+  if (!deckVisibleBoards.value.length) return 'Deck tab enabled — all boards hidden'
+  if (deckVisibleBoards.value.length === deckBoards.value.length) {
+    const total = deckVisibleBoards.value.length
+    return total === 1 ? 'Showing 1 board' : `Showing all ${total} boards`
+  }
+  if (deckVisibleBoards.value.length === 1) {
+    return `Showing ${deckVisibleBoards.value[0].title}`
+  }
+  if (deckVisibleBoards.value.length === 2) {
+    return `Showing ${deckVisibleBoards.value[0].title} and ${deckVisibleBoards.value[1].title}`
+  }
+  return `Showing ${deckVisibleBoards.value.length} boards`
+})
+
+const reportingSummary = computed(() => {
+  if (!reportingDraft.value.enabled) return 'Recap disabled'
+  const schedule = reportingDraft.value.schedule === 'both'
+    ? 'Weekly + monthly recap'
+    : reportingDraft.value.schedule === 'week'
+      ? 'Weekly recap'
+      : 'Monthly recap'
+  const interim = reportingDraft.value.interim === 'daily'
+    ? 'Daily reminder'
+    : reportingDraft.value.interim === 'midweek'
+      ? 'Mid-range reminder'
+      : 'No interim reminder'
+  return `${schedule} • ${interim}`
+})
 const openColorId = ref<string | null>(null)
 const previewTheme = computed(() => {
   if (themePreference.value === 'auto') {
@@ -473,6 +640,9 @@ onMounted(() => {
   if (typeof document !== 'undefined') {
     document.addEventListener('click', handleDocumentClick)
   }
+  loadDeckBoards().catch((error) => {
+    console.error('[opsdash] deck board load failed', error)
+  })
 })
 
 onUnmounted(() => {
@@ -490,6 +660,11 @@ function resetWizard() {
   themePreference.value = props.initialThemePreference ?? 'auto'
   allDayHoursInput.value = clampAllDayHours(props.initialAllDayHours ?? 8)
   totalHoursInput.value = clampTotalHours(props.initialTotalHours ?? null)
+  deckSettingsDraft.value = cloneDeckSettings(props.initialDeckSettings ?? createDefaultDeckSettings())
+  reportingDraft.value = { ...(props.initialReportingConfig ?? createDefaultReportingConfig()) }
+  activityDraft.value = {
+    showDayOffTrend: props.initialTargetsConfig?.activityCard?.showDayOffTrend ?? true,
+  }
   initializeStrategyState()
   if (categoriesEnabled.value) {
     totalHoursInput.value = clampTotalHours(categoryTotalHours.value)
@@ -678,6 +853,89 @@ function clampTotalHours(value: number | null): number | null {
   return Math.round(clamped * 100) / 100
 }
 
+function cloneDeckSettings(value: DeckFeatureSettings): DeckFeatureSettings {
+  return JSON.parse(JSON.stringify(value))
+}
+
+function deckUrl(path: string): string {
+  const relative = path.startsWith('/') ? path : `/${path}`
+  const w: any = typeof window !== 'undefined' ? window : {}
+  if (w.OC && typeof w.OC.generateUrl === 'function') {
+    return w.OC.generateUrl(relative)
+  }
+  const root = (w.OC && (w.OC.webroot || w.OC.getRootPath?.())) || w._oc_webroot || ''
+  if (root) {
+    return `${root}${relative}`
+  }
+  const origin = typeof w.location?.origin === 'string' ? w.location.origin : ''
+  if (origin) {
+    return `${origin}${relative}`
+  }
+  return relative
+}
+
+async function loadDeckBoards() {
+  deckBoardsLoading.value = true
+  deckBoardsError.value = ''
+  const hasOcGlobal = typeof window !== 'undefined' && typeof (window as any).OC !== 'undefined'
+  if (!hasOcGlobal) {
+    deckBoardsLoading.value = false
+    return
+  }
+  try {
+    const response = await fetch(deckUrl('/ocs/v2.php/apps/deck/api/v1/boards'), {
+      headers: {
+        Accept: 'application/json',
+        'OCS-APIREQUEST': 'true',
+      },
+      credentials: 'same-origin',
+    })
+    if (!response.ok) {
+      throw new Error(`Deck boards request failed (${response.status})`)
+    }
+    const payload = await response.json().catch(() => null)
+    const list = Array.isArray(payload?.ocs?.data)
+      ? payload.ocs.data
+      : Array.isArray(payload?.data)
+        ? payload.data
+        : []
+    deckBoards.value = list
+      .map((entry: any) => ({ id: Number(entry?.id ?? 0), title: String(entry?.title ?? 'Untitled board') }))
+      .filter((entry) => Number.isInteger(entry.id) && entry.id > 0)
+  } catch (error) {
+    console.error('[opsdash] deck board request failed', error)
+    deckBoardsError.value = 'Unable to load Deck boards. Open Deck to create one.'
+    deckBoards.value = []
+  } finally {
+    deckBoardsLoading.value = false
+  }
+}
+
+function setDeckEnabled(checked: boolean) {
+  deckSettingsDraft.value = {
+    ...deckSettingsDraft.value,
+    enabled: checked,
+  }
+}
+
+function isDeckBoardVisible(boardId: number) {
+  const hidden = deckSettingsDraft.value.hiddenBoards || []
+  return !hidden.includes(boardId)
+}
+
+function toggleDeckBoard(boardId: number, visible: boolean) {
+  const current = new Set(deckSettingsDraft.value.hiddenBoards || [])
+  if (visible) {
+    current.delete(boardId)
+  } else {
+    current.add(boardId)
+  }
+  deckSettingsDraft.value = {
+    ...deckSettingsDraft.value,
+    hiddenBoards: Array.from(current).sort((a, b) => a - b),
+  }
+}
+
 function setCategoryColor(id: string, color: string | null) {
   categories.value = categories.value.map((cat) =>
     cat.id === id ? { ...cat, color } : cat,
@@ -697,6 +955,26 @@ function onTotalHoursChange(input: HTMLInputElement) {
 function onAllDayHoursChange(input: HTMLInputElement) {
   const parsed = Number(input.value)
   allDayHoursInput.value = clampAllDayHours(Number.isFinite(parsed) ? parsed : allDayHoursInput.value)
+}
+
+function setReportingEnabled(enabled: boolean) {
+  reportingDraft.value = { ...reportingDraft.value, enabled }
+}
+
+function setReportingSchedule(value: ReportingConfig['schedule']) {
+  reportingDraft.value = { ...reportingDraft.value, schedule: value }
+}
+
+function setReportingInterim(value: ReportingConfig['interim']) {
+  reportingDraft.value = { ...reportingDraft.value, interim: value }
+}
+
+function updateReporting(patch: Partial<ReportingConfig>) {
+  reportingDraft.value = { ...reportingDraft.value, ...patch }
+}
+
+function setActivityDayOff(enabled: boolean) {
+  activityDraft.value = { ...activityDraft.value, showDayOffTrend: enabled }
 }
 
 const selectedCalendars = computed(() =>
@@ -787,6 +1065,9 @@ function emitComplete() {
     targetsWeek: result.targetsWeek,
     targetsMonth: result.targetsMonth,
     themePreference: themePreference.value,
+    deckSettings: cloneDeckSettings(deckSettingsDraft.value),
+    reportingConfig: { ...reportingDraft.value },
+    activityCard: { ...activityDraft.value },
   })
 }
 
@@ -1234,6 +1515,49 @@ function toggleCalendar(id: string, checkbox: HTMLInputElement) {
 
 .pref-card h4 {
   margin: 0;
+}
+
+.pref-card--deck .toggle-row {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  font-size: 0.95rem;
+}
+
+.pref-card--deck input[type="checkbox"] {
+  transform: scale(1.05);
+}
+
+.deck-board-list {
+  border: 1px solid color-mix(in oklab, var(--color-border), transparent 40%);
+  border-radius: 8px;
+  padding: 10px;
+  background: color-mix(in oklab, var(--color-main-background, #fff), transparent 6%);
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.deck-board-options {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.deck-board-option {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  font-size: 0.9rem;
+}
+
+.deck-status {
+  font-size: 0.85rem;
+  color: var(--color-text-light);
+}
+
+.deck-status--error {
+  color: var(--color-error);
 }
 
 .pref-desc {

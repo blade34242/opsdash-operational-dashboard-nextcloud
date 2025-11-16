@@ -12,6 +12,7 @@ import {
   type ReportingConfig,
   type DeckFeatureSettings,
 } from '../src/services/reporting'
+import { readBootstrapThemePreference } from '../src/services/theme'
 
 export interface OnboardingState {
   completed: boolean
@@ -60,7 +61,8 @@ export function useDashboard(deps: DashboardDeps) {
   const targetsMonth = ref<Record<string, number>>({})
   const targetsConfig = ref<TargetsConfig>(normalizeTargetsConfig(createDefaultTargetsConfig()))
   const onboarding = ref<OnboardingState | null>(null)
-  const themePreference = ref<'auto' | 'light' | 'dark'>('auto')
+  const bootstrapThemePreference = readBootstrapThemePreference() ?? 'auto'
+  const themePreference = ref<'auto' | 'light' | 'dark'>(bootstrapThemePreference)
   const reportingConfig = ref<ReportingConfig>(createDefaultReportingConfig())
   const deckSettings = ref<DeckFeatureSettings>(createDefaultDeckSettings())
 

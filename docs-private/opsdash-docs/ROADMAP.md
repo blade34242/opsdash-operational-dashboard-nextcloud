@@ -8,7 +8,9 @@ Single source of truth for the Opsdash backlog: high-level roadmap, target syste
 - Build artifacts are Vite manifest–driven; sidebar panes have independent components with shared validation.
 - `useDashboard*`, `useTheme*`, `useCalendarLinks`, and onboarding composables now power `App.vue`, leaving it as an orchestration shell.
 - All-day events respect the configurable “All-day event (h per day)” slider; range switching keeps targets, charts, and KPIs aligned.
-- Config & Setup exposes a reliable “Re-run onboarding” action; wizard state is snapshot-safe and theming hooks persist.
+- Config & Setup exposes a reliable “Re-run onboarding” action; wizard state is snapshot-safe, theming hooks persist, and the “Final tweaks” step now includes Deck boards, reporting cadence, and the Activity heatmap toggle.
+- Deck tab (preview) pulls real boards/cards via the Deck OCS API; CI seeds deterministic boards via `occ opsdash:seed-deck` so Playwright stays reliable.
+- Activity & Schedule card surfaces the “Days off” comparison as a heatmap, matching Balance’s trend lookback UX.
 - Core docs (Architecture, API, Dev Workflow, Packaging, Troubleshooting) match the shipping behaviour.
 
 ---
@@ -57,7 +59,7 @@ Single source of truth for the Opsdash backlog: high-level roadmap, target syste
 - ~~Surface keyboard shortcuts overlay.~~ ✅ overlay + shortcuts shipped in App.vue (0.4.6).
 - Add language/label packs for additional locales (de, fr, es). Track per-page label gaps and build i18n tooling before opening translations (`I18N_PLAN.md` covers extraction + review workflow).
 - Deck tab (preview) now renders real cards from the Deck API, caches range responses, links to Deck for follow-up, and exposes All/My cards filters.
-- Reporting groundwork: Sidebar tab lets users configure weekly/monthly digests (email + NC notifications) and Deck visibility; next step is wiring cron + templated emails.
+- Reporting groundwork: Sidebar + onboarding let users configure weekly/monthly digests (email + NC notifications) and Deck visibility; next step is wiring cron + templated emails/delivery.
 
 ### Watchlist / Questions
 - NC 33 support timeline; update `<nextcloud max-version>` when ready.
@@ -146,4 +148,4 @@ Single source of truth for the Opsdash backlog: high-level roadmap, target syste
 2. Land preset export/import + multi-user Playwright coverage (Testing Guide Phase 2).
 3. Extend Vitest fixture harness to cover `/overview/load` offsets (week/month ±1) and update failing assertions.
 4. Keep this roadmap updated whenever backlog items move across phases.
-5. Draft Deck integration notes (`DECK_INTEGRATION.md`) and reporting concept (`REPORTING_FEATURE.md`) so follow-up spikes have a home.
+5. Prototype reporting CLI/delivery (per `REPORTING_FEATURE.md`) now that config storage/onboarding toggles exist; follow up with Deck integration notes as needed.

@@ -1436,6 +1436,21 @@ final class OverviewController extends Controller {
             $reportingSaved = $cleanReporting;
         }
         $reportingRead = $this->readReportingConfig($uid);
+        if (isset($data['targets_config_activity'])) {
+            $activity = $data['targets_config_activity'];
+            if (is_array($activity) && array_key_exists('showDayOffTrend', $activity)) {
+                $currentCfg = $targetsConfigSaved ?? $this->readTargetsConfig($uid);
+                if (is_array($currentCfg)) {
+                    if (!isset($currentCfg['activityCard']) || !is_array($currentCfg['activityCard'])) {
+                        $currentCfg['activityCard'] = [];
+                    }
+                    $currentCfg['activityCard']['showDayOffTrend'] = $activity['showDayOffTrend'] !== false;
+                    $this->config->setUserValue($uid, $this->appName, 'targets_config', json_encode($currentCfg));
+                    $targetsConfigSaved = $currentCfg;
+                    $targetsConfigRead = $currentCfg;
+                }
+            }
+        }
         if (isset($data['deck_settings'])) {
             $cleanDeck = $this->sanitizeDeckSettings($data['deck_settings']);
             $this->config->setUserValue($uid, $this->appName, 'deck_settings', json_encode($cleanDeck));

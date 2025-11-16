@@ -20,7 +20,7 @@
         <strong>{{ item.label }}</strong> {{ item.value }}
       </span>
     </div>
-    <div class="activity-card__trend" v-if="settings.showDayOffTrend && dayOffRows.length">
+    <div class="activity-card__trend" v-if="settings.showDayOffTrend && dayOffTiles.length">
       <div class="dayoff-header">
         <span>Days off trend</span>
         <span class="dayoff-meta" v-if="lookbackLabel">
@@ -29,16 +29,19 @@
       </div>
       <div class="dayoff-grid">
         <div
-          v-for="entry in dayOffRows"
+          v-for="entry in dayOffTiles"
           :key="entry.offset"
-          class="dayoff-row"
-          :class="{ 'dayoff-row--current': entry.offset === 0 }"
+          class="dayoff-cell"
+          :class="{ 'dayoff-cell--current': entry.offset === 0 }"
         >
-          <div class="dayoff-row__label">{{ entry.label }}</div>
-          <div class="dayoff-row__bar">
-            <div class="dayoff-row__fill" :style="barStyle(entry)" />
+          <div class="dayoff-cell__label">{{ entry.label }}</div>
+          <div class="dayoff-cell__bar">
+            <div class="dayoff-cell__fill" :style="cellStyle(entry.share)" />
           </div>
-          <div class="dayoff-row__value">{{ entry.daysOff }} / {{ entry.totalDays }}</div>
+          <div class="dayoff-cell__value">{{ shareLabel(entry.share) }}</div>
+          <div class="dayoff-cell__meta">
+            {{ entry.daysOff }} off · {{ entry.daysWorked }} on
+          </div>
         </div>
       </div>
     </div>
@@ -77,6 +80,8 @@ type DayOffTrendEntry = {
   daysOff: number
   daysWorked: number
 }
+
+type DayOffTrendTile = DayOffTrendEntry & { share: number }
 
 const defaultConfig: ActivityCardConfig = createDefaultActivityCardConfig()
 
@@ -144,10 +149,17 @@ const extraLine = computed(() => {
   return items
 })
 
-const dayOffRows = computed<DayOffTrendEntry[]>(() => props.dayOffTrend ?? [])
+const dayOffTiles = computed<DayOffTrendTile[]>(() => {
+  return (props.dayOffTrend ?? []).map((entry) => {
+    const total = Math.max(0, Number(entry.totalDays) || 0)
+    const daysOff = Math.max(0, Math.min(total, Number(entry.daysOff) || 0))
+    const share = total > 0 ? daysOff / total : 0
+    return { ...entry, share }
+  })
+})
 
 const lookbackLabel = computed(() => {
-  const history = dayOffRows.value.length - 1
+  const history = dayOffTiles.value.length - 1
   if (history <= 0) return ''
   if (props.trendUnit === 'mo') {
     return `${history} ${history === 1 ? 'month' : 'months'}`
@@ -191,10 +203,17 @@ function shortDate(value: string): string {
   return str
 }
 
-function barStyle(entry: DayOffTrendEntry) {
-  const share = entry.totalDays > 0 ? entry.daysOff / entry.totalDays : 0
-  const pct = Math.max(0, Math.min(1, share)) * 100
-  return { width: `${pct}%` }
+function shareLabel(value: number) {
+  const pct = Math.max(0, Math.min(1, value))
+  return `${Math.round(pct * 100)}% off`
+}
+
+function cellStyle(value: number) {
+  const pct = Math.max(0, Math.min(1, value))
+  const alpha = 0.25 + pct * 0.5
+  return {
+    background: `rgba(37, 99, 235, ${alpha})`,
+  }
 }
 </script>
 
@@ -241,58 +260,64 @@ function barStyle(entry: DayOffTrendEntry) {
 }
 .activity-card__trend {
   border-top: 1px solid var(--color-border-maxcontrast, rgba(125, 125, 125, 0.2));
-  padding-top: 8px;
+  padding-top: 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
 }
 .dayoff-header {
   display: flex;
   justify-content: space-between;
   font-size: 11px;
   color: var(--muted);
-  margin-bottom: 4px;
 }
 .dayoff-meta {
-  opacity: 0.9;
+  opacity: 0.85;
 }
 .dayoff-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+  gap: 8px;
+}
+.dayoff-cell {
+  border: 1px solid color-mix(in srgb, var(--color-border) 65%, transparent);
+  border-radius: 10px;
+  padding: 8px;
   display: flex;
   flex-direction: column;
   gap: 6px;
+  background: color-mix(in srgb, var(--color-main-background, #fff) 85%, transparent);
 }
-.dayoff-row {
-  display: flex;
-  align-items: center;
-  gap: 8px;
+.dayoff-cell--current {
+  border-color: color-mix(in srgb, var(--brand) 45%, transparent);
+  box-shadow: 0 0 0 1px color-mix(in srgb, var(--brand) 20%, transparent);
+}
+.dayoff-cell__label {
   font-size: 11px;
-  color: var(--muted);
-}
-.dayoff-row--current .dayoff-row__label {
   font-weight: 600;
   color: var(--fg);
 }
-.dayoff-row__label {
-  width: 80px;
-}
-.dayoff-row__bar {
-  flex: 1;
-  position: relative;
+.dayoff-cell__bar {
   height: 6px;
   border-radius: 999px;
-  background: color-mix(in srgb, var(--brand) 8%, transparent);
+  background: color-mix(in srgb, var(--brand) 10%, transparent);
   overflow: hidden;
 }
-.dayoff-row__fill {
-  position: absolute;
-  top: 0;
-  left: 0;
-  bottom: 0;
-  background: color-mix(in srgb, var(--brand) 55%, transparent);
-  border-radius: 999px;
+.dayoff-cell__fill {
+  height: 100%;
+  width: 100%;
+  border-radius: inherit;
+  transition: background 0.2s ease;
 }
-.dayoff-row__value {
-  width: 56px;
-  text-align: right;
-  font-variant-numeric: tabular-nums;
+.dayoff-cell__value {
+  font-size: 12px;
+  font-weight: 600;
   color: var(--fg);
+}
+.dayoff-cell__meta {
+  font-size: 10px;
+  color: var(--muted);
+  font-variant-numeric: tabular-nums;
 }
 .pill {
   display: inline-flex;

@@ -24,10 +24,15 @@ OC_Mail` to send a templated HTML email (respecting Nextcloud mail settings).
 - Add a CLI command (`php occ opsdash:report --range=week --user=<uid>`) and wire it to a cron job.
 - Store report history or simply log delivery to avoid duplicates.
 
+## Current Progress
+- Sidebar “Report” tab and the onboarding wizard both persist `reporting_config` (enabled, schedule, interim reminders, alert-on-risk). `/overview/persist` sanitises the payload, so client + server stay in sync.
+- Deck seeding/script work ensures Playwright has deterministic boards, keeping the Deck toggle good during onboarding/testing.
+- Delivery engine/CLI not implemented yet; the config currently exists purely for future automation.
+
 ## Next Steps
 1. Prototype the CLI command with mock payloads and log output (no delivery yet).
 2. Capture report fixtures (week/month) once the formatter is stable so Vitest/PHPUnit can validate the schema.
-3. Add user-level toggles in Config & Setup (“Email me weekly report”).
+3. Wire the stored config to a delivery pipeline (Activity notification and/or email) plus cron integration.
 4. Decide on the first delivery channel (Activity vs Email) and document data retention expectations.
 
 ## Open Questions

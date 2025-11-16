@@ -2,7 +2,8 @@ import { ref, type Ref } from 'vue'
 
 import type { OnboardingState } from './useDashboard'
 import type { ThemePreference } from './useThemePreference'
-import type { TargetsConfig } from '../src/services/targets'
+import type { TargetsConfig, ActivityCardConfig } from '../src/services/targets'
+import type { DeckFeatureSettings, ReportingConfig } from '../src/services/reporting'
 import { ONBOARDING_VERSION, type StrategyDefinition } from '../src/services/onboarding'
 
 export type WizardSnapshotNotice = {
@@ -18,6 +19,9 @@ export interface WizardCompletePayload {
   targetsWeek: Record<string, number>
   targetsMonth: Record<string, number>
   themePreference: ThemePreference
+  deckSettings: DeckFeatureSettings
+  reportingConfig: ReportingConfig
+  activityCard: Pick<ActivityCardConfig, 'showDayOffTrend'>
 }
 
 interface OnboardingActionDeps {
@@ -48,6 +52,9 @@ export function useOnboardingActions(deps: OnboardingActionDeps) {
         targets_month: payload.targetsMonth,
         targets_config: payload.targetsConfig,
         theme_preference: payload.themePreference,
+        deck_settings: payload.deckSettings,
+        reporting_config: payload.reportingConfig,
+        targets_config_activity: payload.activityCard,
         onboarding: {
           completed: true,
           version: ONBOARDING_VERSION,

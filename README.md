@@ -16,7 +16,7 @@
 - **Stay on target** – per-calendar & per-category goals with pacing badges, Δ indicators, and quick forecasting.
 - **Balance at a glance** – stacked bars, category pies, heatmaps, “By Calendar/Day/Top/Heatmap” tabs.
 - **Onboarding & presets** – snapshot the sidebar, rerun the wizard, and keep teammates aligned with shared profiles.
-- **Notes + theming** – week/month notes (editable + read-only history) and per-user theme preferences.
+- **Notes + theming** – week/month notes (editable + read-only history) and per-user theme preferences that load instantly even after clearing cache.
 - **Native & private** – Vue 3 SPA rendered via Nextcloud’s CSP, CSRF, and permissions. No telemetry, no external APIs.
 
 ## 🧭 Compatibility Matrix
@@ -36,7 +36,8 @@ occ app:enable opsdash
 - 🎯 **Targets & pacing** – per calendar/category goals, pace hints, momentum forecasts, daypart insights, and badges.
 - ⚖️ **Balance** – share cards, stacked bars, relations/ratios, trend lookback, heatmaps, longest sessions, daypart toggles.
 - 🧠 **Notes** – edit “This week/month”, read “Last week/month”, optional display on the Balance card.
-- 🧩 **Onboarding wizard & presets** – guided setup, rerun from Config & Setup, save/load/delete presets, export/import, theme selector.
+- 🧩 **Onboarding wizard & presets** – guided setup (calendars, targets, Deck boards, reporting cadence, Activity heatmap toggle), rerun from Config & Setup, save/load/delete presets, export/import, theme selector.
+- 🗓️ **Activity & schedule** – KPIs for events/active days plus a “Days off” heatmap that compares the current range with the last few weeks/months.
 - 🔐 **Nextcloud-native** – same theme, request token, permissions, Dav colors, and zero external calls.
 - 🗂️ **Deck tab (preview)** – read-only list of Deck cards due or completed in the active week/month range, with All/My cards filters and a quick link to the Deck app.
 - 📨 **Report tab (preview)** – configure weekly/monthly digests, interim reminders, and Deck visibility using Nextcloud notifications + email.
@@ -62,7 +63,8 @@ npm run test:e2e
 ```bash
 # run from Nextcloud root
 php apps/opsdash/tools/seed_qa_calendars.php
-php occ opsdash:seed-deck --user qa
+php occ opsdash:seed-deck --user admin    # seed primary Opsdash user
+php occ opsdash:seed-deck --user qa       # seed secondary QA account
 # optional: legacy helper still works
 php apps/opsdash/tools/seed_deck_boards.php
 ```

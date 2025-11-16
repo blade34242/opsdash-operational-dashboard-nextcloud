@@ -4,6 +4,7 @@ import { ref } from 'vue'
 import { useOnboardingActions } from '../composables/useOnboardingActions'
 import type { OnboardingState } from '../composables/useDashboard'
 import { createDefaultTargetsConfig } from '../src/services/targets'
+import { createDefaultDeckSettings, createDefaultReportingConfig } from '../src/services/reporting'
 
 function setup(overrides: Partial<Parameters<typeof useOnboardingActions>[0]> = {}) {
   const onboardingState = ref<OnboardingState | null>({
@@ -60,6 +61,9 @@ describe('useOnboardingActions', () => {
       targetsWeek: {},
       targetsMonth: {},
       themePreference: 'auto',
+      deckSettings: createDefaultDeckSettings(),
+      reportingConfig: createDefaultReportingConfig(),
+      activityCard: { showDayOffTrend: true },
     })
 
     expect(ctx.postJson).toHaveBeenCalledWith('/persist', expect.objectContaining({

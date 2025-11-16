@@ -4,6 +4,7 @@ import { ref, nextTick } from 'vue'
 import { useOnboardingFlow } from '../composables/useOnboardingFlow'
 import type { OnboardingState } from '../composables/useDashboard'
 import { createDefaultTargetsConfig } from '../src/services/targets'
+import { createDefaultDeckSettings, createDefaultReportingConfig } from '../src/services/reporting'
 import type { OnboardingActions } from '../composables/useOnboardingActions'
 
 function setupFlow(overrides: Partial<Parameters<typeof useOnboardingFlow>[0]> = {}) {
@@ -11,6 +12,8 @@ function setupFlow(overrides: Partial<Parameters<typeof useOnboardingFlow>[0]> =
   const calendars = ref<any[]>([{ id: 'cal-1', displayname: 'Primary', color: '#ff0000' }])
   const selected = ref<string[]>(['cal-1'])
   const targetsConfig = ref(createDefaultTargetsConfig())
+  const deckSettings = ref(createDefaultDeckSettings())
+  const reportingConfig = ref(createDefaultReportingConfig())
   const hasInitialLoad = ref(false)
   const actions: OnboardingActions = {
     isOnboardingSaving: ref(false),
@@ -26,6 +29,8 @@ function setupFlow(overrides: Partial<Parameters<typeof useOnboardingFlow>[0]> =
     calendars,
     selected,
     targetsConfig,
+    deckSettings,
+    reportingConfig,
     hasInitialLoad,
     actions,
     ...overrides,
@@ -36,6 +41,7 @@ function setupFlow(overrides: Partial<Parameters<typeof useOnboardingFlow>[0]> =
     calendars,
     selected,
     targetsConfig,
+    deckSettings,
     hasInitialLoad,
     actions,
     ...flow,
@@ -85,6 +91,7 @@ describe('useOnboardingFlow', () => {
       targetsWeek: {},
       targetsMonth: {},
       themePreference: 'auto',
+      deckSettings: ctx.deckSettings.value,
     })
 
     expect(ctx.actions.complete).toHaveBeenCalledTimes(1)

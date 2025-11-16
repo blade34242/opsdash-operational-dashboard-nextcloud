@@ -12,6 +12,8 @@
       :system-theme="systemTheme"
       :initial-all-day-hours="wizardInitialAllDayHours"
       :initial-total-hours="wizardInitialTotalHours"
+      :initial-deck-settings="wizardInitialDeckSettings"
+      :initial-reporting-config="wizardInitialReportingConfig"
       :has-existing-config="hasExistingConfig"
       :saving="isOnboardingSaving"
       :snapshot-saving="isWizardSnapshotSaving"
@@ -670,6 +672,8 @@ const {
   wizardInitialStrategy,
   wizardInitialAllDayHours,
   wizardInitialTotalHours,
+  wizardInitialDeckSettings,
+  wizardInitialReportingConfig,
   isOnboardingSaving,
   isSnapshotSaving: isWizardSnapshotSaving,
   snapshotNotice: wizardSnapshotNotice,
@@ -683,6 +687,8 @@ const {
   calendars,
   selected,
   targetsConfig,
+  deckSettings,
+  reportingConfig,
   hasInitialLoad,
   actions: onboardingActions,
 })

@@ -1,6 +1,19 @@
+export type ThemePreferenceValue = 'auto' | 'light' | 'dark'
+
 let faviconObserver: MutationObserver | null = null
 let mqCleanup: (() => void) | null = null
 let themeEventBound = false
+
+export function readBootstrapThemePreference(): ThemePreferenceValue | null {
+  if (typeof document === 'undefined') {
+    return null
+  }
+  const attr = document.getElementById('app')?.getAttribute('data-opsdash-theme-preference')
+  if (attr === 'auto' || attr === 'light' || attr === 'dark') {
+    return attr
+  }
+  return null
+}
 
 export function installThemeBootloader(): void {
   if (typeof window === 'undefined') {

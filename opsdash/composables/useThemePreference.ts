@@ -1,7 +1,7 @@
 import { computed, ref, watch, onMounted, onBeforeUnmount } from 'vue'
-import { resolveCurrentTheme } from '../src/services/theme'
+import { resolveCurrentTheme, readBootstrapThemePreference, type ThemePreferenceValue } from '../src/services/theme'
 
-export type ThemePreference = 'auto' | 'light' | 'dark'
+export type ThemePreference = ThemePreferenceValue
 export type ThemeMode = 'light' | 'dark'
 
 const preference = ref<ThemePreference>('auto')
@@ -12,23 +12,8 @@ const effectiveTheme = computed<ThemeMode>(() => {
   return preference.value === 'auto' ? systemTheme.value : preference.value
 })
 
-function readBootstrapPreference(): ThemePreference | null {
-  if (typeof document === 'undefined') {
-    return null
-  }
-  const el = document.getElementById('app')
-  if (!el) {
-    return null
-  }
-  const attr = el.getAttribute('data-opsdash-theme-preference')
-  if (attr === 'light' || attr === 'dark' || attr === 'auto') {
-    return attr
-  }
-  return null
-}
-
 function readStoredPreference(): ThemePreference {
-  const bootstrap = readBootstrapPreference()
+  const bootstrap = readBootstrapThemePreference()
   return bootstrap ?? 'auto'
 }
 
