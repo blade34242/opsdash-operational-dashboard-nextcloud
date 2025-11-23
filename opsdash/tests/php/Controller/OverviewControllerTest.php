@@ -176,6 +176,30 @@ class OverviewControllerTest extends TestCase {
     $this->assertSame(12, $resultTwelve['trend']['lookbackWeeks']);
   }
 
+  public function testBalanceUiDefaultsAndDropsDeprecatedFields(): void {
+    $method = new \ReflectionMethod(OverviewController::class, 'cleanTargetsConfig');
+    $method->setAccessible(true);
+
+    /** @var array<string,mixed> $result */
+    $result = $method->invoke($this->controller, [
+      'balance' => [
+        'ui' => [
+          'showNotes' => true,
+          'roundPercent' => 2,
+          'roundRatio' => 2,
+          'showDailyStacks' => true,
+        ],
+      ],
+    ]);
+
+    $this->assertSame(['showNotes' => true], $result['balance']['ui']);
+
+    /** @var array<string,mixed> $defaults */
+    $defaults = $method->invoke($this->controller, ['balance' => []]);
+    $this->assertArrayHasKey('showNotes', $defaults['balance']['ui']);
+    $this->assertFalse($defaults['balance']['ui']['showNotes']);
+  }
+
   public function testBalanceIndexBasisSanitises(): void {
     $method = new \ReflectionMethod(OverviewController::class, 'cleanBalanceConfig');
     $method->setAccessible(true);

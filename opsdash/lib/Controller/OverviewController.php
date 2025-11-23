@@ -931,7 +931,7 @@ final class OverviewController extends Controller {
         }
 
         $balanceConfig = $targetsConfig['balance'];
-        $trendLookback = (int)($balanceConfig['trend']['lookbackWeeks'] ?? 1);
+        $trendLookback = (int)($balanceConfig['trend']['lookbackWeeks'] ?? 4);
         $precomputedDaysWorked = [];
         if (!empty($prevDaysSeen)) {
             $precomputedDaysWorked[1] = count($prevDaysSeen);
@@ -2675,7 +2675,7 @@ final class OverviewController extends Controller {
         int $lookbackWeeks,
         array $precomputedDaysWorked = [],
     ): array {
-        $maxLookback = max(1, min(4, $lookbackWeeks ?: 1));
+        $maxLookback = max(1, min(12, $lookbackWeeks ?: 4));
         $trend = [];
         $dayMap = [];
         foreach ($currentByDay as $key => $payload) {

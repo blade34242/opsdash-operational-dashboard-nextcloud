@@ -34,7 +34,7 @@ Single source of truth for the Opsdash backlog: high-level roadmap, target syste
 ### P0 – Confidence & Maintenance
 
 - Trend lookback bug: fix Balance + Activity history so offsets > 1 load/visualise correctly (respect sidebar config + `/overview/load` payloads, verify week/month lookback handling end to end).
-- Balance UI/config simplification: remove precision/showDailyStacks toggles, hardcode 1-decimal rounding server-side, align default lookback to 4, and refresh fixtures/tests so `/overview/persist` stays lean.
+- Balance UI/config simplification: precision + daily stack knobs removed from UI/fixtures; finish hardcoding 1-decimal rounding server-side, align default lookback to 4, and ensure `/overview/persist` stays lean without those keys.
 - Expand Vitest around `buildTargetsSummary`, `computePaceInfo`, chart helpers, keyboard shortcuts.
 - Ensure `/overview/persist` always echoes `balance.ui.*` flags (allows client merge cleanup).
 - Maintain curl docs for `/overview/persist`, `/overview/notes`, preset flows.
