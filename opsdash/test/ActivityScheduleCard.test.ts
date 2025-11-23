@@ -59,4 +59,25 @@ describe('ActivityScheduleCard', () => {
     const tiles = wrapper.findAll('.dayoff-tile')
     expect(tiles[0].classes()).toContain('dayoff-tile--high')
   })
+
+  it('derives lookback length from history and applies tone classes', () => {
+    const wrapper = mount(ActivityScheduleCard, {
+      props: {
+        summary: baseSummary,
+        rangeLabel: 'Week 12',
+        config: { showDayOffTrend: true },
+        trendUnit: 'wk',
+        dayOffTrend: [
+          { offset: 0, label: 'This week', from: '', to: '', totalDays: 7, daysOff: 0, daysWorked: 7 },
+          { offset: 1, label: '-1 wk', from: '', to: '', totalDays: 7, daysOff: 3, daysWorked: 4 },
+          { offset: 2, label: '-2 wk', from: '', to: '', totalDays: 4, daysOff: 3, daysWorked: 1 },
+        ],
+      },
+    })
+    const tiles = wrapper.findAll('.dayoff-tile')
+    expect(tiles).toHaveLength(3) // current + offsets inferred from history
+    expect(tiles[0].classes()).toContain('dayoff-tile--low') // 0/7
+    expect(tiles[1].classes()).toContain('dayoff-tile--mid') // 3/7 ≈ 0.42
+    expect(tiles[2].classes()).toContain('dayoff-tile--high') // 3/4 = 0.75
+  })
 })

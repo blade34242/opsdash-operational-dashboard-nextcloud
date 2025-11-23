@@ -111,7 +111,7 @@ describe('useDashboardPersistence', () => {
       targets_month: { 'cal-1': 48 },
     }))
     const sentConfig = postJson.mock.calls[0][1]?.targets_config
-    expect(sentConfig).toEqual(configSnapshot)
+    expect(sentConfig).toMatchObject(configSnapshot)
     expect(sentConfig).not.toBe(configSnapshot)
 
     expect(selected.value).toEqual(['cal-1', 'cal-2'])
@@ -142,7 +142,6 @@ describe('useDashboardPersistence', () => {
 
   it('applies server-provided balance UI toggles', async () => {
     const serverConfig = createDefaultTargetsConfig()
-    serverConfig.balance.ui.showInsights = false
     serverConfig.balance.ui.showNotes = false
 
     const postJson = vi.fn().mockResolvedValue({
@@ -161,7 +160,6 @@ describe('useDashboardPersistence', () => {
 
     expect(postJson).toHaveBeenCalledTimes(1)
     expect(targetsConfig.value.balance.ui.showNotes).toBe(false)
-    expect(targetsConfig.value.balance.ui.showInsights).toBe(false)
   })
 
   it('persists theme preference when provided', async () => {

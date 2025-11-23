@@ -62,6 +62,7 @@ Explore how Opsdash can surface Deck board activity (cards, due dates, assignees
   - Empty state text nudges QA to rerun seeding if deck payloads disappear.
   - Styling keeps parity with existing cards (chips, badges, dark-mode friendly palette).
   - All vs My cards filter buttons use the cached payload and the viewer’s UID to slice by assignees; the UI disables “My cards” when we can’t resolve the user.
+- Vitest coverage added for `DeckCardsPanel` (status badges, filters, loading/error/empty paths, range label fallback) so UI regressions are caught without relying solely on Playwright.
 - `App.vue` gained a “Deck” tab (pane `'deck'`) and wires the composable’s state into the panel.
 - Config: Sidebar now exposes a “Report” tab where users can toggle Deck visibility, enable/disable filters, pick default filter mode, and configure weekly/monthly report cadences.
 - Playwright coverage clicks the Deck tab and asserts QA card titles exist so CI catches regressions.
@@ -69,4 +70,5 @@ Explore how Opsdash can surface Deck board activity (cards, due dates, assignees
 ### Follow-ups
 - Consider caching Deck responses per load to avoid re-fetching during rapid range switches. ✅ implemented via `useDeckCards` cache map.
 - Deck tab currently read-only; next iterations can link to Deck boards or show quick filters (My cards vs All). ✅ added a deep-link to `/apps/deck/` and All/My filters; consider persisting the filter choice and surfacing counts.
+- **Deck top card** – add a new Dashboard card above the main panels that scrolls through Deck cards, grouped into four rows (created by me, solved by me, created by all, solved by all). Each row should display the board name + color badge plus a live count of cards in that bucket; the entry view shows up to four cards at once and auto-cycles through the remaining items so you can glance at the latest cards without opening the Deck tab. The card also exposes the All/My filter toggle so you can switch contexts mid-cycle while keeping the scroll state per filter.
 - Mirror QA Deck payloads in PHPUnit if we add server-side aggregation later (currently client-only).

@@ -14,6 +14,7 @@ PASS=${PASS:-admin}
 CAL_COUNT=${CAL_COUNT:-10}
 PREFIX=${PREFIX:-seed-cal}
 TOTAL=${TOTAL:-40}
+OFFSET=${OFFSET:-0}
 
 # Time layout
 START_H=${START_H:-8}
@@ -87,8 +88,8 @@ CAL_SLUGS=()
 for i in $(seq 1 "$CAL_COUNT"); do
   num=$(pad2 "$i"); CAL_SLUGS+=("$PREFIX-$num"); ensure_calendar "$PREFIX-$num"; done
 
-# Monday of current week
-MON=$(date -d 'monday this week' +%Y%m%d)
+# Monday of target week (supports OFFSET in weeks; negative for past weeks)
+MON=$(date -d "monday this week ${OFFSET} week" +%Y%m%d)
 
 # Distribute TOTAL across week days
 per=$(( TOTAL / 7 ))

@@ -98,10 +98,11 @@ class DeckSeedService {
         if (!class_exists('OCA\\Deck\\AppInfo\\Application')) {
             throw new DeckSeedException('Deck app is not installed. Enable Deck before seeding.');
         }
-        if (!\OC_App::isEnabled('deck')) {
+        $appManager = \OC::$server->getAppManager();
+        if (!$appManager->isInstalled('deck') || !$appManager->isEnabledForUser('deck')) {
             throw new DeckSeedException('Deck app is disabled. Enable Deck before seeding.');
         }
-        \OC_App::loadApp('deck');
+        $appManager->loadApp('deck');
     }
 
     /**

@@ -97,17 +97,21 @@ class OverviewControllerTest extends TestCase {
         'padding' => 12.345,
       ],
       'balance' => [
+        'index' => [
+          'basis' => 'both',
+        ],
         'thresholds' => [
-          'noticeMaxShare' => 1.5,
-          'warnMaxShare' => -0.5,
+          'noticeAbove' => 1.5,
+          'noticeBelow' => 1.5,
+          'warnAbove' => -0.5,
+          'warnBelow' => -0.5,
           'warnIndex' => 0.3333,
         ],
         'trend' => [
           'lookbackWeeks' => 25,
         ],
         'ui' => [
-          'roundPercent' => -1,
-          'roundRatio' => 5,
+          'showNotes' => true,
         ],
       ],
     ]);
@@ -129,12 +133,59 @@ class OverviewControllerTest extends TestCase {
     $this->assertSame(14, $result['forecast']['momentumLastNDays']);
     $this->assertSame(12.3, $result['forecast']['padding']);
 
-    $this->assertSame(1.0, $result['balance']['thresholds']['noticeMaxShare']);
-    $this->assertSame(0.0, $result['balance']['thresholds']['warnMaxShare']);
+    $this->assertSame('both', $result['balance']['index']['basis']);
+    $this->assertSame(1.0, $result['balance']['thresholds']['noticeAbove']);
+    $this->assertSame(1.0, $result['balance']['thresholds']['noticeBelow']);
+    $this->assertSame(0.0, $result['balance']['thresholds']['warnAbove']);
+    $this->assertSame(0.0, $result['balance']['thresholds']['warnBelow']);
     $this->assertSame(0.33, $result['balance']['thresholds']['warnIndex']);
-    $this->assertSame(12, $result['balance']['trend']['lookbackWeeks']);
-    $this->assertSame(0, $result['balance']['ui']['roundPercent']);
-    $this->assertSame(3, $result['balance']['ui']['roundRatio']);
+    $this->assertSame(4, $result['balance']['trend']['lookbackWeeks']);
+    $this->assertArrayHasKey('showNotes', $result['balance']['ui']);
+    $this->assertTrue($result['balance']['ui']['showNotes']);
+  }
+
+  public function testBalanceLookbackClamp(): void {
+    $method = new \ReflectionMethod(OverviewController::class, 'cleanBalanceConfig');
+    $method->setAccessible(true);
+    /** @var array<string,mixed> $result */
+    $result = $method->invoke($this->controller, ['trend' => ['lookbackWeeks' => 12]], []);
+    $this->assertSame(4, $result['trend']['lookbackWeeks']);
+  }
+
+  public function testBalanceLookbackClampNegative(): void {
+    $method = new \ReflectionMethod(OverviewController::class, 'cleanBalanceConfig');
+    $method->setAccessible(true);
+    /** @var array<string,mixed> $result */
+    $result = $method->invoke($this->controller, ['trend' => ['lookbackWeeks' => -1]], []);
+    $this->assertSame(1, $result['trend']['lookbackWeeks']);
+  }
+
+  public function testBalanceLookbackClampValid(): void {
+    $method = new \ReflectionMethod(OverviewController::class, 'cleanBalanceConfig');
+    $method->setAccessible(true);
+    /** @var array<string,mixed> $resultOne */
+    $resultOne = $method->invoke($this->controller, ['trend' => ['lookbackWeeks' => 1]], []);
+    $this->assertSame(1, $resultOne['trend']['lookbackWeeks']);
+
+    /** @var array<string,mixed> $resultFour */
+    $resultFour = $method->invoke($this->controller, ['trend' => ['lookbackWeeks' => 4]], []);
+    $this->assertSame(4, $resultFour['trend']['lookbackWeeks']);
+  }
+
+  public function testBalanceIndexBasisSanitises(): void {
+    $method = new \ReflectionMethod(OverviewController::class, 'cleanBalanceConfig');
+    $method->setAccessible(true);
+    /** @var array<string,mixed> $resultCalendar */
+    $resultCalendar = $method->invoke($this->controller, ['index' => ['basis' => 'calendar']], []);
+    $this->assertSame('calendar', $resultCalendar['index']['basis']);
+
+    /** @var array<string,mixed> $resultOff */
+    $resultOff = $method->invoke($this->controller, ['index' => ['basis' => 'off']], []);
+    $this->assertSame('off', $resultOff['index']['basis']);
+
+    /** @var array<string,mixed> $resultFallback */
+    $resultFallback = $method->invoke($this->controller, ['index' => ['basis' => 'invalid']], []);
+    $this->assertSame('category', $resultFallback['index']['basis']);
   }
 
   public function testCleanOnboardingState(): void {

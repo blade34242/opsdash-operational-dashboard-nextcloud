@@ -28,20 +28,18 @@ export interface ActivityCardConfig {
 export interface BalanceConfig {
   categories: string[]
   useCategoryMapping: boolean
-  index: { method: 'simple_range' | 'shannon_evenness' }
+  index: { method: 'simple_range' | 'shannon_evenness'; basis: 'off' | 'category' | 'calendar' | 'both' }
   thresholds: {
-    noticeMaxShare: number
-    warnMaxShare: number
+    noticeAbove: number
+    noticeBelow: number
+    warnAbove: number
+    warnBelow: number
     warnIndex: number
   }
   relations: { displayMode: 'ratio' | 'factor' }
   trend: { lookbackWeeks: number }
   dayparts: { enabled: boolean }
   ui: {
-    roundPercent: number
-    roundRatio: number
-    showDailyStacks: boolean
-    showInsights: boolean
     showNotes: boolean
   }
 }
@@ -118,20 +116,18 @@ export function createDefaultBalanceConfig(): BalanceConfig {
   return {
     categories: ['work', 'hobby', 'sport'],
     useCategoryMapping: true,
-    index: { method: 'simple_range' },
+    index: { method: 'simple_range', basis: 'category' },
     thresholds: {
-      noticeMaxShare: 0.65,
-      warnMaxShare: 0.75,
+      noticeAbove: 0.15,
+      noticeBelow: 0.15,
+      warnAbove: 0.30,
+      warnBelow: 0.30,
       warnIndex: 0.60,
     },
     relations: { displayMode: 'ratio' },
     trend: { lookbackWeeks: 4 },
     dayparts: { enabled: false },
     ui: {
-      roundPercent: 1,
-      roundRatio: 1,
-      showDailyStacks: false,
-      showInsights: true,
       showNotes: false,
     },
   }
@@ -328,16 +324,23 @@ function normalizeBalanceConfig(input: any, categories: TargetCategoryConfig[], 
 
   const thresholds = input?.thresholds ?? {}
   const ui = input?.ui ?? {}
+  const indexInput = input?.index ?? {}
 
   return {
     categories: order,
     useCategoryMapping: !!(input?.useCategoryMapping ?? base.useCategoryMapping),
     index: {
-      method: input?.index?.method === 'shannon_evenness' ? 'shannon_evenness' : base.index.method,
+      method: indexInput?.method === 'shannon_evenness' ? 'shannon_evenness' : base.index.method,
+      basis:
+        indexInput?.basis === 'calendar' || indexInput?.basis === 'both' || indexInput?.basis === 'off'
+          ? indexInput.basis
+          : base.index.basis,
     },
     thresholds: {
-      noticeMaxShare: clampNumber(thresholds.noticeMaxShare ?? base.thresholds.noticeMaxShare, 0, 1),
-      warnMaxShare: clampNumber(thresholds.warnMaxShare ?? base.thresholds.warnMaxShare, 0, 1),
+      noticeAbove: clampNumber(thresholds.noticeAbove ?? base.thresholds.noticeAbove, 0, 1),
+      noticeBelow: clampNumber(thresholds.noticeBelow ?? base.thresholds.noticeBelow, 0, 1),
+      warnAbove: clampNumber(thresholds.warnAbove ?? base.thresholds.warnAbove, 0, 1),
+      warnBelow: clampNumber(thresholds.warnBelow ?? base.thresholds.warnBelow, 0, 1),
       warnIndex: clampNumber(thresholds.warnIndex ?? base.thresholds.warnIndex, 0, 1),
     },
     relations: {
@@ -350,10 +353,6 @@ function normalizeBalanceConfig(input: any, categories: TargetCategoryConfig[], 
       enabled: !!(input?.dayparts?.enabled ?? base.dayparts.enabled),
     },
     ui: {
-      roundPercent: clampInt(ui.roundPercent ?? base.ui.roundPercent, 0, 3),
-      roundRatio: clampInt(ui.roundRatio ?? base.ui.roundRatio, 0, 3),
-      showDailyStacks: !!(ui.showDailyStacks ?? base.ui.showDailyStacks),
-      showInsights: !!(ui.showInsights ?? base.ui.showInsights),
       showNotes: !!(ui.showNotes ?? base.ui.showNotes),
     },
   }

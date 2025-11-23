@@ -46,4 +46,15 @@ describe('sidebar config sanitiser', () => {
     expect(cleaned.onboarding?.strategy).toBe('total_plus_categories')
     expect(cleaned.targets_config?.categories).toHaveLength(3)
   })
+
+  it('rejects invalid theme preference and null onboarding', () => {
+    const { cleaned, ignored } = sanitiseSidebarPayload({
+      cals: ['cal-1'],
+      theme_preference: 'purple',
+      onboarding: null,
+    })
+    expect(cleaned.theme_preference).toBeUndefined()
+    expect(cleaned.onboarding).toBeUndefined()
+    expect(ignored).toEqual(['theme_preference', 'onboarding'])
+  })
 })

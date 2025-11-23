@@ -30,14 +30,13 @@ export interface BalanceOverviewSummary {
     total_hours: number
     categories: Array<{ id: string; label: string; hours: number; share: number }>
   }>
-  insights: string[]
   warnings: string[]
 }
 
 interface UseBalanceInput {
   stats: any
   categoryColorMap: ComputedRef<Record<string, string>>
-  balanceCardConfig: ComputedRef<{ showInsights: boolean; showDailyStacks: boolean; showNotes?: boolean }>
+  balanceCardConfig: ComputedRef<{ showNotes?: boolean }>
 }
 
 export function useBalance(input: UseBalanceInput) {
@@ -107,14 +106,10 @@ export function useBalance(input: UseBalanceInput) {
         }))
       : []
 
-    const insightsRaw = Array.isArray(raw.insights)
-      ? raw.insights.map((s: any) => String(s))
-      : []
     const warnings = Array.isArray(raw.warnings)
       ? raw.warnings.map((s: any) => String(s))
       : []
     const indexVal = numOrNull(raw.index) ?? 0
-    const filteredInsights = input.balanceCardConfig.value.showInsights ? insightsRaw : []
 
     return {
       index: indexVal,
@@ -122,7 +117,6 @@ export function useBalance(input: UseBalanceInput) {
       relations,
       trend,
       daily,
-      insights: filteredInsights,
       warnings,
     }
   })

@@ -99,20 +99,18 @@ class TargetsService {
         return [
             'categories' => ['work', 'hobby', 'sport'],
             'useCategoryMapping' => true,
-            'index' => ['method' => 'simple_range'],
+            'index' => ['method' => 'simple_range', 'basis' => 'category'],
             'thresholds' => [
-                'noticeMaxShare' => 0.65,
-                'warnMaxShare' => 0.75,
+                'noticeAbove' => 0.15,
+                'noticeBelow' => 0.15,
+                'warnAbove' => 0.30,
+                'warnBelow' => 0.30,
                 'warnIndex' => 0.60,
             ],
             'relations' => ['displayMode' => 'ratio'],
-            'trend' => ['lookbackWeeks' => 1],
+            'trend' => ['lookbackWeeks' => 4],
             'dayparts' => ['enabled' => false],
             'ui' => [
-                'roundPercent' => 1,
-                'roundRatio' => 1,
-                'showDailyStacks' => false,
-                'showInsights' => true,
                 'showNotes' => false,
             ],
         ];
@@ -343,28 +341,30 @@ class TargetsService {
 
         $method = (string)($cfg['index']['method'] ?? $base['index']['method']);
         $result['index']['method'] = $method === 'shannon_evenness' ? 'shannon_evenness' : 'simple_range';
+        $basis = strtolower((string)($cfg['index']['basis'] ?? $base['index']['basis'] ?? 'category'));
+        if (in_array($basis, ['off', 'category', 'calendar', 'both'], true)) {
+            $result['index']['basis'] = $basis;
+        }
 
         if (isset($cfg['thresholds']) && is_array($cfg['thresholds'])) {
             $thr = $cfg['thresholds'];
-            if (isset($thr['noticeMaxShare'])) {
-                $result['thresholds']['noticeMaxShare'] = $this->sanitizeNumberOrDefault(
-                    $thr['noticeMaxShare'],
-                    new NumberConstraints(0.0, 1.0, 0.01, 2),
-                    $result['thresholds']['noticeMaxShare'],
-                    $prefix . '.thresholds.noticeMaxShare',
-                    $errors,
-                    $warnings
-                );
-            }
-            if (isset($thr['warnMaxShare'])) {
-                $result['thresholds']['warnMaxShare'] = $this->sanitizeNumberOrDefault(
-                    $thr['warnMaxShare'],
-                    new NumberConstraints(0.0, 1.0, 0.01, 2),
-                    $result['thresholds']['warnMaxShare'],
-                    $prefix . '.thresholds.warnMaxShare',
-                    $errors,
-                    $warnings
-                );
+            $map = [
+                'noticeAbove' => 'noticeAbove',
+                'noticeBelow' => 'noticeBelow',
+                'warnAbove' => 'warnAbove',
+                'warnBelow' => 'warnBelow',
+            ];
+            foreach ($map as $src => $dst) {
+                if (isset($thr[$src])) {
+                    $result['thresholds'][$dst] = $this->sanitizeNumberOrDefault(
+                        $thr[$src],
+                        new NumberConstraints(0.0, 1.0, 0.01, 2),
+                        $result['thresholds'][$dst],
+                        $prefix . '.thresholds.' . $dst,
+                        $errors,
+                        $warnings
+                    );
+                }
             }
             if (isset($thr['warnIndex'])) {
                 $result['thresholds']['warnIndex'] = $this->sanitizeNumberOrDefault(
@@ -401,34 +401,6 @@ class TargetsService {
 
         if (isset($cfg['ui']) && is_array($cfg['ui'])) {
             $ui = $cfg['ui'];
-            if (isset($ui['roundPercent'])) {
-                $rp = $this->sanitizeNumberOrDefault(
-                    $ui['roundPercent'],
-                    new NumberConstraints(0.0, 3.0, 1.0, 0),
-                    (float)$result['ui']['roundPercent'],
-                    $prefix . '.ui.roundPercent',
-                    $errors,
-                    $warnings
-                );
-                $result['ui']['roundPercent'] = (int)round($rp);
-            }
-            if (isset($ui['roundRatio'])) {
-                $rr = $this->sanitizeNumberOrDefault(
-                    $ui['roundRatio'],
-                    new NumberConstraints(0.0, 3.0, 1.0, 0),
-                    (float)$result['ui']['roundRatio'],
-                    $prefix . '.ui.roundRatio',
-                    $errors,
-                    $warnings
-                );
-                $result['ui']['roundRatio'] = (int)round($rr);
-            }
-            if (array_key_exists('showDailyStacks', $ui)) {
-                $result['ui']['showDailyStacks'] = !empty($ui['showDailyStacks']);
-            }
-            if (array_key_exists('showInsights', $ui)) {
-                $result['ui']['showInsights'] = !empty($ui['showInsights']);
-            }
             if (array_key_exists('showNotes', $ui)) {
                 $result['ui']['showNotes'] = !empty($ui['showNotes']);
             }

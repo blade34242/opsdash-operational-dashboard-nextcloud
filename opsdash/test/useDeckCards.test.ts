@@ -95,4 +95,30 @@ describe('useDeckCards', () => {
     await deck.refreshDeck(true)
     expect(fetchDeckCardsInRange).toHaveBeenCalledTimes(2)
   })
+
+  it('ignores out-of-order responses by sequence guard', async () => {
+    const from = ref('2024-11-18T00:00:00.000Z')
+    const to = ref('2024-11-25T00:00:00.000Z')
+
+    let resolveFirst: (value: DeckCardSummary[]) => void
+    const firstPromise = new Promise<DeckCardSummary[]>((resolve) => {
+      resolveFirst = resolve
+    })
+
+    ;(fetchDeckCardsInRange as unknown as vi.Mock)
+      .mockImplementationOnce(() => firstPromise)
+      .mockImplementationOnce(() => Promise.resolve([{ ...sampleCard, id: 100 }]))
+
+    const deck = useDeckCards({ from, to })
+
+    const first = deck.refreshDeck(true) // seq 1 (pending)
+    const second = deck.refreshDeck(true) // seq 2
+
+    await second
+    resolveFirst!([{ ...sampleCard, id: 99 }])
+    await first
+
+    expect(deck.deckCards.value).toEqual([{ ...sampleCard, id: 100 }])
+    expect(fetchDeckCardsInRange).toHaveBeenCalledTimes(2)
+  })
 })

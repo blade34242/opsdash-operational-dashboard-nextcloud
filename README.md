@@ -75,6 +75,7 @@ The helper script now shells into your container and invokes `apps/opsdash/tools
 
 ## 📋 Roadmap Highlights
 - NC 31 releases in `0.4.x` stream; NC 32 (`0.5.x`) lands once CI matrices stabilize.
+- Balance config simplified: server rounds ratios to 1 decimal, precision toggles are gone, and Balance lookback defaults to 4 weeks to keep week/month history aligned.
 - Deck integration spike (see `docs-private/opsdash-docs/DECK_INTEGRATION.md`) and reporting concept for NC App Store metadata.
 - i18n workflow (`npm run i18n:scan` / `npm run i18n:extract`) ready — de/fr/es packs coming.
 

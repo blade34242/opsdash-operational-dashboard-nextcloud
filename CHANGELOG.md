@@ -11,6 +11,7 @@ All notable changes to this project will be documented in this file.
 - QA month + notes fixtures (`load-month-qa.json`, `notes-month-qa.json`) wired into Vitest + PHPUnit to keep `/overview/load` + `/overview/notes` schema coverage in sync.
 - Localization helpers: `npm run i18n:scan` highlights untranslated strings and `npm run i18n:extract` wraps `occ translations:create-app` for template generation.
 - Telemetry hook via `trackTelemetry('shortcuts_opened')` so overlay usage is observable.
+- Vitest coverage for `DeckCardsPanel` (filters, loading/error/empty states) and `TimeSummaryCard` to lock UI copy/metrics before Playwright runs.
 - Deck preview: `src/services/deck.ts` normalises Deck API payloads, `composables/useDeckCards.ts` wires them into the SPA, and App.vue now exposes a Deck tab powered by `DeckCardsPanel.vue`.
 - QA Deck seed script `apps/opsdash/tools/seed_deck_boards.php` (plus Vitest fixtures/tests) ensures CI and Playwright runs have deterministic Deck boards/cards.
 - Deck tab now caches responses per range, surfaces explicit error states, and links out to the Deck app for deeper triage.
@@ -24,6 +25,8 @@ All notable changes to this project will be documented in this file.
 - Dashboard persistence now relies on server-provided `balance.ui.*` flags (fallback only triggers when an entire block is missing), matching the updated `/overview/persist` response.
 - Playwright multi-user scenario now logs in as the secondary user to persist selection state, eliminating the flaky hard-coded assumption.
 - Deck seeding is no longer exposed as an OCC command during CI packaging; use the PHP helper scripts directly when QA data is required.
+- Balance config trimmed: removed `roundPercent`/`roundRatio`/`showDailyStacks` UI knobs, hardcoded ratio rounding to 1 decimal, unified default lookback to 4, and kept basis/index sanitisation consistent across TS/PHP.
+- Sidebar Activity & Balance pane copy fully in English with clearer help text and grouped toggles; basis selector hints now explain “Off/Category/Calendar/Both”.
 
 ### Fixed
 - `cleanBalanceConfig()` propagates `showNotes`, so `/overview/persist` always echoes all balance UI toggles and the client no longer re-injects missing fields.

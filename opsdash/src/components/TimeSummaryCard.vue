@@ -32,6 +32,18 @@
     <div class="time-summary-row" v-if="summaryConfig.showBalance && summary.balanceIndex != null">
       <span class="label">Balance</span> {{ n2(summary.balanceIndex) }} <span class="hint">(1 = perfekt)</span>
     </div>
+    <div class="time-summary-activity" v-if="activity">
+      <div class="time-summary-activity__title">Activity &amp; Schedule</div>
+      <div class="time-summary-activity__line">
+        Events {{ activity.events }} • Active Days {{ activity.activeDays ?? 0 }}
+      </div>
+      <div class="time-summary-activity__line">
+        Weekend {{ pct(activity.weekendShare) }} • Evening {{ pct(activity.eveningShare) }}
+      </div>
+      <div class="time-summary-activity__line">
+        Overlaps {{ activity.overlapEvents ?? 0 }} • Last day off {{ lastDayOffLabel }}
+      </div>
+    </div>
   </div>
 </template>
 
@@ -130,6 +142,9 @@ const busiestText = computed(() => {
   return `Busiest ${b.date} — ${n2(hours)} h`
 })
 
+const activity = computed(() => props.activitySummary ?? null)
+const lastDayOffLabel = computed(() => activity.value?.lastDayOff || '—')
+
 function n1(v: unknown) {
   return Number(v ?? 0).toFixed(1)
 }
@@ -143,8 +158,14 @@ function statusClass(status: 'on_track' | 'at_risk' | 'behind' | 'done' | 'none'
     case 'at_risk': return 'status-risk'
     case 'behind': return 'status-behind'
     case 'done': return 'status-done'
-    default: return 'status-none'
+  default: return 'status-none'
   }
+}
+
+function pct(value: number | null | undefined) {
+  if (value == null) return '0.0%'
+  const num = Math.max(0, Math.min(100, Number(value)))
+  return `${num.toFixed(1)}%`
 }
 </script>
 
@@ -224,6 +245,24 @@ function statusClass(status: 'on_track' | 'at_risk' | 'behind' | 'done' | 'none'
 }
 .time-summary-row.top-category {
   align-items: center;
+  gap: 6px;
+}
+.time-summary-activity {
+  margin-top: 6px;
+  padding-top: 6px;
+  border-top: 1px solid var(--line);
+  display: grid;
+  gap: 2px;
+  font-size: 12px;
+  color: var(--muted);
+}
+.time-summary-activity__title {
+  font-weight: 600;
+  color: var(--fg);
+}
+.time-summary-activity__line {
+  display: flex;
+  flex-wrap: wrap;
   gap: 6px;
 }
 .summary-badge {

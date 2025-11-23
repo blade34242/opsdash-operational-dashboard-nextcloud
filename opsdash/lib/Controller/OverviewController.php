@@ -34,6 +34,7 @@ final class OverviewController extends Controller {
     private const PRESETS_KEY = 'targets_presets';
     private const CONFIG_ONBOARDING = 'onboarding_state';
     private const ONBOARDING_VERSION = 1;
+    private const RATIO_DECIMALS = 1;
     public function __construct(
         string $appName,
         IRequest $request,
@@ -929,6 +930,7 @@ final class OverviewController extends Controller {
             $cursor = $nextCursor;
         }
 
+        $balanceConfig = $targetsConfig['balance'];
         $trendLookback = (int)($balanceConfig['trend']['lookbackWeeks'] ?? 1);
         $precomputedDaysWorked = [];
         if (!empty($prevDaysSeen)) {
@@ -948,34 +950,20 @@ final class OverviewController extends Controller {
             $precomputedDaysWorked,
         );
 
-        $trendHistory = [];
-        $historySteps = max(1, min(12, $trendLookback));
-        for ($step = $historySteps; $step >= 1; $step--) {
-            if ($step === 1) {
-                $historyTotals = $categoryTotalsPrev;
-                $historyTotal = $prevTotal;
-            } else {
-                [$histFrom, $histTo] = $this->rangeBounds($range, $offset - $step);
-                $historyMetrics = $this->collectRangeCategoryTotals(
-                    $histFrom,
-                    $histTo,
-                    $categoryMeta,
-                    $cals,
-                    $selectedIds,
-                    $principal,
-                    $mapCalToCategory,
-                    $userTz,
-                    $allDayHours,
-                    false
-                );
-                $historyTotals = $historyMetrics['totals'];
-                $historyTotal = $historyMetrics['total'];
-            }
-            $trendHistory[] = $this->buildTrendHistoryEntry($range, $step, $historyTotals, $historyTotal, $categoryMeta);
-        }
+        $trendHistory = $this->buildBalanceHistory(
+            $range,
+            $offset,
+            $trendLookback,
+            $cals,
+            $selectedIds,
+            $principal,
+            $mapCalToCategory,
+            $userTz,
+            $allDayHours,
+            $categoryMeta,
+        );
 
         // Balance calculations
-        $balanceConfig = $targetsConfig['balance'];
         $balanceCategories = [];
         $categoryShares = [];
         $categoryDelta = [];
@@ -990,32 +978,128 @@ final class OverviewController extends Controller {
                 'id' => $catId,
                 'label' => $meta['label'],
                 'hours' => round($hours, 2),
-                'share' => round($share * 100, (int)($balanceConfig['ui']['roundPercent'] ?? 1)),
-                'prevShare' => round($prevShare * 100, (int)($balanceConfig['ui']['roundPercent'] ?? 1)),
+                'share' => round($share * 100, 1),
+                'prevShare' => round($prevShare * 100, 1),
                 'delta' => round($deltaShare, 1),
                 'color' => $categoryColors[$catId] ?? '#2563eb',
             ];
         }
+        $balanceBuckets = [];
+        $basis = $balanceConfig['index']['basis'] ?? 'category';
+        $useCategories = ($basis === 'category' || $basis === 'both');
+        $useCalendars  = ($basis === 'calendar' || $basis === 'both');
+
+        // Expected shares from targets (by category / calendar)
+        $expectedShares = [];
+        if ($useCategories) {
+            $catTargets = $targetsConfig['categories'] ?? [];
+            $targetSum = 0.0;
+            $catTargetMap = [];
+            foreach ($catTargets as $cat) {
+                if (!is_array($cat)) continue;
+                $id = (string)($cat['id'] ?? '');
+                $tgt = (float)($cat['targetHours'] ?? 0);
+                if ($id === '' || $tgt <= 0) continue;
+                $catTargetMap[$id] = $tgt;
+                $targetSum += $tgt;
+            }
+            if ($targetSum > 0) {
+                foreach ($catTargetMap as $id => $tgt) {
+                    $expectedShares['cat:' . $id] = $tgt / $targetSum;
+                }
+            }
+            // categories without target default to 0 expected
+            foreach ($categoryMeta as $catId => $_meta) {
+                $key = 'cat:' . $catId;
+                if (!array_key_exists($key, $expectedShares)) {
+                    $expectedShares[$key] = 0.0;
+                }
+            }
+        }
+        if ($useCalendars) {
+            $targetMap = $range === 'month' ? ($targetsMonth ?? []) : ($targetsWeek ?? []);
+            $targetSum = 0.0;
+            $cleanTargetMap = [];
+            foreach ($targetMap as $calId => $targetVal) {
+                $t = (float)$targetVal;
+                if ($t <= 0) continue;
+                $cleanTargetMap[(string)$calId] = $t;
+                $targetSum += $t;
+            }
+            if ($targetSum > 0) {
+                foreach ($cleanTargetMap as $calId => $tgt) {
+                    $expectedShares['cal:' . $calId] = $tgt / $targetSum;
+                }
+            }
+            foreach ($byCalMap as $calId => $_entry) {
+                $key = 'cal:' . $calId;
+                if (!array_key_exists($key, $expectedShares)) {
+                    $expectedShares[$key] = 0.0;
+                }
+            }
+        }
+
+        if ($useCategories) {
+            foreach ($categoryShares as $catId => $shareVal) {
+                $balanceBuckets[] = [
+                    'id' => 'cat:' . $catId,
+                    'label' => $categoryMeta[$catId]['label'] ?? $catId,
+                    'share' => $shareVal,
+                ];
+            }
+        }
+        if ($useCalendars) {
+            foreach ($byCalMap as $calId => $entry) {
+                $share = $totalHours > 0 ? (($entry['total_hours'] ?? 0.0) / $totalHours) : 0.0;
+                $label = $idToName[$calId] ?? ($entry['calendar'] ?? $calId);
+                $balanceBuckets[] = ['id' => 'cal:' . $calId, 'label' => $label, 'share' => $share];
+            }
+        }
         $balanceIndex = 0.0;
-        if (!empty($categoryShares)) {
-            $maxShare = max($categoryShares);
-            $minShare = min($categoryShares);
-            $balanceIndex = max(0.0, min(1.0, 1.0 - ($maxShare - $minShare)));
+        $maxDeviationAbs = 0.0;
+        $maxDeviationBucket = null;
+        $maxDeviationExpected = 0.0;
+        $maxPosDev = 0.0; $maxPosBucket = null; $maxPosExpected = 0.0; $maxPosActual = 0.0;
+        $maxNegDev = 0.0; $maxNegBucket = null; $maxNegExpected = 0.0; $maxNegActual = 0.0;
+        if (!empty($balanceBuckets) && $basis !== 'off') {
+            foreach ($balanceBuckets as $bucket) {
+                $actual = (float)($bucket['share'] ?? 0.0);
+                $expected = (float)($expectedShares[$bucket['id'] ?? ''] ?? 0.0);
+                $dev = $actual - $expected;
+                $absDev = abs($dev);
+                if ($absDev > $maxDeviationAbs) {
+                    $maxDeviationAbs = $absDev;
+                    $maxDeviationBucket = $bucket;
+                    $maxDeviationExpected = $expected;
+                }
+                if ($dev > $maxPosDev) {
+                    $maxPosDev = $dev;
+                    $maxPosBucket = $bucket;
+                    $maxPosExpected = $expected;
+                    $maxPosActual = $actual;
+                }
+                if (-$dev > $maxNegDev) {
+                    $maxNegDev = -$dev;
+                    $maxNegBucket = $bucket;
+                    $maxNegExpected = $expected;
+                    $maxNegActual = $actual;
+                }
+            }
+            $balanceIndex = max(0.0, min(1.0, 1.0 - $maxDeviationAbs));
         }
 
         // Relations
         $relations = [];
         $relationMode = (string)($balanceConfig['relations']['displayMode'] ?? 'ratio');
-        $roundRatio = (int)($balanceConfig['ui']['roundRatio'] ?? 1);
-        $formatRatio = function(float $a, float $b) use ($relationMode, $roundRatio) {
+        $formatRatio = function(float $a, float $b) use ($relationMode) {
             if ($a <= 0.0001 && $b <= 0.0001) return '—';
             if ($b <= 0.0001 && $a > 0.0001) return '∞ : 1';
             if ($a <= 0.0001 && $b > 0.0001) return '0 : 1';
             $ratio = $b > 0 ? ($a / $b) : 0.0;
             if ($relationMode === 'factor') {
-                return sprintf('%.' . $roundRatio . 'f×', round($ratio, $roundRatio));
+                return sprintf('%.' . self::RATIO_DECIMALS . 'f×', round($ratio, self::RATIO_DECIMALS));
             }
-            return sprintf('%.' . $roundRatio . 'f : 1', round($ratio, $roundRatio));
+            return sprintf('%.' . self::RATIO_DECIMALS . 'f : 1', round($ratio, self::RATIO_DECIMALS));
         };
         $balanceOrder = is_array($balanceConfig['categories'] ?? null) ? $balanceConfig['categories'] : [];
         $workId = $balanceOrder[0] ?? null;
@@ -1077,47 +1161,39 @@ final class OverviewController extends Controller {
             $cursor = $cursor->modify('+1 day');
         }
 
-        // Insights & warnings
+        // Warnings
         $balanceWarnings = [];
-        $balanceInsights = [];
-        $noticeThreshold = (float)($balanceConfig['thresholds']['noticeMaxShare'] ?? 0.65);
-        $warnThreshold   = (float)($balanceConfig['thresholds']['warnMaxShare'] ?? 0.75);
-        $warnIndex       = (float)($balanceConfig['thresholds']['warnIndex'] ?? 0.60);
-        $maxShareCat = null; $maxShareVal = -1.0;
-        foreach ($categoryShares as $catId => $shareVal) {
-            if ($shareVal > $maxShareVal) {
-                $maxShareVal = $shareVal;
-                $maxShareCat = $catId;
-            }
-        }
-        if ($maxShareCat !== null) {
-            $maxSharePct = round($maxShareVal * 100, 1);
-            $label = $categoryMeta[$maxShareCat]['label'] ?? $maxShareCat;
-            if ($maxShareVal >= $warnThreshold) {
-                $balanceWarnings[] = sprintf('%s accounts for %s%% of tracked hours.', $label, $maxSharePct);
-            } elseif ($maxShareVal >= $noticeThreshold) {
-                $balanceWarnings[] = sprintf('%s trending high at %s%%.', $label, $maxSharePct);
-            }
-        }
-        if ($balanceIndex < $warnIndex) {
-            $balanceWarnings[] = sprintf('Balance index low (%.2f).', $balanceIndex);
-        }
-
-        if (!empty($balanceConfig['ui']['showInsights'])) {
-            if ($maxShareCat && $maxShareVal >= $warnThreshold && isset($categoryMeta[$maxShareCat])) {
-                $balanceInsights[] = sprintf('%s dominates this week (%s%%).', $categoryMeta[$maxShareCat]['label'], round($maxShareVal * 100,1));
-            }
-            if ($workId && $hobbyId && $totalHours > 0) {
-                $hobbyShare = $categoryShares[$hobbyId] ?? 0;
-                if ($hobbyShare > 0 && $hobbyShare < 0.15) {
-                    $balanceInsights[] = sprintf('%s stays below 15%% — consider scheduling dedicated time.', $categoryMeta[$hobbyId]['label'] ?? 'Hobby');
+        $noticeAbove = (float)($balanceConfig['thresholds']['noticeAbove'] ?? 0.15);
+        $noticeBelow = (float)($balanceConfig['thresholds']['noticeBelow'] ?? 0.15);
+        $warnAbove   = (float)($balanceConfig['thresholds']['warnAbove'] ?? 0.30);
+        $warnBelow   = (float)($balanceConfig['thresholds']['warnBelow'] ?? 0.30);
+        $warnIndex   = (float)($balanceConfig['thresholds']['warnIndex'] ?? 0.60);
+        if ($basis !== 'off') {
+            if ($maxPosBucket !== null && $maxPosDev >= $noticeAbove) {
+                $actualPct = round($maxPosActual * 100, 1);
+                $expectedPct = round($maxPosExpected * 100, 1);
+                $deltaPct = round($maxPosDev * 100, 1);
+                $label = $maxPosBucket['label'] ?? 'Bucket';
+                if ($maxPosDev >= $warnAbove) {
+                    $balanceWarnings[] = sprintf('%s above target by %.1fpp (%s%% vs %s%%).', $label, $deltaPct, $actualPct, $expectedPct);
+                } else {
+                    $balanceWarnings[] = sprintf('%s slightly above target (%.1fpp, %s%% vs %s%%).', $label, $deltaPct, $actualPct, $expectedPct);
                 }
             }
-        }
-
-
-        if (count($balanceInsights) > 2) {
-            $balanceInsights = array_slice($balanceInsights, 0, 2);
+            if ($maxNegBucket !== null && $maxNegDev >= $noticeBelow) {
+                $actualPct = round($maxNegActual * 100, 1);
+                $expectedPct = round($maxNegExpected * 100, 1);
+                $deltaPct = round($maxNegDev * 100, 1);
+                $label = $maxNegBucket['label'] ?? 'Bucket';
+                if ($maxNegDev >= $warnBelow) {
+                    $balanceWarnings[] = sprintf('%s below target by %.1fpp (%s%% vs %s%%).', $label, $deltaPct, $actualPct, $expectedPct);
+                } else {
+                    $balanceWarnings[] = sprintf('%s slightly below target (%.1fpp, %s%% vs %s%%).', $label, $deltaPct, $actualPct, $expectedPct);
+                }
+            }
+            if ($balanceIndex < $warnIndex) {
+                $balanceWarnings[] = sprintf('Balance index low (%.2f).', $balanceIndex);
+            }
         }
 
         $balanceOverview = [
@@ -1126,7 +1202,6 @@ final class OverviewController extends Controller {
             'relations' => $relations,
             'trend' => $balanceTrend,
             'daily' => $balanceDaily,
-            'insights' => $balanceInsights,
             'warnings' => $balanceWarnings,
             'trendHistory' => $trendHistory,
         ];
@@ -1986,22 +2061,77 @@ final class OverviewController extends Controller {
         return [
             'categories' => ['work', 'hobby', 'sport'],
             'useCategoryMapping' => true,
-            'index' => ['method' => 'simple_range'],
+            'index' => ['method' => 'simple_range', 'basis' => 'category'],
             'thresholds' => [
-                'noticeMaxShare' => 0.65,
-                'warnMaxShare' => 0.75,
+                // Deviation vs expected share (absolute). Defaults are tuned for target alignment, not raw dominance.
+                'noticeAbove' => 0.15,
+                'noticeBelow' => 0.15,
+                'warnAbove' => 0.30,
+                'warnBelow' => 0.30,
                 'warnIndex' => 0.60,
             ],
             'relations' => ['displayMode' => 'ratio'],
-            'trend' => ['lookbackWeeks' => 1],
+            'trend' => ['lookbackWeeks' => 4],
             'dayparts' => ['enabled' => false],
             'ui' => [
-                'roundPercent' => 1,
-                'roundRatio' => 1,
-                'showDailyStacks' => false,
-                'showInsights' => true,
+                'showNotes' => false,
             ],
         ];
+    }
+
+    /**
+     * Build a balance trend history up to the configured lookback by fetching category totals for each
+     * offset and turning them into share-based history slots.
+     *
+     * @param string $range
+     * @param int $currentOffset
+     * @param int $lookback
+     * @param array $calendars
+     * @param array $selectedIds
+     * @param string $principal
+     * @param callable $mapCalToCategory
+     * @param \DateTimeZone $userTz
+     * @param float $allDayHours
+     * @param array<string,array{id:string,label:string,color:string}> $categoryMeta
+     * @return array<int, array{offset:int,label:string,categories:array<int,array{id:string,label:string,share:float}>}>
+     */
+    private function buildBalanceHistory(
+        string $range,
+        int $currentOffset,
+        int $lookback,
+        array $calendars,
+        array $selectedIds,
+        string $principal,
+        callable $mapCalToCategory,
+        \DateTimeZone $userTz,
+        float $allDayHours,
+        array $categoryMeta
+    ): array {
+        $history = [];
+        $lookback = max(1, min(4, $lookback));
+        for ($i = 1; $i <= $lookback; $i++) {
+            $offset = $currentOffset - $i;
+            [$from, $to] = $this->rangeBounds($range, $offset);
+            $rangeTotals = $this->collectRangeCategoryTotals(
+                $from,
+                $to,
+                $categoryMeta,
+                $calendars,
+                $selectedIds,
+                $principal,
+                $mapCalToCategory,
+                $userTz,
+                $allDayHours,
+            );
+            $history[] = $this->buildTrendHistoryEntry(
+                $range,
+                $i,
+                $rangeTotals['totals'],
+                $rangeTotals['total'],
+                $categoryMeta,
+            );
+        }
+        return $history;
     }
 
     /** @param mixed $cfg */
@@ -2388,14 +2518,23 @@ final class OverviewController extends Controller {
 
         $method = (string)($cfg['index']['method'] ?? $base['index']['method']);
         $result['index']['method'] = $method === 'shannon_evenness' ? 'shannon_evenness' : 'simple_range';
+        $basis = (string)($cfg['index']['basis'] ?? $base['index']['basis']);
+        $allowedBasis = ['off', 'category', 'calendar', 'both'];
+        $result['index']['basis'] = in_array($basis, $allowedBasis, true) ? $basis : 'category';
 
         if (isset($cfg['thresholds']) && is_array($cfg['thresholds'])) {
             $thr = $cfg['thresholds'];
-            if (isset($thr['noticeMaxShare'])) {
-                $result['thresholds']['noticeMaxShare'] = round($this->clampFloat((float)$thr['noticeMaxShare'], 0.0, 1.0), 2);
+            if (isset($thr['noticeAbove'])) {
+                $result['thresholds']['noticeAbove'] = round($this->clampFloat((float)$thr['noticeAbove'], 0.0, 1.0), 2);
             }
-            if (isset($thr['warnMaxShare'])) {
-                $result['thresholds']['warnMaxShare'] = round($this->clampFloat((float)$thr['warnMaxShare'], 0.0, 1.0), 2);
+            if (isset($thr['noticeBelow'])) {
+                $result['thresholds']['noticeBelow'] = round($this->clampFloat((float)$thr['noticeBelow'], 0.0, 1.0), 2);
+            }
+            if (isset($thr['warnAbove'])) {
+                $result['thresholds']['warnAbove'] = round($this->clampFloat((float)$thr['warnAbove'], 0.0, 1.0), 2);
+            }
+            if (isset($thr['warnBelow'])) {
+                $result['thresholds']['warnBelow'] = round($this->clampFloat((float)$thr['warnBelow'], 0.0, 1.0), 2);
             }
             if (isset($thr['warnIndex'])) {
                 $result['thresholds']['warnIndex'] = round($this->clampFloat((float)$thr['warnIndex'], 0.0, 1.0), 2);
@@ -2408,7 +2547,7 @@ final class OverviewController extends Controller {
         if (isset($cfg['trend']) && is_array($cfg['trend'])) {
             $lookback = (int)($cfg['trend']['lookbackWeeks'] ?? $base['trend']['lookbackWeeks']);
             if ($lookback < 1) $lookback = 1;
-            if ($lookback > 12) $lookback = 12;
+            if ($lookback > 4) $lookback = 4;
             $result['trend']['lookbackWeeks'] = $lookback;
         }
 
@@ -2417,24 +2556,6 @@ final class OverviewController extends Controller {
         }
 
         if (isset($cfg['ui']) && is_array($cfg['ui'])) {
-            if (isset($cfg['ui']['roundPercent'])) {
-                $rp = (int)$cfg['ui']['roundPercent'];
-                if ($rp < 0) $rp = 0;
-                if ($rp > 3) $rp = 3;
-                $result['ui']['roundPercent'] = $rp;
-            }
-            if (isset($cfg['ui']['roundRatio'])) {
-                $rr = (int)$cfg['ui']['roundRatio'];
-                if ($rr < 0) $rr = 0;
-                if ($rr > 3) $rr = 3;
-                $result['ui']['roundRatio'] = $rr;
-            }
-            if (array_key_exists('showDailyStacks', $cfg['ui'])) {
-                $result['ui']['showDailyStacks'] = !empty($cfg['ui']['showDailyStacks']);
-            }
-            if (array_key_exists('showInsights', $cfg['ui'])) {
-                $result['ui']['showInsights'] = !empty($cfg['ui']['showInsights']);
-            }
             if (array_key_exists('showNotes', $cfg['ui'])) {
                 $result['ui']['showNotes'] = !empty($cfg['ui']['showNotes']);
             }

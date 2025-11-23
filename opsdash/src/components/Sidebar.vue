@@ -2,7 +2,7 @@
   <!-- Sidebar: range controls, calendar selection + grouping, notes panel -->
   <NcAppNavigation>
     <slot name="actions" />
-    <div class="sb-title" title="Kalender filtern und gruppieren">Filter Calendars</div>
+    <div class="sb-title" title="Filter and group calendars">Filter Calendars</div>
     <div class="rangebar" title="Time range">
       <div class="range-actions">
         <button
@@ -72,28 +72,16 @@
     </div>
     <div class="sb-tabs sb-tabs--secondary" role="tablist" aria-label="Detail settings">
       <button
-        id="opsdash-sidebar-tab-activity"
+        id="opsdash-sidebar-tab-activitybalance"
         type="button"
         class="sb-tab"
-        :class="{ active: activeTab === 'activity' }"
+        :class="{ active: activeTab === 'activitybalance' }"
         role="tab"
-        :aria-selected="activeTab === 'activity'"
-        aria-controls="opsdash-sidebar-pane-activity"
-        @click="activeTab = 'activity'"
+        :aria-selected="activeTab === 'activitybalance'"
+        aria-controls="opsdash-sidebar-pane-activitybalance"
+        @click="activeTab = 'activitybalance'"
       >
-        Activity &amp; Schedule
-      </button>
-      <button
-        id="opsdash-sidebar-tab-balance"
-        type="button"
-        class="sb-tab"
-        :class="{ active: activeTab === 'balance' }"
-        role="tab"
-        :aria-selected="activeTab === 'balance'"
-        aria-controls="opsdash-sidebar-pane-balance"
-        @click="activeTab = 'balance'"
-      >
-        Balance
+        Activity &amp; Balance
       </button>
       <button
         id="opsdash-sidebar-tab-notes"
@@ -239,33 +227,30 @@
       @save-deck-settings="(value) => emit('save-deck-settings', value)"
     />
 
-    <SidebarActivityPane
-      v-else-if="activeTab === 'activity'"
+    <SidebarBalancePane
+      v-else-if="activeTab === 'activitybalance'"
+      id="opsdash-sidebar-pane-activitybalance"
+      class="sb-pane"
+      role="tabpanel"
+      aria-labelledby="opsdash-sidebar-tab-activitybalance"
       :activity-settings="activitySettings"
       :activity-toggles="activityToggles"
-      :forecast-mode="activitySettings.forecastMode"
-      :forecast-options="activityForecastOptions"
-      :help-open="helpState.activity"
-      @toggle-help="toggleActivityHelp"
-      @toggle-option="handleActivityOption"
-      @update-forecast-mode="setActivityForecastMode"
-    />
-
-    <SidebarBalancePane
-      v-else-if="activeTab === 'balance'"
+      :activity-forecast-mode="activitySettings.forecastMode"
+      :activity-forecast-options="activityForecastOptions"
+      :help-activity="helpState.activity"
       :balance-settings="balanceSettings"
       :balance-threshold-messages="balanceThresholdMessages"
       :balance-lookback-message="balanceLookbackMessage"
-      :balance-ui-precision-messages="balanceUiPrecisionMessages"
-      :rounding-options="roundingOptions"
       :help-thresholds="helpState.balanceThresholds"
       :help-trend="helpState.balanceTrend"
       :help-display="helpState.balanceDisplay"
+      @set-index-basis="setBalanceIndexBasis"
       @toggle-help="toggleBalanceHelp"
+      @set-activity-toggle="handleActivityOption"
+      @set-activity-forecast="setActivityForecastMode"
       @set-threshold="handleBalanceThreshold"
       @set-lookback="setBalanceLookback"
       @set-ui-toggle="handleBalanceUiToggle"
-      @set-ui-precision="handleBalanceUiPrecision"
     />
 
     <SidebarNotesPane
@@ -301,7 +286,6 @@ import type { ReportingConfig, DeckFeatureSettings } from '../services/reporting
 import SidebarCalendarsPane from './sidebar/SidebarCalendarsPane.vue'
 import SidebarTargetsPane from './sidebar/SidebarTargetsPane.vue'
 import SidebarSummaryPane from './sidebar/SidebarSummaryPane.vue'
-import SidebarActivityPane from './sidebar/SidebarActivityPane.vue'
 import SidebarBalancePane from './sidebar/SidebarBalancePane.vue'
 import SidebarNotesPane from './sidebar/SidebarNotesPane.vue'
 import SidebarConfigPane from './sidebar/SidebarConfigPane.vue'
@@ -373,7 +357,7 @@ const emit = defineEmits([
   'save-deck-settings',
 ])
 
-type SidebarTab = 'calendars'|'targets'|'summary'|'activity'|'balance'|'notes'|'config'|'report'
+type SidebarTab = 'calendars'|'targets'|'summary'|'activitybalance'|'notes'|'config'|'report'|'deck'
 
 const activeTab = ref<SidebarTab>('calendars')
 
@@ -449,6 +433,7 @@ const balanceSettings = computed<BalanceConfig>(() => {
   return {
     ...base,
     ...cfg,
+    index: { ...base.index, ...(cfg.index ?? {}) },
     thresholds: { ...base.thresholds, ...(cfg.thresholds ?? {}) },
     relations: { ...base.relations, ...(cfg.relations ?? {}) },
     trend: { ...base.trend, ...(cfg.trend ?? {}) },
@@ -456,8 +441,6 @@ const balanceSettings = computed<BalanceConfig>(() => {
     ui: { ...base.ui, ...(cfg.ui ?? {}) },
   }
 })
-
-const roundingOptions = [0, 1, 2, 3]
 
 const helpState = reactive({
   activity: false,
@@ -471,18 +454,22 @@ const categoryTargetMessages = reactive<Record<string, InputMessage | null>>({})
 const totalTargetMessage = ref<InputMessage | null>(null)
 const allDayHoursMessage = ref<InputMessage | null>(null)
 const paceThresholdMessages = reactive<{ onTrack: InputMessage | null; atRisk: InputMessage | null }>({ onTrack: null, atRisk: null })
-const balanceThresholdMessages = reactive<{ noticeMaxShare: InputMessage | null; warnMaxShare: InputMessage | null; warnIndex: InputMessage | null }>({
-  noticeMaxShare: null,
-  warnMaxShare: null,
+const balanceThresholdMessages = reactive<{
+  noticeAbove: InputMessage | null
+  noticeBelow: InputMessage | null
+  warnAbove: InputMessage | null
+  warnBelow: InputMessage | null
+  warnIndex: InputMessage | null
+}>({
+  noticeAbove: null,
+  noticeBelow: null,
+  warnAbove: null,
+  warnBelow: null,
   warnIndex: null,
 })
 const forecastMomentumMessage = ref<InputMessage | null>(null)
 const forecastPaddingMessage = ref<InputMessage | null>(null)
 const balanceLookbackMessage = ref<InputMessage | null>(null)
-const balanceUiPrecisionMessages = reactive<{ roundPercent: InputMessage | null; roundRatio: InputMessage | null }>({
-  roundPercent: null,
-  roundRatio: null,
-})
 
 function nextGroupId(): number | null {
   const used = new Set<number>()
@@ -587,16 +574,9 @@ function setActivityForecastMode(mode: ActivityCardConfig['forecastMode']) {
   })
 }
 
-function toggleActivityHelp() {
-  helpState.activity = !helpState.activity
-}
-
-function toggleBalanceHelp(target: 'all' | 'thresholds' | 'trend' | 'display') {
-  if (target === 'all') {
-    const next = !(helpState.balanceThresholds && helpState.balanceTrend && helpState.balanceDisplay)
-    helpState.balanceThresholds = next
-    helpState.balanceTrend = next
-    helpState.balanceDisplay = next
+function toggleBalanceHelp(target: 'activity' | 'thresholds' | 'trend' | 'display') {
+  if (target === 'activity') {
+    helpState.activity = !helpState.activity
     return
   }
   if (target === 'thresholds') {
@@ -608,22 +588,24 @@ function toggleBalanceHelp(target: 'all' | 'thresholds' | 'trend' | 'display') {
   }
 }
 
-function handleBalanceThreshold(payload: { key: 'noticeMaxShare' | 'warnMaxShare' | 'warnIndex'; value: string }) {
+function handleBalanceThreshold(payload: { key: 'noticeAbove' | 'noticeBelow' | 'warnAbove' | 'warnBelow' | 'warnIndex'; value: string }) {
   setBalanceThreshold(payload.key, payload.value)
 }
 
-function handleBalanceUiToggle(payload: { key: 'showInsights' | 'showDailyStacks' | 'showNotes' | 'dayparts'; value: boolean }) {
-  if (payload.key === 'dayparts') {
-    updateConfig(cfg => {
-      cfg.balance.dayparts.enabled = payload.value
-    })
-    return
-  }
-  setBalanceUiToggle(payload.key as 'showInsights' | 'showDailyStacks' | 'showNotes', payload.value)
+function handleBalanceUiToggle(payload: { key: 'showNotes'; value: boolean }) {
+  setBalanceUiToggle(payload.key, payload.value)
 }
 
-function handleBalanceUiPrecision(payload: { key: 'roundPercent' | 'roundRatio'; value: string }) {
-  setBalanceUiPrecision(payload.key, payload.value)
+function setBalanceIndexBasis(value: string) {
+  if (value !== 'category' && value !== 'calendar' && value !== 'both' && value !== 'off') {
+    return
+  }
+  updateConfig(cfg => {
+    cfg.balance.index = {
+      ...(cfg.balance?.index ?? createDefaultBalanceConfig().index),
+      basis: value as BalanceConfig['index']['basis'],
+    }
+  })
 }
 
 function onCalendarTargetInput(id: string, value: string){
@@ -724,7 +706,7 @@ function setThreshold(which: 'onTrack'|'atRisk', value: string){
   )
 }
 
-function setBalanceThreshold(which: 'noticeMaxShare' | 'warnMaxShare' | 'warnIndex', value: string){
+function setBalanceThreshold(which: 'noticeAbove' | 'noticeBelow' | 'warnAbove' | 'warnBelow' | 'warnIndex', value: string){
   applyNumericUpdate(
     value,
     { min: 0, max: 1, step: 0.01, decimals: 2 },
@@ -738,25 +720,16 @@ function setBalanceThreshold(which: 'noticeMaxShare' | 'warnMaxShare' | 'warnInd
 function setBalanceLookback(value: string){
   applyNumericUpdate(
     value,
-    { min: 1, max: 12, step: 1, decimals: 0 },
+    { min: 1, max: 4, step: 1, decimals: 0 },
     (message) => { balanceLookbackMessage.value = message },
     (num) => updateConfig(cfg => { cfg.balance.trend.lookbackWeeks = num }),
   )
 }
 
-function setBalanceUiToggle(key: 'showInsights' | 'showDailyStacks' | 'showNotes', checked: boolean){
+function setBalanceUiToggle(key: 'showNotes', checked: boolean){
   updateConfig(cfg => {
     cfg.balance.ui[key] = checked
   })
-}
-
-function setBalanceUiPrecision(key: 'roundPercent' | 'roundRatio', value: string){
-  applyNumericUpdate(
-    value,
-    { min: 0, max: 3, step: 1, decimals: 0 },
-    (message) => { balanceUiPrecisionMessages[key] = message },
-    (num) => updateConfig(cfg => { cfg.balance.ui[key] = num }),
-  )
 }
 
 function setForecastMethod(value: string){

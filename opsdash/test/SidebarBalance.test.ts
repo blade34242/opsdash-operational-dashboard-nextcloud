@@ -102,8 +102,8 @@ function mountSidebar() {
 describe('Sidebar balance controls', () => {
   it('shows error message for invalid threshold input and keeps config unchanged', async () => {
     const wrapper = mountSidebar()
-    await wrapper.get('#opsdash-sidebar-tab-balance').trigger('click')
-    const pane = wrapper.get('#opsdash-sidebar-pane-balance')
+    await wrapper.get('#opsdash-sidebar-tab-activitybalance').trigger('click')
+    const pane = wrapper.get('#opsdash-sidebar-pane-activitybalance')
     const inputs = pane.findAll('input[type="number"]')
     const noticeInput = inputs[0]
 
@@ -119,18 +119,18 @@ describe('Sidebar balance controls', () => {
     const events = wrapper.emitted('update:targets-config') ?? []
     expect(events.length).toBeGreaterThan(0)
     const latestConfig = events.at(-1)?.[0]
-    expect(latestConfig?.balance?.thresholds?.noticeMaxShare).toBe(0.7)
+    expect(latestConfig?.balance?.thresholds?.noticeAbove).toBe(0.7)
     expect(pane.text()).not.toContain('Enter a number')
   })
 
   it('clamps lookback weeks and emits warning message', async () => {
     const wrapper = mountSidebar()
-    await wrapper.get('#opsdash-sidebar-tab-balance').trigger('click')
-    const pane = wrapper.get('#opsdash-sidebar-pane-balance')
+    await wrapper.get('#opsdash-sidebar-tab-activitybalance').trigger('click')
+    const pane = wrapper.get('#opsdash-sidebar-pane-activitybalance')
     const inputs = pane.findAll('input[type="number"]')
-    const lookbackInput = inputs[3]
+    const lookbackInput = inputs[5]
 
-    await lookbackInput.setValue('0')
+    await lookbackInput.setValue('-1')
     await wrapper.vm.$nextTick()
 
     expect(pane.text()).toContain('Adjusted to allowed value')
@@ -138,10 +138,29 @@ describe('Sidebar balance controls', () => {
     const latestConfig = events.at(-1)?.[0]
     expect(latestConfig?.balance?.trend?.lookbackWeeks).toBe(1)
 
-    await lookbackInput.setValue('5')
+    await lookbackInput.setValue('1')
+    await wrapper.vm.$nextTick()
+
+    const middleConfig = wrapper.emitted('update:targets-config')?.at(-1)?.[0]
+    expect(middleConfig?.balance?.trend?.lookbackWeeks).toBe(1)
+
+    await lookbackInput.setValue('4')
     await wrapper.vm.$nextTick()
 
     const updatedConfig = wrapper.emitted('update:targets-config')?.at(-1)?.[0]
-    expect(updatedConfig?.balance?.trend?.lookbackWeeks).toBe(5)
+    expect(updatedConfig?.balance?.trend?.lookbackWeeks).toBe(4)
+  })
+
+  it('updates index basis selection', async () => {
+    const wrapper = mountSidebar()
+    await wrapper.get('#opsdash-sidebar-tab-activitybalance').trigger('click')
+    const selects = wrapper.get('#opsdash-sidebar-pane-activitybalance').findAll('select')
+    const basisSelect = selects[1]
+
+    await basisSelect.setValue('calendar')
+    await wrapper.vm.$nextTick()
+
+    const latestConfig = wrapper.emitted('update:targets-config')?.at(-1)?.[0]
+    expect(latestConfig?.balance?.index?.basis).toBe('calendar')
   })
 })

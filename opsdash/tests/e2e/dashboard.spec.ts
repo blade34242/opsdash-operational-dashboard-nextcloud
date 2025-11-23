@@ -238,7 +238,7 @@ test('Config import applies theme preference', async ({ page, baseURL }) => {
         allDayHours: 8,
         timeSummary: {},
         activityCard: { showWeekendShare: true },
-        balance: { categories: [], useCategoryMapping: true, thresholds: { noticeMaxShare: 0.65, warnMaxShare: 0.75, warnIndex: 0.6 }, relations: { displayMode: 'ratio' }, trend: { lookbackWeeks: 1 }, dayparts: { enabled: false }, ui: { roundPercent: 1, roundRatio: 1, showDailyStacks: false, showInsights: true } },
+        balance: { categories: [], useCategoryMapping: true, thresholds: { noticeAbove: 0.15, noticeBelow: 0.15, warnAbove: 0.30, warnBelow: 0.30, warnIndex: 0.6 }, relations: { displayMode: 'ratio' }, trend: { lookbackWeeks: 1 }, dayparts: { enabled: false }, ui: { showNotes: false } },
       },
       theme_preference: 'light',
       onboarding: { completed: true, version: 1, strategy: 'total_only' },

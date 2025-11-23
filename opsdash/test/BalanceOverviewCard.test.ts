@@ -34,7 +34,6 @@ function mountCard(overrides: Record<string, any> = {}) {
       ],
     },
     daily: [],
-    insights: [],
     warnings: [],
   }
   return mount(BalanceOverviewCard, {
@@ -68,11 +67,10 @@ describe('BalanceOverviewCard', () => {
           history: [],
         },
         daily: [],
-        insights: [],
         warnings: [],
       },
     })
-    expect(rowValues(wrapper)).toEqual(['0%', '40%'])
+    expect(rowValues(wrapper)).toEqual(['40%'])
   })
 
   it('renders multiple lookback columns when history matches config', () => {
@@ -105,7 +103,6 @@ describe('BalanceOverviewCard', () => {
           ],
         },
         daily: [],
-        insights: [],
         warnings: [],
       },
       lookbackWeeks: 3,
@@ -115,7 +112,7 @@ describe('BalanceOverviewCard', () => {
     expect(subtitle).toContain('last 3 weeks')
   })
 
-  it('pads lookback slots with zeros when history is missing entries', () => {
+  it('renders only provided history slots when entries are missing', () => {
     const wrapper = mountCard({
       lookbackWeeks: 3,
       overview: {
@@ -136,11 +133,38 @@ describe('BalanceOverviewCard', () => {
           ],
         },
         daily: [],
-        insights: [],
         warnings: [],
       },
     })
-    expect(rowValues(wrapper)).toEqual(['0%', '0%', '52%', '55%'])
+    expect(rowValues(wrapper)).toEqual(['52%', '55%'])
+  })
+
+  it('caps lookback to 4 columns even when configured higher', () => {
+    const wrapper = mountCard({
+      lookbackWeeks: 6,
+      overview: {
+        index: 0.7,
+        categories: [
+          { id: 'work', label: 'Work', hours: 10, share: 50, prevShare: 45, delta: 5 },
+        ],
+        relations: [],
+        trend: {
+          delta: [{ id: 'work', label: 'Work', delta: 5 }],
+          badge: 'Balanced',
+          history: [
+            { offset: 1, label: '-1 wk', categories: [{ id: 'work', label: 'Work', share: 45 }] },
+            { offset: 2, label: '-2 wk', categories: [{ id: 'work', label: 'Work', share: 40 }] },
+            { offset: 3, label: '-3 wk', categories: [{ id: 'work', label: 'Work', share: 35 }] },
+            { offset: 4, label: '-4 wk', categories: [{ id: 'work', label: 'Work', share: 30 }] },
+            { offset: 5, label: '-5 wk', categories: [{ id: 'work', label: 'Work', share: 25 }] },
+          ],
+        },
+        daily: [],
+        warnings: [],
+      },
+    })
+    // Expect 4 lookback slots (offsets 1→4) plus current
+    expect(rowValues(wrapper)).toEqual(['30%', '35%', '40%', '45%', '50%'])
   })
 
   it('uses month labels when range mode is month', () => {
@@ -170,12 +194,96 @@ describe('BalanceOverviewCard', () => {
           ],
         },
         daily: [],
-        insights: [],
         warnings: [],
       },
     })
     expect(wrapper.find('.mix-subtitle').text()).toContain('last 2 months')
     expect(rowValues(wrapper)).toEqual(['45%', '50%', '60%'])
+  })
+
+  it('renders activity summary when provided', () => {
+    const wrapper = mountCard({
+      activitySummary: {
+        rangeLabel: 'Week 12',
+        events: 5,
+        activeDays: 3,
+        typicalStart: '2025-03-10T09:00:00Z',
+        typicalEnd: '2025-03-10T17:00:00Z',
+        weekendShare: 20,
+        eveningShare: 10,
+        earliestStart: '2025-03-10T09:00:00Z',
+        latestEnd: '2025-03-10T18:00:00Z',
+        overlapEvents: 1,
+        longestSession: 2.5,
+        lastDayOff: '2025-03-08',
+        lastHalfDayOff: null,
+      },
+      activityDayOffTrend: [
+        { offset: 0, label: 'This week', from: '', to: '', totalDays: 7, daysOff: 1, daysWorked: 6 },
+        { offset: 1, label: '-1 wk', from: '', to: '', totalDays: 7, daysOff: 2, daysWorked: 5 },
+      ],
+    })
+    const text = wrapper.text()
+    expect(text).toContain('Activity & Schedule')
+    expect(text).toContain('Events 5')
+    expect(text).toContain('Weekend 20.0%')
+    const tiles = wrapper.findAll('.dayoff-tile')
+    expect(tiles).toHaveLength(1)
+    expect(tiles[0].text()).toContain('29% off')
+  })
+
+  it('sorts day-off tiles descending and normalizes labels', () => {
+    const wrapper = mountCard({
+      activitySummary: {
+        rangeLabel: 'Week X',
+        events: 0,
+        activeDays: 0,
+        typicalStart: null,
+        typicalEnd: null,
+        weekendShare: 0,
+        eveningShare: 0,
+        earliestStart: null,
+        latestEnd: null,
+        overlapEvents: 0,
+        longestSession: 0,
+        lastDayOff: null,
+        lastHalfDayOff: null,
+      },
+      activityDayOffTrend: [
+        { offset: 2, label: 'old', from: '', to: '', totalDays: 7, daysOff: 1, daysWorked: 6 },
+        { offset: 4, label: '', from: '', to: '', totalDays: 7, daysOff: 7, daysWorked: 0 },
+        { offset: 3, label: '', from: '', to: '', totalDays: 7, daysOff: 2, daysWorked: 5 },
+      ],
+      activityDayOffLookback: 4,
+    })
+    const labels = wrapper.findAll('.dayoff-tile__label').map((n) => n.text().trim())
+    expect(labels).toEqual(['-4 wk', '-3 wk', '-2 wk'])
+  })
+
+  it('renders four lookback columns with provided shares (no zero fallback)', () => {
+    const wrapper = mountCard({
+      lookbackWeeks: 4,
+      overview: {
+        index: 0.8,
+        categories: [
+          { id: 'work', label: 'Work', hours: 12, share: 55, prevShare: 52, delta: 3 },
+        ],
+        relations: [],
+        trend: {
+          delta: [{ id: 'work', label: 'Work', delta: 3 }],
+          badge: 'Shifting',
+          history: [
+            { offset: 1, label: '-1 wk', categories: [{ id: 'work', label: 'Work', share: 50 }] },
+            { offset: 2, label: '-2 wk', categories: [{ id: 'work', label: 'Work', share: 45 }] },
+            { offset: 3, label: '-3 wk', categories: [{ id: 'work', label: 'Work', share: 40 }] },
+            { offset: 4, label: '-4 wk', categories: [{ id: 'work', label: 'Work', share: 35 }] },
+          ],
+        },
+        daily: [],
+        warnings: [],
+      },
+    })
+    expect(rowValues(wrapper)).toEqual(['35%', '40%', '45%', '50%', '55%'])
   })
 
   it('sorts history columns by offset regardless of backend order', () => {
@@ -209,7 +317,6 @@ describe('BalanceOverviewCard', () => {
           ],
         },
         daily: [],
-        insights: [],
         warnings: [],
       },
     })

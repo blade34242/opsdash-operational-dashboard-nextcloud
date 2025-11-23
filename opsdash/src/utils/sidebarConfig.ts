@@ -61,6 +61,10 @@ export function sanitiseSidebarPayload(raw: unknown): SanitiseResult {
     ignored.push('theme_preference')
     delete cleaned.theme_preference
   }
+  if ('onboarding' in cleaned && (cleaned.onboarding == null || typeof cleaned.onboarding !== 'object')) {
+    ignored.push('onboarding')
+    delete cleaned.onboarding
+  }
 
   return { cleaned, ignored }
 }

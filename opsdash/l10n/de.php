@@ -163,7 +163,6 @@ $TRANSLATIONS = [
   'Factor (A×)' => 'Faktor (A×)',
   'Trend lookback (weeks)' => 'Trend-Rückblick (Wochen)',
   'Display help' => 'Anzeige-Hilfe',
-  'Toggle optional insights and adjust rounding for the card values.' => 'Optionale Hinweise umschalten und Rundung der Kartenwerte anpassen.',
   'Insights' => 'Hinweise',
   'Daily mix (experimental)' => 'Tagesmix (experimentell)',
   'Dayparts' => 'Tagesabschnitte',

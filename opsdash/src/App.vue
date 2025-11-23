@@ -182,15 +182,6 @@
                 :config="targetsConfig"
                 :groups="calendarGroups"
               />
-              <ActivityScheduleCard
-                :summary="activitySummary"
-                :range-label="rangeLabel"
-                :category-hint="categoryMappingHint"
-                :config="activityCardConfig"
-                :day-off-trend="activityDayOffTrend"
-                :trend-unit="range === 'month' ? 'mo' : 'wk'"
-                :day-off-lookback="trendLookbackWeeks"
-              />
               <BalanceOverviewCard
                 :overview="balanceOverview"
                 :range-label="rangeLabel"
@@ -198,6 +189,11 @@
                 :lookback-weeks="trendLookbackWeeks"
                 :config="balanceCardConfig"
                 :note="balanceNote"
+                :activity-summary="activitySummary"
+                :activity-config="activityCardConfig"
+                :activity-day-off-trend="activityDayOffTrend"
+                :activity-trend-unit="range === 'month' ? 'mo' : 'wk'"
+                :activity-day-off-lookback="trendLookbackWeeks"
               />
             </div>
 
@@ -328,7 +324,6 @@ import ByDayTable from './components/ByDayTable.vue'
 import TopEventsTable from './components/TopEventsTable.vue'
 import TimeSummaryCard from './components/TimeSummaryCard.vue'
 import TimeTargetsCard from './components/TimeTargetsCard.vue'
-import ActivityScheduleCard from './components/ActivityScheduleCard.vue'
 import BalanceOverviewCard from './components/BalanceOverviewCard.vue'
 import Sidebar from './components/Sidebar.vue'
 import OnboardingWizard from './components/OnboardingWizard.vue'
@@ -394,7 +389,6 @@ type BalanceOverviewSummary = {
   relations: { label: string; value: string }[]
   trend: { delta: Array<{ id: string; label: string; delta: number }>; badge: string }
   daily: Array<{ date: string; weekday: string; total_hours: number; categories: Array<{ id: string; label: string; hours: number; share: number }> }>
-  insights: string[]
   warnings: string[]
 } | null
 
@@ -813,8 +807,6 @@ const balanceConfigFull = computed<BalanceConfig>(() => {
 })
 
 const balanceCardConfig = computed(() => ({
-  showInsights: !!balanceConfigFull.value.ui.showInsights,
-  showDailyStacks: !!balanceConfigFull.value.ui.showDailyStacks,
   showNotes: !!balanceConfigFull.value.ui.showNotes,
 }))
 const trendLookbackWeeks = computed(() =>
