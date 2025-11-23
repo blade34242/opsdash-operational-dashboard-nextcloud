@@ -4,30 +4,6 @@ import { computed, nextTick } from 'vue'
 import { useBalance } from '../composables/useBalance'
 
 describe('useBalance', () => {
-  it('falls back to legacy trendHistory array when trend.history is missing', async () => {
-    const stats: any = {
-      balance_overview: {
-        index: 0.5,
-        categories: [],
-        relations: [],
-        trendHistory: [
-          { offset: 2, label: '-2 wk', categories: [{ id: 'work', label: 'Work', share: 40 }] },
-        ],
-        warnings: [],
-      },
-    }
-
-    const { balanceOverview } = useBalance({
-      stats,
-      categoryColorMap: computed(() => ({})),
-      balanceCardConfig: computed(() => ({ showNotes: true })),
-    })
-
-    await nextTick()
-    expect(balanceOverview.value?.trend.history).toHaveLength(1)
-    expect(balanceOverview.value?.trend.history[0].offset).toBe(2)
-  })
-
   it('returns null when stats payload is missing', () => {
     const stats: any = {}
     const { balanceOverview } = useBalance({

@@ -42,4 +42,13 @@ class DeckSeedServiceTest extends TestCase {
         $service = $this->serviceWithUser();
         $this->assertSame('123456', $this->callNormalize($service, '123456789'));
     }
+
+    public function testSeedThrowsWhenUserMissing(): void {
+        $userManager = $this->createMock(IUserManager::class);
+        $userManager->method('get')->willReturn(null);
+        $service = new DeckSeedService($userManager);
+
+        $this->expectException(\OCA\Opsdash\Service\DeckSeedException::class);
+        $service->seed(['userId' => 'ghost']);
+    }
 }
