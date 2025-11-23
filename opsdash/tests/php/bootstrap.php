@@ -22,6 +22,8 @@ $interfaceStubs = [
 	\OCP\IRequest::class => '/stubs/OCP/IRequest.php',
 	\OCP\Calendar\IManager::class => '/stubs/OCP/Calendar/IManager.php',
 	\OCP\IUserSession::class => '/stubs/OCP/IUserSession.php',
+	\OCP\IUser::class => '/stubs/OCP/IUser.php',
+	\OCP\IUserManager::class => '/stubs/OCP/IUserManager.php',
 	\OCP\IConfig::class => '/stubs/OCP/IConfig.php',
 	\Psr\Log\LoggerInterface::class => '/stubs/Psr/Log/LoggerInterface.php',
 ];
