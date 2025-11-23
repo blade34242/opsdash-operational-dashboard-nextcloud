@@ -151,6 +151,21 @@ describe('Sidebar balance controls', () => {
     expect(updatedConfig?.balance?.trend?.lookbackWeeks).toBe(4)
   })
 
+  it('caps lookback above max and warns the user', async () => {
+    const wrapper = mountSidebar()
+    await wrapper.get('#opsdash-sidebar-tab-activitybalance').trigger('click')
+    const pane = wrapper.get('#opsdash-sidebar-pane-activitybalance')
+    const inputs = pane.findAll('input[type="number"]')
+    const lookbackInput = inputs[5]
+
+    await lookbackInput.setValue('5')
+    await wrapper.vm.$nextTick()
+
+    expect(pane.text()).toContain('Adjusted to allowed value')
+    const latestConfig = wrapper.emitted('update:targets-config')?.at(-1)?.[0]
+    expect(latestConfig?.balance?.trend?.lookbackWeeks).toBe(4)
+  })
+
   it('updates index basis selection', async () => {
     const wrapper = mountSidebar()
     await wrapper.get('#opsdash-sidebar-tab-activitybalance').trigger('click')

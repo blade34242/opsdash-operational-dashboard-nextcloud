@@ -162,6 +162,28 @@ describe('useDashboardPersistence', () => {
     expect(targetsConfig.value.balance.ui.showNotes).toBe(false)
   })
 
+  it('applies balance index basis from server config', async () => {
+    const serverConfig = createDefaultTargetsConfig()
+    serverConfig.balance.index.basis = 'calendar'
+
+    const postJson = vi.fn().mockResolvedValue({
+      targets_config_read: serverConfig,
+    })
+
+    const { queueSave, targetsConfig } = createPersistence({
+      postJson,
+      notifySuccess: vi.fn(),
+    })
+
+    targetsConfig.value.balance.index.basis = 'category'
+
+    queueSave(false)
+    await vi.runOnlyPendingTimersAsync()
+
+    expect(postJson).toHaveBeenCalledTimes(1)
+    expect(targetsConfig.value.balance.index.basis).toBe('calendar')
+  })
+
   it('persists theme preference when provided', async () => {
     const postJson = vi.fn().mockResolvedValue({
       theme_preference_read: 'dark',
