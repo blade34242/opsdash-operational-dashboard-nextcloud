@@ -2108,7 +2108,7 @@ final class OverviewController extends Controller {
         array $categoryMeta
     ): array {
         $history = [];
-        $lookback = max(1, min(4, $lookback));
+        $lookback = max(1, min(12, $lookback));
         for ($i = 1; $i <= $lookback; $i++) {
             $offset = $currentOffset - $i;
             [$from, $to] = $this->rangeBounds($range, $offset);
@@ -2547,7 +2547,7 @@ final class OverviewController extends Controller {
         if (isset($cfg['trend']) && is_array($cfg['trend'])) {
             $lookback = (int)($cfg['trend']['lookbackWeeks'] ?? $base['trend']['lookbackWeeks']);
             if ($lookback < 1) $lookback = 1;
-            if ($lookback > 4) $lookback = 4;
+            if ($lookback > 12) $lookback = 12;
             $result['trend']['lookbackWeeks'] = $lookback;
         }
 

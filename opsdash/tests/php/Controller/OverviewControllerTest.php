@@ -139,7 +139,7 @@ class OverviewControllerTest extends TestCase {
     $this->assertSame(0.0, $result['balance']['thresholds']['warnAbove']);
     $this->assertSame(0.0, $result['balance']['thresholds']['warnBelow']);
     $this->assertSame(0.33, $result['balance']['thresholds']['warnIndex']);
-    $this->assertSame(4, $result['balance']['trend']['lookbackWeeks']);
+    $this->assertSame(12, $result['balance']['trend']['lookbackWeeks']);
     $this->assertArrayHasKey('showNotes', $result['balance']['ui']);
     $this->assertTrue($result['balance']['ui']['showNotes']);
   }
@@ -149,7 +149,7 @@ class OverviewControllerTest extends TestCase {
     $method->setAccessible(true);
     /** @var array<string,mixed> $result */
     $result = $method->invoke($this->controller, ['trend' => ['lookbackWeeks' => 12]], []);
-    $this->assertSame(4, $result['trend']['lookbackWeeks']);
+    $this->assertSame(12, $result['trend']['lookbackWeeks']);
   }
 
   public function testBalanceLookbackClampNegative(): void {
@@ -170,6 +170,10 @@ class OverviewControllerTest extends TestCase {
     /** @var array<string,mixed> $resultFour */
     $resultFour = $method->invoke($this->controller, ['trend' => ['lookbackWeeks' => 4]], []);
     $this->assertSame(4, $resultFour['trend']['lookbackWeeks']);
+
+    /** @var array<string,mixed> $resultTwelve */
+    $resultTwelve = $method->invoke($this->controller, ['trend' => ['lookbackWeeks' => 12]], []);
+    $this->assertSame(12, $resultTwelve['trend']['lookbackWeeks']);
   }
 
   public function testBalanceIndexBasisSanitises(): void {
