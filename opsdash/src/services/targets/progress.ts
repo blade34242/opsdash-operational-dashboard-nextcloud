@@ -312,7 +312,7 @@ function computeCategoryActual(cat: TargetCategoryConfig, byCal: any[], groupsBy
   return sum
 }
 
-function buildDailyMap(rows: any[]): Map<string, number> {
+export function buildDailyMap(rows: any[]): Map<string, number> {
   const map = new Map<string, number>()
   if (!Array.isArray(rows)) return map
   for (const row of rows) {

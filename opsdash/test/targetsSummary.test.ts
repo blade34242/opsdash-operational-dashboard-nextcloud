@@ -1,5 +1,6 @@
 import { beforeEach, afterEach, describe, it, expect, vi } from 'vitest'
 import { buildTargetsSummary, createDefaultTargetsConfig } from '../src/services/targets'
+import { buildDailyMap } from '../src/services/targets/progress'
 
 describe('buildTargetsSummary', () => {
   beforeEach(() => {
@@ -51,5 +52,17 @@ describe('buildTargetsSummary', () => {
     expect(lab?.actualHours).toBe(7)
     expect(lab?.targetHours).toBe(8)
   })
-})
 
+  it('converts byDay into a usable map', () => {
+    const map = buildDailyMap([
+      { date: '2025-03-03', total_hours: 2 },
+      { date: '2025-03-04', hours: 3 },
+      { date: '2025-03-05', total_hours: '4.5' },
+      { date: '2025-03-06', total_hours: 'bad' },
+    ])
+    expect(map.get('2025-03-03')).toBe(2)
+    expect(map.get('2025-03-04')).toBe(3)
+    expect(map.get('2025-03-05')).toBe(4.5)
+    expect(map.get('2025-03-06')).toBeUndefined()
+  })
+})
