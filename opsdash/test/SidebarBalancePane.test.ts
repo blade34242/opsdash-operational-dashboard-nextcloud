@@ -51,6 +51,31 @@ describe('SidebarBalancePane', () => {
     expect(wrapper.emitted('toggle-help')).toEqual([['activity']])
   })
 
+  it('emits set-lookback when lookback input changes', async () => {
+    const wrapper = mountPane({ helpTrend: true })
+    const inputs = wrapper.findAll('input[type="number"]')
+    const lookbackInput = inputs[5]
+
+    await lookbackInput.setValue('3')
+
+    expect(wrapper.emitted('set-lookback')).toEqual([['3']])
+  })
+
+  it('emits set-index-basis and uses default options', async () => {
+    const wrapper = mountPane()
+    const selects = wrapper.findAll('select')
+    const basisSelect = selects[1]
+
+    await basisSelect.setValue('both')
+
+    expect(wrapper.emitted('set-index-basis')).toEqual([['both']])
+    const options = basisSelect.findAll('option').map((o) => o.text())
+    expect(options).toContain('Disabled')
+    expect(options).toContain('Total categories')
+    expect(options).toContain('Total calendars')
+    expect(options).toContain('Categories + calendars')
+  })
+
   it('emits set-ui-toggle when toggles change', async () => {
     const wrapper = mountPane({ helpDisplay: true })
     const input = wrapper.find('.single-toggle input[type="checkbox"]')
