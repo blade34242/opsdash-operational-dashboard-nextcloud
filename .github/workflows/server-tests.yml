@@ -115,8 +115,8 @@ jobs:
         env:
           SECOND_USER: ${{ env.PLAYWRIGHT_SECOND_USER }}
         run: |
-          php occ opsdash:seed-deck --user admin
-          php occ opsdash:seed-deck --user "$SECOND_USER"
+          QA_USER=admin php apps/${{ env.APP_NAME }}/tools/seed_deck_boards.php
+          QA_USER="$SECOND_USER" php apps/${{ env.APP_NAME }}/tools/seed_deck_boards.php
 
       - name: PHPUnit
         working-directory: server/apps/${{ env.APP_NAME }}
