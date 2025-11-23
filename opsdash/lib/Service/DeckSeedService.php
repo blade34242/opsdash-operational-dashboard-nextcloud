@@ -121,14 +121,12 @@ class DeckSeedService {
     }
 
     private function normalizeHex(string $color): string {
-        $c = trim($color);
+        $c = ltrim(trim($color), '#');
         if ($c === '') {
-            return '#2563EB';
+            return '2563EB';
         }
-        if ($c[0] !== '#') {
-            $c = '#' . $c;
-        }
-        return strtoupper($c);
+        // Deck expects 6-char hex without leading '#'
+        return strtoupper(substr($c, 0, 6));
     }
 
     private function resetBoardStacks($stackService, int $boardId): void {
