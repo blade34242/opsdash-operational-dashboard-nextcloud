@@ -35,6 +35,16 @@ class DeckSeedService {
             throw new DeckSeedException("User \"{$userId}\" does not exist.");
         }
 
+        // Ensure Deck sees a logged-in user for activity entries.
+        try {
+            $userSession = \OC::$server->getUserSession();
+            if ($userSession && method_exists($userSession, 'setUser')) {
+                $userSession->setUser($user);
+            }
+        } catch (\Throwable $e) {
+            // Non-fatal: continue if session binding fails
+        }
+
         $this->ensureDeckAvailable();
 
         /** @var \OCA\Deck\Service\PermissionService $permissionService */
