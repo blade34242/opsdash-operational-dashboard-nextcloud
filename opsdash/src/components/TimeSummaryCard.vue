@@ -4,6 +4,7 @@
       <em>Time Summary · {{ summary.rangeLabel }}</em>
     </div>
     <ul class="time-summary-metrics">
+      <li v-if="summary.todayHours != null"><strong>{{ n2(summary.todayHours) }} h</strong> today</li>
       <li v-if="summaryConfig.showTotal"><strong>{{ n2(summary.totalHours) }} h</strong> total</li>
       <li v-if="summaryConfig.showAverage">{{ n2(summary.avgDay) }} h/day ({{ modeLabel }})</li>
       <li v-if="summaryConfig.showAverage">{{ n2(summary.avgEvent) }} h/event</li>
@@ -81,6 +82,7 @@ const defaultConfig: SummaryConfig = {
 const props = defineProps<{
   summary: {
     rangeLabel: string
+    todayHours?: number | null
     totalHours: number
     avgDay: number
     avgEvent: number

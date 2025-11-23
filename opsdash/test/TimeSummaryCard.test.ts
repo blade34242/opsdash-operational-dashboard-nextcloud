@@ -29,6 +29,21 @@ const baseSummary = {
 }
 
 describe('TimeSummaryCard', () => {
+  it('renders today badge when provided', () => {
+    const wrapper = mount(TimeSummaryCard, {
+      props: {
+        summary: {
+          ...baseSummary,
+          todayHours: 6.5,
+        },
+        mode: 'active',
+      },
+    })
+
+    const text = wrapper.text()
+    expect(text).toContain('6.50 h today')
+  })
+
   it('renders key metrics, top category badge, and weekend share', () => {
     const wrapper = mount(TimeSummaryCard, {
       props: {
