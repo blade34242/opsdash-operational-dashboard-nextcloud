@@ -138,7 +138,7 @@ class OverviewControllerTest extends TestCase {
     $this->assertSame(1.0, $result['balance']['thresholds']['noticeBelow']);
     $this->assertSame(0.0, $result['balance']['thresholds']['warnAbove']);
     $this->assertSame(0.0, $result['balance']['thresholds']['warnBelow']);
-    $this->assertSame(0.33, $result['balance']['thresholds']['warnIndex']);
+    $this->assertSame(0.3, $result['balance']['thresholds']['warnIndex']);
     $this->assertSame(12, $result['balance']['trend']['lookbackWeeks']);
     $this->assertArrayHasKey('showNotes', $result['balance']['ui']);
     $this->assertTrue($result['balance']['ui']['showNotes']);

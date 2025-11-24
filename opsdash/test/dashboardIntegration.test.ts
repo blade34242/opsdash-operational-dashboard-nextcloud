@@ -259,4 +259,40 @@ describe('Dashboard integration fixtures', () => {
     expect(harness.dashboard.colorsById.value['opsdash-focus']).toBe('#2563EB')
     expect(harness.dashboard.groupsById.value['opsdash-focus']).toBe(2)
   })
+
+  it('handles week offset -2 fixtures', async () => {
+    vi.setSystemTime(new Date('2025-10-18T12:00:00Z'))
+    const harness = await createIntegrationHarness({ range: 'week', fixture: 'load-week-offset-2.json', offset: -2 })
+    expect(harness.fixture.meta.offset).toBe(-2)
+    expect(harness.dashboard.from.value).toBe('2025-10-13')
+    expect(harness.dashboard.to.value).toBe('2025-10-19')
+    expect(harness.dashboard.byCal.value.length).toBeGreaterThan(0)
+  })
+
+  it('handles week offset 3 fixtures', async () => {
+    vi.setSystemTime(new Date('2025-11-20T12:00:00Z'))
+    const harness = await createIntegrationHarness({ range: 'week', fixture: 'load-week-offset3.json', offset: 3 })
+    expect(harness.fixture.meta.offset).toBe(3)
+    expect(harness.dashboard.from.value).toBe('2025-11-17')
+    expect(harness.dashboard.to.value).toBe('2025-11-23')
+    expect(harness.dashboard.byCal.value.length).toBeGreaterThan(0)
+  })
+
+  it('handles month offset -2 fixtures', async () => {
+    vi.setSystemTime(new Date('2025-09-15T12:00:00Z'))
+    const harness = await createIntegrationHarness({ range: 'month', fixture: 'load-month-offset-2.json', offset: -2 })
+    expect(harness.fixture.meta.offset).toBe(-2)
+    expect(harness.dashboard.from.value).toBe('2025-09-01')
+    expect(harness.dashboard.to.value).toBe('2025-09-30')
+    expect(harness.dashboard.byCal.value.length).toBeGreaterThan(0)
+  })
+
+  it('handles month offset 2 fixtures', async () => {
+    vi.setSystemTime(new Date('2025-12-15T12:00:00Z'))
+    const harness = await createIntegrationHarness({ range: 'month', fixture: 'load-month-offset2.json', offset: 2 })
+    expect(harness.fixture.meta.offset).toBe(2)
+    expect(harness.dashboard.from.value).toBe('2025-12-01')
+    expect(harness.dashboard.to.value).toBe('2025-12-31')
+    expect(harness.dashboard.byCal.value.length).toBeGreaterThan(0)
+  })
 })
