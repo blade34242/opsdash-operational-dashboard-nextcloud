@@ -195,6 +195,15 @@
                 :activity-trend-unit="range === 'month' ? 'mo' : 'wk'"
                 :activity-day-off-lookback="trendLookbackWeeks"
               />
+              <DeckSummaryCard
+                v-if="deckSettings.enabled"
+                :buckets="deckSummaryBuckets"
+                :range-label="rangeLabel"
+                :loading="deckLoading"
+                :error="deckError"
+                :ticker="deckTickerConfig"
+                :show-board-badges="deckSettings.ticker.showBoardBadges !== false"
+              />
             </div>
 
             <div class="tabs">
@@ -329,8 +338,9 @@ import Sidebar from './components/Sidebar.vue'
 import OnboardingWizard from './components/OnboardingWizard.vue'
 import KeyboardShortcutsModal from './components/KeyboardShortcutsModal.vue'
 import DeckCardsPanel from './components/DeckCardsPanel.vue'
+import DeckSummaryCard from './components/DeckSummaryCard.vue'
 import { buildTargetsSummary, normalizeTargetsConfig, createEmptyTargetsSummary, createDefaultActivityCardConfig, createDefaultBalanceConfig, cloneTargetsConfig, convertWeekToMonth, type ActivityCardConfig, type BalanceConfig, type TargetsConfig } from './services/targets'
-import { normalizeReportingConfig, normalizeDeckSettings } from './services/reporting'
+import { normalizeReportingConfig, normalizeDeckSettings, type DeckFilterMode } from './services/reporting'
 import { ONBOARDING_VERSION } from './services/onboarding'
 // Lightweight notifications without @nextcloud/dialogs
 function notifySuccess(msg: string){
@@ -482,20 +492,17 @@ function handleReportingConfigSave(value: any) {
 
 function handleDeckSettingsSave(value: any) {
   deckSettings.value = normalizeDeckSettings(value, deckSettings.value)
-  if (deckSettings.value.defaultFilter !== deckFilter.value) {
-    deckFilter.value = deckSettings.value.defaultFilter
-  }
-  if (!deckSettings.value.filtersEnabled) {
-    deckFilter.value = deckSettings.value.defaultFilter
-  }
+  const nextFilter = sanitizeDeckFilter(deckSettings.value.defaultFilter)
+  deckFilter.value = nextFilter
   queueSave(false)
 }
 
 watch(
   () => deckSettings.value.defaultFilter,
   (next) => {
-    if (next !== deckFilter.value) {
-      deckFilter.value = next
+    const sanitized = sanitizeDeckFilter(next)
+    if (sanitized !== deckFilter.value) {
+      deckFilter.value = sanitized
     }
   },
 )
@@ -521,24 +528,118 @@ const {
   notifyError,
 })
 
-const deckFilter = ref<'all' | 'mine'>(deckSettings.value.defaultFilter)
-const deckFilteredCards = computed(() => {
+const deckFilter = ref<DeckFilterMode>(sanitizeDeckFilter(deckSettings.value.defaultFilter))
+const deckVisibleCards = computed(() => {
   const hidden = new Set(
     (deckSettings.value.hiddenBoards || []).map((id) => Number(id)).filter((id) => Number.isFinite(id)),
   )
-  const boardVisibleCards = deckCards.value.filter((card) => !hidden.has(card.boardId))
-  if (deckFilter.value !== 'mine') {
-    return boardVisibleCards
-  }
+  return deckCards.value.filter((card) => !hidden.has(card.boardId))
+})
+
+const deckMineMatcher = computed(() => {
+  const mineMode = deckSettings.value.mineMode ?? 'assignee'
   const userId = (uid.value || '').trim().toLowerCase()
-  if (!userId) {
-    return boardVisibleCards
+  return (card: any) => {
+    if (!userId) return false
+    const assigneeMatch = (card.assignees || []).some(
+      (assignee: any) => typeof assignee.uid === 'string' && assignee.uid.toLowerCase() === userId,
+    )
+    const creatorId = typeof card.createdBy === 'string' ? card.createdBy.trim().toLowerCase() : ''
+    const creatorMatch = creatorId && creatorId === userId
+    const doneById = typeof card.doneBy === 'string' ? card.doneBy.trim().toLowerCase() : ''
+    const doneMatch = doneById && doneById === userId
+    if (mineMode === 'creator') return creatorMatch || doneMatch
+    if (mineMode === 'assignee') return assigneeMatch || doneMatch
+    return assigneeMatch || creatorMatch || doneMatch
   }
-  return boardVisibleCards.filter((card) => {
-    return (card.assignees || []).some((assignee) => {
-      return typeof assignee.uid === 'string' && assignee.uid.toLowerCase() === userId
+})
+
+const deckStatusMatches = (card: any, status: 'open' | 'done' | 'archived', includeArchivedInDone: boolean) => {
+  if (status === 'open') return card.status === 'active'
+  if (status === 'archived') return card.status === 'archived'
+  if (status === 'done') {
+    if (card.status === 'done') return true
+    return includeArchivedInDone && card.status === 'archived'
+  }
+  return false
+}
+
+const deckFilteredCards = computed(() => {
+  const mineMatch = deckMineMatcher.value
+  const includeArchivedInDone = deckSettings.value.solvedIncludesArchived !== false
+  const filter = deckFilter.value
+  const cards = deckVisibleCards.value
+  if (filter === 'all') return cards
+  if (filter === 'mine') {
+    return cards.filter((card) => mineMatch(card))
+  }
+  const [statusKey, scope] = filter.split('_') as ['open' | 'done' | 'archived', 'all' | 'mine']
+  return cards.filter((card) => {
+    const statusOk = deckStatusMatches(card, statusKey, includeArchivedInDone)
+    const mineOk = scope === 'all' ? true : mineMatch(card)
+    return statusOk && mineOk
+  })
+})
+
+const deckSummaryBuckets = computed(() => {
+  const mineMatch = deckMineMatcher.value
+  const includeArchivedInDone = deckSettings.value.solvedIncludesArchived !== false
+  const cards = deckVisibleCards.value
+  const rows: Array<{
+    key: DeckFilterMode
+    label: string
+    titles: string[]
+    count: number
+    board?: { title: string; color?: string }
+  }> = []
+  const defs: Array<{ key: DeckFilterMode; label: string; status: 'open' | 'done' | 'archived'; mine: boolean }> = [
+    { key: 'open_all', label: 'Open · All', status: 'open', mine: false },
+    { key: 'open_mine', label: 'Open · Mine', status: 'open', mine: true },
+    { key: 'done_all', label: 'Done · All', status: 'done', mine: false },
+    { key: 'done_mine', label: 'Done · Mine', status: 'done', mine: true },
+    { key: 'archived_all', label: 'Archived · All', status: 'archived', mine: false },
+    { key: 'archived_mine', label: 'Archived · Mine', status: 'archived', mine: true },
+  ]
+
+  defs.forEach((def) => {
+    const filtered = cards.filter((card) => {
+      const statusOk = deckStatusMatches(card, def.status, includeArchivedInDone)
+      const mineOk = def.mine ? mineMatch(card) : true
+      return statusOk && mineOk
+    })
+    const boardCounts = new Map<number, { count: number; title: string; color?: string }>()
+    filtered.forEach((card) => {
+      if (card.boardId == null) return
+      const entry = boardCounts.get(card.boardId) || { count: 0, title: card.boardTitle, color: card.boardColor }
+      entry.count += 1
+      entry.title = card.boardTitle
+      entry.color = card.boardColor
+      boardCounts.set(card.boardId, entry)
+    })
+    let board: { title: string; color?: string } | undefined
+    if (boardCounts.size) {
+      const sorted = Array.from(boardCounts.entries()).sort((a, b) => b[1].count - a[1].count)
+      board = { title: sorted[0][1].title, color: sorted[0][1].color }
+    }
+    rows.push({
+      key: def.key,
+      label: def.label,
+      titles: filtered.map((card) => card.title || `Card ${card.id}`),
+      count: filtered.length,
+      board,
     })
   })
+
+  return rows
+})
+
+const deckTickerConfig = computed(() => {
+  const ticker = deckSettings.value.ticker || { autoScroll: true, intervalSeconds: 5, showBoardBadges: true }
+  const interval = Math.min(10, Math.max(3, Number(ticker.intervalSeconds ?? 5) || 5))
+  return {
+    autoScroll: ticker.autoScroll !== false,
+    intervalSeconds: interval,
+  }
 })
 
 const deckCanFilterMine = computed(
@@ -914,6 +1015,20 @@ function setActiveDayMode(mode:'active'|'all'){
   if (activeDayMode.value !== mode) {
     activeDayMode.value = mode
   }
+}
+
+function sanitizeDeckFilter(value: DeckFilterMode | string | undefined): DeckFilterMode {
+  const allowed: DeckFilterMode[] = [
+    'all',
+    'mine',
+    'open_all',
+    'open_mine',
+    'done_all',
+    'done_mine',
+    'archived_all',
+    'archived_mine',
+  ]
+  return allowed.includes(value as DeckFilterMode) ? (value as DeckFilterMode) : 'all'
 }
 
 function handleOpenShortcuts(trigger?: HTMLElement | null) {

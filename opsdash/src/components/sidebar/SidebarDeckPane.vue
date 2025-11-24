@@ -37,7 +37,13 @@
             @change="updateDeck({ defaultFilter: ($event.target as HTMLSelectElement).value as any })"
           >
             <option value="all">All cards</option>
-            <option value="mine">My cards</option>
+            <option value="mine">My cards (all statuses)</option>
+            <option value="open_all">Open · All</option>
+            <option value="open_mine">Open · Mine</option>
+            <option value="done_all">Done · All</option>
+            <option value="done_mine">Done · Mine</option>
+            <option value="archived_all">Archived · All</option>
+            <option value="archived_mine">Archived · Mine</option>
           </select>
         </label>
 
@@ -50,6 +56,66 @@
           />
           Enable filter buttons
         </label>
+
+        <label class="report-field">
+          <span>Mine definition</span>
+          <select
+            :value="localDeck.mineMode"
+            :disabled="!localDeck.enabled"
+            @change="updateDeck({ mineMode: ($event.target as HTMLSelectElement).value as any })"
+          >
+            <option value="assignee">Assignee (default)</option>
+            <option value="creator">Creator</option>
+            <option value="both">Assignee or creator</option>
+          </select>
+          <p class="section-hint">Controls what “Mine” means for Deck filters and summary rows.</p>
+        </label>
+
+        <label class="report-field report-field--checkbox">
+          <input
+            type="checkbox"
+            :checked="localDeck.solvedIncludesArchived"
+            :disabled="!localDeck.enabled"
+            @change="updateDeck({ solvedIncludesArchived: !localDeck.solvedIncludesArchived })"
+          />
+          Treat archived cards as “Solved”
+        </label>
+        <p class="section-hint">When enabled, the “Solved” rows include both done and archived cards.</p>
+
+        <div class="report-grid">
+          <label class="report-field report-field--checkbox">
+            <input
+              type="checkbox"
+              :checked="localDeck.ticker?.autoScroll !== false"
+              :disabled="!localDeck.enabled"
+              @change="updateTicker({ autoScroll: !(localDeck.ticker?.autoScroll !== false) })"
+            />
+            Auto-scroll Deck summary
+          </label>
+
+          <label class="report-field">
+            <span>Auto-scroll interval (s)</span>
+            <input
+              type="number"
+              min="3"
+              max="10"
+              step="1"
+              :value="localDeck.ticker?.intervalSeconds ?? 5"
+              :disabled="!localDeck.enabled || localDeck.ticker?.autoScroll === false"
+              @input="updateTicker({ intervalSeconds: Number(($event.target as HTMLInputElement).value) || 5 })"
+            />
+          </label>
+
+          <label class="report-field report-field--checkbox">
+            <input
+              type="checkbox"
+              :checked="localDeck.ticker?.showBoardBadges !== false"
+              :disabled="!localDeck.enabled"
+              @change="updateTicker({ showBoardBadges: !(localDeck.ticker?.showBoardBadges === false) })"
+            />
+            Show board badges on summary
+          </label>
+        </div>
     </div>
   </div>
 
@@ -171,6 +237,17 @@ function updateDeck(patch: Partial<DeckFeatureSettings>) {
   }
 }
 
+function updateTicker(patch: Partial<DeckFeatureSettings['ticker']>) {
+  const current = localDeck.value.ticker || { autoScroll: true, intervalSeconds: 5, showBoardBadges: true }
+  localDeck.value = {
+    ...localDeck.value,
+    ticker: {
+      ...current,
+      ...patch,
+    },
+  }
+}
+
 function saveDeck() {
   emit('save-deck-settings', cloneDeck(localDeck.value))
 }
@@ -240,6 +317,11 @@ function cloneDeck(value: DeckFeatureSettings): DeckFeatureSettings {
   flex-direction: row;
   align-items: center;
   gap: 0.5rem;
+}
+.report-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 0.75rem;
 }
 .report-actions {
   display: flex;

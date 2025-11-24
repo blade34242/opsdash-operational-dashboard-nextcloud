@@ -345,6 +345,9 @@ class OverviewControllerTest extends TestCase {
     $this->assertArrayHasKey('deck_settings_read', $fixture);
     $this->assertSame('mine', $fixture['deck_settings_read']['defaultFilter']);
     $this->assertSame([42], $fixture['deck_settings_read']['hiddenBoards']);
+    $this->assertSame('assignee', $fixture['deck_settings_read']['mineMode']);
+    $this->assertTrue($fixture['deck_settings_read']['solvedIncludesArchived']);
+    $this->assertArrayHasKey('ticker', $fixture['deck_settings_read']);
   }
 
   public function testDeckSettingsSanitizeHiddenBoards(): void {
@@ -363,6 +366,10 @@ class OverviewControllerTest extends TestCase {
     $this->assertFalse($result['filtersEnabled']);
     $this->assertSame('mine', $result['defaultFilter']);
     $this->assertSame([2, 5], $result['hiddenBoards']);
+    $this->assertSame('assignee', $result['mineMode']);
+    $this->assertTrue($result['solvedIncludesArchived']);
+    $this->assertIsArray($result['ticker']);
+    $this->assertArrayHasKey('autoScroll', $result['ticker']);
   }
 
   public function testNotesFixtureStructure(): void {

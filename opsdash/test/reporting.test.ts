@@ -9,19 +9,28 @@ describe('Deck feature settings', () => {
     expect(defaults.filtersEnabled).toBe(true)
     expect(defaults.defaultFilter).toBe('all')
     expect(defaults.hiddenBoards).toEqual([])
+    expect(defaults.mineMode).toBe('assignee')
+    expect(defaults.solvedIncludesArchived).toBe(true)
+    expect(defaults.ticker).toMatchObject({ autoScroll: true, intervalSeconds: 5, showBoardBadges: true })
   })
 
   it('normalizes hidden boards and default filter', () => {
     const normalized = normalizeDeckSettings({
       enabled: false,
       filtersEnabled: false,
-      defaultFilter: 'mine',
+      defaultFilter: 'done_mine',
       hiddenBoards: [3, '5', 'foo', -4, 0, 3],
+      mineMode: 'creator',
+      solvedIncludesArchived: false,
+      ticker: { autoScroll: false, intervalSeconds: 12, showBoardBadges: false },
     })
 
     expect(normalized.enabled).toBe(false)
     expect(normalized.filtersEnabled).toBe(false)
-    expect(normalized.defaultFilter).toBe('mine')
+    expect(normalized.defaultFilter).toBe('done_mine')
     expect(normalized.hiddenBoards).toEqual([3, 5])
+    expect(normalized.mineMode).toBe('creator')
+    expect(normalized.solvedIncludesArchived).toBe(false)
+    expect(normalized.ticker).toEqual({ autoScroll: false, intervalSeconds: 10, showBoardBadges: false })
   })
 })

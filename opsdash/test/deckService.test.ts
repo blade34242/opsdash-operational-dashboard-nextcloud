@@ -33,17 +33,17 @@ describe('deck service', () => {
       to: '2024-11-25T00:00:00.000Z',
     })
 
-    expect(cards).toHaveLength(2)
+    expect(cards).toHaveLength(4)
     const dueCard = cards.find((card) => card.title === 'Prep sprint')
-    const archivedCard = cards.find((card) => card.title === 'Close tickets')
-    expect(dueCard).toMatchObject({
-      match: 'due',
-      labels: [{ title: 'Ops' }],
-    })
-    expect(archivedCard).toMatchObject({
-      match: 'completed',
-      status: 'archived',
-    })
+    const blockers = cards.find((card) => card.title === 'Resolve Deck blockers')
+    const doneCard = cards.find((card) => card.title === 'Publish Ops report cards')
+    const archivedCard = cards.find((card) => card.title === 'Archive completed Ops tasks')
+
+    expect(dueCard).toMatchObject({ match: 'due', status: 'active', labels: [{ title: 'Ops' }] })
+    expect(blockers).toMatchObject({ status: 'active' })
+    expect(doneCard).toMatchObject({ match: 'completed', status: 'done' })
+    expect(archivedCard).toMatchObject({ match: 'completed', status: 'archived' })
+    expect(doneCard?.doneBy).toBeDefined()
   })
 
   it('returns empty array when Deck endpoints are unavailable', async () => {

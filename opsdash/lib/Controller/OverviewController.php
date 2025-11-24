@@ -1662,6 +1662,13 @@ final class OverviewController extends Controller {
             'filtersEnabled' => true,
             'defaultFilter' => 'all',
             'hiddenBoards' => [],
+            'mineMode' => 'assignee',
+            'solvedIncludesArchived' => true,
+            'ticker' => [
+                'autoScroll' => true,
+                'intervalSeconds' => 5,
+                'showBoardBadges' => true,
+            ],
         ];
     }
 
@@ -1670,7 +1677,19 @@ final class OverviewController extends Controller {
         if (!is_array($value)) {
             return $defaults;
         }
-        $defaultFilter = ($value['defaultFilter'] ?? 'all') === 'mine' ? 'mine' : 'all';
+        $allowedFilters = [
+            'all',
+            'mine',
+            'open_all',
+            'open_mine',
+            'done_all',
+            'done_mine',
+            'archived_all',
+            'archived_mine',
+        ];
+        $defaultFilter = in_array(($value['defaultFilter'] ?? 'all'), $allowedFilters, true)
+            ? $value['defaultFilter']
+            : 'all';
         $hiddenBoards = [];
         if (!empty($value['hiddenBoards']) && is_array($value['hiddenBoards'])) {
             $hiddenBoards = array_values(array_unique(array_filter(array_map(function ($id) {
@@ -1678,11 +1697,40 @@ final class OverviewController extends Controller {
                 return $num > 0 ? $num : null;
             }, $value['hiddenBoards']), fn ($id) => $id !== null)));
         }
+        $mineMode = 'assignee';
+        if (isset($value['mineMode']) && is_string($value['mineMode'])) {
+            $mode = $value['mineMode'];
+            if (in_array($mode, ['assignee', 'creator', 'both'], true)) {
+                $mineMode = $mode;
+            }
+        }
+        $ticker = $defaults['ticker'];
+        if (isset($value['ticker']) && is_array($value['ticker'])) {
+            $ticker = [
+                'autoScroll' => array_key_exists('autoScroll', $value['ticker'])
+                    ? (bool)$value['ticker']['autoScroll']
+                    : $defaults['ticker']['autoScroll'],
+                'intervalSeconds' => $this->clampInt(
+                    $value['ticker']['intervalSeconds'] ?? $defaults['ticker']['intervalSeconds'],
+                    3,
+                    10,
+                    $defaults['ticker']['intervalSeconds']
+                ),
+                'showBoardBadges' => array_key_exists('showBoardBadges', $value['ticker'])
+                    ? (bool)$value['ticker']['showBoardBadges']
+                    : $defaults['ticker']['showBoardBadges'],
+            ];
+        }
         return [
             'enabled' => array_key_exists('enabled', $value) ? (bool)$value['enabled'] : true,
             'filtersEnabled' => array_key_exists('filtersEnabled', $value) ? (bool)$value['filtersEnabled'] : true,
             'defaultFilter' => $defaultFilter,
             'hiddenBoards' => $hiddenBoards,
+            'mineMode' => $mineMode,
+            'solvedIncludesArchived' => array_key_exists('solvedIncludesArchived', $value)
+                ? (bool)$value['solvedIncludesArchived']
+                : true,
+            'ticker' => $ticker,
         ];
     }
 
@@ -2571,6 +2619,13 @@ final class OverviewController extends Controller {
         if ($value < $min) return $min;
         if ($value > $max) return $max;
         return $value;
+    }
+
+    private function clampInt($value, int $min, int $max, int $fallback): int {
+        $num = is_numeric($value) ? (int)$value : $fallback;
+        if ($num < $min) return $min;
+        if ($num > $max) return $max;
+        return $num;
     }
 
     private function sanitizeHexColor($value): ?string {

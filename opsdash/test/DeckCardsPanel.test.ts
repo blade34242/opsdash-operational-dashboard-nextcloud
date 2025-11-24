@@ -7,7 +7,7 @@ const cards = [
   {
     id: 'c1',
     title: 'Prep Opsdash Deck sync',
-    status: 'open',
+    status: 'active',
     match: 'due' as const,
     due: '2025-03-12T10:00:00Z',
     done: null,
@@ -81,13 +81,14 @@ describe('DeckCardsPanel', () => {
     expect(filterGroup.exists()).toBe(true)
 
     const buttons = filterGroup.findAll('button.deck-filter-btn')
-    expect(buttons).toHaveLength(2)
-    expect(buttons[1].attributes('disabled')).toBeDefined()
+    expect(buttons.length).toBeGreaterThan(2)
+    const mineButtons = buttons.filter((btn) => btn.text().includes('Mine'))
+    mineButtons.forEach((btn) => expect(btn.attributes('disabled')).toBeDefined())
 
     await buttons[0].trigger('click')
-    await buttons[1].trigger('click')
+    await mineButtons[0].trigger('click')
     const emissions = wrapper.emitted('update:filter') ?? []
-    expect(emissions).toEqual([['all']]) // second click ignored due to disabled
+    expect(emissions).toEqual([['all']]) // mine click ignored due to disabled
   })
 
   it('shows empty state and refresh emits when clicked', async () => {

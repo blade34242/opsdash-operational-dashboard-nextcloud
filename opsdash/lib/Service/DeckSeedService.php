@@ -29,6 +29,7 @@ class DeckSeedService {
         $boardTitle = isset($options['boardTitle']) ? (string)$options['boardTitle'] : 'Opsdash Deck QA';
         $boardColor = isset($options['boardColor']) ? (string)$options['boardColor'] : '#2563EB';
         $resetStacks = array_key_exists('resetStacks', $options) ? (bool)$options['resetStacks'] : true;
+        $otherUserId = isset($options['otherUserId']) ? (string)$options['otherUserId'] : (getenv('QA_OTHER_USER') ?: 'admin');
 
         $user = $this->userManager->get($userId);
         if (!$user) {
@@ -62,6 +63,8 @@ class DeckSeedService {
         /** @var \OCA\Deck\Service\LabelService $labelService */
         $labelService = Server::get('OCA\\Deck\\Service\\LabelService');
 
+        $otherUser = $this->userManager->get($otherUserId);
+
         $board = $this->findBoardByTitle($boardService, $boardTitle);
         $created = false;
         if ($board === null) {
@@ -92,7 +95,14 @@ class DeckSeedService {
         ];
         $labelMap = $this->ensureLabels($labelService, $boardService, (int)$board->getId(), $labelPlan);
 
-        $cardsSeeded = $this->seedCards($cardService, $assignmentService, $stackMap, $labelMap, $userId);
+        $cardsSeeded = $this->seedCards(
+            $cardService,
+            $assignmentService,
+            $stackMap,
+            $labelMap,
+            $userId,
+            $otherUser ? (string)$otherUser->getUID() : null
+        );
 
         return [
             'boardId' => (int)$board->getId(),
@@ -195,7 +205,7 @@ class DeckSeedService {
      * @param array<string, int> $stackMap
      * @param array<string, int> $labelMap
      */
-    private function seedCards($cardService, $assignmentService, array $stackMap, array $labelMap, string $userId): int {
+    private function seedCards($cardService, $assignmentService, array $stackMap, array $labelMap, string $userId, ?string $otherUserId): int {
         $tz = new DateTimeZone('UTC');
         $weekStart = (new DateTimeImmutable('monday this week', $tz))->setTime(9, 0);
         $monthAnchor = (new DateTimeImmutable('first day of this month', $tz))->setTime(10, 0);
@@ -212,22 +222,72 @@ class DeckSeedService {
                 'archived' => false,
             ],
             [
+                'title' => 'Resolve Deck blockers',
+                'stack' => 'Inbox',
+                'description' => 'Triage cards stuck behind approvals.',
+                'due' => $weekStart->modify('+3 days'),
+                'labels' => ['Blocked'],
+                'assign' => [$otherUserId ?: $userId],
+                'done' => false,
+                'archived' => false,
+            ],
+            [
+                'title' => 'QA follow-ups',
+                'stack' => 'Inbox',
+                'description' => 'Follow up on sprint QA items.',
+                'due' => $weekStart->modify('+2 days'),
+                'labels' => ['Ops'],
+                'assign' => [$userId],
+                'done' => false,
+                'archived' => false,
+            ],
+            [
                 'title' => 'Publish Ops report cards',
-                'stack' => 'In Progress',
+                'stack' => 'Done',
                 'description' => 'Assemble summaries for this sprint.',
                 'due' => $weekStart->modify('+3 days'),
                 'labels' => ['Reporting'],
                 'assign' => [$userId],
                 'done' => true,
+                'archived' => false,
+            ],
+            [
+                'title' => 'Archive completed Ops tasks',
+                'stack' => 'Done',
+                'description' => 'Keeps the board lean with auto-archiving.',
+                'due' => $weekStart->modify('-1 day'),
+                'labels' => [],
+                'assign' => [$otherUserId ?: $userId],
+                'done' => true,
                 'archived' => true,
             ],
             [
-                'title' => 'Resolve Deck blockers',
+                'title' => 'Retro Deck automation',
+                'stack' => 'Done',
+                'description' => 'Document learnings from automation spike.',
+                'due' => $weekStart->modify('+1 day'),
+                'labels' => ['Ops'],
+                'assign' => [$userId],
+                'done' => true,
+                'archived' => false,
+            ],
+            [
+                'title' => 'Cleanup stale labels',
+                'stack' => 'Done',
+                'description' => 'Reduce label noise before next sprint.',
+                'due' => $weekStart->modify('+2 days'),
+                'labels' => ['Reporting'],
+                'assign' => [$otherUserId ?: $userId],
+                'done' => true,
+                'archived' => false,
+            ],
+            [
+                'title' => 'Triage Deck bugs',
                 'stack' => 'In Progress',
-                'description' => 'Triage cards stuck behind approvals.',
+                'description' => 'Sweep new Deck bugs and assign owners.',
                 'due' => $weekStart->modify('+4 days'),
                 'labels' => ['Blocked'],
-                'assign' => [$userId],
+                'assign' => [$otherUserId ?: $userId],
                 'done' => false,
                 'archived' => false,
             ],
@@ -272,6 +332,9 @@ class DeckSeedService {
             }
 
             foreach ($entry['assign'] as $assignee) {
+                if (!$assignee) {
+                    continue;
+                }
                 try {
                     $assignmentService->assignUser((int)$card->getId(), $assignee);
                 } catch (\Throwable $e) {

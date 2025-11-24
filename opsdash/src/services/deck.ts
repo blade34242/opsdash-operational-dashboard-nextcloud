@@ -26,6 +26,12 @@ interface DeckApiCard {
   stackId?: number
   labels?: DeckApiLabel[]
   assignedUsers?: DeckApiAssignee[]
+  owner?: DeckApiParticipant | string
+  createdBy?: DeckApiParticipant | string
+  creator?: DeckApiParticipant | string
+  doneBy?: DeckApiParticipant | string
+  completedBy?: DeckApiParticipant | string
+  lastEditor?: DeckApiParticipant | string
 }
 
 interface DeckApiLabel {
@@ -68,6 +74,10 @@ export interface DeckCardSummary {
   labels: { id?: number; title: string; color?: string }[]
   assignees: { id?: number; uid?: string; displayName?: string }[]
   match: DeckCardMatch
+  createdBy?: string
+  createdByDisplay?: string
+  doneBy?: string
+  doneByDisplay?: string
 }
 
 export interface DeckRangeRequest {
@@ -242,6 +252,10 @@ function normalizeCard(
     doneTs: doneTs ?? undefined,
     archived: Boolean(card.archived),
     status,
+    createdBy: normalizeParticipant(card.owner ?? card.createdBy ?? card.creator)?.uid,
+    createdByDisplay: normalizeParticipant(card.owner ?? card.createdBy ?? card.creator)?.displayName,
+    doneBy: normalizeParticipant(card.doneBy ?? card.completedBy ?? card.lastEditor)?.uid,
+    doneByDisplay: normalizeParticipant(card.doneBy ?? card.completedBy ?? card.lastEditor)?.displayName,
     labels: Array.isArray(card.labels)
       ? card.labels
           .filter((label): label is DeckApiLabel => Boolean(label && typeof label === 'object'))
@@ -273,6 +287,34 @@ function normalizeAssignee(
   }
   if (typeof participant === 'string') {
     return { id: user.id, uid: participant }
+  }
+  return null
+}
+
+function normalizeParticipant(
+  participant: DeckApiParticipant | string | undefined | null,
+): { uid?: string; displayName?: string } | null {
+  if (!participant) return null
+  if (typeof participant === 'string') {
+    const uid = participant.trim()
+    return uid ? { uid } : null
+  }
+  if (typeof participant === 'object') {
+    const uid =
+      typeof participant.uid === 'string'
+        ? participant.uid
+        : typeof participant.participant === 'string'
+          ? participant.participant
+          : undefined
+    const displayName =
+      typeof participant.displayname === 'string'
+        ? participant.displayname
+        : typeof participant.id === 'string' || typeof participant.id === 'number'
+          ? String(participant.id)
+          : undefined
+    if (uid || displayName) {
+      return { uid, displayName }
+    }
   }
   return null
 }

@@ -38,23 +38,16 @@
     aria-label="Deck card filters"
   >
     <button
+      v-for="option in filterOptions"
+      :key="option.value"
       type="button"
       class="deck-filter-btn"
-      :class="{ active: activeFilter === 'all' }"
-      :aria-pressed="activeFilter === 'all'"
-      @click="$emit('update:filter', 'all')"
+      :class="{ active: activeFilter === option.value }"
+      :aria-pressed="activeFilter === option.value"
+      :disabled="option.mine && !allowMine"
+      @click="$emit('update:filter', option.value)"
     >
-      All cards
-    </button>
-    <button
-      type="button"
-      class="deck-filter-btn"
-      :class="{ active: activeFilter === 'mine' }"
-      :aria-pressed="activeFilter === 'mine'"
-      :disabled="!allowMine"
-      @click="$emit('update:filter', 'mine')"
-    >
-      My cards
+      {{ option.label }}
     </button>
   </div>
 
@@ -122,6 +115,7 @@
 import { computed } from 'vue'
 import { NcEmptyContent, NcLoadingIcon } from '@nextcloud/vue'
 import type { DeckCardSummary } from '../services/deck'
+import type { DeckFilterMode } from '../services/reporting'
 
 const props = defineProps<{
   cards: DeckCardSummary[]
@@ -130,19 +124,28 @@ const props = defineProps<{
   lastFetchedAt?: string | null
   deckUrl?: string
   error?: string
-  filter?: 'all' | 'mine'
+  filter?: DeckFilterMode
   canFilterMine?: boolean
   filtersEnabled?: boolean
 }>()
 
 defineEmits<{
   refresh: []
-  'update:filter': ['all' | 'mine']
+  'update:filter': [DeckFilterMode]
 }>()
 
 const activeFilter = computed(() => props.filter ?? 'all')
 const filtersEnabledFlag = computed(() => props.filtersEnabled !== false)
 const allowMine = computed(() => filtersEnabledFlag.value && props.canFilterMine !== false)
+const filterOptions: Array<{ value: DeckFilterMode; label: string; mine: boolean }> = [
+  { value: 'all', label: 'All cards', mine: false },
+  { value: 'open_all', label: 'Open · All', mine: false },
+  { value: 'open_mine', label: 'Open · Mine', mine: true },
+  { value: 'done_all', label: 'Done · All', mine: false },
+  { value: 'done_mine', label: 'Done · Mine', mine: true },
+  { value: 'archived_all', label: 'Archived · All', mine: false },
+  { value: 'archived_mine', label: 'Archived · Mine', mine: true },
+]
 
 const formatter = new Intl.DateTimeFormat(undefined, {
   weekday: 'short',
@@ -225,6 +228,7 @@ function statusLabel(status: DeckCardSummary['status']) {
 .deck-panel__filters {
   display: flex;
   gap: 0.5rem;
+  flex-wrap: wrap;
 }
 .deck-filter-btn {
   border: 1px solid var(--color-border-maxcontrast);

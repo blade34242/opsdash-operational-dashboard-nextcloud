@@ -13,13 +13,32 @@ export interface ReportingConfig {
   notifyNotification: boolean
 }
 
-export type DeckFilterMode = 'all' | 'mine'
+export type DeckFilterMode =
+  | 'all'
+  | 'mine'
+  | 'open_all'
+  | 'open_mine'
+  | 'done_all'
+  | 'done_mine'
+  | 'archived_all'
+  | 'archived_mine'
+
+export type DeckMineMode = 'assignee' | 'creator' | 'both'
+
+export interface DeckTickerSettings {
+  autoScroll: boolean
+  intervalSeconds: number
+  showBoardBadges: boolean
+}
 
 export interface DeckFeatureSettings {
   enabled: boolean
   filtersEnabled: boolean
   defaultFilter: DeckFilterMode
   hiddenBoards: number[]
+  mineMode: DeckMineMode
+  solvedIncludesArchived: boolean
+  ticker: DeckTickerSettings
 }
 
 export function createDefaultReportingConfig(): ReportingConfig {
@@ -69,6 +88,13 @@ export function createDefaultDeckSettings(): DeckFeatureSettings {
     filtersEnabled: true,
     defaultFilter: 'all',
     hiddenBoards: [],
+    mineMode: 'assignee',
+    solvedIncludesArchived: true,
+    ticker: {
+      autoScroll: true,
+      intervalSeconds: 5,
+      showBoardBadges: true,
+    },
   }
 }
 
@@ -77,7 +103,27 @@ export function normalizeDeckSettings(input: any, fallback?: DeckFeatureSettings
   if (!input || typeof input !== 'object') {
     return { ...base }
   }
-  const defaultFilter: DeckFilterMode = input.defaultFilter === 'mine' ? 'mine' : 'all'
+  const allowedFilters: DeckFilterMode[] = [
+    'all',
+    'mine',
+    'open_all',
+    'open_mine',
+    'done_all',
+    'done_mine',
+    'archived_all',
+    'archived_mine',
+  ]
+  const defaultFilter: DeckFilterMode = allowedFilters.includes(input.defaultFilter)
+    ? (input.defaultFilter as DeckFilterMode)
+    : 'all'
+  const mineMode: DeckMineMode =
+    input.mineMode === 'creator' || input.mineMode === 'both' ? input.mineMode : 'assignee'
+  const solvedIncludesArchived = input.solvedIncludesArchived !== false
+  const ticker = {
+    autoScroll: input.ticker?.autoScroll !== false,
+    intervalSeconds: clampInterval(input.ticker?.intervalSeconds, base.ticker.intervalSeconds),
+    showBoardBadges: input.ticker?.showBoardBadges !== false,
+  }
   const hiddenBoards = Array.isArray(input.hiddenBoards)
     ? Array.from(
         new Set(
@@ -92,5 +138,14 @@ export function normalizeDeckSettings(input: any, fallback?: DeckFeatureSettings
     filtersEnabled: input.filtersEnabled !== false,
     defaultFilter,
     hiddenBoards,
+    mineMode,
+    solvedIncludesArchived,
+    ticker,
   }
+}
+
+function clampInterval(value: unknown, fallback: number): number {
+  const raw = Number(value)
+  if (!Number.isFinite(raw)) return fallback
+  return Math.min(10, Math.max(3, Math.trunc(raw)))
 }
