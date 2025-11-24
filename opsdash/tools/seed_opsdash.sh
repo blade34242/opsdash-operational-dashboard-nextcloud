@@ -143,7 +143,7 @@ seed_deck() {
     "Opsdash Experiments"
   )
   local colors=("#2563EB" "#F97316" "#0EA5E9" "#10B981" "#A855F7")
-  local seed_for_user() {
+  seed_for_user() {
     local user=$1
     local other=$2
     local idx=0
