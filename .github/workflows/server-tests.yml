@@ -98,26 +98,6 @@ jobs:
           fi
           php occ app:enable deck
 
-      - name: Create secondary user
-        working-directory: server
-        env:
-          SECOND_USER: ${{ env.PLAYWRIGHT_SECOND_USER }}
-          SECOND_PASS: ${{ env.PLAYWRIGHT_SECOND_PASS }}
-          OC_PASS: ${{ env.PLAYWRIGHT_SECOND_PASS }}
-        run: |
-          php occ user:add --password-from-env --display-name="QA Opsdash" "$SECOND_USER"
-          php occ dav:create-calendar "$SECOND_USER" opsdash-focus || true
-          php occ user:setting "$SECOND_USER" opsdash selected_cals "opsdash-focus"
-          php apps/${{ env.APP_NAME }}/tools/seed_qa_calendars.php
-
-      - name: Seed Deck data
-        working-directory: server
-        env:
-          SECOND_USER: ${{ env.PLAYWRIGHT_SECOND_USER }}
-        run: |
-          QA_USER=admin php apps/${{ env.APP_NAME }}/tools/seed_deck_boards.php
-          QA_USER="$SECOND_USER" php apps/${{ env.APP_NAME }}/tools/seed_deck_boards.php
-
       - name: PHPUnit
         working-directory: server/apps/${{ env.APP_NAME }}
         run: composer run test:unit
@@ -131,6 +111,19 @@ jobs:
         run: |
           php -S 127.0.0.1:8080 -t . >/tmp/php-server.log 2>&1 &
           echo $! > /tmp/php-server.pid
+
+      - name: Seed Opsdash data (calendars + Deck)
+        working-directory: server
+        env:
+          BASE: http://127.0.0.1:8080
+          ADMIN_USER: admin
+          ADMIN_PASS: admin
+          QA_USER: ${{ env.PLAYWRIGHT_SECOND_USER }}
+          QA_PASS: ${{ env.PLAYWRIGHT_SECOND_PASS }}
+          QA2_USER: qa2
+          QA2_PASS: qa2
+        run: |
+          bash apps/${{ env.APP_NAME }}/tools/seed_opsdash.sh
 
       - name: Playwright smoke test
         working-directory: server/apps/${{ env.APP_NAME }}

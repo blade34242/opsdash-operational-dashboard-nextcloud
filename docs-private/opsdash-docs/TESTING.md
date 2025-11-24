@@ -22,6 +22,33 @@ Always run `npm run build` once after Vitest to ensure hashed assets match any m
 
 ---
 
+## Seeding & Fixtures (Nextcloud style)
+- One-shot seed (calendars + Deck) against a running NC (e.g., `docker-compose up -d`):
+  ```bash
+  docker exec -it nc31-dev bash -lc '
+    cd /var/www/html &&
+    BASE=http://localhost:8088 \
+    ADMIN_USER=admin ADMIN_PASS=admin \
+    QA_USER=qa QA_PASS=qa \
+    QA2_USER=qa2 QA2_PASS=qa2 \
+    WEEKS=4 \
+    APP_PATH=/var/www/html/apps-extra/opsdash \
+    bash /var/www/html/apps-extra/opsdash/tools/seed_opsdash.sh
+  '
+  ```
+  Adjust container name, BASE, and APP_PATH to your mount. The script creates/ensures users, seeds 3–5 calendars per user, and 5 Deck boards with open/done/archived cards. Safe to re-run.
+- Script defaults: seeds past-only events for the last 4 weeks (`WEEKS=4`), no future events, realistic work + weekend mix.
+- To change span: set `WEEKS=N` (e.g., `WEEKS=8`) before the script.
+- Capture fixtures (optional, after seeding):
+  ```bash
+  BASE=http://localhost:8088 ADMIN_USER=admin ADMIN_PASS=admin \
+    bash tools/capture_opsdash_fixtures.sh
+  ```
+  Outputs `tools/fixtures/load-week.json`, `load-month.json`, `deck-boards.json`.
+- CI hook: `.github/workflows/server-tests.yml` now runs `tools/seed_opsdash.sh` inside the server container (after starting php -S) so Playwright hits seeded calendars + Deck data without bundling runtime seeding.
+
+---
+
 ## Local Workflow
 ```bash
 cd opsdash
