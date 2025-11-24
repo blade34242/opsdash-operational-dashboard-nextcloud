@@ -16,19 +16,33 @@ URL="$ROOT/index.php/apps/dav/calendars/$USER/$CALENDAR/"
 BODY='<?xml version="1.0"?><d:propfind xmlns:d="DAV:" xmlns:ical="http://apple.com/ns/ical/"><d:prop><ical:calendar-color/></d:prop></d:propfind>'
 
 echo "[dav-probe] PROPFIND $URL"
-RESPONSE=$(curl -s -u "$USER:$PASS" -X PROPFIND -H 'Depth: 0' -H 'Content-Type: application/xml' --data "$BODY" "$URL" || true)
-if [[ -z "$RESPONSE" ]]; then
-  echo "CalDAV request failed" >&2
+curl_flags=()
+if [[ "${OPSDASH_CURL_INSECURE:-}" != "" ]]; then
+  curl_flags+=("-k")
+fi
+
+HTTP_STATUS=0
+RESPONSE=$(curl -s "${curl_flags[@]}" -u "$USER:$PASS" -w '%{http_code}' -X PROPFIND -H 'Depth: 0' -H 'Content-Type: application/xml' --data "$BODY" "$URL" || true)
+HTTP_STATUS=${RESPONSE: -3}
+BODY_CONTENT=${RESPONSE::-3}
+
+if [[ -z "$BODY_CONTENT" ]]; then
+  echo "CalDAV request failed (empty response, status $HTTP_STATUS)" >&2
   exit 7
 fi
-if echo "$RESPONSE" | grep -q "error"; then
-  echo "$RESPONSE"
+if [[ "$HTTP_STATUS" != "200" ]]; then
+  echo "CalDAV request failed (status $HTTP_STATUS):" >&2
+  echo "$BODY_CONTENT" >&2
   exit 7
 fi
-COLOR=$(echo "$RESPONSE" | grep -o '<ical:calendar-color>[^<]*' | sed 's/<ical:calendar-color>//')
+if echo "$BODY_CONTENT" | grep -qi "error"; then
+  echo "$BODY_CONTENT" >&2
+  exit 7
+fi
+COLOR=$(echo "$BODY_CONTENT" | grep -o '<ical:calendar-color>[^<]*' | sed 's/<ical:calendar-color>//')
 if [[ -z "$COLOR" ]]; then
   echo "No calendar-color property found in CalDAV response" >&2
-  echo "$RESPONSE"
+  echo "$BODY_CONTENT"
   exit 8
 fi
 if [[ ! "$COLOR" =~ ^#?[0-9A-Fa-f]{6}$ ]]; then
