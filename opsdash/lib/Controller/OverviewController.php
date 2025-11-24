@@ -2573,19 +2573,19 @@ final class OverviewController extends Controller {
         if (isset($cfg['thresholds']) && is_array($cfg['thresholds'])) {
             $thr = $cfg['thresholds'];
             if (isset($thr['noticeAbove'])) {
-                $result['thresholds']['noticeAbove'] = round($this->clampFloat((float)$thr['noticeAbove'], 0.0, 1.0), 2);
+                $result['thresholds']['noticeAbove'] = round($this->clampFloat((float)$thr['noticeAbove'], 0.0, 1.0), 1);
             }
             if (isset($thr['noticeBelow'])) {
-                $result['thresholds']['noticeBelow'] = round($this->clampFloat((float)$thr['noticeBelow'], 0.0, 1.0), 2);
+                $result['thresholds']['noticeBelow'] = round($this->clampFloat((float)$thr['noticeBelow'], 0.0, 1.0), 1);
             }
             if (isset($thr['warnAbove'])) {
-                $result['thresholds']['warnAbove'] = round($this->clampFloat((float)$thr['warnAbove'], 0.0, 1.0), 2);
+                $result['thresholds']['warnAbove'] = round($this->clampFloat((float)$thr['warnAbove'], 0.0, 1.0), 1);
             }
             if (isset($thr['warnBelow'])) {
-                $result['thresholds']['warnBelow'] = round($this->clampFloat((float)$thr['warnBelow'], 0.0, 1.0), 2);
+                $result['thresholds']['warnBelow'] = round($this->clampFloat((float)$thr['warnBelow'], 0.0, 1.0), 1);
             }
             if (isset($thr['warnIndex'])) {
-                $result['thresholds']['warnIndex'] = round($this->clampFloat((float)$thr['warnIndex'], 0.0, 1.0), 2);
+                $result['thresholds']['warnIndex'] = round($this->clampFloat((float)$thr['warnIndex'], 0.0, 1.0), 1);
             }
         }
 

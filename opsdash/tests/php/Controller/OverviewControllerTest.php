@@ -326,6 +326,9 @@ class OverviewControllerTest extends TestCase {
     $this->assertSame(['personal', 'opsdash-focus'], $fixture['saved']);
     $this->assertSame('dark', $fixture['theme_preference_read']);
     $this->assertArrayHasKey('targets_config_read', $fixture);
+    $this->assertArrayHasKey('balance', $fixture['targets_config_read']);
+    $this->assertArrayHasKey('ui', $fixture['targets_config_read']['balance']);
+    $this->assertArrayHasKey('showNotes', $fixture['targets_config_read']['balance']['ui']);
   }
 
   public function testPersistWeekOffsetFixtureStructure(): void {

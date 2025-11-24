@@ -2,6 +2,8 @@
 
 Single source of truth for the Opsdash backlog: high-level roadmap, target system upgrades, strategy profiles, and the architecture refactor plan. Updated after every milestone so release planning, testing, and docs stay in sync.
 
+**Status legend** — ✅ Done · 🔄 In progress · ⏳ Todo/Not started · ⚠️ Partial (needs follow-up)
+
 ---
 
 ## 1. Product Snapshot (Q4 2025)
@@ -18,14 +20,14 @@ Single source of truth for the Opsdash backlog: high-level roadmap, target syste
 
 ## 2. Execution Order (Lean + Tested)
 
-1. **Requirements lock** for onboarding/targets/theming — ✅ (docs captured in `ONBOARDING_WORKFLOW.md`, `TARGET_STRATEGIES` content folded below, `LIGHT_DARK_THEMING.md`). Always pair each roadmap change with the matching Vitest/PHPUnit test, and refresh the week/month fixtures so new onboarding configs, balance index basis, and Deck cards get exercised before shipping.
-2. **Testing infrastructure** (PHPUnit + Vitest) baseline — ✅ with ongoing expansion (see Testing Guide).
-3. **Shared validation helpers** with inline feedback — ✅ numeric helpers + 400 responses (Oct–Nov 2025).
-4. **Architecture refactor** — 🔄 `App.vue` carved, persistence/selection/presets/composables live separately; continue auditing onboarding wiring (theme persistence + wizard snapshot hooks).
-5. **Onboarding wizard + strategy profiles** — ✅ shipped with rerun entry point and preset seeding.
-6. **Theming, collapsed controls, keyboard shortcuts overlay** — in progress per UX backlog.
-7. **Endpoint/docs rename to** `/overview/*` — ✅ done, copy polish pending.
-8. **Keep tests green after every milestone** — ongoing (see Testing Guide for gaps).
+1. ✅ **Requirements lock** for onboarding/targets/theming — docs in `ONBOARDING_WORKFLOW.md`, `TARGET_STRATEGIES`, `LIGHT_DARK_THEMING.md`. Keep pairing changes with Vitest/PHPUnit and refresh week/month fixtures.
+2. ✅ **Testing infrastructure** baseline (PHPUnit + Vitest). Next: keep adding coverage for new helpers (see Testing Guide).
+3. ✅ **Shared validation helpers** with inline feedback (numeric helpers + 400 responses).
+4. ⚠️ **Architecture refactor** — `App.vue` carved into composables; controllers/services still large. Next: split `targets.ts` and `OverviewController.php` into services + tests.
+5. ✅ **Onboarding wizard + strategy profiles** — rerun entry point and preset seeding shipped.
+6. 🔄 **Theming, collapsed controls, keyboard shortcuts overlay** — theme persistence + collapsed toolbar + modal exist; polish UX/backlog items next.
+7. ✅ **Endpoint/docs rename to** `/overview/*` — copy polish pending.
+8. 🔄 **Keep tests green after every milestone** — ensure npm/composer/playwright run before marking done; broaden fixtures.
 
 ---
 
@@ -33,45 +35,45 @@ Single source of truth for the Opsdash backlog: high-level roadmap, target syste
 
 ### P0 – Confidence & Maintenance
 
-- Trend lookback bug: fix Balance + Activity history so offsets > 1 load/visualise correctly (respect sidebar config + `/overview/load` payloads, verify week/month lookback handling end to end).
-- Balance UI/config simplification: precision + daily stack knobs removed from UI/fixtures; finish hardcoding 1-decimal rounding server-side, align default lookback to 4, and ensure `/overview/persist` stays lean without those keys.
-- Expand Vitest around `buildTargetsSummary`, `computePaceInfo`, chart helpers, keyboard shortcuts.
-- Ensure `/overview/persist` always echoes `balance.ui.*` flags (allows client merge cleanup).
-- Maintain curl docs for `/overview/persist`, `/overview/notes`, preset flows.
-- **Calendar API integration harness** — Keep fixture coverage in sync across NC releases (stable30/31/32+): 
+- ⏳ Trend lookback bug: fix Balance + Activity history so offsets > 1 load/visualise correctly (respect sidebar config + `/overview/load` payloads). Start by adding fixtures for offsets 2–4 and Vitest assertions on lookback charts.
+- ⚠️ Balance UI/config simplification: deprecated knobs removed; still need 1-decimal rounding server-side, default lookback=4 by default, and lean `/overview/persist` payloads. Add PHPUnit for rounding + lookback defaults.
+- ⏳ Expand Vitest around `buildTargetsSummary`, `computePaceInfo`, chart helpers, keyboard shortcuts. Seed small unit fixtures first.
+- ⏳ Ensure `/overview/persist` echoes `balance.ui.*` flags. Add fixture + PHPUnit guard.
+- 🔄 Maintain curl docs for `/overview/persist`, `/overview/notes`, preset flows — docs exist; wire into CI check or add a README cue.
+- ⚠️ **Calendar API integration harness** — fixtures exist for load/persist/notes; missing NC-version matrix + PHP harness. Next: capture week/month ± offsets per NC version and replay in Vitest/PHPUnit.
   - Capture `/overview/load` payloads for week/month ± offsets, multi-calendar, and multi-user scenarios; mirror them in Vitest + PHPUnit so SPA and controller stay aligned.
   - Add `/overview/persist` + `/overview/notes` fixtures (per user) to validate sanitisation.
   - Extend Playwright flows with OCC seeding helpers (or nightly scripts) so each supported NC/PHP combo exercises real CalDAV data, not just mocked payloads.
   - ✅ Playwright now clicks the Deck tab and asserts QA cards render, proving the Deck seed + SPA wiring end-to-end.
   - Document the workflow (seed via OCC → capture fixtures → replay in tests) as the blessed best practice for future contributors.
-- **CalDAV colour probe** — Add automated PROPFIND checks against `remote.php/dav/calendars/<user>/<cal>` (per NC version) to ensure `apple:calendar-color` responses stay compatible; fail builds if colours disappear.
-- Remove the obsolete `php occ opsdash:seed-deck --user admin` job from CI (no `opsdash:*` namespace exists); replace with the supported seeding helper or fixtures so pipelines stop failing.
+- ⏳ **CalDAV colour probe** — Script exists (`tools/security/probe_dav_colors.sh`); wire into CI with per-version PROPFIND checks and fail on missing colors.
+- ✅ Remove obsolete `php occ opsdash:seed-deck` job from CI — replaced by `tools/seed_opsdash.sh` in workflow.
 
 ### P1 – Frontend Structure
 
 - ~~Finish carving~~ `App.vue` ~~(range toolbar, export/import helpers) + dedicated theme bootstrap module.~~ ✅ `useRangeToolbar`, `useKeyboardShortcuts`, theme bootloader now own modules (0.4.6).
-- Merge Activity & Schedule data into the Balance top card views (share layout/insights) and relocate the descriptive copy from that section into the Summary card to keep context visible.
-- Add a dedicated “Charts” sidebar tab focused on chart configuration; move the projection mode controls currently in Activity & Schedule into this new tab (first control) so visualization options live together.
-- Improve floating header/toolbar behaviour when the sidebar is collapsed so range controls + nav toggle stay aligned (no jumpy layout while scrolling).
-- Extend vitest/Playwright coverage per Testing Guide Phase 2.
-- Explore “By Calendar Events” drill-down UX.
-- Enhance chart labelling + info badges alignment.
-- Under each category row below the Targets chart, surface the textual summary (`2h / 45h Δ -43h Need 6.5h/day · 7 days left | 1 calendar`) plus a mini “1.5h 3% Today” callout that matches the same color and glow treatment, so each category explicitly calls out how many hours have occurred today without changing the existing breakdown.
-- Bring today’s hours treatment from the Target top card into the Balance column charts, but only highlight the current-week column (e.g., show “31% ^+3% Today”) with the same color palette plus the halo/underline accent; everything else stays as-is, and the tooltip on that column can explain the full context so the main view just shows the percent change badge for today.
-- Create a “Deck Summary” top card to surface Deck-specific insights now that the Activity/Schedule content is merged with Balance.
-- Improve the Deck tab so it’s practically useful (filters, actionable copy, data freshness cues) before we rely on the new Deck Summary card.
-- Show Deck board colours (per board) and reflect them inside the sidebar Deck tab so users can visually distinguish boards throughout the UI.
-- **Deck top card + filter sync** – build a mini-card above the main dashboards that shows four buckets (`Created by me`, `Solved by me`, `Created by all`, `Solved by all`) with board-name badges, live counts, and an auto-scrolling list of up to four card titles per row (cycling through the rest of the cards). Tapping a row should toggle the corresponding filter in the Deck tab so the main panel always matches the preview, and the card should reuse the existing All/My filter plumbing while keeping each bucket’s scroll position in sync. Visual example:
-  - `Created by me`  ● Opsdash Deck QA   count: 07   │ Card A · Card B · Card C · Card D → cycles to Card E+
-  - `Solved by me`   ● Opsdash Opsplan  count: 03   │ Done item 3 · Done item 12 · …
-  - `Created by all` ● Opsdash Roadmap  count: 12   │ Board ticket 9 · Board ticket 10 · …
-  - `Solved by all`  ● Opsdash Fixes   count: 18   │ Released card X · Closed issue Y · …
- - **Tab naming refresh** – reevaluate the main content tab labels (e.g., rename “Activity”/“Balance”/“Deck” to more descriptive names such as “Workload Insights” or “Deck Cards”), log the candidate names in this roadmap, and cover each rename with accessibility/keyboard tests so the new labels read clearly to assistive tech before the change ships.
- - Testing hook: capture Deck API fixtures for each bucket, extend Playwright/Vitest to click every row plus the Deck tab filter toggles, and assert the auto-scroll ticker and counts stay in sync for offsets week/month.
+- ⏳ Merge Activity & Schedule data into Balance top card and move descriptive copy into Summary card. Start by reusing ActivityScheduleCard data in BalanceOverviewCard props.
+- ⏳ Add a dedicated “Charts” sidebar tab for chart config; relocate projection controls there.
+- ⏳ Improve floating header/toolbar when sidebar collapsed; repro jumpiness with scroll tests.
+- ⏳ Extend Vitest/Playwright per Testing Guide Phase 2 (coverage gaps noted above).
+- ⏳ Explore “By Calendar Events” drill-down UX (no code yet).
+- ⏳ Enhance chart labelling + info badges alignment.
+- ⏳ Category rows: add “Today” mini callouts in Targets chart.
+- ⏳ Balance chart: overlay current slice (e.g., “31% ^+3% Today”) + keep 5 columns; add tests for lookback 3/4/5 clamp.
+- ⚠️ Create “Deck Summary” top card — shipping as `DeckSummaryCard.vue` but not wired to Deck tab filters; next: sync bucket clicks to filters.
+- ⏳ Improve Deck tab utility (filters/actions/freshness cues) before relying on summary card.
+- ⏳ Show Deck board colours in sidebar Deck tab.
+- ⏳ **Deck top card + filter sync** – build bucket card that toggles Deck tab filters; extend fixtures/Playwright for bucket clicks and ticker sync. Visual example:
+ - `Created by me`  ● Opsdash Deck QA   count: 07   │ Card A · Card B · Card C · Card D → cycles to Card E+
+ - `Solved by me`   ● Opsdash Opsplan  count: 03   │ Done item 3 · Done item 12 · …
+ - `Created by all` ● Opsdash Roadmap  count: 12   │ Board ticket 9 · Board ticket 10 · …
+ - `Solved by all`  ● Opsdash Fixes   count: 18   │ Released card X · Closed issue Y · …
+ - ⏳ **Tab naming refresh** – pick new labels, log candidates here, cover with a11y/keyboard tests.
+ - ⏳ Testing hook: capture Deck API fixtures per bucket; extend Playwright/Vitest to click every row + Deck tab filters and assert ticker/count sync for week/month offsets.
 
 ### Time Summary & Offset spec
 
-- **Goal**: make the “time summary” element above Balance soak in the active `range` + `offset`, surface today’s totals, derived stats, the Activity snapshot, and a “Δ vs. offset” comparison for the selected lookback instead of hard-coding `−1`.
+- ⏳ **Goal**: make the “time summary” element offset-aware (today + derived stats + Activity snapshot + Δ vs configured offset). Not implemented yet — start with `TimeSummaryCard.vue` to add offset labels + comparison line and wire `meta.offset`.
 - **Inputs**:
   1. `range` (`week` or `month`) + `offset` (−24..+24) from the sidebar/query string.
   2. `/overview/load` payload: `meta.range`, `meta.offset`, `summary.totals`, `summary.targets`, `summary.activity`, `summary.pace`, `charts.daily`.
@@ -128,12 +130,12 @@ Single source of truth for the Opsdash backlog: high-level roadmap, target syste
 
 ### P2 – Server & Performance
 
-- Implement response caching for `/overview/load` per `CACHING_STRATEGY.md` (Option 1) using `ICacheFactory`, plus PHPUnit + Playwright coverage to prove cache hits/misses.
-- Normalize heatmap bucketing to user timezone (see Known Issues).
-- Profile aggregation & split large PHP services.
-- Upgrade seeding scripts to more realistic schedules (tools already exist; expand data variety).
+- ⏳ Implement response caching for `/overview/load` per `CACHING_STRATEGY.md` (Option 1) using `ICacheFactory` + PHPUnit/Playwright coverage.
+- ⏳ Normalize heatmap bucketing to user timezone (Known Issues).
+- ⚠️ Profile aggregation & split large PHP services (controller still heavy).
+- ⏳ Upgrade seeding scripts to more realistic schedules (expand variety).
 
-- **Deck top card** – add a new dashboard card that cycles through the latest Deck cards grouped into four rows (created by me, solved by me, created by all, solved by all); each row shows the board name, color badge, live card count, and obeys the All/My filter so the mini-feed matches the Deck tab while keeping only four rows visible at once.
+- ⚠️ **Deck top card** – partially done via `DeckSummaryCard.vue` (auto-scroll + board badge); must wire All/My filters and bucket groups to Deck tab data/filters.
 
 ### Watchlist / Questions
 
@@ -236,17 +238,17 @@ Single source of truth for the Opsdash backlog: high-level roadmap, target syste
 
 ## 7. Validation Checklist
 
-- `npm run build` produces hashed bundles referenced via manifest.
-- `/apps/opsdash/overview/load` returns expected stats for seeded data.
-- Sidebar tabs persist state; Targets card reflects week/month ranges.
-- Docs (CHANGELOG, DEV_WORKFLOW, TROUBLESHOOTING, RELEASE) align with release artifacts.
+- 🔄 `npm run build` produces hashed bundles referenced via manifest — rerun after changes.
+- 🔄 `/apps/opsdash/overview/load` returns expected stats for seeded data — add CI probe.
+- 🔄 Sidebar tabs persist state; Targets card reflects week/month ranges — cover with Playwright smoke.
+- 🔄 Docs (CHANGELOG, DEV_WORKFLOW, TROUBLESHOOTING, RELEASE) align with release artifacts — review before release.
 
 ---
 
 ## 8. Immediate Next Actions
 
-1. Finish auditing onboarding wiring (theme persistence + wizard snapshot hooks) per Architecture plan.
-2. Land preset export/import + multi-user Playwright coverage (Testing Guide Phase 2).
-3. Extend Vitest fixture harness to cover `/overview/load` offsets (week/month ±1) and update failing assertions.
-4. Keep this roadmap updated whenever backlog items move across phases.
-5. Prototype reporting CLI/delivery (per `REPORTING_FEATURE.md`) now that config storage/onboarding toggles exist; follow up with Deck integration notes as needed.
+1. ⚠️ Audit onboarding wiring (theme persistence + wizard snapshot hooks) per Architecture plan; add Vitest to guard.
+2. 🔄 Land preset export/import + multi-user Playwright coverage (Testing Guide Phase 2).
+3. ⏳ Extend Vitest fixture harness to cover `/overview/load` offsets (week/month ±1→±4) and update assertions.
+4. 🔄 Keep this roadmap updated whenever backlog items move across phases.
+5. ⏳ Prototype reporting CLI/delivery (per `REPORTING_FEATURE.md`) now that config storage/onboarding toggles exist; align with Deck notes.

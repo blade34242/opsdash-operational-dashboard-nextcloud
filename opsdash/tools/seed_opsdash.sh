@@ -134,6 +134,7 @@ seed_deck() {
   echo "[seed] deck boards + cards"
   local app_path
   app_path=$(resolve_app_path)
+  # Board titles + colors reused per user to keep fixtures predictable.
   local titles=(
     "Opsdash Ops QA"
     "Opsdash Roadmap"
@@ -142,13 +143,21 @@ seed_deck() {
     "Opsdash Experiments"
   )
   local colors=("#2563EB" "#F97316" "#0EA5E9" "#10B981" "#A855F7")
-  local idx=0
-  for title in "${titles[@]}"; do
-    local color=${colors[$idx]:-"#2563EB"}
-    QA_USER="$QA_USER" QA_DECK_BOARD_TITLE="$title" QA_DECK_BOARD_COLOR="$color" QA_DECK_KEEP_STACKS=1 QA_OTHER_USER="$QA2_USER" \
-      php "${app_path%/}/tools/seed_deck_boards.php"
-    idx=$((idx + 1))
-  done
+  local seed_for_user() {
+    local user=$1
+    local other=$2
+    local idx=0
+    for title in "${titles[@]}"; do
+      local color=${colors[$idx]:-"#2563EB"}
+      QA_USER="$user" QA_DECK_BOARD_TITLE="$title" QA_DECK_BOARD_COLOR="$color" QA_DECK_KEEP_STACKS=1 QA_OTHER_USER="$other" \
+        php "${app_path%/}/tools/seed_deck_boards.php"
+      idx=$((idx + 1))
+    done
+  }
+
+  # Seed boards for QA (default owner) and also for admin so both users see Deck cards.
+  seed_for_user "$QA_USER" "$QA2_USER"
+  seed_for_user "$ADMIN_USER" "$QA_USER"
 }
 
 main() {

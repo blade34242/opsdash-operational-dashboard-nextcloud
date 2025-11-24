@@ -150,9 +150,15 @@ export async function fetchDeckCardsInRange(request: DeckRangeRequest): Promise<
           stackTitle,
         })
         if (!normalized) continue
-        if (normalized.status === 'archived' && !includeArchived) {
+        const hasDate = normalized.dueTs != null || normalized.doneTs != null
+        if (!hasDate) {
+          // Include undated cards so manually created items still surface.
+          if (normalized.status === 'archived' && !includeArchived) continue
+          cards.push({ ...normalized, match: 'due' })
           continue
         }
+        if (normalized.status === 'archived' && !includeArchived) continue
+
         const dueOk = normalized.dueTs != null && inRange(normalized.dueTs, fromTs, toTs)
         const doneOk =
           includeCompleted && normalized.doneTs != null && inRange(normalized.doneTs, fromTs, toTs)
@@ -160,17 +166,15 @@ export async function fetchDeckCardsInRange(request: DeckRangeRequest): Promise<
         const completionMatch = includeCompleted && (doneOk || (isCompleted && dueOk))
         const dueMatch = dueOk && !completionMatch
         if (!dueMatch && !completionMatch) continue
-        cards.push({
-          ...normalized,
-          match: completionMatch ? 'completed' : 'due',
-        })
+        cards.push({ ...normalized, match: completionMatch ? 'completed' : 'due' })
       }
     }
   }
 
   return cards.sort((a, b) => {
-    const aTs = a.match === 'due' ? a.dueTs ?? 0 : a.doneTs ?? a.dueTs ?? 0
-    const bTs = b.match === 'due' ? b.dueTs ?? 0 : b.doneTs ?? b.dueTs ?? 0
+    const maxTs = Number.MAX_SAFE_INTEGER
+    const aTs = a.match === 'due' ? a.dueTs ?? a.doneTs ?? maxTs : a.doneTs ?? a.dueTs ?? maxTs
+    const bTs = b.match === 'due' ? b.dueTs ?? b.doneTs ?? maxTs : b.doneTs ?? b.dueTs ?? maxTs
     if (aTs !== bTs) return aTs - bTs
     if (a.boardId !== b.boardId) return a.boardId - b.boardId
     return a.id - b.id

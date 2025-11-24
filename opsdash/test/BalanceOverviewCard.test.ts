@@ -201,6 +201,31 @@ describe('BalanceOverviewCard', () => {
     expect(rowValues(wrapper)).toEqual(['45%', '50%', '60%'])
   })
 
+  it('renders non-consecutive history offsets up to lookback', () => {
+    const wrapper = mountCard({
+      lookbackWeeks: 4,
+      overview: {
+        index: 0.7,
+        categories: [
+          { id: 'work', label: 'Work', hours: 20, share: 60, prevShare: 40, delta: 20 },
+        ],
+        relations: [],
+        trend: {
+          delta: [{ id: 'work', label: 'Work', delta: 20 }],
+          badge: 'Shifting to Work',
+          history: [
+            { offset: 4, label: '-4 wk', categories: [{ id: 'work', label: 'Work', share: 20 }] },
+            { offset: 2, label: '-2 wk', categories: [{ id: 'work', label: 'Work', share: 40 }] },
+          ],
+        },
+        daily: [],
+        warnings: [],
+      },
+    })
+    // Expect offsets 4 and 2 plus current (lookback 4, missing 1/3 offsets are skipped gracefully)
+    expect(rowValues(wrapper)).toEqual(['20%', '40%', '60%'])
+  })
+
   it('renders activity summary when provided', () => {
     const wrapper = mountCard({
       activitySummary: {
