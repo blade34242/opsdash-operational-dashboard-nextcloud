@@ -5,27 +5,29 @@
     role="tabpanel"
     aria-labelledby="opsdash-sidebar-tab-balance"
   >
-    <div class="section-title-row">
-      <div class="section-title subtitle">Activity &amp; Balance Card Display</div>
-      <button
-        type="button"
-        class="info-button"
-        :aria-expanded="helpActivity || helpThresholds || helpTrend || helpDisplay"
-        aria-label="Activity &amp; Balance help"
-        @click="emit('toggle-help', 'activity')"
-      >
-        <span>?</span>
-      </button>
+    <div class="pane-heading">
+      <div class="heading-primary">Activity &amp; Balance</div>
+      <div class="heading-subtitle">Card display &amp; warnings</div>
     </div>
 
     <div class="target-section">
-      <div class="section-title-row">
-        <div class="section-subtitle subtitle">Top card display</div>
+      <div class="section-title-row tier-2">
+        <div class="section-subtitle subtitle">Top card &amp; chart display</div>
+        <button
+          type="button"
+          class="info-button"
+          :aria-expanded="helpActivity"
+          aria-label="Top card help"
+          @click="emit('toggle-help', 'activity')"
+        >
+          <span>?</span>
+        </button>
       </div>
-      <p class="section-hint" v-if="helpActivity">
-        Choose which KPIs and the day-off chart appear on the top card. Use projection to show how future days would fill.
-      </p>
-      <div class="target-section toggle-grid">
+      <div class="section-hint" v-if="helpActivity">
+        <span class="hint-title">Display &amp; projection</span>
+        <span class="hint-body">Choose which KPIs and the day-off chart appear on the top card. Projection shows how future days would fill based on your targets. Notes can be pinned directly under the card.</span>
+      </div>
+      <div class="toggle-grid">
         <label
           v-for="[key, label] in activityToggles"
           :key="key"
@@ -36,12 +38,29 @@
             :checked="activitySettings[key]"
             @change="emit('set-activity-toggle', { key, value: ($event.target as HTMLInputElement).checked })"
           />
-          <span>{{ label }}</span>
+          <div class="toggle-copy">
+            <span class="toggle-title">{{ label }}</span>
+            <span class="toggle-desc">Include this metric in the Activity &amp; Balance top card.</span>
+          </div>
+        </label>
+        <label class="field checkbox toggle-field single-toggle">
+          <input
+            type="checkbox"
+            :checked="balanceSettings.ui.showNotes"
+            @change="emit('set-ui-toggle', { key: 'showNotes', value: ($event.target as HTMLInputElement).checked })"
+          />
+          <div class="toggle-copy">
+            <span class="toggle-title">Notes snippet</span>
+            <span class="toggle-desc">Pin the current note beneath the Balance summary.</span>
+          </div>
         </label>
       </div>
       <div class="forecast-block">
         <div class="section-title">Chart projection</div>
-        <p class="section-hint">Bar forecast for future days (week/month) based on your targets.</p>
+        <div class="section-hint">
+          <span class="hint-title">Projection</span>
+          <span class="hint-body">Bar forecast for future days (week/month) based on your targets.</span>
+        </div>
         <label class="field">
           <span class="label">Projection mode</span>
           <select
@@ -57,14 +76,15 @@
             </option>
           </select>
         </label>
-        <p v-if="activityForecastDescription" class="section-hint forecast-hint">
-          {{ activityForecastDescription }}
-        </p>
+        <div v-if="activityForecastDescription" class="section-hint compact">
+          <span class="hint-title">Details</span>
+          <span class="hint-body">{{ activityForecastDescription }}</span>
+        </div>
       </div>
     </div>
 
     <div class="target-section">
-      <div class="section-title-row">
+      <div class="section-title-row tier-2">
         <div class="section-subtitle subtitle">Balance index</div>
         <button
           type="button"
@@ -76,9 +96,10 @@
           <span>?</span>
         </button>
       </div>
-      <p class="section-hint" v-if="helpThresholds">
-        Balance index compares actual vs expected shares (from targets). Example: category targets 30/30/40 — if Work jumps to 80% you’ll get warnings; calendar basis warns if one calendar sits far above its target; “Both” mixes categories and calendars; “Disabled” turns index + warnings off. Notice/Warn thresholds check positive and negative deviations; Warn Index fires if overall deviation is too high.
-      </p>
+      <div class="section-hint" v-if="helpThresholds">
+        <span class="hint-title">Balance index</span>
+        <span class="hint-body">Compares actual vs expected shares from your targets. Example: category targets 30/30/40 — if Work jumps to 80% you’ll get warnings. Calendar basis warns if one calendar sits far above its target. “Both” mixes categories and calendars; “Disabled” turns index + warnings off. Notice/Warn thresholds check positive and negative deviations; Warn Index fires if the overall deviation is too high.</span>
+      </div>
       <div class="field-grid">
         <label class="field">
           <span class="label">Index basis</span>
@@ -107,11 +128,12 @@
             min="0"
             max="1"
             step="0.01"
+            :disabled="indexDisabled"
             :value="balanceSettings.thresholds.noticeAbove"
             :aria-invalid="!!balanceThresholdMessages.noticeAbove"
             @input="emit('set-threshold', { key: 'noticeAbove', value: ($event.target as HTMLInputElement).value })"
           />
-          <div class="input-message info">Notice when actual exceeds target by more than this (e.g., 0.15 = +15pp).</div>
+          <div class="input-message info inline-hint">Notice when actual exceeds target by more than this (e.g., 0.15 = +15pp).</div>
           <div
             v-if="balanceThresholdMessages.noticeAbove"
             :class="['input-message', balanceThresholdMessages.noticeAbove?.tone]"
@@ -126,11 +148,12 @@
             min="0"
             max="1"
             step="0.01"
+            :disabled="indexDisabled"
             :value="balanceSettings.thresholds.noticeBelow"
             :aria-invalid="!!balanceThresholdMessages.noticeBelow"
             @input="emit('set-threshold', { key: 'noticeBelow', value: ($event.target as HTMLInputElement).value })"
           />
-          <div class="input-message info">Notice when actual falls below target by more than this.</div>
+          <div class="input-message info inline-hint">Notice when actual falls below target by more than this.</div>
           <div
             v-if="balanceThresholdMessages.noticeBelow"
             :class="['input-message', balanceThresholdMessages.noticeBelow?.tone]"
@@ -145,11 +168,12 @@
             min="0"
             max="1"
             step="0.01"
+            :disabled="indexDisabled"
             :value="balanceSettings.thresholds.warnAbove"
             :aria-invalid="!!balanceThresholdMessages.warnAbove"
             @input="emit('set-threshold', { key: 'warnAbove', value: ($event.target as HTMLInputElement).value })"
           />
-          <div class="input-message info">Hard warning when actual exceeds target by more than this (e.g., 0.30 = +30pp).</div>
+          <div class="input-message info inline-hint">Hard warning when actual exceeds target by more than this (e.g., 0.30 = +30pp).</div>
           <div
             v-if="balanceThresholdMessages.warnAbove"
             :class="['input-message', balanceThresholdMessages.warnAbove?.tone]"
@@ -164,11 +188,12 @@
             min="0"
             max="1"
             step="0.01"
+            :disabled="indexDisabled"
             :value="balanceSettings.thresholds.warnBelow"
             :aria-invalid="!!balanceThresholdMessages.warnBelow"
             @input="emit('set-threshold', { key: 'warnBelow', value: ($event.target as HTMLInputElement).value })"
           />
-          <div class="input-message info">Hard warning when actual falls below target by more than this.</div>
+          <div class="input-message info inline-hint">Hard warning when actual falls below target by more than this.</div>
           <div
             v-if="balanceThresholdMessages.warnBelow"
             :class="['input-message', balanceThresholdMessages.warnBelow?.tone]"
@@ -183,11 +208,12 @@
             min="0"
             max="1"
             step="0.01"
+            :disabled="indexDisabled"
             :value="balanceSettings.thresholds.warnIndex"
             :aria-invalid="!!balanceThresholdMessages.warnIndex"
             @input="emit('set-threshold', { key: 'warnIndex', value: ($event.target as HTMLInputElement).value })"
           />
-          <div class="input-message info">Warn when the overall index (1 - max deviation) drops below this.</div>
+          <div class="input-message info inline-hint">Warn when the overall index (1 - max deviation) drops below this.</div>
           <div
             v-if="balanceThresholdMessages.warnIndex"
             :class="['input-message', balanceThresholdMessages.warnIndex?.tone]"
@@ -199,7 +225,7 @@
     </div>
 
     <div class="target-section">
-      <div class="section-title-row">
+      <div class="section-title-row tier-2">
         <div class="section-subtitle subtitle">Trend &amp; relations</div>
         <button
           type="button"
@@ -211,9 +237,10 @@
           <span>?</span>
         </button>
       </div>
-      <p class="section-hint" v-if="helpTrend">
-        Control the comparison window and how ratios are expressed. Day on/off never looks ahead; it scans the past using this lookback (default 4). Applies to week and month ranges. Larger lookbacks can take longer to load if many events exist.
-      </p>
+      <div class="section-hint" v-if="helpTrend">
+        <span class="hint-title">Trend window</span>
+        <span class="hint-body">Controls the comparison window and how ratios are expressed. Day on/off never looks ahead; it scans the past using this lookback (default 4). Applies to week and month ranges. Larger lookbacks can take longer to load if many events exist.</span>
+      </div>
       <div class="field-grid">
         <label class="field">
           <span class="label">Trend lookback (weeks/months)</span>
@@ -222,6 +249,7 @@
             min="1"
             max="4"
             step="1"
+            :disabled="indexDisabled"
             :value="balanceSettings.trend.lookbackWeeks"
             :aria-invalid="!!balanceLookbackMessage"
             @input="emit('set-lookback', ($event.target as HTMLInputElement).value)"
@@ -236,36 +264,6 @@
       </div>
     </div>
 
-    <div class="target-section">
-      <div class="section-title-row">
-        <div class="section-subtitle subtitle">Chart display</div>
-        <button
-          type="button"
-          class="info-button"
-          :aria-expanded="helpDisplay"
-          aria-label="Display help"
-          @click="emit('toggle-help', 'display')"
-        >
-          <span>?</span>
-        </button>
-      </div>
-      <p class="section-hint" v-if="helpDisplay">
-        Choose which extras appear on the Balance card. Insights add highlighted statements; Notes pins your note beneath the card. All toggles share the same layout for quick scanning.
-      </p>
-      <div class="toggle-grid">
-        <label class="field checkbox toggle-field single-toggle">
-          <input
-            type="checkbox"
-            :checked="balanceSettings.ui.showNotes"
-            @change="emit('set-ui-toggle', { key: 'showNotes', value: ($event.target as HTMLInputElement).checked })"
-          />
-          <div class="toggle-copy">
-            <span class="toggle-title">Notes snippet</span>
-            <span class="toggle-desc">Pin the current note beneath the Balance summary.</span>
-          </div>
-        </label>
-      </div>
-    </div>
   </div>
 </template>
 
@@ -328,6 +326,8 @@ const activityForecastDescription = computed(() => {
   return selected?.description ?? ''
 })
 
+const indexDisabled = computed(() => balanceSettings.value.index.basis === 'off')
+
 const resolvedIndexBasisOptions = computed(() =>
   indexBasisOptions.value && indexBasisOptions.value.length
     ? indexBasisOptions.value
@@ -365,12 +365,86 @@ const resolvedIndexBasisOptions = computed(() =>
   margin: 0;
 }
 .section-hint {
-  background: var(--color-background-contrast, #f8fafc);
+  background: var(--color-background-hover, rgba(0, 0, 0, 0.05));
   border: 1px solid var(--color-border, #d1d5db);
-  border-radius: 6px;
-  padding: 10px;
+  border-left: 4px solid var(--color-primary-element, #2563eb);
+  border-radius: 8px;
+  padding: 10px 12px;
   margin: 6px 0 10px;
-  font-style: italic;
+  color: var(--color-text-maxcontrast, inherit);
+  box-shadow: 0 1px 2px var(--color-box-shadow, rgba(0, 0, 0, 0.08));
+}
+.section-hint.compact {
+  margin: 4px 0 6px;
+  padding: 8px 10px;
+}
+.hint-title {
+  display: block;
+  font-weight: 600;
+  margin-bottom: 2px;
+}
+.hint-body {
+  display: block;
+  line-height: 1.4;
+}
+.pane-heading {
+  margin-bottom: 12px;
+}
+.heading-primary {
+  font-weight: 700;
+  font-size: 16px;
+  color: var(--color-text-maxcontrast, inherit);
+  line-height: 1.2;
+}
+.heading-subtitle {
+  font-size: 13px;
+  color: var(--color-text-lighter, #6b7280);
+  margin-top: 2px;
+}
+.section-title-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin: 8px 0 6px;
+}
+.section-title-row.tier-2 .section-subtitle {
+  font-size: 13px;
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
+  color: var(--color-text-maxcontrast, inherit);
+}
+.section-subtitle {
+  font-weight: 600;
+}
+.field .label {
+  font-weight: 600;
+  color: var(--color-text-maxcontrast, inherit);
+}
+.field input[type='number'],
+.field select {
+  border-radius: 6px;
+  padding: 6px 8px;
+  border: 1px solid var(--color-border, #d1d5db);
+  background: var(--color-main-background, #fff);
+  color: var(--color-text-maxcontrast, inherit);
+}
+.field input[disabled],
+.field select[disabled] {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+.input-message.info {
+  color: var(--color-text-lighter, #6b7280);
+}
+.inline-hint {
+  background: var(--color-background-hover, rgba(0, 0, 0, 0.05));
+  border: 1px solid var(--color-border, #d1d5db);
+  border-left: 4px solid var(--color-primary-element, #2563eb);
+  border-radius: 8px;
+  padding: 8px 10px;
+  margin-top: 6px;
+  box-shadow: 0 1px 2px var(--color-box-shadow, rgba(0, 0, 0, 0.08));
 }
 .toggle-field {
   display: flex;

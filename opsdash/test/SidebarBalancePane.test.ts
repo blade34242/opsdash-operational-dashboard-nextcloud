@@ -47,8 +47,13 @@ describe('SidebarBalancePane', () => {
   it('emits toggle-help for sections', async () => {
     const wrapper = mountPane()
     const buttons = wrapper.findAll('button.info-button')
+    expect(buttons[0].attributes('aria-label')?.toLowerCase()).toContain('help')
     await buttons[0].trigger('click')
-    expect(wrapper.emitted('toggle-help')).toEqual([['activity']])
+    await buttons[1].trigger('click')
+    expect(wrapper.emitted('toggle-help')).toEqual([
+      ['activity'],
+      ['thresholds'],
+    ])
   })
 
   it('emits set-lookback when lookback input changes', async () => {
