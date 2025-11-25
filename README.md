@@ -85,4 +85,7 @@ The helper script now shells into your container and invokes `apps/opsdash/tools
 3. Run Vitest + PHPUnit before opening a PR.
 4. For Playwright fixes, add/update QA fixtures or seeding scripts as needed.
 
+### Architecture note
+The `/overview/load` flow still lives in `OverviewController.php` (monolithic) and is scheduled to be carved into services (`OverviewAggregationService` et al.) so aggregation, sanitisation, and HTTP wiring stay separate. Until that refactor lands, keep tests/fixtures in sync when touching controller logic.
+
 Happy dashboarding! 🎉

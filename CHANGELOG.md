@@ -5,6 +5,11 @@ All notable changes to this project will be documented in this file.
 ## [Unreleased]
 - Pending changes.
 
+## [0.4.7] - Unreleased
+### Changed
+- Bump version to 0.4.7 to track upcoming refactor work.
+- Docs: Added an architecture note in README about the planned extraction of `/overview/load` aggregation logic into services; controller remains monolithic until that refactor lands.
+
 ## [0.4.6] - Unreleased
 ### Added
 - Keyboard shortcuts overlay + `useKeyboardShortcuts` composable: Alt+←/→ navigation, Alt+N notes pane, Alt+T Config & Setup, Ctrl/⌘+S note save, and `?` cheat sheet.
