@@ -37,6 +37,17 @@
               <div class="row-name">{{ rowName(row) }}</div>
               <div class="progress" v-if="hasTarget(calendarId(row)) && targetVal(calendarId(row)) > 0">
                 <div class="progress-bar" :style="{ width: progressPct(row.total_hours, targetVal(calendarId(row))) + '%', background: group.color || undefined }"></div>
+                <div
+                  v-if="todayOverlay(row)"
+                  class="progress-today"
+                  :style="{
+                    left: todayOverlay(row)!.left + '%',
+                    width: todayOverlay(row)!.pct + '%',
+                    background: group.color || 'var(--brand)',
+                  }"
+                >
+                  <span class="progress-chip">{{ todayOverlay(row)!.text }}</span>
+                </div>
               </div>
             </div>
           </td>
@@ -76,6 +87,7 @@ const props = defineProps<{
   n2: (v:any)=>string
   targets?: Record<string, number>
   groups?: Array<{ id: string; label: string; summary: TargetsProgress; rows: any[]; color?: string }>
+  todayHours?: Record<string, number>
 }>()
 
 const grouped = computed<TableGroup[]>(() => {
@@ -154,6 +166,22 @@ function progressText(hours:number, target:number){
 function progressPct(hours:number, target:number){
   return Math.max(0, Math.min(100, target>0 ? (hours/target*100) : 0))
 }
+function todayVal(id?: string){
+  const key = normalizeId(id)
+  if (!key) return 0
+  const map = props.todayHours || {}
+  const raw = Number(map[key] ?? 0)
+  return Number.isFinite(raw) ? Math.max(0, raw) : 0
+}
+function todayOverlay(row: any){
+  const target = targetVal(calendarId(row))
+  const today = todayVal(calendarId(row))
+  if (target <= 0 || today <= 0.0001) return null
+  const pct = Math.max(2, Math.min(120, (today / target) * 100))
+  const progress = progressPct(row.total_hours, target)
+  const left = Math.max(0, progress - pct)
+  return { pct, left, text: today.toFixed(2) + 'h' }
+}
 
 function normalizeId(id: any): string {
   if (id == null) return ''
@@ -213,6 +241,8 @@ tbody td{ padding:6px 8px; border-top:1px solid var(--line); vertical-align:top 
 .row-name{ font-weight:600; color:var(--fg) }
 .progress{ position:relative; height:6px; background:color-mix(in srgb, var(--muted) 22%, transparent); border-radius:999px; overflow:hidden }
 .progress-bar{ height:100%; border-radius:999px; background:var(--brand); transition:width .2s ease }
+.progress-today{ position:absolute; top:-2px; height:10px; border-radius:8px; opacity:0.9; display:flex; align-items:center; justify-content:center; box-shadow:0 1px 4px rgba(0,0,0,0.12); }
+.progress-chip{ font-size:10px; font-weight:700; color:#fff; padding:0 6px; white-space:nowrap; text-shadow:0 1px 3px rgba(0,0,0,0.25) }
 .num{ text-align:right; font-variant-numeric:tabular-nums; color:var(--fg) }
 .hint{ color:var(--muted); font-size:11px }
 .delta{ font-weight:600 }

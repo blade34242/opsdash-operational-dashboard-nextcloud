@@ -180,7 +180,7 @@
               <TimeTargetsCard
                 :summary="targetsSummary"
                 :config="targetsConfig"
-                :groups="calendarGroups"
+                :groups="calendarGroupsWithToday"
               />
               <BalanceOverviewCard
                 :overview="balanceOverview"
@@ -224,7 +224,13 @@
             <div class="card full tab-panel" v-show="pane==='cal'">
               <NcEmptyContent v-if="byCal.length===0" name="No data" description="Try changing the range or calendars" />
               <template v-else>
-                <ByCalendarTable :rows="byCal" :n2="n2" :targets="currentTargets" :groups="calendarGroups" />
+                <ByCalendarTable
+                  :rows="byCal"
+                  :n2="n2"
+                  :targets="currentTargets"
+                  :groups="calendarGroups"
+                  :today-hours="calendarTodayHours"
+                />
                 <div class="chart-section" v-if="targetsConfig.ui.showCalendarCharts && (calendarChartData.pie || calendarChartData.stacked)">
                   <h3 class="section-title">Calendars (all)</h3>
                   <div class="grid2 mt-12">
@@ -972,6 +978,50 @@ const { calendarChartData, categoryChartsById } = useCharts({
   activityCardConfig,
 })
 
+const calendarTodayHours = computed<Record<string, number>>(() => {
+  const stacked = calendarChartData.value?.stacked
+  if (!stacked || !Array.isArray(stacked.labels) || !Array.isArray(stacked.series)) return {}
+  const todayKey = formatDateKey(new Date())
+  const idx = stacked.labels.findIndex((label: any) => String(label ?? '') === todayKey)
+  if (idx < 0) return {}
+  const map: Record<string, number> = {}
+  stacked.series.forEach((row: any) => {
+    const id = String(row?.id ?? '')
+    const raw = Number(row?.data?.[idx] ?? 0)
+    const val = Number.isFinite(raw) ? Math.max(0, raw) : 0
+    if (!id) return
+    map[id] = (map[id] || 0) + val
+  })
+  return map
+})
+
+const categoryTodayHours = computed<Record<string, number>>(() => {
+  const stacked = calendarChartData.value?.stacked
+  const labels = stacked?.labels
+  const series = stacked?.series
+  if (!stacked || !Array.isArray(labels) || !Array.isArray(series)) return {}
+  const todayKey = formatDateKey(new Date())
+  const idx = labels.findIndex((label: any) => String(label ?? '') === todayKey)
+  if (idx < 0) return {}
+  const map: Record<string, number> = {}
+  series.forEach((row: any) => {
+    const calId = String(row?.id ?? '')
+    const catId = calendarCategoryMap.value?.[calId]
+    if (!catId) return
+    const raw = Number(row?.data?.[idx] ?? 0)
+    const val = Number.isFinite(raw) ? Math.max(0, raw) : 0
+    map[catId] = (map[catId] || 0) + val
+  })
+  return map
+})
+
+const calendarGroupsWithToday = computed(() =>
+  calendarGroups.value.map((group) => ({
+    ...group,
+    todayHours: categoryTodayHours.value[group.id] || 0,
+  })),
+)
+
 const topCategory = computed(() => {
   const groups = calendarGroups.value || []
   if (!groups.length) return null
@@ -1010,6 +1060,13 @@ const {
 function n1(v:any){ return Number(v ?? 0).toFixed(1) }
 function n2(v:any){ return Number(v ?? 0).toFixed(2) }
 function arrow(v:number){ return v>0?'▲':(v<0?'▼':'—') }
+
+function formatDateKey(date: Date): string {
+  const year = date.getFullYear()
+  const month = `${date.getMonth() + 1}`.padStart(2, '0')
+  const day = `${date.getDate()}`.padStart(2, '0')
+  return `${year}-${month}-${day}`
+}
 
 function setActiveDayMode(mode:'active'|'all'){
   if (activeDayMode.value !== mode) {

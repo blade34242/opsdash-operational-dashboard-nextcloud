@@ -43,6 +43,23 @@
         <div class="cat-progress">
           <div class="bar">
             <div class="fill" :style="{ width: cat.progress + '%', background: cat.color || 'var(--brand)' }"></div>
+            <div
+              v-if="cat.todayWidth > 0"
+              class="today-overlay"
+              :style="{
+                width: cat.todayWidth + '%',
+                right: cat.todayRight + '%',
+                background: cat.todayColor,
+                borderColor: cat.todayBorder,
+              }"
+            ></div>
+            <div
+              v-if="cat.todayWidth > 0"
+              class="today-chip"
+              :style="{ left: cat.chipLeft + '%' , background: cat.todayColor, borderColor: cat.todayBorder }"
+            >
+              <span class="today-label">{{ cat.chipText }}</span>
+            </div>
           </div>
         </div>
         <div class="cat-metrics">
@@ -73,6 +90,7 @@ type CategoryGroup = {
   summary: TargetsProgress
   color?: string
   rows?: any[]
+  todayHours?: number
 }
 
 const props = defineProps<{
@@ -104,11 +122,17 @@ const categoryGroups = computed<CategoryGroup[]>(() => {
 
 const categoryItems = computed(() => categoryGroups.value.map(group => {
   const summary = group.summary ?? fallbackProgress(group.id, group.label)
+  const todayHours = Number((group as any).todayHours ?? 0)
+  const targetHours = summary.targetHours
+  const totalOver = Math.max(0, summary.actualHours - targetHours)
+  const overToday = Math.min(totalOver, todayHours)
+  const todayPct = targetHours > 0 ? (todayHours / targetHours) * 100 : 0
+  const progressPct = clamp(summary.percent, 0, 200)
   return {
     id: group.id,
     label: group.label || summary.label,
     actualHours: summary.actualHours,
-    targetHours: summary.targetHours,
+    targetHours,
     percent: summary.percent,
     deltaHours: summary.deltaHours,
     needPerDay: summary.needPerDay,
@@ -119,7 +143,17 @@ const categoryItems = computed(() => categoryGroups.value.map(group => {
     statusLabel: summary.statusLabel,
     color: group.color,
     calendarCount: Array.isArray(group.rows) ? group.rows.length : 0,
-    progress: clamp(summary.percent, 0, 140),
+    progress: progressPct,
+    todayHours,
+    overToday,
+    todayWidth: targetHours > 0 ? clamp(todayPct, 2, 200) : 0,
+    todayRight: Math.max(0, 100 - progressPct),
+    chipLeft: Math.min(100, progressPct),
+    chipText: overToday > 0
+      ? `Today ${formatHours(todayHours)} (+${formatHours(overToday)})`
+      : `Today ${formatHours(todayHours)}`,
+    todayColor: group.color ? colorMix(group.color, 0.65) : 'var(--brand)',
+    todayBorder: group.color ? colorMix(group.color, 0.35, true) : 'var(--brand)',
     calendarLabel: Array.isArray(group.rows) && group.rows.length === 1 ? 'calendar' : 'calendars',
   }
 }).filter(item => item.targetHours > 0 || item.actualHours > 0 || item.calendarCount > 0))
@@ -177,6 +211,23 @@ function clamp(value: number, min: number, max: number): number {
 function methodLabel(method: 'linear' | 'momentum'): string {
   return method === 'momentum' ? 'Momentum' : 'Linear'
 }
+
+function colorMix(hex: string, factor = 0.5, darker = false): string {
+  const m = /^#?([\da-f]{2})([\da-f]{2})([\da-f]{2})$/i.exec(hex || '')
+  if (!m) return hex
+  const r = parseInt(m[1], 16)
+  const g = parseInt(m[2], 16)
+  const b = parseInt(m[3], 16)
+  const mix = Math.max(0, Math.min(1, factor))
+  if (darker) {
+    return `rgb(${Math.round(r * (1 - mix))},${Math.round(g * (1 - mix))},${Math.round(
+      b * (1 - mix),
+    )})`
+  }
+  return `rgb(${Math.round(r + (255 - r) * mix)},${Math.round(g + (255 - g) * mix)},${Math.round(
+    b + (255 - b) * mix,
+  )})`
+}
 </script>
 
 <style scoped>
@@ -198,6 +249,9 @@ function methodLabel(method: 'linear' | 'momentum'): string {
 .category .cat-meta .percent{ font-variant-numeric:tabular-nums; color:var(--fg) }
 .cat-progress .bar{ position:relative; width:100%; height:8px; border-radius:999px; background:color-mix(in srgb, var(--muted) 20%, transparent); overflow:hidden }
 .cat-progress .bar .fill{ height:100%; border-radius:999px; transition:width .2s ease; max-width:100% }
+.cat-progress .bar .today-overlay{ position:absolute; top:-2px; height:12px; border-radius:8px; opacity:0.85; border:1px solid transparent; pointer-events:none }
+.today-chip{ position:absolute; top:-22px; transform:translateX(-50%); padding:2px 8px; border-radius:999px; font-size:10px; font-weight:700; color:#fff; border:1px solid transparent; white-space:nowrap; box-shadow:0 2px 6px rgba(0,0,0,0.12) }
+.today-label{ font-size:10px; line-height:1.2 }
 .category .cat-metrics{ display:flex; flex-wrap:wrap; gap:6px; align-items:center; color:var(--fg) }
 .cat-footer{ display:flex; justify-content:space-between; align-items:center }
 .hint{ color:var(--muted); font-size:12px }
