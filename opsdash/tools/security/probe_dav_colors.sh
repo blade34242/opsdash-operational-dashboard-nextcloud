@@ -7,34 +7,53 @@ ROOT=${ROOT%/}
 USER=${OPSDASH_USER:-admin}
 PASS=${OPSDASH_PASS:-admin}
 CALENDAR=${CALDAV_CALENDAR:-personal}
+DAV_BASE=${OPSDASH_DAV_BASE:-}
 
 need() { command -v "$1" >/dev/null 2>&1 || { echo "Missing $1" >&2; exit 1; }; }
 need curl
 need jq >/dev/null 2>&1 || true
 
-URL="$ROOT/index.php/apps/dav/calendars/$USER/$CALENDAR/"
+declare -a CANDIDATE_URLS=()
+if [[ -n "$DAV_BASE" ]]; then
+  DAV_BASE=${DAV_BASE%/}
+  CANDIDATE_URLS+=("$DAV_BASE/calendars/$USER/$CALENDAR/")
+fi
+CANDIDATE_URLS+=("$ROOT/remote.php/dav/calendars/$USER/$CALENDAR/")
+CANDIDATE_URLS+=("$ROOT/index.php/apps/dav/calendars/$USER/$CALENDAR/")
+
 BODY='<?xml version="1.0"?><d:propfind xmlns:d="DAV:" xmlns:ical="http://apple.com/ns/ical/"><d:prop><ical:calendar-color/></d:prop></d:propfind>'
 
-echo "[dav-probe] PROPFIND $URL"
 curl_flags=()
 if [[ "${OPSDASH_CURL_INSECURE:-}" != "" ]]; then
   curl_flags+=("-k")
 fi
 
 HTTP_STATUS=0
-RESPONSE=$(curl -s "${curl_flags[@]}" -u "$USER:$PASS" -w '%{http_code}' -X PROPFIND -H 'Depth: 0' -H 'Content-Type: application/xml' --data "$BODY" "$URL" || true)
-HTTP_STATUS=${RESPONSE: -3}
-BODY_CONTENT=${RESPONSE::-3}
+BODY_CONTENT=""
+LAST_URL=""
+
+for URL in "${CANDIDATE_URLS[@]}"; do
+  LAST_URL="$URL"
+  echo "[dav-probe] PROPFIND $URL"
+  RESPONSE=$(curl -s "${curl_flags[@]}" -u "$USER:$PASS" -w '%{http_code}' -X PROPFIND -H 'Depth: 0' -H 'Content-Type: application/xml' --data "$BODY" "$URL" || true)
+  HTTP_STATUS=${RESPONSE: -3}
+  BODY_CONTENT=${RESPONSE::-3}
+  # Accept only a non-empty 200 response
+  if { [[ "$HTTP_STATUS" == "200" ]] || [[ "$HTTP_STATUS" == "207" ]]; } && [[ -n "$BODY_CONTENT" ]]; then
+    break
+  fi
+done
 
 if [[ -z "$BODY_CONTENT" ]]; then
-  echo "CalDAV request failed (empty response, status $HTTP_STATUS)" >&2
+  echo "CalDAV request failed (empty response, status $HTTP_STATUS) [$LAST_URL]" >&2
   exit 7
 fi
-if [[ "$HTTP_STATUS" != "200" ]]; then
-  echo "CalDAV request failed (status $HTTP_STATUS):" >&2
+if [[ "$HTTP_STATUS" != "200" && "$HTTP_STATUS" != "207" ]]; then
+  echo "CalDAV request failed (status $HTTP_STATUS): $LAST_URL" >&2
   echo "$BODY_CONTENT" >&2
   exit 7
 fi
+
 if echo "$BODY_CONTENT" | grep -qi "error"; then
   echo "$BODY_CONTENT" >&2
   exit 7
