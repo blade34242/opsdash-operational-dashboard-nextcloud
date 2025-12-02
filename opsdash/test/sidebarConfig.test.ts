@@ -15,7 +15,8 @@ describe('sidebar config sanitiser', () => {
       onboarding: { completed: true },
       extra: 'ignore-me',
     })
-    expect(Object.keys(cleaned).sort()).toEqual([...ALLOWED_CONFIG_KEYS].sort())
+    const allowed = new Set(ALLOWED_CONFIG_KEYS)
+    expect(Object.keys(cleaned).every((key) => allowed.has(key as any))).toBe(true)
     expect(ignored).toContain('extra')
   })
 

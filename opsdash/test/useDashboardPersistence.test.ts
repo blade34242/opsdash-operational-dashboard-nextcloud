@@ -8,6 +8,7 @@ import persistFixture from './fixtures/persist-response.json'
 import persistQaFixture from './fixtures/persist-qa.json'
 import persistWeekOffset from './fixtures/persist-week-offset1.json'
 import persistReportingDeck from './fixtures/persist-reporting-deck.json'
+import { createDefaultWidgets } from '../src/services/widgetsRegistry'
 
 function createPersistence(overrides: Partial<Parameters<typeof useDashboardPersistence>[0]> = {}) {
   const selected = ref<string[]>([])
@@ -273,5 +274,40 @@ describe('useDashboardPersistence', () => {
     expect(deckSettings.value.enabled).toBe(false)
     expect(deckSettings.value.defaultFilter).toBe('mine')
     expect(deckSettings.value.hiddenBoards).toEqual([42])
+  })
+
+  it('persists and normalizes widget layout', async () => {
+    const initialWidgets = createDefaultWidgets()
+    const widgets = ref(initialWidgets)
+
+    const postJson = vi.fn().mockResolvedValue({
+      widgets_read: [
+        {
+          type: 'notes',
+          layout: { width: 'half', height: 'l', order: 5 },
+          options: { mode: 'month' },
+        },
+      ],
+    })
+
+    const { queueSave } = createPersistence({
+      postJson,
+      widgets,
+    })
+
+    queueSave(false)
+    await vi.runOnlyPendingTimersAsync()
+
+    expect(postJson).toHaveBeenCalledWith('/persist', expect.objectContaining({
+      widgets: initialWidgets,
+    }))
+    expect(widgets.value).toHaveLength(1)
+    expect(widgets.value[0]).toMatchObject({
+      id: expect.stringMatching(/^widget-notes-/),
+      type: 'notes',
+      layout: { width: 'half', height: 'l', order: 5 },
+      options: { mode: 'month' },
+      version: 1,
+    })
   })
 })

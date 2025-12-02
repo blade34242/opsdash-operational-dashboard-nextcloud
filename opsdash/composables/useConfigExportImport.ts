@@ -4,6 +4,7 @@ import { cloneTargetsConfig, normalizeTargetsConfig, type TargetsConfig } from '
 import { buildConfigEnvelope, sanitiseSidebarPayload } from '../src/utils/sidebarConfig'
 import type { OnboardingState } from './useDashboard'
 import type { ThemePreference } from './useThemeController'
+import type { WidgetDefinition } from '../src/services/widgetsRegistry'
 
 interface ConfigExportImportDeps {
   selected: Ref<string[]>
@@ -13,6 +14,7 @@ interface ConfigExportImportDeps {
   targetsConfig: Ref<TargetsConfig>
   themePreference: Ref<ThemePreference>
   onboardingState: Ref<OnboardingState | null>
+  widgets?: Ref<WidgetDefinition[]>
   setThemePreference: (value: ThemePreference, options?: { persist?: boolean }) => void
   postJson: (url: string, body: Record<string, unknown>) => Promise<any>
   route: (name: 'persist') => string
@@ -34,6 +36,9 @@ export function useConfigExportImport(deps: ConfigExportImportDeps) {
     }
     if (deps.onboardingState.value) {
       payload.onboarding = { ...deps.onboardingState.value }
+    }
+    if (deps.widgets) {
+      payload.widgets = deps.widgets.value
     }
     return payload
   }
@@ -113,6 +118,9 @@ export function useConfigExportImport(deps: ConfigExportImportDeps) {
     }
     if (cleaned.onboarding && typeof cleaned.onboarding === 'object') {
       deps.onboardingState.value = { ...(cleaned.onboarding as OnboardingState) }
+    }
+    if (deps.widgets && Array.isArray((cleaned as any).widgets)) {
+      deps.widgets.value = (cleaned as any).widgets as WidgetDefinition[]
     }
 
     await deps.postJson(deps.route('persist'), cleaned as Record<string, unknown>)

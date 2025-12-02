@@ -5,6 +5,7 @@ import {
   normalizeTargetsConfig,
   type TargetsConfig,
 } from '../src/services/targets'
+import type { WidgetDefinition } from '../src/services/widgetsRegistry'
 import type { ThemePreference } from './useThemePreference'
 import {
   normalizeDeckSettings,
@@ -27,6 +28,7 @@ interface DashboardPersistenceDeps {
   themePreference?: Ref<ThemePreference>
   reportingConfig?: Ref<ReportingConfig>
   deckSettings?: Ref<DeckFeatureSettings>
+  widgets?: Ref<WidgetDefinition[]>
 }
 
 export function useDashboardPersistence(deps: DashboardPersistenceDeps) {
@@ -57,6 +59,9 @@ export function useDashboardPersistence(deps: DashboardPersistenceDeps) {
         }
         if (deps.deckSettings) {
           payload.deck_settings = deps.deckSettings.value
+        }
+        if (deps.widgets) {
+          payload.widgets = deps.widgets.value
         }
         const result = await deps.postJson(deps.route('persist'), payload)
 
@@ -97,6 +102,12 @@ export function useDashboardPersistence(deps: DashboardPersistenceDeps) {
           )
           if (nextDeck) {
             deps.deckSettings.value = nextDeck
+          }
+        }
+        if (deps.widgets) {
+          const nextWidgets = result.widgets_read ?? result.widgets_saved ?? result.widgets
+          if (Array.isArray(nextWidgets)) {
+            deps.widgets.value = normaliseWidgets(nextWidgets as any[], deps.widgets.value)
           }
         }
 
@@ -156,4 +167,27 @@ function mergeIncomingTargetsConfig(
   }
 
   return normalizeTargetsConfig(raw as TargetsConfig)
+}
+
+function normaliseWidgets(raw: any[], fallback: WidgetDefinition[]): WidgetDefinition[] {
+  if (!Array.isArray(raw)) return fallback
+  const cleaned: WidgetDefinition[] = []
+  raw.forEach((item) => {
+    const type = String(item?.type ?? '')
+    if (!type) return
+    const id = String(item?.id ?? '')
+    const layout = item?.layout ?? {}
+    const width = layout.width === 'quarter' || layout.width === 'half' ? layout.width : 'full'
+    const height = layout.height === 's' || layout.height === 'l' ? layout.height : 'm'
+    const order = Number(layout.order ?? 0)
+    const options = item?.options && typeof item.options === 'object' ? { ...item.options } : {}
+    cleaned.push({
+      id: id || `widget-${type}-${cleaned.length + 1}`,
+      type,
+      options,
+      layout: { width, height, order: Number.isFinite(order) ? order : 0 },
+      version: Number(item?.version ?? 1) || 1,
+    })
+  })
+  return cleaned.length ? cleaned : fallback
 }

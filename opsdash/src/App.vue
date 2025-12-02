@@ -171,38 +171,36 @@
               </template>
             </div>
 
+            <div class="cards-toolbar">
+              <button type="button" class="ghost-btn" @click="isLayoutEditing = !isLayoutEditing">
+                {{ isLayoutEditing ? 'Done editing' : 'Edit layout' }}
+              </button>
+              <div v-if="isLayoutEditing" class="cards-toolbar__add">
+                <select v-model="newWidgetType">
+                  <option value="" disabled>Select widget…</option>
+                  <option v-for="entry in availableWidgetTypes" :key="entry.type" :value="entry.type">
+                    {{ entry.label }}
+                  </option>
+                </select>
+                <button type="button" class="ghost-btn" :disabled="!newWidgetType" @click="addWidget(newWidgetType)">
+                  Add
+                </button>
+                <button type="button" class="ghost-btn" @click="resetWidgets">
+                  Reset
+                </button>
+              </div>
+            </div>
+
             <div class="cards">
-              <TimeSummaryCard
-                :summary="timeSummary"
-                :mode="activeDayMode"
-                :config="targetsConfig.timeSummary"
-              />
-              <TimeTargetsCard
-                :summary="targetsSummary"
-                :config="targetsConfig"
-                :groups="calendarGroupsWithToday"
-              />
-              <BalanceOverviewCard
-                :overview="balanceOverview"
-                :range-label="rangeLabel"
-                :range-mode="range"
-                :lookback-weeks="trendLookbackWeeks"
-                :config="balanceCardConfig"
-                :note="balanceNote"
-                :activity-summary="activitySummary"
-                :activity-config="activityCardConfig"
-                :activity-day-off-trend="activityDayOffTrend"
-                :activity-trend-unit="range === 'month' ? 'mo' : 'wk'"
-                :activity-day-off-lookback="trendLookbackWeeks"
-              />
-              <DeckSummaryCard
-                v-if="deckSettings.enabled"
-                :buckets="deckSummaryBuckets"
-                :range-label="rangeLabel"
-                :loading="deckLoading"
-                :error="deckError"
-                :ticker="deckTickerConfig"
-                :show-board-badges="deckSettings.ticker.showBoardBadges !== false"
+              <DashboardLayout
+                :widgets="widgets"
+                :context="widgetContext"
+                :editable="isLayoutEditing"
+                @edit:width="cycleWidth"
+                @edit:height="cycleHeight"
+                @edit:remove="removeWidget"
+                @edit:move="moveWidget"
+                @edit:options="updateWidgetOptions"
               />
             </div>
 
@@ -337,17 +335,15 @@ import HeatmapCanvas from './components/HeatmapCanvas.vue'
 import ByCalendarTable from './components/ByCalendarTable.vue'
 import ByDayTable from './components/ByDayTable.vue'
 import TopEventsTable from './components/TopEventsTable.vue'
-import TimeSummaryCard from './components/TimeSummaryCard.vue'
-import TimeTargetsCard from './components/TimeTargetsCard.vue'
-import BalanceOverviewCard from './components/BalanceOverviewCard.vue'
 import Sidebar from './components/Sidebar.vue'
 import OnboardingWizard from './components/OnboardingWizard.vue'
 import KeyboardShortcutsModal from './components/KeyboardShortcutsModal.vue'
 import DeckCardsPanel from './components/DeckCardsPanel.vue'
-import DeckSummaryCard from './components/DeckSummaryCard.vue'
+import DashboardLayout from './components/layout/DashboardLayout.vue'
 import { buildTargetsSummary, normalizeTargetsConfig, createEmptyTargetsSummary, createDefaultActivityCardConfig, createDefaultBalanceConfig, cloneTargetsConfig, convertWeekToMonth, type ActivityCardConfig, type BalanceConfig, type TargetsConfig } from './services/targets'
 import { normalizeReportingConfig, normalizeDeckSettings, type DeckFilterMode } from './services/reporting'
 import { ONBOARDING_VERSION } from './services/onboarding'
+import { createDefaultWidgets, widgetsRegistry, type WidgetDefinition, type WidgetRenderContext, type WidgetHeight, type WidgetSize } from './services/widgetsRegistry'
 // Lightweight notifications without @nextcloud/dialogs
 function notifySuccess(msg: string){
   const w:any = window as any
@@ -652,6 +648,7 @@ const deckCanFilterMine = computed(
   () => deckSettings.value.filtersEnabled && deckSettings.value.enabled && Boolean((uid.value || '').trim()),
 )
 
+
 const deckUrl = computed(() => {
   const base = root.value || ''
   return `${base}/apps/deck/`
@@ -673,6 +670,145 @@ const {
   notifyError,
 })
 
+// Widget layout state (must be declared before persistence/export/import use it)
+const WIDGETS_STORAGE_KEY = 'opsdash.widgets.v1'
+const layoutWidgets = ref<WidgetDefinition[]>(loadWidgetLayout())
+const isLayoutEditing = ref(false)
+const newWidgetType = ref('')
+
+const widgets = computed<WidgetDefinition[]>(() => {
+  const defs = layoutWidgets.value
+  if (!deckSettings.value.enabled) {
+    return defs.filter((w) => w.type !== 'deck')
+  }
+  return defs
+})
+
+const availableWidgetTypes = computed(() => {
+  const present = new Set(layoutWidgets.value.map((w) => w.type))
+  return Object.keys(widgetsRegistry)
+    .filter((type) => !present.has(type))
+    .map((type) => ({
+      type,
+      label: widgetsRegistry[type]?.label || type,
+    }))
+})
+
+function updateWidget(id: string, updater: (w: WidgetDefinition) => WidgetDefinition) {
+  layoutWidgets.value = layoutWidgets.value.map((w) =>
+    w.id === id ? updater({ ...w, layout: { ...w.layout } }) : w,
+  )
+}
+
+function cycleWidth(id: string) {
+  const order: WidgetSize[] = ['quarter', 'half', 'full']
+  updateWidget(id, (w) => {
+    const idx = order.indexOf(w.layout.width as WidgetSize)
+    const next = order[(idx + 1) % order.length]
+    return { ...w, layout: { ...w.layout, width: next } }
+  })
+}
+
+function cycleHeight(id: string) {
+  const order: WidgetHeight[] = ['s', 'm', 'l']
+  updateWidget(id, (w) => {
+    const idx = order.indexOf(w.layout.height as WidgetHeight)
+    const next = order[(idx + 1) % order.length]
+    return { ...w, layout: { ...w.layout, height: next } }
+  })
+}
+
+function moveWidget(id: string, dir: 'up' | 'down') {
+  const ordered = [...layoutWidgets.value].sort((a, b) => (a.layout.order || 0) - (b.layout.order || 0))
+  const idx = ordered.findIndex((w) => w.id === id)
+  if (idx < 0) return
+  const targetIdx = dir === 'up' ? idx - 1 : idx + 1
+  if (targetIdx < 0 || targetIdx >= ordered.length) return
+  const currentOrder = ordered[idx].layout.order
+  ordered[idx].layout.order = ordered[targetIdx].layout.order
+  ordered[targetIdx].layout.order = currentOrder
+  layoutWidgets.value = ordered
+}
+
+function removeWidget(id: string) {
+  layoutWidgets.value = layoutWidgets.value.filter((w) => w.id !== id)
+}
+
+function addWidget(type: string) {
+  const entry = widgetsRegistry[type]
+  if (!entry) return
+  if (layoutWidgets.value.some((w) => w.type === type)) return
+  const maxOrder = layoutWidgets.value.reduce((acc, w) => Math.max(acc, w.layout.order || 0), 0)
+  const def: WidgetDefinition = {
+    id: `widget-${type}-${Date.now()}`,
+    type,
+    options: {},
+    layout: { ...entry.defaultLayout, order: maxOrder + 10 },
+    version: 1,
+  }
+  layoutWidgets.value = [...layoutWidgets.value, def]
+  newWidgetType.value = ''
+}
+
+function updateWidgetOptions(id: string, key: string, value: any) {
+  layoutWidgets.value = layoutWidgets.value.map((w) => {
+    if (w.id !== id) return w
+    const opts = { ...(w.options || {}) }
+    opts[key] = value
+    return { ...w, options: opts }
+  })
+}
+
+function resetWidgets() {
+  layoutWidgets.value = createDefaultWidgets()
+}
+
+function loadWidgetLayout(): WidgetDefinition[] {
+  try {
+    if (typeof localStorage === 'undefined') return createDefaultWidgets()
+    const raw = localStorage.getItem(WIDGETS_STORAGE_KEY)
+    if (!raw) return createDefaultWidgets()
+    const parsed = JSON.parse(raw)
+    if (!Array.isArray(parsed)) return createDefaultWidgets()
+    const cleaned: WidgetDefinition[] = []
+    parsed.forEach((item: any) => {
+      const type = String(item?.type ?? '')
+      if (!type || !widgetsRegistry[type]) return
+      const id = String(item?.id ?? '')
+      const width: WidgetSize =
+        item?.layout?.width === 'quarter' || item?.layout?.width === 'half' ? item.layout.width : 'full'
+      const height: WidgetHeight =
+        item?.layout?.height === 's' || item?.layout?.height === 'l' ? item.layout.height : 'm'
+      const order = Number(item?.layout?.order ?? 0)
+      const options = item?.options && typeof item.options === 'object' ? { ...item.options } : {}
+      cleaned.push({
+        id: id || `widget-${type}-${cleaned.length + 1}`,
+        type,
+        options,
+        layout: { width, height, order: Number.isFinite(order) ? order : 0 },
+        version: Number(item?.version ?? 1) || 1,
+      })
+    })
+    return cleaned.length ? cleaned : createDefaultWidgets()
+  } catch (err) {
+    console.warn('[opsdash] widget layout load failed', err)
+    return createDefaultWidgets()
+  }
+}
+
+watch(
+  () => layoutWidgets.value,
+  (next) => {
+    try {
+      if (typeof localStorage === 'undefined') return
+      localStorage.setItem(WIDGETS_STORAGE_KEY, JSON.stringify(next))
+    } catch (err) {
+      console.warn('[opsdash] widget layout save failed', err)
+    }
+  },
+  { deep: true },
+)
+
 const { exportSidebarConfig, importSidebarConfig } = useConfigExportImport({
   selected,
   groupsById,
@@ -681,6 +817,7 @@ const { exportSidebarConfig, importSidebarConfig } = useConfigExportImport({
   targetsConfig,
   themePreference,
   onboardingState,
+  widgets: layoutWidgets,
   setThemePreference,
   postJson,
   route: (name) => route(name),
@@ -703,6 +840,7 @@ const { queueSave, isSaving: reportingSaving } = useDashboardPersistence({
   themePreference,
   reportingConfig,
   deckSettings,
+  widgets: layoutWidgets,
 })
 
 const {
@@ -1056,6 +1194,38 @@ const {
   notesLabelPrevTitle,
   notesLabelCurrTitle,
 } = useNotesLabels(range)
+const widgetContext = computed<WidgetRenderContext>(() => ({
+  summary: timeSummary.value,
+  targetsSummary: targetsSummary.value,
+  targetsConfig: targetsConfig.value,
+  groups: calendarGroupsWithToday.value,
+  balanceOverview: balanceOverview.value,
+  balanceConfig: balanceCardConfig.value,
+  rangeLabel: rangeLabel.value,
+  rangeMode: range.value,
+  lookbackWeeks: trendLookbackWeeks.value,
+  balanceNote: balanceNote.value,
+  activitySummary: activitySummary.value,
+  activityConfig: activityCardConfig.value,
+  activityDayOffTrend: activityDayOffTrend.value,
+  activityTrendUnit: range.value === 'month' ? 'mo' : 'wk',
+  activityDayOffLookback: trendLookbackWeeks.value,
+  deckBuckets: deckSummaryBuckets.value,
+  deckRangeLabel: rangeLabel.value,
+  deckLoading: deckLoading.value,
+  deckError: deckError.value,
+  deckTicker: deckTickerConfig.value,
+  deckShowBoardBadges: deckSettings.value?.ticker?.showBoardBadges !== false,
+  notesPrev: notesPrev.value,
+  notesCurr: notesCurrDraft.value,
+  notesLabelPrev: notesLabelPrev.value,
+  notesLabelCurr: notesLabelCurr.value,
+  notesLabelPrevTitle: notesLabelPrevTitle.value,
+  notesLabelCurrTitle: notesLabelCurrTitle.value,
+  isSavingNote: isSavingNote.value,
+  onSaveNote: () => saveNotes(),
+  onUpdateNotes: (val: string) => { notesCurrDraft.value = val },
+}))
 
 function n1(v:any){ return Number(v ?? 0).toFixed(1) }
 function n2(v:any){ return Number(v ?? 0).toFixed(2) }

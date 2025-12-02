@@ -6,6 +6,7 @@ export const ALLOWED_CONFIG_KEYS = [
   'targets_config',
   'theme_preference',
   'onboarding',
+  'widgets',
 ] as const
 
 export type SidebarConfigPayload = Partial<Record<typeof ALLOWED_CONFIG_KEYS[number], any>>
@@ -64,6 +65,10 @@ export function sanitiseSidebarPayload(raw: unknown): SanitiseResult {
   if ('onboarding' in cleaned && (cleaned.onboarding == null || typeof cleaned.onboarding !== 'object')) {
     ignored.push('onboarding')
     delete cleaned.onboarding
+  }
+  if ('widgets' in cleaned && !Array.isArray(cleaned.widgets)) {
+    ignored.push('widgets')
+    delete cleaned.widgets
   }
 
   return { cleaned, ignored }

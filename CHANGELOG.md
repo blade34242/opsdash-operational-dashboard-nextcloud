@@ -6,9 +6,11 @@ All notable changes to this project will be documented in this file.
 - Pending changes.
 
 ## [0.4.7] - Unreleased
+### Added
+- Targets card and By Calendar progress bars now show today's hours as an overlay in the same series color, including the over-100% portion.
+- Dashboard cards render through a widget registry and grid layout (`DashboardLayout`) so we can introduce an editor mode later.
 ### Changed
-- Bump version to 0.4.7 to track upcoming refactor work.
-- Docs: Added an architecture note in README about the planned extraction of `/overview/load` aggregation logic into services; controller remains monolithic until that refactor lands.
+- Bump version to 0.4.7 and update fixtures/export metadata.
 
 ## [0.4.6] - Unreleased
 ### Added

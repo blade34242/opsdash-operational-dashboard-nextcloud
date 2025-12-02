@@ -1,0 +1,207 @@
+<template>
+  <div class="card dayoff-card">
+    <div class="dayoff-card__header">
+      <span>Days off trend</span>
+      <span v-if="lookbackLabel" class="pill">{{ lookbackLabel }}</span>
+    </div>
+    <div class="dayoff-heatmap" v-if="tiles.length">
+      <div
+        v-for="entry in tiles"
+        :key="entry.offset"
+        class="dayoff-tile"
+        :class="[
+          `dayoff-tile--${entry.tone}`,
+          { 'dayoff-tile--current': entry.offset === 0 },
+        ]"
+        :title="`${entry.label} · ${shareLabel(entry.share)}`"
+      >
+        <div class="dayoff-tile__label">{{ entry.label }}</div>
+        <div class="dayoff-tile__value">{{ shareLabel(entry.share) }}</div>
+        <div class="dayoff-tile__meta">
+          {{ entry.daysOff }} off · {{ entry.daysWorked }} on
+        </div>
+      </div>
+    </div>
+    <div class="hint" v-else>No day-off history for this range.</div>
+  </div>
+</template>
+
+<script setup lang="ts">
+import { computed } from 'vue'
+
+type DayOffTrendEntry = {
+  offset: number
+  label: string
+  from: string
+  to: string
+  totalDays: number
+  daysOff: number
+  daysWorked: number
+}
+
+type DayOffTrendTile = DayOffTrendEntry & { share: number; tone: 'low' | 'mid' | 'high' }
+
+const props = defineProps<{
+  trend?: DayOffTrendEntry[]
+  unit?: string
+  lookback?: number
+}>()
+
+const historyCount = computed(() => {
+  const configured = typeof props.lookback === 'number' ? props.lookback : null
+  if (configured != null) {
+    return Math.max(0, Math.min(12, Math.floor(configured)))
+  }
+  const historyEntries = (props.trend ?? []).filter((entry) => Number(entry?.offset ?? 0) > 0)
+  return Math.max(0, Math.min(12, historyEntries.length))
+})
+
+const normalized = computed<DayOffTrendEntry[]>(() => {
+  const raw = Array.isArray(props.trend) ? props.trend : []
+  const byOffset = new Map<number, DayOffTrendEntry>()
+  raw.forEach((entry) => {
+    const offset = Number(entry?.offset ?? 0) || 0
+    byOffset.set(offset, {
+      offset,
+      label: entry?.label ?? '',
+      from: entry?.from ?? '',
+      to: entry?.to ?? '',
+      totalDays: Number(entry?.totalDays ?? entry?.total_days ?? 0) || 0,
+      daysOff: Number(entry?.daysOff ?? entry?.days_off ?? 0) || 0,
+      daysWorked: Number(entry?.daysWorked ?? entry?.days_worked ?? 0) || 0,
+    })
+  })
+  const unit = props.unit === 'mo' ? 'mo' : 'wk'
+  const nowLabel = props.unit === 'mo' ? 'This month' : 'This week'
+  const entries: DayOffTrendEntry[] = []
+  const current = byOffset.get(0) ?? {
+    offset: 0,
+    label: nowLabel,
+    from: '',
+    to: '',
+    totalDays: 0,
+    daysOff: 0,
+    daysWorked: 0,
+  }
+  entries.push(current)
+  const lookback = historyCount.value
+  for (let offset = 1; offset <= lookback; offset += 1) {
+    const resolved = byOffset.get(offset) ?? {
+      offset,
+      label: `-${offset} ${unit}`,
+      from: '',
+      to: '',
+      totalDays: 0,
+      daysOff: 0,
+      daysWorked: 0,
+    }
+    entries.push(resolved)
+  }
+  return entries
+})
+
+const tiles = computed<DayOffTrendTile[]>(() =>
+  normalized.value.map((entry) => {
+    const total = Math.max(0, Number(entry.totalDays) || 0)
+    const daysOff = Math.max(0, Math.min(total, Number(entry.daysOff) || 0))
+    const share = total > 0 ? daysOff / total : 0
+    return { ...entry, share, tone: classifyTone(share) }
+  }),
+)
+
+const lookbackLabel = computed(() => {
+  const history = historyCount.value
+  if (history <= 0) return ''
+  const unitWord = props.unit === 'mo' ? 'month' : 'week'
+  return `Last ${history} ${history === 1 ? unitWord : `${unitWord}s`}`
+})
+
+function shareLabel(value: number) {
+  const pct = Math.max(0, Math.min(1, value))
+  return `${Math.round(pct * 100)}% off`
+}
+
+function classifyTone(value: number): 'low' | 'mid' | 'high' {
+  if (value >= 0.5) return 'high'
+  if (value >= 0.25) return 'mid'
+  return 'low'
+}
+</script>
+
+<style scoped>
+.dayoff-card{
+  display:flex;
+  flex-direction:column;
+  gap:10px;
+}
+.dayoff-card__header{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  font-weight:600;
+  color:var(--fg);
+  font-size:12px;
+}
+.dayoff-heatmap{
+  display:grid;
+  grid-template-columns:repeat(auto-fit, minmax(110px, 1fr));
+  gap:8px;
+}
+.dayoff-tile{
+  border-radius:10px;
+  padding:10px 8px;
+  display:flex;
+  flex-direction:column;
+  gap:4px;
+  text-align:center;
+  background: color-mix(in oklab, var(--muted), transparent 85%);
+  color: var(--fg);
+  transition: transform .2s ease, background .2s ease;
+}
+.dayoff-tile--current{
+  outline:1px solid color-mix(in oklab, var(--brand), transparent 30%);
+  outline-offset:1px;
+}
+.dayoff-tile--low{
+  background: color-mix(in oklab, #dc2626, white 70%);
+  color: #7f1d1d;
+}
+.dayoff-tile--mid{
+  background: color-mix(in oklab, #f97316, white 68%);
+  color: #7c2d12;
+}
+.dayoff-tile--high{
+  background: color-mix(in oklab, #16a34a, white 65%);
+  color: #14532d;
+}
+.dayoff-tile__label{
+  font-size:11px;
+  font-weight:600;
+}
+.dayoff-tile__value{
+  font-size:14px;
+  font-weight:700;
+  font-variant-numeric: tabular-nums;
+}
+.dayoff-tile__meta{
+  font-size:10px;
+  color: color-mix(in oklab, currentColor, transparent 55%);
+  font-variant-numeric: tabular-nums;
+}
+.pill{
+  display:inline-flex;
+  align-items:center;
+  gap:4px;
+  padding:2px 8px;
+  font-size:11px;
+  border-radius:999px;
+  background: color-mix(in srgb, var(--brand) 15%, white);
+  color: var(--brand);
+  text-transform: uppercase;
+  letter-spacing: .05em;
+}
+.hint{
+  font-size:12px;
+  color:var(--muted);
+}
+</style>
