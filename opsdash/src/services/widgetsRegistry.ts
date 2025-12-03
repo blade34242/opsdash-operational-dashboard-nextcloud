@@ -7,6 +7,7 @@ import CategoryMixTrendCard from '../components/CategoryMixTrendCard.vue'
 import DeckSummaryCard from '../components/DeckSummaryCard.vue'
 import NotesPanel from '../components/NotesPanel.vue'
 import NoteSnippetWidget from '../components/NoteSnippetWidget.vue'
+import NoteEditorWidget from '../components/NoteEditorWidget.vue'
 import TextBlockWidget from '../components/TextBlockWidget.vue'
 
 export type WidgetSize = 'quarter' | 'half' | 'full'
@@ -358,6 +359,27 @@ export const widgetsRegistry: Record<string, RegistryEntry> = {
     buildProps: (_def, ctx) => ({
       notesCurr: ctx.notesCurr ?? '',
       notesPrev: ctx.notesPrev ?? '',
+    }),
+  },
+  note_editor: {
+    component: NoteEditorWidget,
+    defaultLayout: { width: 'half', height: 'm', order: 69 },
+    label: 'Notes editor',
+    configurable: true,
+    controls: [
+      { key: 'customTitle', label: 'Title', type: 'text' },
+      { key: 'prevLabel', label: 'Prev label', type: 'text' },
+      { key: 'currLabel', label: 'Current label', type: 'text' },
+    ],
+    buildProps: (def, ctx) => ({
+      title: def.options?.customTitle || 'Notes',
+      prevLabel: def.options?.prevLabel || (ctx.notesLabelPrev ?? 'Previous'),
+      currLabel: def.options?.currLabel || (ctx.notesLabelCurr ?? 'Current'),
+      previous: ctx.notesPrev ?? '',
+      modelValue: ctx.notesCurr ?? '',
+      saving: ctx.isSavingNote ?? false,
+      onSave: ctx.onSaveNote,
+      onUpdateModelValue: ctx.onUpdateNotes,
     }),
   },
 }
