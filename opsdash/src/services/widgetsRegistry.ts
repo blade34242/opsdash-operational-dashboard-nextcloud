@@ -295,16 +295,46 @@ export const widgetsRegistry: Record<string, RegistryEntry> = {
     label: 'Text label',
     configurable: true,
     controls: [
+      {
+        key: 'preset',
+        label: 'Preset label',
+        type: 'select',
+        options: [
+          { value: '', label: '— custom —' },
+          { value: 'targets_title', label: 'Targets · Title' },
+          { value: 'balance_title', label: 'Balance · Title' },
+          { value: 'activity_title', label: 'Activity · Title' },
+          { value: 'mix_title', label: 'Category mix · Title' },
+          { value: 'dayoff_title', label: 'Days off · Title' },
+          { value: 'deck_title', label: 'Deck · Title' },
+          { value: 'notes_title', label: 'Notes · Title' },
+          { value: 'pace_hint', label: 'Pace hint' },
+        ],
+      },
       { key: 'title', label: 'Title', type: 'text' },
       { key: 'body', label: 'Body', type: 'textarea' },
     ],
     buildProps: (def) => ({
-      title: def.options?.title ?? '',
-      body: def.options?.body ?? '',
+      title: resolvePreset(def.options?.preset).title ?? def.options?.title ?? '',
+      body: resolvePreset(def.options?.preset).body ?? def.options?.body ?? '',
       textSize: def.options?.textSize ?? 'md',
       dense: !!def.options?.dense,
     }),
   },
+}
+
+function resolvePreset(key?: string): { title?: string; body?: string } {
+  switch (key) {
+    case 'targets_title': return { title: 'Targets' }
+    case 'balance_title': return { title: 'Balance' }
+    case 'activity_title': return { title: 'Activity & Schedule' }
+    case 'mix_title': return { title: 'Category mix trend' }
+    case 'dayoff_title': return { title: 'Days off trend' }
+    case 'deck_title': return { title: 'Deck summary' }
+    case 'notes_title': return { title: 'Notes' }
+    case 'pace_hint': return { title: 'Pace', body: 'Required vs current pacing' }
+    default: return {}
+  }
 }
 
 export function createDefaultWidgets(): WidgetDefinition[] {
