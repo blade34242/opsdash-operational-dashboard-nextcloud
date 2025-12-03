@@ -37,11 +37,11 @@ const items = computed(() => props.items ?? [])
   padding:14px;
   color:var(--fg, #0f172a);
   line-height:1.5;
-  font-size:14px;
+  font-size:inherit;
 }
 .text-card h3{
   margin:0 0 6px 0;
-  font-size:1.2em;
+  font-size:1.1em;
 }
 .text-card .body{
   margin:0;
@@ -64,11 +64,11 @@ const items = computed(() => props.items ?? [])
   font-variant-numeric: tabular-nums;
   font-weight:600;
 }
-.text-card.text-sm{ font-size:12px; }
-.text-card.text-sm h3{ font-size:1.1em; }
-.text-card.text-md{ font-size:14px; }
-.text-card.text-md h3{ font-size:1.2em; }
-.text-card.text-lg{ font-size:16px; }
-.text-card.text-lg h3{ font-size:1.3em; }
+.text-card.text-sm{ font-size:0.92em; }
+.text-card.text-sm h3{ font-size:1.05em; }
+.text-card.text-md{ font-size:1em; }
+.text-card.text-md h3{ font-size:1.1em; }
+.text-card.text-lg{ font-size:1.08em; }
+.text-card.text-lg h3{ font-size:1.16em; }
 .text-card.dense{ padding:10px; line-height:1.35; }
 </style>
