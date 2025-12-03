@@ -9,16 +9,6 @@
     <p class="sb-description">
       {{ t('Keep quick context for the active week or month. Notes save with each range so you can revisit highlights later.') }}
     </p>
-    <div class="notes-config">
-      <label class="notes-toggle">
-        <input
-          type="checkbox"
-          :checked="showNotesInBalance"
-          @change="emit('toggle-balance-note', ($event.target as HTMLInputElement).checked)"
-        />
-        <span>{{ t('Show this note on the Balance card') }}</span>
-      </label>
-    </div>
     <NotesPanel
       :previous="previous"
       :model-value="modelValue"
@@ -45,13 +35,11 @@ const props = defineProps<{
   prevTitle: string
   currTitle: string
   saving: boolean
-  showNotesInBalance: boolean
 }>()
 
 const emit = defineEmits<{
   (e: 'update:modelValue', value: string): void
   (e: 'save'): void
-  (e: 'toggle-balance-note', value: boolean): void
 }>()
 
 const {
@@ -62,7 +50,6 @@ const {
   prevTitle,
   currTitle,
   saving,
-  showNotesInBalance,
 } = props
 </script>
 
@@ -71,21 +58,5 @@ const {
   font-size: 12px;
   color: var(--text-color-tertiary);
   margin: 0 0 10px;
-}
-.notes-config {
-  display: flex;
-  justify-content: flex-start;
-  margin-bottom: 12px;
-}
-.notes-toggle {
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  font-size: 12px;
-  color: var(--fg);
-}
-.notes-toggle input {
-  width: 16px;
-  height: 16px;
 }
 </style>

@@ -11,19 +11,6 @@
     </div>
 
     <div class="target-section">
-      <div class="toggle-grid">
-        <label class="field checkbox toggle-field single-toggle">
-          <input
-            type="checkbox"
-            :checked="balanceSettings.ui.showNotes"
-            @change="emit('set-ui-toggle', { key: 'showNotes', value: ($event.target as HTMLInputElement).checked })"
-          />
-          <div class="toggle-copy">
-            <span class="toggle-title">Notes snippet</span>
-            <span class="toggle-desc">Pin the current note beneath the Balance summary.</span>
-          </div>
-        </label>
-      </div>
       <div class="forecast-block">
         <div class="section-title">Chart projection</div>
         <div class="section-hint">
@@ -267,7 +254,6 @@ const emit = defineEmits<{
   (e: 'set-index-basis', value: string): void
   (e: 'set-threshold', payload: { key: 'noticeAbove' | 'noticeBelow' | 'warnAbove' | 'warnBelow' | 'warnIndex'; value: string }): void
   (e: 'set-lookback', value: string): void
-  (e: 'set-ui-toggle', payload: { key: 'showNotes'; value: boolean }): void
 }>()
 
 const {

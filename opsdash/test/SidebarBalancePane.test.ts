@@ -72,14 +72,4 @@ describe('SidebarBalancePane', () => {
     expect(options).toContain('Total calendars')
     expect(options).toContain('Categories + calendars')
   })
-
-  it('emits set-ui-toggle when toggles change', async () => {
-    const wrapper = mountPane({ helpDisplay: true })
-    const input = wrapper.find('.single-toggle input[type="checkbox"]')
-    await input.setValue(true)
-    await input.setValue(false)
-
-    const events = wrapper.emitted('set-ui-toggle') || []
-    expect(events[events.length - 1]).toEqual([{ key: 'showNotes', value: false }])
-  })
 })

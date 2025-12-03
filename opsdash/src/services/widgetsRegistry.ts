@@ -6,6 +6,7 @@ import DayOffTrendCard from '../components/DayOffTrendCard.vue'
 import CategoryMixTrendCard from '../components/CategoryMixTrendCard.vue'
 import DeckSummaryCard from '../components/DeckSummaryCard.vue'
 import NotesPanel from '../components/NotesPanel.vue'
+import NoteSnippetWidget from '../components/NoteSnippetWidget.vue'
 import TextBlockWidget from '../components/TextBlockWidget.vue'
 
 export type WidgetSize = 'quarter' | 'half' | 'full'
@@ -348,6 +349,16 @@ export const widgetsRegistry: Record<string, RegistryEntry> = {
         { key: 'lastDayOff', label: 'Last day off', type: 'toggle' },
       ]
     },
+  },
+  note_snippet: {
+    component: NoteSnippetWidget,
+    defaultLayout: { width: 'quarter', height: 's', order: 68 },
+    label: 'Notes snippet',
+    configurable: true,
+    buildProps: (_def, ctx) => ({
+      notesCurr: ctx.notesCurr ?? '',
+      notesPrev: ctx.notesPrev ?? '',
+    }),
   },
 }
 

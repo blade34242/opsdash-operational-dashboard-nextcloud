@@ -246,7 +246,6 @@
       @set-activity-forecast="setActivityForecastMode"
       @set-threshold="handleBalanceThreshold"
       @set-lookback="setBalanceLookback"
-      @set-ui-toggle="handleBalanceUiToggle"
     />
 
     <SidebarNotesPane
@@ -258,10 +257,8 @@
       :prev-title="notesLabelPrevTitle"
       :curr-title="notesLabelCurrTitle"
       :saving="isSavingNote"
-      :show-notes-in-balance="balanceSettings.ui.showNotes"
       @update:modelValue="value => $emit('update:notes', value)"
       @save="$emit('save-notes')"
-      @toggle-balance-note="value => setBalanceUiToggle('showNotes', value)"
     />
   </NcAppNavigation>
 </template>
@@ -565,7 +562,7 @@ function handleBalanceThreshold(payload: { key: 'noticeAbove' | 'noticeBelow' | 
 }
 
 function handleBalanceUiToggle(payload: { key: 'showNotes'; value: boolean }) {
-  setBalanceUiToggle(payload.key, payload.value)
+  // deprecated: no-op (notes snippet moved to widget)
 }
 
 function setBalanceIndexBasis(value: string) {
@@ -689,11 +686,7 @@ function setBalanceLookback(value: string){
   )
 }
 
-function setBalanceUiToggle(key: 'showNotes', checked: boolean){
-  updateConfig(cfg => {
-    cfg.balance.ui[key] = checked
-  })
-}
+// showNotes toggle removed from UI; keep placeholder to avoid runtime errors where invoked
 
 function setForecastMethod(value: string){
   const method = value === 'momentum' ? 'momentum' : 'linear'
