@@ -1,12 +1,13 @@
 <template>
-  <div class="text-card" :class="[`text-${textSize}`, { dense }]">
+  <div class="text-card" :class="[`text-${size}`, { dense }]">
     <h3 v-if="title">{{ title }}</h3>
     <p v-if="body" class="body">{{ body }}</p>
-    <slot />
   </div>
 </template>
 
 <script setup lang="ts">
+import { computed } from 'vue'
+
 const props = defineProps<{
   title?: string
   body?: string
@@ -14,8 +15,10 @@ const props = defineProps<{
   dense?: boolean
 }>()
 
-const textSize = props.textSize ?? 'md'
-const dense = props.dense ?? false
+const size = computed(() => props.textSize ?? 'md')
+const dense = computed(() => props.dense ?? false)
+const title = computed(() => props.title ?? '')
+const body = computed(() => props.body ?? '')
 </script>
 
 <style scoped>
