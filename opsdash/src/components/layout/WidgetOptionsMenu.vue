@@ -2,7 +2,7 @@
   <div class="options-wrapper" @keydown.stop>
     <button type="button" class="ghost" title="Configure widget" @click.stop="open = !open">⚙</button>
     <div v-if="open" class="options-pop">
-      <div v-for="control in entry.controls || []" :key="control.key" class="opt-row">
+      <div v-for="control in mergedControls" :key="control.key" class="opt-row">
         <label :for="`opt-${control.key}`">{{ control.label }}</label>
         <template v-if="control.type === 'number'">
           <input
@@ -30,13 +30,29 @@
             @change="onToggle(control.key, $event)"
           />
         </template>
+        <template v-else-if="control.type === 'text'">
+          <input
+            :id="`opt-${control.key}`"
+            type="text"
+            :value="local[control.key] ?? ''"
+            @input="onText(control.key, $event)"
+          />
+        </template>
+        <template v-else-if="control.type === 'textarea'">
+          <textarea
+            :id="`opt-${control.key}`"
+            rows="3"
+            :value="local[control.key] ?? ''"
+            @input="onText(control.key, $event)"
+          />
+        </template>
       </div>
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref, watch } from 'vue'
+import { computed, ref, watch } from 'vue'
 
 const props = defineProps<{
   entry: any
@@ -49,6 +65,25 @@ const emit = defineEmits<{
 
 const open = ref(false)
 const local = ref<Record<string, any>>({})
+
+const commonControls = [
+  {
+    key: 'textSize',
+    label: 'Text size',
+    type: 'select',
+    options: [
+      { value: 'sm', label: 'Small' },
+      { value: 'md', label: 'Normal' },
+      { value: 'lg', label: 'Large' },
+    ],
+  },
+  { key: 'dense', label: 'Dense mode', type: 'toggle' },
+]
+
+const mergedControls = computed(() => {
+  const specific = props.entry?.controls || []
+  return [...specific, ...commonControls]
+})
 
 watch(
   () => props.options,
@@ -68,6 +103,10 @@ function onSelect(key: string, event: Event) {
 }
 function onToggle(key: string, event: Event) {
   const value = (event.target as HTMLInputElement).checked
+  emit('change', key, value)
+}
+function onText(key: string, event: Event) {
+  const value = (event.target as HTMLInputElement | HTMLTextAreaElement).value
   emit('change', key, value)
 }
 </script>
@@ -101,7 +140,11 @@ function onToggle(key: string, event: Event) {
   color:var(--muted);
 }
 .opt-row input[type=\"number\"],
-.opt-row select{
+.opt-row select,
+.opt-row input[type=\"text\"]{
   width:90px;
+}
+.opt-row textarea{
+  width:140px;
 }
 </style>

@@ -4,7 +4,12 @@
       v-for="item in ordered"
       :key="item.id"
       class="layout-item"
-      :class="[widthClass(item.layout.width), heightClass(item.layout.height), { 'is-editable': editable }]"
+      :class="[
+        widthClass(item.layout.width),
+        heightClass(item.layout.height),
+        textClass(item.options?.textSize),
+        { 'is-editable': editable, 'is-dense': item.options?.dense },
+      ]"
     >
       <div v-if="editable" class="edit-bar">
         <div class="edit-left">
@@ -89,6 +94,12 @@ function heightLabel(height: string) {
   return 'M'
 }
 
+function textClass(size?: string) {
+  if (size === 'sm') return 'text-sm'
+  if (size === 'lg') return 'text-lg'
+  return 'text-md'
+}
+
 function registryEntry(type: string) {
   return widgetsRegistry[type]
 }
@@ -151,6 +162,10 @@ function isConfigurable(type: string) {
   outline:1px dashed rgba(107,114,128,0.5);
   border-radius:10px;
 }
+.text-sm{ font-size:12px; }
+.text-md{ font-size:14px; }
+.text-lg{ font-size:16px; }
+.is-dense{ line-height:1.35; }
 @media (max-width: 1024px){
   .w-quarter{ grid-column: span 6; }
 }

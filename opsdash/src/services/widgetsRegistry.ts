@@ -6,6 +6,7 @@ import DayOffTrendCard from '../components/DayOffTrendCard.vue'
 import CategoryMixTrendCard from '../components/CategoryMixTrendCard.vue'
 import DeckSummaryCard from '../components/DeckSummaryCard.vue'
 import NotesPanel from '../components/NotesPanel.vue'
+import TextBlockWidget from '../components/TextBlockWidget.vue'
 
 export type WidgetSize = 'quarter' | 'half' | 'full'
 export type WidgetHeight = 's' | 'm' | 'l'
@@ -68,7 +69,7 @@ interface RegistryEntry {
   controls?: Array<{
     key: string
     label: string
-    type: 'select' | 'number' | 'toggle'
+    type: 'select' | 'number' | 'toggle' | 'text' | 'textarea'
     min?: number
     max?: number
     step?: number
@@ -81,6 +82,7 @@ export const widgetsRegistry: Record<string, RegistryEntry> = {
     component: TimeSummaryCard,
     defaultLayout: { width: 'half', height: 's', order: 10 },
     label: 'Time Summary (old)',
+    configurable: true,
     buildProps: (_def, ctx) => ({
       summary: ctx.summary,
       mode: 'active',
@@ -91,6 +93,7 @@ export const widgetsRegistry: Record<string, RegistryEntry> = {
     component: TimeTargetsCard,
     defaultLayout: { width: 'half', height: 'm', order: 20 },
     label: 'Targets (old)',
+    configurable: true,
     buildProps: (def, ctx) => ({
       summary: ctx.targetsSummary ?? ctx.summary,
       config: ctx.targetsConfig,
@@ -101,6 +104,7 @@ export const widgetsRegistry: Record<string, RegistryEntry> = {
     component: BalanceOverviewCard,
     defaultLayout: { width: 'half', height: 'm', order: 30 },
     label: 'Balance (old)',
+    configurable: true,
     buildProps: (_def, ctx) => ({
       overview: ctx.balanceOverview,
       rangeLabel: ctx.rangeLabel,
@@ -119,6 +123,7 @@ export const widgetsRegistry: Record<string, RegistryEntry> = {
     component: ActivityScheduleCard,
     defaultLayout: { width: 'half', height: 'm', order: 40 },
     label: 'Activity (old)',
+    configurable: true,
     buildProps: (_def, ctx) => ({
       summary: ctx.activitySummary,
       config: ctx.activityConfig,
@@ -156,6 +161,7 @@ export const widgetsRegistry: Record<string, RegistryEntry> = {
     component: DeckSummaryCard,
     defaultLayout: { width: 'half', height: 's', order: 50 },
     label: 'Deck (old)',
+    configurable: true,
     buildProps: (_def, ctx) => ({
       buckets: ctx.deckBuckets,
       rangeLabel: ctx.deckRangeLabel,
@@ -169,6 +175,7 @@ export const widgetsRegistry: Record<string, RegistryEntry> = {
     component: NotesPanel,
     defaultLayout: { width: 'half', height: 's', order: 60 },
     label: 'Notes (old)',
+    configurable: true,
     buildProps: (def, ctx) => ({
       notesPrev: ctx.notesPrev,
       notesCurrDraft: ctx.notesCurr,
@@ -196,6 +203,22 @@ export const widgetsRegistry: Record<string, RegistryEntry> = {
       rangeMode: ctx.rangeMode,
       lookbackWeeks: _def.options?.lookbackWeeks ?? ctx.lookbackWeeks,
       showBadge: _def.options?.showBadge ?? true,
+    }),
+  },
+  text_block: {
+    component: TextBlockWidget,
+    defaultLayout: { width: 'quarter', height: 's', order: 65 },
+    label: 'Text',
+    configurable: true,
+    controls: [
+      { key: 'title', label: 'Title', type: 'text' },
+      { key: 'body', label: 'Body', type: 'textarea' },
+    ],
+    buildProps: (def) => ({
+      title: def.options?.title ?? '',
+      body: def.options?.body ?? '',
+      textSize: def.options?.textSize ?? 'md',
+      dense: !!def.options?.dense,
     }),
   },
 }

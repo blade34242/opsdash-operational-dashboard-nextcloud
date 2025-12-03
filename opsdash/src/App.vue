@@ -684,15 +684,12 @@ const widgets = computed<WidgetDefinition[]>(() => {
   return defs
 })
 
-const availableWidgetTypes = computed(() => {
-  const present = new Set(layoutWidgets.value.map((w) => w.type))
-  return Object.keys(widgetsRegistry)
-    .filter((type) => !present.has(type))
-    .map((type) => ({
-      type,
-      label: widgetsRegistry[type]?.label || type,
-    }))
-})
+const availableWidgetTypes = computed(() =>
+  Object.keys(widgetsRegistry).map((type) => ({
+    type,
+    label: widgetsRegistry[type]?.label || type,
+  })),
+)
 
 function updateWidget(id: string, updater: (w: WidgetDefinition) => WidgetDefinition) {
   layoutWidgets.value = layoutWidgets.value.map((w) =>
@@ -737,7 +734,6 @@ function removeWidget(id: string) {
 function addWidget(type: string) {
   const entry = widgetsRegistry[type]
   if (!entry) return
-  if (layoutWidgets.value.some((w) => w.type === type)) return
   const maxOrder = layoutWidgets.value.reduce((acc, w) => Math.max(acc, w.layout.order || 0), 0)
   const def: WidgetDefinition = {
     id: `widget-${type}-${Date.now()}`,
