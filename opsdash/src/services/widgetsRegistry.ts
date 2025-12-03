@@ -77,6 +77,16 @@ interface RegistryEntry {
   }>
 }
 
+type TextPresetKey =
+  | ''
+  | 'targets'
+  | 'activity'
+  | 'balance'
+  | 'mix'
+  | 'dayoff'
+  | 'deck'
+  | 'notes'
+
 export const widgetsRegistry: Record<string, RegistryEntry> = {
   time_summary: {
     component: TimeSummaryCard,
@@ -297,44 +307,87 @@ export const widgetsRegistry: Record<string, RegistryEntry> = {
     controls: [
       {
         key: 'preset',
-        label: 'Preset label',
+        label: 'Source',
         type: 'select',
         options: [
-          { value: '', label: '— custom —' },
-          { value: 'targets_title', label: 'Targets · Title' },
-          { value: 'balance_title', label: 'Balance · Title' },
-          { value: 'activity_title', label: 'Activity · Title' },
-          { value: 'mix_title', label: 'Category mix · Title' },
-          { value: 'dayoff_title', label: 'Days off · Title' },
-          { value: 'deck_title', label: 'Deck · Title' },
-          { value: 'notes_title', label: 'Notes · Title' },
-          { value: 'pace_hint', label: 'Pace hint' },
+          { value: '', label: 'Custom' },
+          { value: 'targets', label: 'Targets' },
+          { value: 'activity', label: 'Activity & Schedule' },
+          { value: 'balance', label: 'Balance' },
+          { value: 'mix', label: 'Category mix' },
+          { value: 'dayoff', label: 'Days off trend' },
+          { value: 'deck', label: 'Deck' },
+          { value: 'notes', label: 'Notes' },
         ],
       },
       { key: 'title', label: 'Title', type: 'text' },
       { key: 'body', label: 'Body', type: 'textarea' },
+      { key: 'include', label: 'Include all labels', type: 'toggle' },
     ],
     buildProps: (def) => ({
-      title: resolvePreset(def.options?.preset).title ?? def.options?.title ?? '',
-      body: resolvePreset(def.options?.preset).body ?? def.options?.body ?? '',
+      title: resolvePreset(def.options?.preset as TextPresetKey).title ?? def.options?.title ?? '',
+      body: resolvePreset(def.options?.preset as TextPresetKey).body ?? def.options?.body ?? '',
+      items: collectPresetItems(def.options?.preset as TextPresetKey, def.options?.include),
       textSize: def.options?.textSize ?? 'md',
       dense: !!def.options?.dense,
     }),
   },
 }
 
-function resolvePreset(key?: string): { title?: string; body?: string } {
+function resolvePreset(key?: TextPresetKey): { title?: string; body?: string } {
   switch (key) {
-    case 'targets_title': return { title: 'Targets' }
-    case 'balance_title': return { title: 'Balance' }
-    case 'activity_title': return { title: 'Activity & Schedule' }
-    case 'mix_title': return { title: 'Category mix trend' }
-    case 'dayoff_title': return { title: 'Days off trend' }
-    case 'deck_title': return { title: 'Deck summary' }
-    case 'notes_title': return { title: 'Notes' }
-    case 'pace_hint': return { title: 'Pace', body: 'Required vs current pacing' }
+    case 'targets': return { title: 'Targets' }
+    case 'activity': return { title: 'Activity & Schedule' }
+    case 'balance': return { title: 'Balance' }
+    case 'mix': return { title: 'Category mix trend' }
+    case 'dayoff': return { title: 'Days off trend' }
+    case 'deck': return { title: 'Deck summary' }
+    case 'notes': return { title: 'Notes' }
     default: return {}
   }
+}
+
+function collectPresetItems(key?: TextPresetKey, includeAll?: boolean) {
+  if (!key) return []
+  const itemsByKey: Record<TextPresetKey, Array<{ key: string; label?: string; value?: string }>> = {
+    '': [],
+    targets: [
+      { key: 'status', label: 'Status', value: 'Pace / Delta / Forecast' },
+      { key: 'today', label: 'Today', value: 'Today overlay' },
+      { key: 'legend', label: 'Legend', value: 'Category breakdown' },
+    ],
+    activity: [
+      { key: 'kpi', label: 'KPIs', value: 'Events / Active Days / Weekend / Evening' },
+      { key: 'meta', label: 'Meta', value: 'Earliest/Late, Overlaps, Longest' },
+      { key: 'badges', label: 'Badges', value: 'Day-off tiles' },
+    ],
+    balance: [
+      { key: 'index', label: 'Index', value: 'Balance index value' },
+      { key: 'trend', label: 'Trend', value: 'Trend history/heat' },
+      { key: 'notes', label: 'Notes', value: 'Pinned notes snippet' },
+    ],
+    mix: [
+      { key: 'badge', label: 'Badge', value: 'Balance badge' },
+      { key: 'history', label: 'History', value: 'Category mix tiles' },
+    ],
+    dayoff: [
+      { key: 'header', label: 'Trend header', value: 'Period lookback' },
+      { key: 'tiles', label: 'Trend tiles', value: 'Days off per week' },
+    ],
+    deck: [
+      { key: 'header', label: 'Deck header', value: 'Range + Ticker' },
+      { key: 'buckets', label: 'Buckets', value: 'Open/Done/Archived counts' },
+      { key: 'empty', label: 'Empty states', value: 'No cards' },
+    ],
+    notes: [
+      { key: 'labels', label: 'Labels', value: 'Prev/Current labels' },
+      { key: 'content', label: 'Content', value: 'Prev/Current note texts' },
+    ],
+  }
+  const list = itemsByKey[key] || []
+  if (includeAll) return list
+  // Default: only first item to keep it compact
+  return list.length ? [list[0]] : []
 }
 
 export function createDefaultWidgets(): WidgetDefinition[] {

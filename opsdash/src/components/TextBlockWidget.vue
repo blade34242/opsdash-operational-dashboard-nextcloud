@@ -2,6 +2,12 @@
   <div class="text-card" :class="[`text-${size}`, { dense }]">
     <h3 v-if="title">{{ title }}</h3>
     <p v-if="body" class="body">{{ body }}</p>
+    <template v-if="items.length">
+      <div v-for="item in items" :key="item.key" class="line">
+        <span class="label" v-if="item.label">{{ item.label }}</span>
+        <span class="value" v-if="item.value">{{ item.value }}</span>
+      </div>
+    </template>
   </div>
 </template>
 
@@ -13,12 +19,14 @@ const props = defineProps<{
   body?: string
   textSize?: 'sm' | 'md' | 'lg'
   dense?: boolean
+  items?: Array<{ key: string; label?: string; value?: string }>
 }>()
 
 const size = computed(() => props.textSize ?? 'md')
 const dense = computed(() => props.dense ?? false)
 const title = computed(() => props.title ?? '')
 const body = computed(() => props.body ?? '')
+const items = computed(() => props.items ?? [])
 </script>
 
 <style scoped>
@@ -38,6 +46,14 @@ const body = computed(() => props.body ?? '')
   margin:0;
   white-space:pre-wrap;
 }
+.line{
+  display:flex;
+  gap:6px;
+  font-size:inherit;
+  line-height:1.4;
+}
+.line + .line{ margin-top:4px; }
+.line .label{ color: var(--muted); }
 .text-card.text-sm{ font-size:12px; }
 .text-card.text-md{ font-size:14px; }
 .text-card.text-lg{ font-size:16px; }
