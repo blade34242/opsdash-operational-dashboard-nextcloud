@@ -48,12 +48,21 @@ const items = computed(() => props.items ?? [])
 }
 .line{
   display:flex;
-  gap:6px;
+  align-items:center;
+  gap:8px;
   font-size:inherit;
   line-height:1.4;
 }
 .line + .line{ margin-top:4px; }
-.line .label{ color: var(--muted); }
+.line .label{
+  flex:1;
+  color: var(--muted);
+}
+.line .value{
+  text-align:right;
+  font-variant-numeric: tabular-nums;
+  font-weight:600;
+}
 .text-card.text-sm{ font-size:12px; }
 .text-card.text-md{ font-size:14px; }
 .text-card.text-lg{ font-size:16px; }
