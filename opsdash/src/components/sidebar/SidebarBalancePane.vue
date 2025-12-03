@@ -11,38 +11,7 @@
     </div>
 
     <div class="target-section">
-      <div class="section-title-row tier-2">
-        <div class="section-subtitle subtitle">Top card &amp; chart display</div>
-        <button
-          type="button"
-          class="info-button"
-          :aria-expanded="helpActivity"
-          aria-label="Top card help"
-          @click="emit('toggle-help', 'activity')"
-        >
-          <span>?</span>
-        </button>
-      </div>
-      <div class="section-hint" v-if="helpActivity">
-        <span class="hint-title">Display &amp; projection</span>
-        <span class="hint-body">Choose which KPIs and the day-off chart appear on the top card. Projection shows how future days would fill based on your targets. Notes can be pinned directly under the card.</span>
-      </div>
       <div class="toggle-grid">
-        <label
-          v-for="[key, label] in activityToggles"
-          :key="key"
-          class="field checkbox toggle-field"
-        >
-          <input
-            type="checkbox"
-            :checked="activitySettings[key]"
-            @change="emit('set-activity-toggle', { key, value: ($event.target as HTMLInputElement).checked })"
-          />
-          <div class="toggle-copy">
-            <span class="toggle-title">{{ label }}</span>
-            <span class="toggle-desc">Include this metric in the Activity &amp; Balance top card.</span>
-          </div>
-        </label>
         <label class="field checkbox toggle-field single-toggle">
           <input
             type="checkbox"
@@ -269,16 +238,13 @@
 
 <script setup lang="ts">
 import { computed, toRefs } from 'vue'
-import type { ActivityCardConfig, ActivityForecastMode, BalanceConfig } from '../../services/targets'
+import type { ActivityForecastMode, BalanceConfig } from '../../services/targets'
 
 type InputMessage = { text: string; tone: 'error' | 'warning' }
-type ActivityToggleKey = Exclude<keyof ActivityCardConfig, 'forecastMode'>
 type ForecastOption = { value: ActivityForecastMode; label: string; description?: string }
 
 const rawProps = defineProps<{
   balanceSettings: BalanceConfig
-  activitySettings: ActivityCardConfig
-  activityToggles: Array<[ActivityToggleKey, string]>
   activityForecastMode: ActivityForecastMode
   activityForecastOptions: ForecastOption[]
   balanceThresholdMessages: {
@@ -290,15 +256,13 @@ const rawProps = defineProps<{
   }
   balanceLookbackMessage: InputMessage | null
   indexBasisOptions?: Array<{ value: 'category' | 'calendar' | 'both' | 'off'; label: string; hint?: string }>
-  helpActivity: boolean
   helpThresholds: boolean
   helpTrend: boolean
   helpDisplay: boolean
 }>()
 
 const emit = defineEmits<{
-  (e: 'toggle-help', target: 'activity' | 'thresholds' | 'trend' | 'display'): void
-  (e: 'set-activity-toggle', payload: { key: ActivityToggleKey; value: boolean }): void
+  (e: 'toggle-help', target: 'thresholds' | 'trend' | 'display'): void
   (e: 'set-activity-forecast', mode: ActivityForecastMode): void
   (e: 'set-index-basis', value: string): void
   (e: 'set-threshold', payload: { key: 'noticeAbove' | 'noticeBelow' | 'warnAbove' | 'warnBelow' | 'warnIndex'; value: string }): void
@@ -308,14 +272,11 @@ const emit = defineEmits<{
 
 const {
   balanceSettings,
-  activitySettings,
-  activityToggles,
   activityForecastMode,
   activityForecastOptions,
   balanceThresholdMessages,
   balanceLookbackMessage,
   indexBasisOptions,
-  helpActivity,
   helpThresholds,
   helpTrend,
   helpDisplay,

@@ -346,9 +346,6 @@ export const widgetsRegistry: Record<string, RegistryEntry> = {
         { key: 'overlaps', label: 'Overlaps', type: 'toggle' },
         { key: 'longest', label: 'Longest session', type: 'toggle' },
         { key: 'lastDayOff', label: 'Last day off', type: 'toggle' },
-        { key: 'daysOffTrend', label: 'Days off trend chart', type: 'toggle' },
-        { key: 'mappingHint', label: 'Show mapping hint', type: 'toggle' },
-        { key: 'notesSnippet', label: 'Notes snippet', type: 'toggle' },
       ]
     },
   },
@@ -382,9 +379,6 @@ function collectPresetItems(key?: TextPresetKey, options: Record<string, any> = 
       { opt: 'overlaps', key: 'overlaps', label: 'Overlaps', value: String(summary.overlapEvents ?? '—') },
       { opt: 'longest', key: 'longest', label: 'Longest session', value: fmtHours(summary.longestSession) },
       { opt: 'lastDayOff', key: 'lastDayOff', label: 'Last day off', value: fmtDate(summary.lastDayOff) },
-      { opt: 'daysOffTrend', key: 'daysOffTrend', label: 'Days off trend chart', value: 'Trend tiles' },
-      { opt: 'mappingHint', key: 'mapping', label: 'Show mapping hint', value: ctx?.activityConfig?.showHint ? 'On' : 'Off' },
-      { opt: 'notesSnippet', key: 'notesSnippet', label: 'Notes snippet', value: (ctx?.notesCurr ?? ctx?.notesPrev ?? '').slice(0, 40) || '—' },
     ]
     return map.filter((m) => options[m.opt] !== false)
   }

@@ -233,11 +233,8 @@
       class="sb-pane"
       role="tabpanel"
       aria-labelledby="opsdash-sidebar-tab-activitybalance"
-      :activity-settings="activitySettings"
-      :activity-toggles="activityToggles"
       :activity-forecast-mode="activitySettings.forecastMode"
       :activity-forecast-options="activityForecastOptions"
-      :help-activity="helpState.activity"
       :balance-settings="balanceSettings"
       :balance-threshold-messages="balanceThresholdMessages"
       :balance-lookback-message="balanceLookbackMessage"
@@ -246,7 +243,6 @@
       :help-display="helpState.balanceDisplay"
       @set-index-basis="setBalanceIndexBasis"
       @toggle-help="toggleBalanceHelp"
-      @set-activity-toggle="handleActivityOption"
       @set-activity-forecast="setActivityForecastMode"
       @set-threshold="handleBalanceThreshold"
       @set-lookback="setBalanceLookback"
@@ -405,21 +401,6 @@ const activitySettings = computed<ActivityCardConfig>(() => {
   return { ...createDefaultActivityCardConfig(), ...(targets.value?.activityCard ?? {}) }
 })
 
-type ActivityToggleKey = Exclude<keyof ActivityCardConfig, 'forecastMode'>
-
-const activityLabels: Record<ActivityToggleKey, string> = {
-  showWeekendShare: 'Weekend share',
-  showEveningShare: 'Evening share',
-  showEarliestLatest: 'Earliest/Late times',
-  showOverlaps: 'Overlaps',
-  showLongestSession: 'Longest session',
-  showLastDayOff: 'Last day off',
-  showDayOffTrend: 'Days off trend chart',
-  showHint: 'Show mapping hint',
-}
-
-const activityToggles = computed(() => Object.entries(activityLabels) as Array<[ActivityToggleKey, string]>)
-
 const activityForecastOptions: Array<{ value: ActivityCardConfig['forecastMode']; label: string; description: string }> = [
   { value: 'off', label: 'Do not project future days', description: 'Keep charts empty until events occur.' },
   { value: 'total', label: 'Distribute remaining total target', description: 'Split leftover total target hours evenly across future days using current calendar mix.' },
@@ -443,7 +424,6 @@ const balanceSettings = computed<BalanceConfig>(() => {
 })
 
 const helpState = reactive({
-  activity: false,
   balanceThresholds: false,
   balanceTrend: false,
   balanceDisplay: false,
@@ -558,10 +538,6 @@ function handleSummaryOption(payload: { key: keyof TargetsConfig['timeSummary'];
   setSummaryOption(payload.key, payload.value)
 }
 
-function handleActivityOption(payload: { key: ActivityToggleKey; value: boolean }) {
-  setActivityOption(payload.key, payload.value)
-}
-
 function setActivityForecastMode(mode: ActivityCardConfig['forecastMode']) {
   if (mode !== 'off' && mode !== 'total' && mode !== 'calendar' && mode !== 'category') {
     return
@@ -574,11 +550,7 @@ function setActivityForecastMode(mode: ActivityCardConfig['forecastMode']) {
   })
 }
 
-function toggleBalanceHelp(target: 'activity' | 'thresholds' | 'trend' | 'display') {
-  if (target === 'activity') {
-    helpState.activity = !helpState.activity
-    return
-  }
+function toggleBalanceHelp(target: 'thresholds' | 'trend' | 'display') {
   if (target === 'thresholds') {
     helpState.balanceThresholds = !helpState.balanceThresholds
   } else if (target === 'trend') {
@@ -671,15 +643,6 @@ function setSummaryOption(key: keyof TargetsConfig['timeSummary'], checked: bool
       cfg.timeSummary = JSON.parse(JSON.stringify(summaryOptions.value))
     }
     cfg.timeSummary[key] = checked
-  })
-}
-
-function setActivityOption(key: ActivityToggleKey, checked: boolean){
-  updateConfig(cfg => {
-    if (!cfg.activityCard) {
-      cfg.activityCard = createDefaultActivityCardConfig()
-    }
-    cfg.activityCard[key] = checked
   })
 }
 
