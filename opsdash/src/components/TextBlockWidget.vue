@@ -63,6 +63,7 @@ const items = computed(() => props.items ?? [])
   text-align:right;
   font-variant-numeric: tabular-nums;
   font-weight:600;
+  font-size: inherit;
 }
 .text-card.text-sm{ font-size:0.92em; }
 .text-card.text-sm h3{ font-size:1.05em; }
