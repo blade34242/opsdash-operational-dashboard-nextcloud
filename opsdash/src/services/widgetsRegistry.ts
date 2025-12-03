@@ -66,6 +66,12 @@ interface RegistryEntry {
   defaultLayout: WidgetDefinition['layout']
   label?: string
   configurable?: boolean
+  dynamicControls?: (options: Record<string, any>) => Array<{
+    key: string
+    label: string
+    type: 'select' | 'number' | 'toggle' | 'text' | 'textarea'
+    options?: Array<{ value: any; label: string }>
+  }>
   controls?: Array<{
     key: string
     label: string
@@ -327,10 +333,24 @@ export const widgetsRegistry: Record<string, RegistryEntry> = {
     buildProps: (def) => ({
       title: resolvePreset(def.options?.preset as TextPresetKey).title ?? def.options?.title ?? '',
       body: resolvePreset(def.options?.preset as TextPresetKey).body ?? def.options?.body ?? '',
-      items: collectPresetItems(def.options?.preset as TextPresetKey, def.options?.include),
+      items: collectPresetItems(def.options?.preset as TextPresetKey, def.options || {}),
       textSize: def.options?.textSize ?? 'md',
       dense: !!def.options?.dense,
     }),
+    dynamicControls: (options: Record<string, any>) => {
+      if (options?.preset !== 'activity') return []
+      return [
+        { key: 'weekendShare', label: 'Weekend share', type: 'toggle' },
+        { key: 'eveningShare', label: 'Evening share', type: 'toggle' },
+        { key: 'earliestLatest', label: 'Earliest/Late times', type: 'toggle' },
+        { key: 'overlaps', label: 'Overlaps', type: 'toggle' },
+        { key: 'longest', label: 'Longest session', type: 'toggle' },
+        { key: 'lastDayOff', label: 'Last day off', type: 'toggle' },
+        { key: 'daysOffTrend', label: 'Days off trend chart', type: 'toggle' },
+        { key: 'mappingHint', label: 'Show mapping hint', type: 'toggle' },
+        { key: 'notesSnippet', label: 'Notes snippet', type: 'toggle' },
+      ]
+    },
   },
 }
 
@@ -347,8 +367,22 @@ function resolvePreset(key?: TextPresetKey): { title?: string; body?: string } {
   }
 }
 
-function collectPresetItems(key?: TextPresetKey, includeAll?: boolean) {
+function collectPresetItems(key?: TextPresetKey, options: Record<string, any> = {}) {
   if (!key) return []
+  if (key === 'activity') {
+    const map = [
+      { opt: 'weekendShare', key: 'weekend', label: 'Weekend share', value: 'Weekend %' },
+      { opt: 'eveningShare', key: 'evening', label: 'Evening share', value: 'Evening %' },
+      { opt: 'earliestLatest', key: 'earliest', label: 'Earliest/Late times', value: 'Earliest / Latest' },
+      { opt: 'overlaps', key: 'overlaps', label: 'Overlaps', value: 'Overlap count' },
+      { opt: 'longest', key: 'longest', label: 'Longest session', value: 'Longest duration' },
+      { opt: 'lastDayOff', key: 'lastDayOff', label: 'Last day off', value: 'Last day off date' },
+      { opt: 'daysOffTrend', key: 'daysOffTrend', label: 'Days off trend chart', value: 'Trend tiles' },
+      { opt: 'mappingHint', key: 'mapping', label: 'Show mapping hint', value: 'Mapping hint' },
+      { opt: 'notesSnippet', key: 'notesSnippet', label: 'Notes snippet', value: 'Pinned note preview' },
+    ]
+    return map.filter((m) => options[m.opt] !== false)
+  }
   const itemsByKey: Record<TextPresetKey, Array<{ key: string; label?: string; value?: string }>> = {
     '': [],
     targets: [
@@ -356,11 +390,7 @@ function collectPresetItems(key?: TextPresetKey, includeAll?: boolean) {
       { key: 'today', label: 'Today', value: 'Today overlay' },
       { key: 'legend', label: 'Legend', value: 'Category breakdown' },
     ],
-    activity: [
-      { key: 'kpi', label: 'KPIs', value: 'Events / Active Days / Weekend / Evening' },
-      { key: 'meta', label: 'Meta', value: 'Earliest/Late, Overlaps, Longest' },
-      { key: 'badges', label: 'Badges', value: 'Day-off tiles' },
-    ],
+    activity: [], // handled above
     balance: [
       { key: 'index', label: 'Index', value: 'Balance index value' },
       { key: 'trend', label: 'Trend', value: 'Trend history/heat' },
@@ -385,8 +415,7 @@ function collectPresetItems(key?: TextPresetKey, includeAll?: boolean) {
     ],
   }
   const list = itemsByKey[key] || []
-  if (includeAll) return list
-  // Default: only first item to keep it compact
+  if (options.include) return list
   return list.length ? [list[0]] : []
 }
 

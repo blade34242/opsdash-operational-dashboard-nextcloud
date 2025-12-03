@@ -82,7 +82,11 @@ const commonControls = [
 
 const mergedControls = computed(() => {
   const specific = props.entry?.controls || []
-  return [...specific, ...commonControls]
+  const dynamic =
+    typeof props.entry?.dynamicControls === 'function'
+      ? props.entry.dynamicControls(props.options || {})
+      : []
+  return [...specific, ...dynamic, ...commonControls]
 })
 
 watch(
