@@ -330,10 +330,10 @@ export const widgetsRegistry: Record<string, RegistryEntry> = {
       { key: 'body', label: 'Body', type: 'textarea' },
       { key: 'include', label: 'Include all labels', type: 'toggle' },
     ],
-    buildProps: (def) => ({
+    buildProps: (def, ctx) => ({
       title: resolvePreset(def.options?.preset as TextPresetKey).title ?? def.options?.title ?? '',
       body: resolvePreset(def.options?.preset as TextPresetKey).body ?? def.options?.body ?? '',
-      items: collectPresetItems(def.options?.preset as TextPresetKey, def.options || {}),
+      items: collectPresetItems(def.options?.preset as TextPresetKey, def.options || {}, ctx),
       textSize: def.options?.textSize ?? 'md',
       dense: !!def.options?.dense,
     }),
@@ -367,19 +367,24 @@ function resolvePreset(key?: TextPresetKey): { title?: string; body?: string } {
   }
 }
 
-function collectPresetItems(key?: TextPresetKey, options: Record<string, any> = {}) {
+function collectPresetItems(key?: TextPresetKey, options: Record<string, any> = {}, ctx?: WidgetRenderContext) {
   if (!key) return []
   if (key === 'activity') {
+    const summary: any = ctx?.activitySummary || {}
+    const fmtPct = (v: any) => `${Number(v ?? 0).toFixed(1)}%`
+    const fmtTime = (a: any, b?: any) => [a, b].filter(Boolean).join(' / ')
+    const fmtHours = (v: any) => `${Number(v ?? 0).toFixed(1)}h`
+    const fmtDate = (v: any) => (v ? String(v) : '—')
     const map = [
-      { opt: 'weekendShare', key: 'weekend', label: 'Weekend share', value: 'Weekend %' },
-      { opt: 'eveningShare', key: 'evening', label: 'Evening share', value: 'Evening %' },
-      { opt: 'earliestLatest', key: 'earliest', label: 'Earliest/Late times', value: 'Earliest / Latest' },
-      { opt: 'overlaps', key: 'overlaps', label: 'Overlaps', value: 'Overlap count' },
-      { opt: 'longest', key: 'longest', label: 'Longest session', value: 'Longest duration' },
-      { opt: 'lastDayOff', key: 'lastDayOff', label: 'Last day off', value: 'Last day off date' },
+      { opt: 'weekendShare', key: 'weekend', label: 'Weekend share', value: fmtPct(summary.weekendShare) },
+      { opt: 'eveningShare', key: 'evening', label: 'Evening share', value: fmtPct(summary.eveningShare) },
+      { opt: 'earliestLatest', key: 'earliest', label: 'Earliest/Late times', value: fmtTime(summary.typicalStart, summary.typicalEnd) },
+      { opt: 'overlaps', key: 'overlaps', label: 'Overlaps', value: String(summary.overlapEvents ?? '—') },
+      { opt: 'longest', key: 'longest', label: 'Longest session', value: fmtHours(summary.longestSession) },
+      { opt: 'lastDayOff', key: 'lastDayOff', label: 'Last day off', value: fmtDate(summary.lastDayOff) },
       { opt: 'daysOffTrend', key: 'daysOffTrend', label: 'Days off trend chart', value: 'Trend tiles' },
-      { opt: 'mappingHint', key: 'mapping', label: 'Show mapping hint', value: 'Mapping hint' },
-      { opt: 'notesSnippet', key: 'notesSnippet', label: 'Notes snippet', value: 'Pinned note preview' },
+      { opt: 'mappingHint', key: 'mapping', label: 'Show mapping hint', value: ctx?.activityConfig?.showHint ? 'On' : 'Off' },
+      { opt: 'notesSnippet', key: 'notesSnippet', label: 'Notes snippet', value: (ctx?.notesCurr ?? ctx?.notesPrev ?? '').slice(0, 40) || '—' },
     ]
     return map.filter((m) => options[m.opt] !== false)
   }
