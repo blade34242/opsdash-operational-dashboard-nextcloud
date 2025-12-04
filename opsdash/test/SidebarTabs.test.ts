@@ -53,10 +53,6 @@ vi.mock('@nextcloud/vue', () => {
   }
 })
 
-vi.mock('../src/components/NotesPanel.vue', () => ({
-  default: { name: 'NotesPanel', template: '<div />' },
-}))
-
 function mountSidebar() {
   const targetsConfig = createDefaultTargetsConfig()
   const reportingConfig = createDefaultReportingConfig()
@@ -73,15 +69,7 @@ function mountSidebar() {
       to: '2025-03-09',
       targetsWeek: {},
       targetsMonth: {},
-      notesPrev: '',
-      notesCurrDraft: '',
-      notesLabelPrev: '',
-      notesLabelCurr: '',
-      notesLabelPrevTitle: '',
-      notesLabelCurrTitle: '',
-      isSavingNote: false,
       targetsConfig,
-      activeDayMode: 'active',
       navToggleLabel: 'Toggle sidebar',
       navToggleIcon: '⟨',
       presets: [],
@@ -106,22 +94,12 @@ describe('Sidebar tabs', () => {
     expect(wrapper.get('#opsdash-sidebar-pane-calendars').exists()).toBe(true)
   })
 
-  it('switches to summary tab when clicked', async () => {
+  it('switches back to targets tab from calendars', async () => {
     const wrapper = mountSidebar()
-    await wrapper.get('#opsdash-sidebar-tab-summary').trigger('click')
-
-    expect(wrapper.get('#opsdash-sidebar-tab-summary').classes()).toContain('active')
-    expect(wrapper.find('#opsdash-sidebar-pane-calendars').exists()).toBe(false)
-    expect(wrapper.get('#opsdash-sidebar-pane-summary').exists()).toBe(true)
-  })
-
-  it('switches back to targets tab', async () => {
-    const wrapper = mountSidebar()
-    await wrapper.get('#opsdash-sidebar-tab-summary').trigger('click')
     await wrapper.get('#opsdash-sidebar-tab-targets').trigger('click')
 
     expect(wrapper.get('#opsdash-sidebar-tab-targets').classes()).toContain('active')
     expect(wrapper.get('#opsdash-sidebar-pane-targets').exists()).toBe(true)
-    expect(wrapper.find('#opsdash-sidebar-pane-summary').exists()).toBe(false)
+    expect(wrapper.find('#opsdash-sidebar-pane-calendars').exists()).toBe(false)
   })
 })

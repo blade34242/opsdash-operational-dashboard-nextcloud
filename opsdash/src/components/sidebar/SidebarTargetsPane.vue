@@ -262,54 +262,6 @@
           />
           <span>Show category charts</span>
         </label>
-        <label class="field checkbox">
-          <input
-            type="checkbox"
-            :checked="targets.ui.showTotalDelta"
-            @change="$emit('set-ui-option', { key: 'showTotalDelta', value: ($event.target as HTMLInputElement).checked })"
-          />
-          <span>Show total delta</span>
-        </label>
-        <label class="field checkbox">
-          <input
-            type="checkbox"
-            :checked="targets.ui.showNeedPerDay"
-            @change="$emit('set-ui-option', { key: 'showNeedPerDay', value: ($event.target as HTMLInputElement).checked })"
-          />
-          <span>Show need per day</span>
-        </label>
-        <label class="field checkbox">
-          <input
-            type="checkbox"
-            :checked="targets.ui.showCategoryBlocks"
-            @change="$emit('set-ui-option', { key: 'showCategoryBlocks', value: ($event.target as HTMLInputElement).checked })"
-          />
-          <span>Show categories</span>
-        </label>
-        <label class="field checkbox">
-          <input
-            type="checkbox"
-            :checked="targets.ui.badges"
-            @change="$emit('set-ui-option', { key: 'badges', value: ($event.target as HTMLInputElement).checked })"
-          />
-          <span>Status badges</span>
-        </label>
-        <label class="field checkbox">
-          <input
-            type="checkbox"
-            :checked="targets.ui.includeWeekendToggle"
-            @change="$emit('set-ui-option', { key: 'includeWeekendToggle', value: ($event.target as HTMLInputElement).checked })"
-          />
-          <span>Weekend toggle</span>
-        </label>
-        <label class="field checkbox">
-          <input
-            type="checkbox"
-            :checked="targets.includeZeroDaysInStats"
-            @change="$emit('set-include-zero-days', ($event.target as HTMLInputElement).checked)"
-          />
-          <span>Include zero days in pace</span>
-        </label>
       </div>
       </div>
   </div>
@@ -372,7 +324,6 @@ const emit = defineEmits<{
   (e: 'set-forecast-momentum', value: string): void
   (e: 'set-forecast-padding', value: string): void
   (e: 'set-ui-option', payload: { key: string; value: boolean }): void
-  (e: 'set-include-zero-days', value: boolean): void
 }>()
 
 const defaultColor = computed(() => sanitizeColor(colorPalette.value?.[0]) ?? '#2563EB')

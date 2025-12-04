@@ -57,13 +57,14 @@ import { computed, ref, watch } from 'vue'
 const props = defineProps<{
   entry: any
   options: Record<string, any>
+  open: boolean
 }>()
 
 const emit = defineEmits<{
   (e: 'change', key: string, value: any): void
+  (e: 'toggle', open: boolean): void
 }>()
 
-const open = ref(false)
 const local = ref<Record<string, any>>({})
 
 const commonControls = [
@@ -92,10 +93,16 @@ const mergedControls = computed(() => {
 watch(
   () => props.options,
   (next) => {
-    local.value = { ...(next || {}) }
+    const defaults = props.entry?.defaultOptions || {}
+    local.value = { ...defaults, ...(next || {}) }
   },
   { immediate: true, deep: true },
 )
+
+const open = computed({
+  get: () => !!props.open,
+  set: (val: boolean) => emit('toggle', val),
+})
 
 function onNumber(key: string, event: Event) {
   const value = Number((event.target as HTMLInputElement).value)
@@ -126,10 +133,10 @@ function onText(key: string, event: Event) {
   background: var(--card, #fff);
   border:1px solid var(--color-border, #d1d5db);
   border-radius:8px;
-  box-shadow:0 8px 24px rgba(0,0,0,0.12);
+  box-shadow:0 12px 28px rgba(0,0,0,0.16);
   padding:8px;
   min-width:180px;
-  z-index:10;
+  z-index:30;
 }
 .opt-row{
   display:flex;

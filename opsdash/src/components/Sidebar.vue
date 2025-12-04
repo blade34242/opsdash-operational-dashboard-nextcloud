@@ -1,5 +1,5 @@
 <template>
-  <!-- Sidebar: range controls, calendar selection + grouping, notes panel -->
+  <!-- Sidebar: range controls, calendar selection + grouping -->
   <NcAppNavigation>
     <slot name="actions" />
     <div class="sb-title" title="Filter and group calendars">Filter Calendars</div>
@@ -57,18 +57,6 @@
       >
         Targets
       </button>
-      <button
-        id="opsdash-sidebar-tab-summary"
-        type="button"
-        class="sb-tab"
-        :class="{ active: activeTab === 'summary' }"
-        role="tab"
-        :aria-selected="activeTab === 'summary'"
-        aria-controls="opsdash-sidebar-pane-summary"
-        @click="activeTab = 'summary'"
-      >
-        Summary
-      </button>
     </div>
     <div class="sb-tabs sb-tabs--secondary" role="tablist" aria-label="Detail settings">
       <button
@@ -82,18 +70,6 @@
         @click="activeTab = 'activitybalance'"
       >
         Activity &amp; Balance
-      </button>
-      <button
-        id="opsdash-sidebar-tab-notes"
-        type="button"
-        class="sb-tab"
-        :class="{ active: activeTab === 'notes' }"
-        role="tab"
-        :aria-selected="activeTab === 'notes'"
-        aria-controls="opsdash-sidebar-pane-notes"
-        @click="activeTab = 'notes'"
-      >
-        Notes
       </button>
     </div>
 
@@ -180,15 +156,6 @@
       @set-forecast-momentum="setForecastMomentum"
       @set-forecast-padding="setForecastPadding"
       @set-ui-option="({ key, value }) => setUiOption(key as keyof TargetsConfig['ui'], value)"
-      @set-include-zero-days="setIncludeZeroDays"
-    />
-
-    <SidebarSummaryPane
-      v-else-if="activeTab === 'summary'"
-      :summary-options="summaryOptions"
-      :active-day-mode="activeDayMode"
-      @update:activeMode="emitActiveMode"
-      @toggle-option="handleSummaryOption"
     />
 
     <SidebarConfigPane
@@ -247,19 +214,6 @@
       @set-threshold="handleBalanceThreshold"
       @set-lookback="setBalanceLookback"
     />
-
-    <SidebarNotesPane
-      v-else-if="activeTab === 'notes'"
-      :previous="notesPrev"
-      :model-value="notesCurrDraft"
-      :prev-label="notesLabelPrev"
-      :curr-label="notesLabelCurr"
-      :prev-title="notesLabelPrevTitle"
-      :curr-title="notesLabelCurrTitle"
-      :saving="isSavingNote"
-      @update:modelValue="value => $emit('update:notes', value)"
-      @save="$emit('save-notes')"
-    />
   </NcAppNavigation>
 </template>
 
@@ -278,9 +232,7 @@ import {
 import type { ReportingConfig, DeckFeatureSettings } from '../services/reporting'
 import SidebarCalendarsPane from './sidebar/SidebarCalendarsPane.vue'
 import SidebarTargetsPane from './sidebar/SidebarTargetsPane.vue'
-import SidebarSummaryPane from './sidebar/SidebarSummaryPane.vue'
 import SidebarBalancePane from './sidebar/SidebarBalancePane.vue'
-import SidebarNotesPane from './sidebar/SidebarNotesPane.vue'
 import SidebarConfigPane from './sidebar/SidebarConfigPane.vue'
 import SidebarReportPane from './sidebar/SidebarReportPane.vue'
 import SidebarDeckPane from './sidebar/SidebarDeckPane.vue'
@@ -298,16 +250,7 @@ const props = defineProps<{
   // targets maps
   targetsWeek?: Record<string, number>
   targetsMonth?: Record<string, number>
-  // notes
-  notesPrev: string
-  notesCurrDraft: string
-  notesLabelPrev: string
-  notesLabelCurr: string
-  notesLabelPrevTitle: string
-  notesLabelCurrTitle: string
-  isSavingNote: boolean
   targetsConfig: TargetsConfig
-  activeDayMode: 'active' | 'all'
   navToggleLabel: string
   navToggleIcon: string
   presets: Array<{ name: string; createdAt?: string | null; updatedAt?: string | null; selectedCount: number; calendarCount: number }>
@@ -331,10 +274,7 @@ const emit = defineEmits([
   'toggle-calendar',
   'set-group',
   'set-target',
-  'update:notes',
-  'save-notes',
   'update:targets-config',
-  'update:active-mode',
   'toggle-nav',
   'save-preset',
   'load-preset',
@@ -350,7 +290,7 @@ const emit = defineEmits([
   'save-deck-settings',
 ])
 
-type SidebarTab = 'calendars'|'targets'|'summary'|'activitybalance'|'notes'|'config'|'report'|'deck'
+type SidebarTab = 'calendars'|'targets'|'activitybalance'|'config'|'report'|'deck'
 
 const activeTab = ref<SidebarTab>('calendars')
 
@@ -381,19 +321,6 @@ function updateConfig(mutator: (cfg: TargetsConfig)=>void){
 }
 
 const canAddCategory = computed(() => nextGroupId() !== null)
-const summaryOptions = computed(() => targets.value?.timeSummary ?? {
-  showTotal: true,
-  showAverage: true,
-  showMedian: true,
-  showBusiest: true,
-  showWorkday: true,
-  showWeekend: true,
-  showWeekendShare: true,
-  showCalendarSummary: true,
-  showTopCategory: true,
-  showBalance: true,
-})
-
 const activitySettings = computed<ActivityCardConfig>(() => {
   return { ...createDefaultActivityCardConfig(), ...(targets.value?.activityCard ?? {}) }
 })
@@ -629,20 +556,6 @@ function setCategoryColor(id: string, value: string){
   })
 }
 
-function emitActiveMode(mode: 'active' | 'all'){
-  if (props.activeDayMode === mode) return
-  emit('update:active-mode', mode)
-}
-
-function setSummaryOption(key: keyof TargetsConfig['timeSummary'], checked: boolean){
-  updateConfig(cfg => {
-    if (!cfg.timeSummary) {
-      cfg.timeSummary = JSON.parse(JSON.stringify(summaryOptions.value))
-    }
-    cfg.timeSummary[key] = checked
-  })
-}
-
 function setCategoryPaceMode(id: string, mode: string){
   if (mode !== 'days_only' && mode !== 'time_aware') return
   updateCategory(id, cat => { cat.paceMode = mode as TargetsMode })
@@ -713,10 +626,6 @@ function setForecastPadding(value: string){
 
 function setUiOption<K extends keyof TargetsConfig['ui']>(key: K, checked: boolean){
   updateConfig(cfg => { cfg.ui[key] = checked })
-}
-
-function setIncludeZeroDays(checked: boolean){
-  updateConfig(cfg => { cfg.includeZeroDaysInStats = checked })
 }
 
 function addCategory(){

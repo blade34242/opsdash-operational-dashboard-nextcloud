@@ -53,10 +53,6 @@ vi.mock('@nextcloud/vue', () => {
   }
 })
 
-vi.mock('../src/components/NotesPanel.vue', () => ({
-  default: { name: 'NotesPanel', template: '<div />' },
-}))
-
 function mountSidebar() {
   const targetsConfig = createDefaultTargetsConfig()
   const reportingConfig = createDefaultReportingConfig()
@@ -73,13 +69,6 @@ function mountSidebar() {
       to: '2025-03-09',
       targetsWeek: {},
       targetsMonth: {},
-      notesPrev: '',
-      notesCurrDraft: '',
-      notesLabelPrev: '',
-      notesLabelCurr: '',
-      notesLabelPrevTitle: '',
-      notesLabelCurrTitle: '',
-      isSavingNote: false,
       targetsConfig,
       activeDayMode: 'active',
       navToggleLabel: 'Toggle sidebar',

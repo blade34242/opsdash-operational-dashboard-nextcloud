@@ -23,6 +23,8 @@
             v-if="isConfigurable(item.type)"
             :entry="registryEntry(item.type)"
             :options="item.options"
+            :open="openOptionsId === item.id"
+            @toggle="toggleOptions(item.id, $event)"
             @change="(key,value)=>$emit('edit:options', item.id, key, value)"
           />
           <button type="button" class="ghost danger" title="Remove widget" @click="$emit('edit:remove', item.id)">✕</button>
@@ -34,7 +36,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed } from 'vue'
+import { computed, ref } from 'vue'
 import type { WidgetDefinition, WidgetRenderContext } from '../../services/widgetsRegistry'
 import { mapWidgetToComponent, widgetsRegistry } from '../../services/widgetsRegistry'
 import WidgetOptionsMenu from './WidgetOptionsMenu.vue'
@@ -45,13 +47,15 @@ const props = defineProps<{
   editable?: boolean
 }>()
 
-defineEmits<{
+const emit = defineEmits<{
   (e: 'edit:width', id: string): void
   (e: 'edit:height', id: string): void
   (e: 'edit:remove', id: string): void
   (e: 'edit:move', id: string, dir: 'up' | 'down'): void
   (e: 'edit:options', id: string, key: string, value: any): void
 }>()
+
+const openOptionsId = ref<string | null>(null)
 
 const ordered = computed(() => {
   return (props.widgets || [])
@@ -106,6 +110,10 @@ function registryEntry(type: string) {
 
 function isConfigurable(type: string) {
   return Boolean(widgetsRegistry[type]?.configurable)
+}
+
+function toggleOptions(id: string, nextOpen: boolean) {
+  openOptionsId.value = nextOpen ? id : null
 }
 </script>
 

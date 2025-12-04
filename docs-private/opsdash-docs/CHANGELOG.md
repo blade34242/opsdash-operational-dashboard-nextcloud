@@ -5,6 +5,9 @@ All notable changes to this project are documented here. This file is served loc
 ## [Unreleased]
 - Pending changes.
 - Tests/fixtures: removed deprecated `roundPercent`/`roundRatio`/`showDailyStacks` balance fields from all week/month load, persist, onboarding, and preset fixtures to match the streamlined balance config.
+- UI: Summary sidebar tab removed; summary toggles now live per-widget (`time_summary_v2`). Sidebar docs updated.
+- UI: Time Summary widget gained a Today block (total + per-category today hours) and gear-menu defaults (only one menu open at a time).
+- UI: Targets sidebar display toggles (delta, need/day, categories, badges, weekend toggle, include zero days) moved into the Targets widget gear.
 
 ## [0.4.6] - Unreleased
 - Feat: Onboarding wizard “Final tweaks” step now covers Deck boards, reporting cadence/reminders, and the Activity day-off heatmap toggle, and the review summary reflects those choices.

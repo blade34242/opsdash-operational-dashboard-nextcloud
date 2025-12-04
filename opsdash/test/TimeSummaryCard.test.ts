@@ -40,8 +40,9 @@ describe('TimeSummaryCard', () => {
       },
     })
 
-    const text = wrapper.text()
-    expect(text).toContain('6.50 h today')
+    const text = wrapper.text().replace(/\s+/g, ' ')
+    expect(text).toContain('Today')
+    expect(text).toContain('6.50 h')
   })
 
   it('renders key metrics, top category badge, and weekend share', () => {

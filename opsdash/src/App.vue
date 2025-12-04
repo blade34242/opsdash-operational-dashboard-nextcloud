@@ -39,14 +39,6 @@
           :targets-week="targetsWeek"
           :targets-month="targetsMonth"
           :targets-config="targetsConfig"
-          :notes-prev="notesPrev"
-          :notes-curr-draft="notesCurrDraft"
-          :notes-label-prev="notesLabelPrev"
-          :notes-label-curr="notesLabelCurr"
-          :notes-label-prev-title="notesLabelPrevTitle"
-          :notes-label-curr-title="notesLabelCurrTitle"
-          :is-saving-note="isSavingNote"
-          :active-day-mode="activeDayMode"
           :nav-toggle-label="navToggleLabel"
           :nav-toggle-icon="navToggleIcon"
           :presets="presets"
@@ -67,10 +59,7 @@
           @toggle-calendar="(id:string)=> toggleCalendar(id)"
           @set-group="(p:{id:string;n:any})=> setGroup(p.id, p.n)"
           @set-target="(p:{id:string;h:any})=> setTarget(p.id, p.h)"
-          @update:notes="(v:string)=> notesCurrDraft = v"
-          @save-notes="saveNotes"
           @update:targets-config="updateTargetsConfig"
-          @update:active-mode="setActiveDayMode"
           @toggle-nav="toggleNav"
           @save-preset="savePreset"
           @load-preset="loadPreset"
@@ -1192,6 +1181,7 @@ const {
 } = useNotesLabels(range)
 const widgetContext = computed<WidgetRenderContext>(() => ({
   summary: timeSummary.value,
+  activeDayMode: activeDayMode.value,
   targetsSummary: targetsSummary.value,
   targetsConfig: targetsConfig.value,
   groups: calendarGroupsWithToday.value,
@@ -1232,12 +1222,6 @@ function formatDateKey(date: Date): string {
   const month = `${date.getMonth() + 1}`.padStart(2, '0')
   const day = `${date.getDate()}`.padStart(2, '0')
   return `${year}-${month}-${day}`
-}
-
-function setActiveDayMode(mode:'active'|'all'){
-  if (activeDayMode.value !== mode) {
-    activeDayMode.value = mode
-  }
 }
 
 function sanitizeDeckFilter(value: DeckFilterMode | string | undefined): DeckFilterMode {

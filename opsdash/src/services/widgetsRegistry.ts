@@ -9,6 +9,8 @@ import NotesPanel from '../components/NotesPanel.vue'
 import NoteSnippetWidget from '../components/NoteSnippetWidget.vue'
 import NoteEditorWidget from '../components/NoteEditorWidget.vue'
 import TextBlockWidget from '../components/TextBlockWidget.vue'
+import { createDefaultTargetsConfig } from './targets'
+import type { TargetsConfig } from './targets'
 
 export type WidgetSize = 'quarter' | 'half' | 'full'
 export type WidgetHeight = 's' | 'm' | 'l'
@@ -29,6 +31,7 @@ export interface WidgetDefinition {
 
 export interface WidgetRenderContext {
   summary?: any
+  activeDayMode?: 'active' | 'all'
   targetsSummary?: any
   targetsConfig?: any
   groups?: any
@@ -67,6 +70,7 @@ interface RegistryEntry {
   buildProps: WidgetRenderer
   defaultLayout: WidgetDefinition['layout']
   label?: string
+  defaultOptions?: Record<string, any>
   configurable?: boolean
   dynamicControls?: (options: Record<string, any>) => Array<{
     key: string
@@ -119,6 +123,59 @@ export const widgetsRegistry: Record<string, RegistryEntry> = {
       title: _def.options?.customTitle,
     }),
   },
+  time_summary_v2: {
+    component: TimeSummaryCard,
+    defaultLayout: { width: 'half', height: 's', order: 9 },
+    label: 'Time Summary',
+    configurable: true,
+    defaultOptions: (() => {
+      const defaults = createDefaultTargetsConfig().timeSummary
+      return {
+        ...defaults,
+        mode: 'active',
+      }
+    })(),
+    controls: [
+      {
+        key: 'mode',
+        label: 'Average mode',
+        type: 'select',
+        options: [
+          { value: 'active', label: 'Active days' },
+          { value: 'all', label: 'All days' },
+        ],
+      },
+      { key: 'showTotal', label: 'Total hours', type: 'toggle' },
+      { key: 'showAverage', label: 'Average per day', type: 'toggle' },
+      { key: 'showMedian', label: 'Median per day', type: 'toggle' },
+      { key: 'showBusiest', label: 'Busiest day', type: 'toggle' },
+      { key: 'showWorkday', label: 'Workdays row', type: 'toggle' },
+      { key: 'showWeekend', label: 'Weekend row', type: 'toggle' },
+      { key: 'showWeekendShare', label: 'Weekend share', type: 'toggle' },
+      { key: 'showCalendarSummary', label: 'Top calendars', type: 'toggle' },
+      { key: 'showTopCategory', label: 'Top category', type: 'toggle' },
+      { key: 'showBalance', label: 'Balance index', type: 'toggle' },
+    ],
+    buildProps: (def, ctx) => {
+      const baseConfig: TargetsConfig = ctx.targetsConfig ? JSON.parse(JSON.stringify(ctx.targetsConfig)) : createDefaultTargetsConfig()
+      const cfg = {
+        ...baseConfig,
+        timeSummary: { ...baseConfig.timeSummary },
+      }
+      const applyToggle = (key: keyof TargetsConfig['timeSummary']) => {
+        if (def.options?.[key] === undefined) return
+        cfg.timeSummary[key] = !!def.options[key]
+      }
+      ;(['showTotal','showAverage','showMedian','showBusiest','showWorkday','showWeekend','showWeekendShare','showCalendarSummary','showTopCategory','showBalance'] as Array<keyof TargetsConfig['timeSummary']>).forEach(applyToggle)
+
+      return {
+        summary: ctx.summary,
+        mode: (def.options?.mode as 'active' | 'all' | undefined) ?? ctx.activeDayMode ?? 'active',
+        config: cfg.timeSummary,
+        todayGroups: def.props?.todayGroups ?? ctx.groups,
+      }
+    },
+  },
   targets: {
     component: TimeTargetsCard,
     defaultLayout: { width: 'half', height: 'm', order: 20 },
@@ -145,6 +202,57 @@ export const widgetsRegistry: Record<string, RegistryEntry> = {
       title: def.options?.customTitle,
       footer: def.options?.customFooter,
     }),
+  },
+  targets_v2: {
+    component: TimeTargetsCard,
+    defaultLayout: { width: 'half', height: 'm', order: 18 },
+    label: 'Targets',
+    configurable: true,
+    controls: [
+      { key: 'showHeader', label: 'Show header', type: 'toggle' },
+      { key: 'showLegend', label: 'Show legend', type: 'toggle' },
+      { key: 'showDelta', label: 'Show delta', type: 'toggle' },
+      { key: 'showForecast', label: 'Show forecast', type: 'toggle' },
+      { key: 'showToday', label: 'Show today overlay', type: 'toggle' },
+      { key: 'showTotalDelta', label: 'Show total delta', type: 'toggle' },
+      { key: 'showNeedPerDay', label: 'Show need per day', type: 'toggle' },
+      { key: 'showCategoryBlocks', label: 'Show categories', type: 'toggle' },
+      { key: 'badges', label: 'Status badges', type: 'toggle' },
+      { key: 'includeWeekendToggle', label: 'Weekend toggle', type: 'toggle' },
+      { key: 'includeZeroDaysInStats', label: 'Include zero days in pace', type: 'toggle' },
+      { key: 'customTitle', label: 'Custom title', type: 'text' },
+      { key: 'customFooter', label: 'Custom footnote', type: 'textarea' },
+    ],
+    buildProps: (def, ctx) => {
+      const baseConfig = ctx.targetsConfig ? JSON.parse(JSON.stringify(ctx.targetsConfig)) : createDefaultTargetsConfig()
+      const cfg = {
+        ...baseConfig,
+        ui: { ...baseConfig.ui },
+      }
+      const applyBool = (key: string, setter: (val: boolean) => void) => {
+        if (def.options?.[key] === undefined) return
+        setter(!!def.options[key])
+      }
+      applyBool('showTotalDelta', (val) => { cfg.ui.showTotalDelta = val })
+      applyBool('showNeedPerDay', (val) => { cfg.ui.showNeedPerDay = val })
+      applyBool('showCategoryBlocks', (val) => { cfg.ui.showCategoryBlocks = val })
+      applyBool('badges', (val) => { cfg.ui.badges = val })
+      applyBool('includeWeekendToggle', (val) => { cfg.ui.includeWeekendToggle = val })
+      applyBool('includeZeroDaysInStats', (val) => { cfg.includeZeroDaysInStats = val })
+
+      return {
+        summary: ctx.targetsSummary ?? ctx.summary,
+        config: cfg,
+        groups: def.props?.groups ?? ctx.groups,
+        showHeader: def.options?.showHeader !== false,
+        showLegend: def.options?.showLegend !== false,
+        showDelta: def.options?.showDelta !== false,
+        showForecast: def.options?.showForecast !== false,
+        showToday: def.options?.showToday !== false,
+        title: def.options?.customTitle,
+        footer: def.options?.customFooter,
+      }
+    },
   },
   balance: {
     component: BalanceOverviewCard,
@@ -455,14 +563,14 @@ export function createDefaultWidgets(): WidgetDefinition[] {
   return [
     {
       id: 'widget-time-summary',
-      type: 'time_summary',
-      layout: widgetsRegistry.time_summary.defaultLayout,
+      type: 'time_summary_v2',
+      layout: widgetsRegistry.time_summary_v2.defaultLayout,
       version: 1,
     },
     {
       id: 'widget-targets',
-      type: 'targets',
-      layout: widgetsRegistry.targets.defaultLayout,
+      type: 'targets_v2',
+      layout: widgetsRegistry.targets_v2.defaultLayout,
       version: 1,
     },
     {

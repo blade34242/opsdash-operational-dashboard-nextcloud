@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'vitest'
 
+import { createDefaultTargetsConfig } from '../src/services/targets'
 import { widgetsRegistry } from '../src/services/widgetsRegistry'
 
 describe('widgetsRegistry text_block presets', () => {
@@ -42,5 +43,58 @@ describe('widgetsRegistry text_block presets', () => {
     expect(keys).not.toContain('evening')
     expect(keys).not.toContain('longest')
     expect(keys).toContain('overlaps')
+  })
+})
+
+describe('widgetsRegistry targets_v2', () => {
+  it('overrides UI flags without mutating base config', () => {
+    const entry = widgetsRegistry.targets_v2
+    const baseCfg = createDefaultTargetsConfig()
+    baseCfg.ui.showTotalDelta = true
+    baseCfg.includeZeroDaysInStats = false
+    const def: any = {
+      options: {
+        showTotalDelta: false,
+        showNeedPerDay: false,
+        badges: false,
+        includeWeekendToggle: false,
+        includeZeroDaysInStats: true,
+      },
+    }
+    const ctx: any = { targetsConfig: baseCfg }
+    const props = entry.buildProps(def, ctx) as any
+
+    expect(props.config.ui.showTotalDelta).toBe(false)
+    expect(props.config.ui.showNeedPerDay).toBe(false)
+    expect(props.config.ui.badges).toBe(false)
+    expect(props.config.ui.includeWeekendToggle).toBe(false)
+    expect(props.config.includeZeroDaysInStats).toBe(true)
+    expect(baseCfg.ui.showTotalDelta).toBe(true)
+    expect(baseCfg.includeZeroDaysInStats).toBe(false)
+  })
+
+  it('time summary v2 applies overrides to config', () => {
+    const entry = widgetsRegistry.time_summary_v2
+    const baseCfg = createDefaultTargetsConfig()
+    const def: any = {
+      options: {
+        showTotal: false,
+        showWeekendShare: false,
+        showBalance: false,
+        mode: 'all',
+      },
+    }
+    const ctx: any = { targetsConfig: baseCfg, summary: { rangeLabel: 'Week' }, activeDayMode: 'active' }
+    const props = entry.buildProps(def, ctx) as any
+    expect(props.config.showTotal).toBe(false)
+    expect(props.config.showWeekendShare).toBe(false)
+    expect(props.config.showBalance).toBe(false)
+    expect(props.mode).toBe('all')
+  })
+
+  it('time summary v2 exposes defaults for options', () => {
+    const entry = widgetsRegistry.time_summary_v2
+    expect(entry.defaultOptions?.showTotal).toBe(true)
+    expect(entry.defaultOptions?.mode).toBe('active')
   })
 })

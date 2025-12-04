@@ -3,10 +3,21 @@
     <div class="time-summary-firstline">
       <em>Time Summary · {{ summary.rangeLabel }}</em>
     </div>
+    <div class="today-highlight" v-if="todayTotal !== null">
+      <div class="today-label">Today</div>
+      <div class="today-value">{{ n2(todayTotal) }} h</div>
+    </div>
+    <div class="today-cats" v-if="todayItems.length">
+      <div class="today-cat" v-for="cat in todayItems" :key="cat.id">
+        <span class="dot" :style="{ background: cat.color || 'var(--brand)' }"></span>
+        <span class="name">{{ cat.label }}</span>
+        <span class="value">{{ n2(cat.todayHours) }} h</span>
+      </div>
+    </div>
+
     <ul class="time-summary-metrics">
-      <li v-if="summary.todayHours != null"><strong>{{ n2(summary.todayHours) }} h</strong> today</li>
       <li v-if="summaryConfig.showTotal"><strong>{{ n2(summary.totalHours) }} h</strong> total</li>
-      <li v-if="summaryConfig.showAverage">{{ n2(summary.avgDay) }} h/day ({{ modeLabel }})</li>
+      <li v-if="summaryConfig.showAverage"><strong>{{ n2(summary.avgDay) }} h/day</strong> ({{ modeLabel }})</li>
       <li v-if="summaryConfig.showAverage">{{ n2(summary.avgEvent) }} h/event</li>
       <li v-if="summaryConfig.showMedian">{{ n2(summary.medianDay) }} h median/day</li>
       <li v-if="summaryConfig.showBusiest && busiestText">{{ busiestText }}</li>
@@ -82,7 +93,6 @@ const defaultConfig: SummaryConfig = {
 const props = defineProps<{
   summary: {
     rangeLabel: string
-    todayHours?: number | null
     totalHours: number
     avgDay: number
     avgEvent: number
@@ -108,11 +118,30 @@ const props = defineProps<{
   }
   mode: Mode
   config?: SummaryConfig
+  todayGroups?: Array<{ id: string; label: string; todayHours: number; color?: string | null }>
 }>()
 
 const summaryConfig = computed<SummaryConfig>(() => Object.assign({}, defaultConfig, props.config ?? {}))
 
 const modeLabel = computed(() => (props.mode === 'active' ? 'active days' : 'all days'))
+
+const todayItems = computed(() =>
+  (props.todayGroups || [])
+    .filter((g) => Number(g.todayHours) > 0)
+    .map((g) => ({
+      ...g,
+      todayHours: Number(g.todayHours) || 0,
+      color: g.color || 'var(--brand)',
+    })),
+)
+
+const todayTotal = computed(() => {
+  if (todayItems.value.length) {
+    return todayItems.value.reduce((sum, g) => sum + g.todayHours, 0)
+  }
+  const v = (props.summary as any)?.todayHours
+  return typeof v === 'number' && Number.isFinite(v) ? v : null
+})
 
 const weekendShareText = computed(() => {
   if (!summaryConfig.value.showWeekendShare) return ''
@@ -179,6 +208,55 @@ function pct(value: number | null | undefined) {
   font-size: 13px;
   color: var(--muted);
   padding: 14px;
+}
+.today-highlight{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  padding:10px 12px;
+  border-radius:10px;
+  background: color-mix(in oklab, var(--brand, #2563eb) 14%, transparent);
+  border:1px solid color-mix(in oklab, var(--brand, #2563eb), transparent 70%);
+  color: var(--fg);
+}
+.today-label{
+  font-size:12px;
+  text-transform:uppercase;
+  letter-spacing:0.04em;
+  color: color-mix(in oklab, var(--fg), transparent 35%);
+}
+.today-value{
+  font-size:18px;
+  font-weight:700;
+  letter-spacing:-0.02em;
+}
+.today-cats{
+  display:flex;
+  flex-wrap:wrap;
+  gap:8px 12px;
+  font-size:12px;
+  color: var(--fg);
+}
+.today-cat{
+  display:inline-flex;
+  align-items:center;
+  gap:6px;
+  padding:4px 8px;
+  border-radius:8px;
+  background: color-mix(in oklab, var(--card, #fff), transparent 6%);
+  border:1px solid color-mix(in oklab, var(--line, #e5e7eb), transparent 30%);
+}
+.today-cat .dot{
+  width:9px;
+  height:9px;
+  border-radius:50%;
+  box-shadow:0 0 0 1px color-mix(in oklab, var(--fg) 10%, transparent);
+}
+.today-cat .name{
+  font-weight:600;
+}
+.today-cat .value{
+  color: var(--muted);
 }
 .time-summary-firstline {
   display: flex;
