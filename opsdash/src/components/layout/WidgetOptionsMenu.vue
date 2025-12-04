@@ -38,6 +38,14 @@
             @input="onText(control.key, $event)"
           />
         </template>
+        <template v-else-if="control.type === 'color'">
+          <input
+            :id="`opt-${control.key}`"
+            type="color"
+            :value="local[control.key] ?? '#ffffff'"
+            @input="onText(control.key, $event)"
+          />
+        </template>
         <template v-else-if="control.type === 'textarea'">
           <textarea
             :id="`opt-${control.key}`"
@@ -46,6 +54,16 @@
             @input="onText(control.key, $event)"
           />
         </template>
+      </div>
+      <div v-if="showAdvanced" class="opt-row opt-row--footer">
+        <button
+          type="button"
+          class="link-btn"
+          title="Opens a full targets editor for this widget only. Use the reset inside to go back to global."
+          @click.stop="emit('open-advanced')"
+        >
+          Advanced targets (widget only)
+        </button>
       </div>
     </div>
   </div>
@@ -58,11 +76,13 @@ const props = defineProps<{
   entry: any
   options: Record<string, any>
   open: boolean
+  showAdvanced?: boolean
 }>()
 
 const emit = defineEmits<{
   (e: 'change', key: string, value: any): void
   (e: 'toggle', open: boolean): void
+  (e: 'open-advanced'): void
 }>()
 
 const local = ref<Record<string, any>>({})
@@ -77,6 +97,13 @@ const commonControls = [
       { value: 'md', label: 'Normal' },
       { value: 'lg', label: 'Large' },
     ],
+  },
+  { key: 'titlePrefix', label: 'Title prefix', type: 'text' },
+  {
+    key: 'cardBg',
+    label: 'Card background',
+    type: 'color',
+    hint: 'Pick a card fill; leave empty for default.',
   },
   { key: 'dense', label: 'Dense mode', type: 'toggle' },
 ]
@@ -146,6 +173,28 @@ function onText(key: string, event: Event) {
   margin-bottom:6px;
 }
 .opt-row:last-child{ margin-bottom:0; }
+.opt-row--footer{
+  justify-content:flex-end;
+}
+.link-btn{
+  border:none;
+  background:transparent;
+  color:var(--brand,#2563eb);
+  cursor:pointer;
+  font-size:12px;
+  text-decoration:underline;
+}
+.opt-row--footer{
+  justify-content:flex-end;
+}
+.link-btn{
+  border:none;
+  background:transparent;
+  color:var(--brand,#2563eb);
+  cursor:pointer;
+  font-size:12px;
+  text-decoration:underline;
+}
 .opt-row label{
   font-size:12px;
   color:var(--muted);

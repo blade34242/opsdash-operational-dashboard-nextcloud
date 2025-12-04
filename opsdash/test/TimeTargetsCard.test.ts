@@ -88,4 +88,37 @@ describe('TimeTargetsCard', () => {
     expect(chip.exists()).toBe(true)
     expect(chip.text()).toContain('Today')
   })
+
+  it('omits categories when summary has none and no groups provided', () => {
+    const summary = {
+      total: {
+        id: 'total',
+        label: 'Total',
+        actualHours: 0,
+        targetHours: 10,
+        percent: 0,
+        deltaHours: -10,
+        remainingHours: 10,
+        needPerDay: 1,
+        daysLeft: 5,
+        calendarPercent: 0,
+        gap: 0,
+        status: 'behind',
+        statusLabel: 'Behind',
+        includeWeekend: true,
+        paceMode: 'days_only',
+      },
+      categories: [],
+      forecast: { text: '', linear: 0, momentum: 0, primaryMethod: 'linear' as const },
+    }
+
+    const wrapper = mount(TimeTargetsCard, {
+      props: {
+        summary,
+        config: createDefaultTargetsConfig(),
+      },
+    })
+
+    expect(wrapper.findAll('.targets-categories .category')).toHaveLength(0)
+  })
 })

@@ -1,5 +1,5 @@
 <template>
-  <div class="note-card">
+  <div class="note-card" :style="cardStyle">
     <div class="note-header">
       <div class="title">{{ title }}</div>
       <button class="btn" type="button" :disabled="saving" @click="onSaveClick">Save</button>
@@ -28,6 +28,7 @@ const props = defineProps<{
   currLabel?: string
   saving?: boolean
   title?: string
+  cardBg?: string | null
 }>()
 
 const emit = defineEmits<{
@@ -38,6 +39,9 @@ const emit = defineEmits<{
 const title = props.title || 'Notes'
 const prevLabel = props.prevLabel || 'Previous'
 const currLabel = props.currLabel || 'Current'
+const cardStyle = {
+  background: props.cardBg || undefined,
+}
 
 function onInput(event: Event) {
   emit('update:modelValue', (event.target as HTMLTextAreaElement).value)

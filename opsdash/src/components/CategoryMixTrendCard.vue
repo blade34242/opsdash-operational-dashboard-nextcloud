@@ -1,8 +1,8 @@
 <template>
-  <div class="card mix-card">
+  <div class="card mix-card" :style="cardStyle">
     <div class="mix-header">
       <div>
-        <div class="mix-title">Category mix trend</div>
+        <div class="mix-title">{{ titleText }}</div>
         <div class="mix-subtitle">{{ lookbackLabel }}</div>
       </div>
       <span v-if="trendBadge" class="mix-badge">{{ trendBadge }}</span>
@@ -73,12 +73,16 @@ const props = defineProps<{
   rangeMode: 'week' | 'month'
   lookbackWeeks: number
   showBadge?: boolean
+  title?: string
+  cardBg?: string | null
 }>()
 
 const trendBadge = computed(() => (props.showBadge === false ? '' : props.overview?.trend?.badge ?? ''))
 const historyUnit = computed(() => (props.rangeMode === 'month' ? 'MO' : 'WE'))
 const currentColumnLabel = computed(() => `CU. ${historyUnit.value}`)
 const lookbackCount = computed(() => Math.max(1, Math.min(4, props.lookbackWeeks || 1)))
+const titleText = computed(() => props.title || 'Category mix trend')
+const cardStyle = computed(() => ({ background: props.cardBg || undefined }))
 
 const rawHistoryEntries = computed<TrendHistoryEntry[]>(() => {
   const history = props.overview?.trend?.history ?? (props.overview as any)?.trendHistory ?? []

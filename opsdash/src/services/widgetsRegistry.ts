@@ -9,7 +9,7 @@ import NotesPanel from '../components/NotesPanel.vue'
 import NoteSnippetWidget from '../components/NoteSnippetWidget.vue'
 import NoteEditorWidget from '../components/NoteEditorWidget.vue'
 import TextBlockWidget from '../components/TextBlockWidget.vue'
-import { createDefaultTargetsConfig } from './targets'
+import { createDefaultTargetsConfig, buildTargetsSummary, createEmptyTargetsSummary, convertWeekToMonth } from './targets'
 import type { TargetsConfig } from './targets'
 
 export type WidgetSize = 'quarter' | 'half' | 'full'
@@ -34,11 +34,17 @@ export interface WidgetRenderContext {
   activeDayMode?: 'active' | 'all'
   targetsSummary?: any
   targetsConfig?: any
+  stats?: any
+  byDay?: any[]
+  byCal?: any[]
+  groupsById?: Record<string, number>
   groups?: any
   balanceOverview?: any
   balanceConfig?: any
   rangeLabel?: string
   rangeMode?: string
+  from?: string
+  to?: string
   lookbackWeeks?: number
   balanceNote?: string
   activitySummary?: any
@@ -70,6 +76,7 @@ interface RegistryEntry {
   buildProps: WidgetRenderer
   defaultLayout: WidgetDefinition['layout']
   label?: string
+  baseTitle?: string
   defaultOptions?: Record<string, any>
   configurable?: boolean
   dynamicControls?: (options: Record<string, any>) => Array<{
@@ -104,13 +111,15 @@ export const widgetsRegistry: Record<string, RegistryEntry> = {
     component: TimeSummaryCard,
     defaultLayout: { width: 'half', height: 's', order: 10 },
     label: 'Time Summary (old)',
+    baseTitle: 'Time Summary',
     configurable: true,
     controls: [
       { key: 'showHeader', label: 'Show header', type: 'toggle' },
       { key: 'showTopCategory', label: 'Show top category', type: 'toggle' },
       { key: 'showWorkdayStats', label: 'Show workday stats', type: 'toggle' },
       { key: 'showWeekendStats', label: 'Show weekend stats', type: 'toggle' },
-      { key: 'customTitle', label: 'Custom title', type: 'text' },
+      { key: 'titlePrefix', label: 'Title prefix', type: 'text' },
+      { key: 'cardBg', label: 'Card background', type: 'text' },
     ],
     buildProps: (_def, ctx) => ({
       summary: ctx.summary,
@@ -120,13 +129,15 @@ export const widgetsRegistry: Record<string, RegistryEntry> = {
       showTopCategory: _def.options?.showTopCategory !== false,
       showWorkdayStats: _def.options?.showWorkdayStats !== false,
       showWeekendStats: _def.options?.showWeekendStats !== false,
-      title: _def.options?.customTitle,
+      title: buildTitle(widgetsRegistry.time_summary.baseTitle!, _def.options?.titlePrefix),
+      cardBg: _def.options?.cardBg,
     }),
   },
   time_summary_v2: {
     component: TimeSummaryCard,
     defaultLayout: { width: 'half', height: 's', order: 9 },
     label: 'Time Summary',
+    baseTitle: 'Time Summary',
     configurable: true,
     defaultOptions: (() => {
       const defaults = createDefaultTargetsConfig().timeSummary
@@ -155,6 +166,8 @@ export const widgetsRegistry: Record<string, RegistryEntry> = {
       { key: 'showCalendarSummary', label: 'Top calendars', type: 'toggle' },
       { key: 'showTopCategory', label: 'Top category', type: 'toggle' },
       { key: 'showBalance', label: 'Balance index', type: 'toggle' },
+      { key: 'titlePrefix', label: 'Title prefix', type: 'text' },
+      { key: 'cardBg', label: 'Card background', type: 'text' },
     ],
     buildProps: (def, ctx) => {
       const baseConfig: TargetsConfig = ctx.targetsConfig ? JSON.parse(JSON.stringify(ctx.targetsConfig)) : createDefaultTargetsConfig()
@@ -173,6 +186,8 @@ export const widgetsRegistry: Record<string, RegistryEntry> = {
         mode: (def.options?.mode as 'active' | 'all' | undefined) ?? ctx.activeDayMode ?? 'active',
         config: cfg.timeSummary,
         todayGroups: def.props?.todayGroups ?? ctx.groups,
+        title: buildTitle(widgetsRegistry.time_summary_v2.baseTitle!, def.options?.titlePrefix),
+        cardBg: def.options?.cardBg,
       }
     },
   },
@@ -180,6 +195,7 @@ export const widgetsRegistry: Record<string, RegistryEntry> = {
     component: TimeTargetsCard,
     defaultLayout: { width: 'half', height: 'm', order: 20 },
     label: 'Targets (old)',
+    baseTitle: 'Targets',
     configurable: true,
     controls: [
       { key: 'showHeader', label: 'Show header', type: 'toggle' },
@@ -188,8 +204,8 @@ export const widgetsRegistry: Record<string, RegistryEntry> = {
       { key: 'showForecast', label: 'Show forecast', type: 'toggle' },
       { key: 'showPace', label: 'Show pace line', type: 'toggle' },
       { key: 'showToday', label: 'Show today overlay', type: 'toggle' },
-      { key: 'customTitle', label: 'Custom title', type: 'text' },
-      { key: 'customFooter', label: 'Custom footnote', type: 'textarea' },
+      { key: 'titlePrefix', label: 'Title prefix', type: 'text' },
+      { key: 'cardBg', label: 'Card background', type: 'text' },
     ],
     buildProps: (def, ctx) => ({
       summary: ctx.targetsSummary ?? ctx.summary,
@@ -201,14 +217,15 @@ export const widgetsRegistry: Record<string, RegistryEntry> = {
       showForecast: def.options?.showForecast !== false,
       showPace: def.options?.showPace !== false,
       showToday: def.options?.showToday !== false,
-      title: def.options?.customTitle,
-      footer: def.options?.customFooter,
+      title: buildTitle(widgetsRegistry.targets.baseTitle!, def.options?.titlePrefix),
+      cardBg: def.options?.cardBg,
     }),
   },
   targets_v2: {
     component: TimeTargetsCard,
     defaultLayout: { width: 'half', height: 'm', order: 18 },
     label: 'Targets',
+    baseTitle: 'Targets',
     configurable: true,
     defaultOptions: {
       showForecast: true,
@@ -230,8 +247,9 @@ export const widgetsRegistry: Record<string, RegistryEntry> = {
       { key: 'badges', label: 'Status badges', type: 'toggle' },
       { key: 'includeWeekendToggle', label: 'Weekend toggle', type: 'toggle' },
       { key: 'includeZeroDaysInStats', label: 'Include zero days in pace', type: 'toggle' },
-      { key: 'customTitle', label: 'Custom title', type: 'text' },
-      { key: 'customFooter', label: 'Custom footnote', type: 'textarea' },
+      { key: 'titlePrefix', label: 'Title prefix', type: 'text' },
+      { key: 'cardBg', label: 'Card background', type: 'text' },
+      // footer removed
     ],
     buildProps: (def, ctx) => {
       const useLocal = !!def.options?.useLocalConfig
@@ -240,10 +258,7 @@ export const widgetsRegistry: Record<string, RegistryEntry> = {
         : ctx.targetsConfig
           ? JSON.parse(JSON.stringify(ctx.targetsConfig))
           : createDefaultTargetsConfig()
-      const cfg = {
-        ...baseConfig,
-        ui: { ...baseConfig.ui },
-      }
+      const cfg = attachUi(copyConfigForRange(baseConfig, ctx.rangeMode))
       const applyBool = (key: string, setter: (val: boolean) => void) => {
         if (def.options?.[key] === undefined) return
         setter(!!def.options[key])
@@ -255,18 +270,23 @@ export const widgetsRegistry: Record<string, RegistryEntry> = {
       applyBool('includeWeekendToggle', (val) => { cfg.ui.includeWeekendToggle = val })
       applyBool('includeZeroDaysInStats', (val) => { cfg.includeZeroDaysInStats = val })
 
+      const summary = useLocal && ctx.stats
+        ? safeBuildTargetsSummary(cfg, ctx)
+        : (ctx.targetsSummary ?? ctx.summary)
+      const groups = useLocal ? null : (def.props?.groups ?? ctx.groups)
+
       return {
-        summary: ctx.targetsSummary ?? ctx.summary,
+        summary,
         config: cfg,
-        groups: def.props?.groups ?? ctx.groups,
+        groups,
         showHeader: def.options?.showHeader !== false,
         showLegend: def.options?.showLegend !== false,
         showDelta: def.options?.showDelta !== false,
         showForecast: def.options?.showForecast !== false,
         showPace: def.options?.showPace !== false,
         showToday: def.options?.showToday !== false,
-        title: def.options?.customTitle,
-        footer: def.options?.customFooter,
+        title: buildTitle(widgetsRegistry.targets_v2.baseTitle!, def.options?.titlePrefix),
+        cardBg: def.options?.cardBg,
       }
     },
   },
@@ -274,14 +294,15 @@ export const widgetsRegistry: Record<string, RegistryEntry> = {
     component: BalanceOverviewCard,
     defaultLayout: { width: 'half', height: 'm', order: 30 },
     label: 'Balance (old)',
+    baseTitle: 'Activity & Balance',
     configurable: true,
     controls: [
       { key: 'showHeader', label: 'Show header', type: 'toggle' },
       { key: 'showTrend', label: 'Show trend history', type: 'toggle' },
       { key: 'showRelations', label: 'Show relations', type: 'toggle' },
       { key: 'showWarnings', label: 'Show warnings', type: 'toggle' },
-      { key: 'customTitle', label: 'Custom title', type: 'text' },
-      { key: 'customFooter', label: 'Custom footnote', type: 'textarea' },
+      { key: 'titlePrefix', label: 'Title prefix', type: 'text' },
+      { key: 'cardBg', label: 'Card background', type: 'text' },
     ],
     buildProps: (_def, ctx) => ({
       overview: ctx.balanceOverview,
@@ -299,21 +320,23 @@ export const widgetsRegistry: Record<string, RegistryEntry> = {
       showTrend: _def.options?.showTrend !== false,
       showRelations: _def.options?.showRelations !== false,
       showWarnings: _def.options?.showWarnings !== false,
-      title: _def.options?.customTitle,
-      footer: _def.options?.customFooter,
+      title: buildTitle(widgetsRegistry.balance.baseTitle!, _def.options?.titlePrefix),
+      cardBg: _def.options?.cardBg,
     }),
   },
   activity: {
     component: ActivityScheduleCard,
     defaultLayout: { width: 'half', height: 'm', order: 40 },
     label: 'Activity (old)',
+    baseTitle: 'Activity & Schedule',
     configurable: true,
     controls: [
       { key: 'showHeader', label: 'Show header', type: 'toggle' },
       { key: 'showBadges', label: 'Show badges', type: 'toggle' },
       { key: 'showTrends', label: 'Show trend tiles', type: 'toggle' },
       { key: 'showMeta', label: 'Show meta rows', type: 'toggle' },
-      { key: 'customTitle', label: 'Custom title', type: 'text' },
+      { key: 'titlePrefix', label: 'Title prefix', type: 'text' },
+      { key: 'cardBg', label: 'Card background', type: 'text' },
     ],
     buildProps: (_def, ctx) => ({
       summary: ctx.activitySummary,
@@ -327,13 +350,15 @@ export const widgetsRegistry: Record<string, RegistryEntry> = {
       showBadges: _def.options?.showBadges !== false,
       showTrends: _def.options?.showTrends !== false,
       showMeta: _def.options?.showMeta !== false,
-      title: _def.options?.customTitle,
+      title: buildTitle(widgetsRegistry.activity.baseTitle!, _def.options?.titlePrefix),
+      cardBg: _def.options?.cardBg,
     }),
   },
   dayoff_trend: {
     component: DayOffTrendCard,
     defaultLayout: { width: 'quarter', height: 's', order: 45 },
     label: 'Days off trend',
+    baseTitle: 'Days off trend',
     configurable: true,
     controls: [
       { key: 'lookback', label: 'Lookback (periods)', type: 'number', min: 1, max: 12, step: 1 },
@@ -348,7 +373,8 @@ export const widgetsRegistry: Record<string, RegistryEntry> = {
       },
       { key: 'showHeader', label: 'Show header', type: 'toggle' },
       { key: 'showBadges', label: 'Show badges', type: 'toggle' },
-      { key: 'customTitle', label: 'Custom title', type: 'text' },
+      { key: 'titlePrefix', label: 'Title prefix', type: 'text' },
+      { key: 'cardBg', label: 'Card background', type: 'text' },
     ],
     buildProps: (_def, ctx) => ({
       trend: ctx.activityDayOffTrend,
@@ -356,20 +382,23 @@ export const widgetsRegistry: Record<string, RegistryEntry> = {
       lookback: _def.options?.lookback ?? ctx.activityDayOffLookback,
       showHeader: _def.options?.showHeader !== false,
       showBadges: _def.options?.showBadges !== false,
-      title: _def.options?.customTitle,
+      title: buildTitle(widgetsRegistry.dayoff_trend.baseTitle!, _def.options?.titlePrefix),
+      cardBg: _def.options?.cardBg,
     }),
   },
   deck: {
     component: DeckSummaryCard,
     defaultLayout: { width: 'half', height: 's', order: 50 },
     label: 'Deck (old)',
+    baseTitle: 'Deck summary',
     configurable: true,
     controls: [
       { key: 'showHeader', label: 'Show header', type: 'toggle' },
       { key: 'showBadges', label: 'Show board badges', type: 'toggle' },
       { key: 'showTicker', label: 'Show ticker', type: 'toggle' },
       { key: 'showEmpty', label: 'Show empty states', type: 'toggle' },
-      { key: 'customTitle', label: 'Custom title', type: 'text' },
+      { key: 'titlePrefix', label: 'Title prefix', type: 'text' },
+      { key: 'cardBg', label: 'Card background', type: 'text' },
     ],
     buildProps: (_def, ctx) => ({
       buckets: ctx.deckBuckets,
@@ -381,19 +410,22 @@ export const widgetsRegistry: Record<string, RegistryEntry> = {
       showHeader: _def.options?.showHeader !== false,
       showTicker: _def.options?.showTicker !== false,
       showEmpty: _def.options?.showEmpty !== false,
-      title: _def.options?.customTitle,
+      title: buildTitle(widgetsRegistry.deck.baseTitle!, _def.options?.titlePrefix),
+      cardBg: _def.options?.cardBg,
     }),
   },
   notes: {
     component: NotesPanel,
     defaultLayout: { width: 'half', height: 's', order: 60 },
     label: 'Notes (old)',
+    baseTitle: 'Notes',
     configurable: true,
     controls: [
       { key: 'showPrev', label: 'Show previous note', type: 'toggle' },
       { key: 'showLabels', label: 'Show labels', type: 'toggle' },
       { key: 'mode', label: 'Mode', type: 'select', options: [{ value: 'week', label: 'Week' }, { value: 'month', label: 'Month' }] },
-      { key: 'customTitle', label: 'Custom title', type: 'text' },
+      { key: 'titlePrefix', label: 'Title prefix', type: 'text' },
+      { key: 'cardBg', label: 'Card background', type: 'text' },
     ],
     buildProps: (def, ctx) => ({
       notesPrev: ctx.notesPrev,
@@ -408,19 +440,22 @@ export const widgetsRegistry: Record<string, RegistryEntry> = {
       mode: def.options?.mode ?? def.props?.mode ?? 'week',
       showPrev: def.options?.showPrev !== false,
       showLabels: def.options?.showLabels !== false,
-      title: def.options?.customTitle,
+      title: buildTitle(widgetsRegistry.notes.baseTitle!, def.options?.titlePrefix),
+      cardBg: def.options?.cardBg,
     }),
   },
   category_mix_trend: {
     component: CategoryMixTrendCard,
     defaultLayout: { width: 'half', height: 'm', order: 47 },
     label: 'Category mix trend',
+    baseTitle: 'Category mix trend',
     configurable: true,
     controls: [
       { key: 'lookbackWeeks', label: 'Lookback (weeks)', type: 'number', min: 1, max: 4, step: 1 },
       { key: 'showBadge', label: 'Show badge', type: 'toggle' },
       { key: 'showHeader', label: 'Show header', type: 'toggle' },
-      { key: 'customTitle', label: 'Custom title', type: 'text' },
+      { key: 'titlePrefix', label: 'Title prefix', type: 'text' },
+      { key: 'cardBg', label: 'Card background', type: 'text' },
     ],
     buildProps: (_def, ctx) => ({
       overview: ctx.balanceOverview,
@@ -428,7 +463,8 @@ export const widgetsRegistry: Record<string, RegistryEntry> = {
       lookbackWeeks: _def.options?.lookbackWeeks ?? ctx.lookbackWeeks,
       showBadge: _def.options?.showBadge ?? true,
       showHeader: _def.options?.showHeader !== false,
-      title: _def.options?.customTitle,
+      title: buildTitle(widgetsRegistry.category_mix_trend.baseTitle!, _def.options?.titlePrefix),
+      cardBg: _def.options?.cardBg,
     }),
   },
   text_block: {
@@ -455,13 +491,16 @@ export const widgetsRegistry: Record<string, RegistryEntry> = {
       { key: 'title', label: 'Title', type: 'text' },
       { key: 'body', label: 'Body', type: 'textarea' },
       { key: 'include', label: 'Include all labels', type: 'toggle' },
+      { key: 'titlePrefix', label: 'Title prefix', type: 'text' },
+      { key: 'cardBg', label: 'Card background', type: 'text' },
     ],
     buildProps: (def, ctx) => ({
-      title: resolvePreset(def.options?.preset as TextPresetKey).title ?? def.options?.title ?? '',
+      title: buildTitle(resolvePreset(def.options?.preset as TextPresetKey).title ?? 'Text', def.options?.titlePrefix),
       body: resolvePreset(def.options?.preset as TextPresetKey).body ?? def.options?.body ?? '',
       items: collectPresetItems(def.options?.preset as TextPresetKey, def.options || {}, ctx),
       textSize: def.options?.textSize ?? 'md',
       dense: !!def.options?.dense,
+      cardBg: def.options?.cardBg,
     }),
     dynamicControls: (options: Record<string, any>) => {
       if (options?.preset !== 'activity') return []
@@ -479,24 +518,34 @@ export const widgetsRegistry: Record<string, RegistryEntry> = {
     component: NoteSnippetWidget,
     defaultLayout: { width: 'quarter', height: 's', order: 68 },
     label: 'Notes snippet',
+    baseTitle: 'Note',
     configurable: true,
+    controls: [
+      { key: 'titlePrefix', label: 'Title prefix', type: 'text' },
+      { key: 'cardBg', label: 'Card background', type: 'text' },
+    ],
     buildProps: (_def, ctx) => ({
       notesCurr: ctx.notesCurr ?? '',
       notesPrev: ctx.notesPrev ?? '',
+      title: buildTitle(widgetsRegistry.note_snippet.baseTitle!, _def.options?.titlePrefix),
+      cardBg: _def.options?.cardBg,
     }),
   },
   note_editor: {
     component: NoteEditorWidget,
     defaultLayout: { width: 'half', height: 'm', order: 69 },
     label: 'Notes editor',
+    baseTitle: 'Notes',
     configurable: true,
     controls: [
-      { key: 'customTitle', label: 'Title', type: 'text' },
+      { key: 'titlePrefix', label: 'Title prefix', type: 'text' },
+      { key: 'cardBg', label: 'Card background', type: 'text' },
       { key: 'prevLabel', label: 'Prev label', type: 'text' },
       { key: 'currLabel', label: 'Current label', type: 'text' },
     ],
     buildProps: (def, ctx) => ({
-      title: def.options?.customTitle || 'Notes',
+      title: buildTitle(widgetsRegistry.note_editor.baseTitle!, def.options?.titlePrefix),
+      cardBg: def.options?.cardBg,
       prevLabel: def.options?.prevLabel || (ctx.notesLabelPrev ?? 'Previous'),
       currLabel: def.options?.currLabel || (ctx.notesLabelCurr ?? 'Current'),
       previous: ctx.notesPrev ?? '',
@@ -506,6 +555,50 @@ export const widgetsRegistry: Record<string, RegistryEntry> = {
       onUpdateModelValue: ctx.onUpdateNotes,
     }),
   },
+}
+
+function copyConfigForRange(config: any, rangeMode?: string) {
+  const cfg = JSON.parse(JSON.stringify(config || {}))
+  if (rangeMode === 'month') {
+    cfg.totalHours = convertWeekToMonth(cfg.totalHours ?? 0)
+    cfg.categories = (cfg.categories || []).map((cat: any) => ({
+      ...cat,
+      targetHours: convertWeekToMonth(cat.targetHours ?? 0),
+    }))
+  }
+  return cfg
+}
+
+function attachUi(cfg: any) {
+  return {
+    ...cfg,
+    ui: { ...(cfg?.ui ?? {}) },
+  }
+}
+
+function safeBuildTargetsSummary(config: any, ctx: WidgetRenderContext) {
+  try {
+    return buildTargetsSummary({
+      config,
+      stats: ctx.stats,
+      byDay: ctx.byDay || [],
+      byCal: ctx.byCal || [],
+      groupsById: ctx.groupsById || {},
+      range: ctx.rangeMode === 'month' ? 'month' : 'week',
+      from: ctx.from || '',
+      to: ctx.to || '',
+    })
+  } catch (err) {
+    console.error('[opsdash] targets widget local summary failed', err)
+    return createEmptyTargetsSummary(config)
+  }
+}
+
+function buildTitle(base: string, prefix?: string | null) {
+  if (!prefix) return base
+  const trimmed = String(prefix).trim()
+  if (!trimmed) return base
+  return `${trimmed} · ${base}`
 }
 
 function resolvePreset(key?: TextPresetKey): { title?: string; body?: string } {

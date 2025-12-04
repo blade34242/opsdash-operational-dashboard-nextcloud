@@ -1,7 +1,7 @@
 <template>
-  <div class="card balance-card">
+  <div class="card balance-card" :style="cardStyle">
     <div class="balance-card__header">
-      <span>Activity &amp; Balance ({{ rangeLabel }})</span>
+      <span>{{ titleText }} ({{ rangeLabel }})</span>
     </div>
     <div v-if="activitySummary" class="balance-card__activity">
       <div class="activity-hero">
@@ -172,6 +172,8 @@ const props = defineProps<{
   }>
   activityTrendUnit?: 'wk' | 'mo'
   activityDayOffLookback?: number
+  title?: string
+  cardBg?: string | null
 }>()
 
 const settings = computed<BalanceCardConfig>(() => Object.assign({}, props.config ?? {}))
@@ -179,6 +181,8 @@ const noteText = computed(() => (props.note ?? '').trim())
 const settingsActivity = computed<ActivityCardConfig>(() =>
   Object.assign({}, defaultActivityConfig, props.activityConfig ?? {}),
 )
+const titleText = computed(() => props.title || 'Activity & Balance')
+const cardStyle = computed(() => ({ background: props.cardBg || undefined }))
 
 const activityHeroLine = computed(() => {
   if (!props.activitySummary) return ''

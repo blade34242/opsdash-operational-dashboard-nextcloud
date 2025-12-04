@@ -94,12 +94,12 @@ describe('Sidebar tabs', () => {
     expect(wrapper.get('#opsdash-sidebar-pane-calendars').exists()).toBe(true)
   })
 
-  it('switches back to targets tab from calendars', async () => {
+  it('can open the config tab', async () => {
     const wrapper = mountSidebar()
-    await wrapper.get('#opsdash-sidebar-tab-targets').trigger('click')
+    await wrapper.get('#opsdash-sidebar-tab-config').trigger('click')
 
-    expect(wrapper.get('#opsdash-sidebar-tab-targets').classes()).toContain('active')
-    expect(wrapper.get('#opsdash-sidebar-pane-targets').exists()).toBe(true)
+    expect(wrapper.get('#opsdash-sidebar-tab-config').classes()).toContain('active')
+    expect(wrapper.get('#opsdash-sidebar-pane-config').exists()).toBe(true)
     expect(wrapper.find('#opsdash-sidebar-pane-calendars').exists()).toBe(false)
   })
 })

@@ -40,4 +40,20 @@ describe('OnboardingWizard', () => {
     expect(notice.exists()).toBe(true)
     expect(notice.text()).toContain('Preset saved')
   })
+
+  it('honors startStep and allows jumping via step pills', async () => {
+    const wrapper = mountWizard({
+      startStep: 'categories',
+      initialStrategy: 'total_plus_categories',
+    })
+    const pills = wrapper.findAll('.step-pill')
+    const labels = pills.map((p) => p.text())
+    expect(labels).toContain('Targets')
+    const targetsPill = pills.find((p) => p.text() === 'Targets')
+    expect(targetsPill?.classes()).toContain('active')
+
+    const calendarsPill = pills.find((p) => p.text() === 'Calendars')
+    await calendarsPill?.trigger('click')
+    expect(calendarsPill?.classes()).toContain('active')
+  })
 })

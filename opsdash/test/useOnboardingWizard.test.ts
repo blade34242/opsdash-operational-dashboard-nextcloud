@@ -29,4 +29,11 @@ describe('createOnboardingWizardState', () => {
     expect(afterFirst).toBe(initial + 1)
     expect(state.onboardingRunId.value).toBe(afterFirst + 1)
   })
+
+  it('stores a requested start step when opening manually', async () => {
+    const state = createOnboardingWizardState()
+    await state.openWizardFromSidebar('categories')
+    expect(state.wizardStartStep.value).toBe('categories')
+    expect(state.manualWizardOpen.value).toBe(true)
+  })
 })

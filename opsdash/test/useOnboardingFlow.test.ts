@@ -97,4 +97,17 @@ describe('useOnboardingFlow', () => {
     expect(ctx.actions.complete).toHaveBeenCalledTimes(1)
     expect(ctx.autoWizardNeeded.value).toBe(false)
   })
+
+  it('clears requested start step when onboarding is required again', async () => {
+    const ctx = setupFlow()
+    ctx.wizardStartStep.value = 'categories'
+    ctx.hasInitialLoad.value = true
+    ctx.onboardingState.value = { completed: false, version: 0 } as any
+
+    ctx.evaluateOnboarding()
+    await nextTick()
+
+    expect(ctx.autoWizardNeeded.value).toBe(true)
+    expect(ctx.wizardStartStep.value).toBeNull()
+  })
 })

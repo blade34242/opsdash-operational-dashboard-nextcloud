@@ -1,5 +1,5 @@
 <template>
-  <div class="notes-section">
+  <div class="notes-section" :style="cardStyle">
     <div class="hint" :title="prevTitle">{{ prevLabel }}</div>
     <textarea :value="previous" readonly rows="5" class="notes-textarea" :aria-label="t('Previous notes')"></textarea>
     <div class="hint" :title="currTitle">{{ currLabel }}</div>
@@ -12,10 +12,13 @@
 </template>
 
 <script setup lang="ts">
+import { computed } from 'vue'
 import { NcButton } from '@nextcloud/vue'
 import { t } from '../services/i18n'
-defineProps<{ previous: string; modelValue: string; prevLabel: string; currLabel: string; prevTitle: string; currTitle: string; saving: boolean }>()
+const props = defineProps<{ previous: string; modelValue: string; prevLabel: string; currLabel: string; prevTitle: string; currTitle: string; saving: boolean; cardBg?: string | null }>()
 defineEmits(['update:modelValue','save'])
+
+const cardStyle = computed(() => ({ background: props.cardBg || undefined }))
 </script>
 
 <style scoped>

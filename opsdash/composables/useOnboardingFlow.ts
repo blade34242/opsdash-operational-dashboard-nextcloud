@@ -26,6 +26,7 @@ export function useOnboardingFlow(deps: OnboardingFlowDeps) {
     onboardingRunId,
     onboardingWizardVisible,
     openWizardFromSidebar,
+    wizardStartStep,
   } = createOnboardingWizardState()
 
   const hasExistingConfig = computed(() => Boolean(deps.onboardingState.value?.completed))
@@ -66,6 +67,9 @@ export function useOnboardingFlow(deps: OnboardingFlowDeps) {
     if (!deps.hasInitialLoad.value && !next) return
     const needs = shouldRequireOnboarding(next)
     autoWizardNeeded.value = needs || !!next?.resetRequested
+    if (needs || next?.resetRequested) {
+      wizardStartStep.value = null
+    }
     if (next?.resetRequested) {
       manualWizardOpen.value = true
     }
@@ -118,6 +122,7 @@ export function useOnboardingFlow(deps: OnboardingFlowDeps) {
     onboardingRunId,
     onboardingWizardVisible,
     openWizardFromSidebar,
+    wizardStartStep,
     hasExistingConfig,
     wizardCalendars,
     wizardInitialSelection,

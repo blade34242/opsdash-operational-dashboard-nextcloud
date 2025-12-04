@@ -14,6 +14,7 @@
       :initial-total-hours="wizardInitialTotalHours"
       :initial-deck-settings="wizardInitialDeckSettings"
       :initial-reporting-config="wizardInitialReportingConfig"
+      :start-step="wizardStartStep"
       :has-existing-config="hasExistingConfig"
       :saving="isOnboardingSaving"
       :snapshot-saving="isWizardSnapshotSaving"
@@ -190,6 +191,7 @@
                 @edit:remove="removeWidget"
                 @edit:move="moveWidget"
                 @edit:options="updateWidgetOptions"
+                @open:onboarding="openOnboardingFromLayout"
               />
             </div>
 
@@ -744,6 +746,10 @@ function updateWidgetOptions(id: string, key: string, value: any) {
   })
 }
 
+function openOnboardingFromLayout(step?: string) {
+  openWizardFromSidebar((step as any) || 'categories')
+}
+
 function resetWidgets() {
   layoutWidgets.value = createDefaultWidgets()
 }
@@ -891,6 +897,7 @@ const {
   onboardingRunId,
   onboardingWizardVisible,
   openWizardFromSidebar,
+  wizardStartStep,
   hasExistingConfig,
   wizardCalendars,
   wizardInitialSelection,
@@ -1184,11 +1191,17 @@ const widgetContext = computed<WidgetRenderContext>(() => ({
   activeDayMode: activeDayMode.value,
   targetsSummary: targetsSummary.value,
   targetsConfig: targetsConfig.value,
+  stats,
+  byDay: byDay.value,
+  byCal: byCal.value,
+  groupsById: groupsById.value,
   groups: calendarGroupsWithToday.value,
   balanceOverview: balanceOverview.value,
   balanceConfig: balanceCardConfig.value,
   rangeLabel: rangeLabel.value,
   rangeMode: range.value,
+  from: from.value,
+  to: to.value,
   lookbackWeeks: trendLookbackWeeks.value,
   balanceNote: balanceNote.value,
   activitySummary: activitySummary.value,

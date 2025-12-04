@@ -61,4 +61,10 @@ describe('DeckSummaryCard', () => {
     const error = mountCard({ loading: false, error: 'Deck failed' })
     expect(error.find('.deck-summary-card__error').text()).toContain('Deck failed')
   })
+
+  it('applies title and background', () => {
+    const wrapper = mountCard({ title: 'My Deck', cardBg: '#ff0000' })
+    expect(wrapper.find('.deck-summary-card__title').text()).toBe('My Deck')
+    expect(wrapper.find('.deck-summary-card').attributes('style')).toContain('background')
+  })
 })

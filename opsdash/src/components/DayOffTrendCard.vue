@@ -1,7 +1,7 @@
 <template>
-  <div class="card dayoff-card">
+  <div class="card dayoff-card" :style="cardStyle">
     <div class="dayoff-card__header">
-      <span>Days off trend</span>
+      <span>{{ titleText }}</span>
       <span v-if="lookbackLabel" class="pill">{{ lookbackLabel }}</span>
     </div>
     <div class="dayoff-heatmap" v-if="tiles.length">
@@ -45,6 +45,8 @@ const props = defineProps<{
   trend?: DayOffTrendEntry[]
   unit?: string
   lookback?: number
+  title?: string
+  cardBg?: string | null
 }>()
 
 const historyCount = computed(() => {
@@ -115,6 +117,9 @@ const lookbackLabel = computed(() => {
   const unitWord = props.unit === 'mo' ? 'month' : 'week'
   return `Last ${history} ${history === 1 ? unitWord : `${unitWord}s`}`
 })
+
+const titleText = computed(() => props.title || 'Days off trend')
+const cardStyle = computed(() => ({ background: props.cardBg || undefined }))
 
 function shareLabel(value: number) {
   const pct = Math.max(0, Math.min(1, value))

@@ -1,7 +1,7 @@
 <template>
-  <div class="card time-summary compact">
+  <div class="card time-summary compact" :style="cardStyle">
     <div class="time-summary-firstline">
-      <em>Time Summary · {{ summary.rangeLabel }}</em>
+      <em>{{ titleText }} · {{ summary.rangeLabel }}</em>
     </div>
     <div class="today-highlight" v-if="todayTotal !== null">
       <div class="today-label">Today</div>
@@ -119,6 +119,8 @@ const props = defineProps<{
   mode: Mode
   config?: SummaryConfig
   todayGroups?: Array<{ id: string; label: string; todayHours: number; color?: string | null }>
+  title?: string
+  cardBg?: string | null
 }>()
 
 const summaryConfig = computed<SummaryConfig>(() => Object.assign({}, defaultConfig, props.config ?? {}))
@@ -142,6 +144,9 @@ const todayTotal = computed(() => {
   const v = (props.summary as any)?.todayHours
   return typeof v === 'number' && Number.isFinite(v) ? v : null
 })
+
+const titleText = computed(() => props.title || 'Time Summary')
+const cardStyle = computed(() => ({ background: props.cardBg || undefined }))
 
 const weekendShareText = computed(() => {
   if (!summaryConfig.value.showWeekendShare) return ''

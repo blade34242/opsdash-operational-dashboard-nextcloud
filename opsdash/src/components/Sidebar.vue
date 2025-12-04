@@ -45,18 +45,6 @@
       >
         Calendars
       </button>
-      <button
-        id="opsdash-sidebar-tab-targets"
-        type="button"
-        class="sb-tab"
-        :class="{ active: activeTab === 'targets' }"
-        role="tab"
-        :aria-selected="activeTab === 'targets'"
-        aria-controls="opsdash-sidebar-pane-targets"
-        @click="activeTab = 'targets'"
-      >
-        Targets
-      </button>
     </div>
     <div class="sb-tabs sb-tabs--secondary" role="tablist" aria-label="Detail settings">
       <button
@@ -126,36 +114,6 @@
       @toggle-calendar="emitToggleCalendar"
       @set-category="handleCalendarCategory"
       @target-input="handleCalendarTargetInput"
-    />
-
-    <SidebarTargetsPane
-      v-else-if="activeTab === 'targets'"
-      :targets="targets"
-      :category-options="categoryOptions"
-      :total-target-message="totalTargetMessage"
-      :all-day-hours-message="allDayHoursMessage"
-      :category-target-messages="categoryTargetMessages"
-      :pace-threshold-messages="paceThresholdMessages"
-      :forecast-momentum-message="forecastMomentumMessage"
-      :forecast-padding-message="forecastPaddingMessage"
-      :can-add-category="canAddCategory"
-      :color-palette="categoryColorPalette"
-      @total-target-input="onTotalTarget"
-      @set-all-day-hours="setAllDayHours"
-      @set-category-label="({ id, label }) => setCategoryLabel(id, label)"
-      @remove-category="removeCategory"
-      @set-category-target="({ id, value }) => setCategoryTarget(id, value)"
-      @set-category-pace="({ id, mode }) => setCategoryPaceMode(id, mode)"
-      @set-category-weekend="({ id, value }) => setCategoryWeekend(id, value)"
-      @set-category-color="({ id, color }) => setCategoryColor(id, color)"
-      @add-category="addCategory"
-      @set-include-weekend-total="setIncludeWeekendTotal"
-      @set-pace-mode="setPaceMode"
-      @set-threshold="({ key, value }) => setThreshold(key, value)"
-      @set-forecast-method="setForecastMethod"
-      @set-forecast-momentum="setForecastMomentum"
-      @set-forecast-padding="setForecastPadding"
-      @set-ui-option="({ key, value }) => setUiOption(key as keyof TargetsConfig['ui'], value)"
     />
 
     <SidebarConfigPane
@@ -231,7 +189,6 @@ import {
 } from '../services/targets'
 import type { ReportingConfig, DeckFeatureSettings } from '../services/reporting'
 import SidebarCalendarsPane from './sidebar/SidebarCalendarsPane.vue'
-import SidebarTargetsPane from './sidebar/SidebarTargetsPane.vue'
 import SidebarBalancePane from './sidebar/SidebarBalancePane.vue'
 import SidebarConfigPane from './sidebar/SidebarConfigPane.vue'
 import SidebarReportPane from './sidebar/SidebarReportPane.vue'
@@ -290,7 +247,7 @@ const emit = defineEmits([
   'save-deck-settings',
 ])
 
-type SidebarTab = 'calendars'|'targets'|'activitybalance'|'config'|'report'|'deck'
+type SidebarTab = 'calendars'|'activitybalance'|'config'|'report'|'deck'
 
 const activeTab = ref<SidebarTab>('calendars')
 

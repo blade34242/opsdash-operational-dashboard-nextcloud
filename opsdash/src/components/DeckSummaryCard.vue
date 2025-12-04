@@ -1,8 +1,8 @@
 <template>
-  <div class="card deck-summary-card">
+  <div class="card deck-summary-card" :style="cardStyle">
     <div class="deck-summary-card__header">
       <div>
-        <div class="deck-summary-card__title">Deck summary</div>
+        <div class="deck-summary-card__title">{{ titleText }}</div>
         <div class="deck-summary-card__subtitle">Showing {{ rangeLabel.toLowerCase() }} selection</div>
       </div>
       <div class="deck-summary-card__meta">
@@ -70,6 +70,8 @@ const props = defineProps<{
   error?: string
   ticker: { autoScroll: boolean; intervalSeconds: number }
   showBoardBadges?: boolean
+  title?: string
+  cardBg?: string | null
 }>()
 
 const tick = ref(0)
@@ -77,6 +79,8 @@ const paused = ref(false)
 let timer: ReturnType<typeof setInterval> | null = null
 
 const hasAnyData = computed(() => props.buckets.some((bucket) => bucket.count > 0))
+const titleText = computed(() => props.title || 'Deck summary')
+const cardStyle = computed(() => ({ background: props.cardBg || undefined }))
 
 function visibleTitles(bucket: (typeof props.buckets)[number]) {
   if (!bucket.titles.length) return []

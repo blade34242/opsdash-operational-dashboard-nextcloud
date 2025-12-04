@@ -80,6 +80,64 @@ describe('widgetsRegistry targets_v2', () => {
     expect(props.showPace).toBe(false)
   })
 
+  it('uses localConfig when enabled', () => {
+    const entry = widgetsRegistry.targets_v2
+    const baseCfg = createDefaultTargetsConfig()
+    baseCfg.totalHours = 48
+    const localCfg = { ...baseCfg, totalHours: 12 }
+    localCfg.categories = [{ id: 'only', label: 'Only', targetHours: 12, includeWeekend: true, groupIds: [1] }]
+
+    const def: any = {
+      options: {
+        useLocalConfig: true,
+        localConfig: localCfg,
+        showPace: true,
+      },
+    }
+    const ctx: any = {
+      targetsConfig: baseCfg,
+      targetsSummary: { total: { targetHours: 48 } },
+      stats: {},
+      byDay: [],
+      byCal: [{ total_hours: 6 }],
+      groupsById: {},
+      rangeMode: 'week',
+      from: '2024-01-01',
+      to: '2024-01-07',
+    }
+    const props = entry.buildProps(def, ctx) as any
+
+    expect(props.config.totalHours).toBe(12)
+    expect(props.summary.total.targetHours).toBe(12)
+    expect(props.summary.total.actualHours).toBe(6)
+    expect(props.groups).toBeNull()
+    expect(ctx.targetsConfig.totalHours).toBe(48)
+  })
+
+  it('local summary respects current category list', () => {
+    const entry = widgetsRegistry.targets_v2
+    const baseCfg = createDefaultTargetsConfig()
+    const localCfg = {
+      ...baseCfg,
+      categories: [{ id: 'only', label: 'Only', targetHours: 10, includeWeekend: true, groupIds: [1] }],
+    }
+    const def: any = { options: { useLocalConfig: true, localConfig: localCfg } }
+    const ctx: any = {
+      targetsConfig: baseCfg,
+      stats: {},
+      byDay: [],
+      byCal: [{ id: 'cal-1', total_hours: 5, group: 1 }],
+      groupsById: { 'cal-1': 1 },
+      rangeMode: 'week',
+      from: '2024-01-01',
+      to: '2024-01-07',
+    }
+    const props = entry.buildProps(def, ctx) as any
+    expect(props.summary.categories).toHaveLength(1)
+    expect(props.summary.categories[0].id).toBe('only')
+    expect(props.summary.categories[0].actualHours).toBe(5)
+  })
+
   it('time summary v2 applies overrides to config', () => {
     const entry = widgetsRegistry.time_summary_v2
     const baseCfg = createDefaultTargetsConfig()

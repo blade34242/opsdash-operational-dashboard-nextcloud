@@ -23,6 +23,20 @@
           </div>
         </header>
 
+        <nav class="onboarding-step-nav" aria-label="Onboarding steps">
+          <button
+            v-for="step in enabledSteps"
+            :key="step"
+            type="button"
+            class="step-pill"
+            :class="{ active: step === currentStep }"
+            :disabled="saving"
+            @click="goToStep(step)"
+          >
+            {{ stepLabel(step) }}
+          </button>
+        </nav>
+
         <main class="onboarding-body">
           <section v-if="currentStep === 'intro'" class="onboarding-step">
             <h3>Opsdash visualises your calendar time and keeps goals on track.</h3>
@@ -483,6 +497,7 @@ const props = defineProps<{
   calendars: CalendarSummary[]
   initialSelection: string[]
   initialStrategy?: StrategyDefinition['id']
+  startStep?: 'intro' | 'strategy' | 'calendars' | 'categories' | 'preferences' | 'review' | null
   onboardingVersion: number
   saving?: boolean
   closable?: boolean
@@ -672,6 +687,7 @@ function resetWizard() {
   } else if (totalHoursInput.value === null) {
     totalHoursInput.value = 40
   }
+  applyStartStep()
 }
 
 function initializeStrategyState() {
@@ -706,6 +722,33 @@ function syncTotalsWithStrategy() {
   }
 }
 
+function applyStartStep() {
+  if (!props.startStep) return
+  const idx = enabledSteps.value.indexOf(props.startStep)
+  if (idx >= 0) {
+    stepIndex.value = idx
+  }
+}
+
+function goToStep(step: StepId) {
+  const idx = enabledSteps.value.indexOf(step)
+  if (idx >= 0) {
+    stepIndex.value = idx
+  }
+}
+
+function stepLabel(step: StepId): string {
+  switch (step) {
+    case 'intro': return 'Intro'
+    case 'strategy': return 'Modes'
+    case 'calendars': return 'Calendars'
+    case 'categories': return 'Targets'
+    case 'preferences': return 'Preferences'
+    case 'review': return 'Review'
+    default: return step
+  }
+}
+
 watch(selectedStrategy, () => {
   initializeStrategyState()
   stepIndex.value = Math.min(stepIndex.value, enabledSteps.value.length - 1)
@@ -716,6 +759,7 @@ watch(enabledSteps, (steps) => {
     stepIndex.value = Math.max(steps.length - 1, 0)
   }
 })
+watch(() => props.startStep, applyStartStep)
 
 watch(categoriesEnabled, () => {
   syncTotalsWithStrategy()
@@ -1138,6 +1182,31 @@ function toggleCalendar(id: string, checkbox: HTMLInputElement) {
 
 .close-btn:hover {
   color: var(--color-primary);
+}
+
+.onboarding-step-nav{
+  display:flex;
+  flex-wrap:wrap;
+  gap:8px;
+  margin:0 0 12px;
+}
+.step-pill{
+  border:1px solid var(--color-border);
+  background:var(--color-background-contrast);
+  padding:6px 10px;
+  border-radius:999px;
+  font-size:12px;
+  cursor:pointer;
+  color:var(--color-text);
+}
+.step-pill.active{
+  border-color:var(--color-primary);
+  color:var(--color-primary);
+  background:rgba(37,99,235,0.08);
+}
+.step-pill:disabled{
+  opacity:0.6;
+  cursor:default;
 }
 
 .onboarding-body {
