@@ -4,6 +4,42 @@ import TimeTargetsCard from '../src/components/TimeTargetsCard.vue'
 import { createDefaultTargetsConfig } from '../src/services/targets'
 
 describe('TimeTargetsCard', () => {
+  it('hides pace/forecast lines when toggled off', () => {
+    const baseSummary = {
+      id: 'total',
+      label: 'Total',
+      actualHours: 10,
+      targetHours: 20,
+      percent: 50,
+      deltaHours: -10,
+      remainingHours: 10,
+      needPerDay: 1,
+      daysLeft: 5,
+      calendarPercent: 0,
+      gap: 0,
+      status: 'behind' as const,
+      statusLabel: 'Behind',
+      includeWeekend: true,
+      paceMode: 'days_only' as const,
+    }
+    const summary = {
+      total: baseSummary,
+      categories: [],
+      forecast: { text: 'Forecast text', linear: 1, momentum: 2, primaryMethod: 'linear' as const },
+    }
+    const wrapper = mount(TimeTargetsCard, {
+      props: {
+        summary,
+        config: createDefaultTargetsConfig(),
+        showPace: false,
+        showForecast: false,
+      },
+    })
+
+    expect(wrapper.text()).not.toContain('Pace:')
+    expect(wrapper.text()).not.toContain('Forecast:')
+  })
+
   it('shows today overlay and chip on category bars', () => {
     const catSummary = {
       id: 'work',

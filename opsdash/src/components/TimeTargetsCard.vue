@@ -14,11 +14,11 @@
       <div class="line" v-if="config.ui.showNeedPerDay && total.targetHours > 0">
         Days left {{ total.daysLeft }} • Need {{ formatHours(total.needPerDay) }} h/day
       </div>
-      <div class="line" v-if="total.targetHours > 0">
+      <div class="line" v-if="showPace && total.targetHours > 0">
         Pace: {{ total.percent.toFixed(0) }}% vs {{ total.calendarPercent.toFixed(0) }}% →
         <span :class="['status-label', statusClass(total.status)]">{{ total.statusLabel }}</span>
       </div>
-      <div class="line forecast">
+      <div class="line forecast" v-if="showForecast">
         Forecast: {{ summary.forecast.text }}
         <span class="hint">
           Linear {{ formatHours(summary.forecast.linear) }}h · Momentum {{ formatHours(summary.forecast.momentum) }}h · Primary: {{ methodLabel(summary.forecast.primaryMethod) }}
@@ -93,11 +93,16 @@ type CategoryGroup = {
   todayHours?: number
 }
 
-const props = defineProps<{
+const props = withDefaults(defineProps<{
   summary: TargetsSummary
   config: TargetsConfig
   groups?: CategoryGroup[]
-}>()
+  showPace?: boolean
+  showForecast?: boolean
+}>(), {
+  showPace: true,
+  showForecast: true,
+})
 
 const total = computed<TargetsProgress>(() => props.summary?.total ?? fallbackProgress('total', 'Total'))
 const categoryGroups = computed<CategoryGroup[]>(() => {

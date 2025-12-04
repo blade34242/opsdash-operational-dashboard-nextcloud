@@ -186,6 +186,7 @@ export const widgetsRegistry: Record<string, RegistryEntry> = {
       { key: 'showLegend', label: 'Show legend', type: 'toggle' },
       { key: 'showDelta', label: 'Show delta', type: 'toggle' },
       { key: 'showForecast', label: 'Show forecast', type: 'toggle' },
+      { key: 'showPace', label: 'Show pace line', type: 'toggle' },
       { key: 'showToday', label: 'Show today overlay', type: 'toggle' },
       { key: 'customTitle', label: 'Custom title', type: 'text' },
       { key: 'customFooter', label: 'Custom footnote', type: 'textarea' },
@@ -198,6 +199,7 @@ export const widgetsRegistry: Record<string, RegistryEntry> = {
       showLegend: def.options?.showLegend !== false,
       showDelta: def.options?.showDelta !== false,
       showForecast: def.options?.showForecast !== false,
+      showPace: def.options?.showPace !== false,
       showToday: def.options?.showToday !== false,
       title: def.options?.customTitle,
       footer: def.options?.customFooter,
@@ -208,12 +210,20 @@ export const widgetsRegistry: Record<string, RegistryEntry> = {
     defaultLayout: { width: 'half', height: 'm', order: 18 },
     label: 'Targets',
     configurable: true,
+    defaultOptions: {
+      showForecast: true,
+      showPace: true,
+      useLocalConfig: false,
+      localConfig: null,
+    },
     controls: [
       { key: 'showHeader', label: 'Show header', type: 'toggle' },
       { key: 'showLegend', label: 'Show legend', type: 'toggle' },
       { key: 'showDelta', label: 'Show delta', type: 'toggle' },
       { key: 'showForecast', label: 'Show forecast', type: 'toggle' },
+      { key: 'showPace', label: 'Show pace line', type: 'toggle' },
       { key: 'showToday', label: 'Show today overlay', type: 'toggle' },
+      { key: 'useLocalConfig', label: 'Use custom targets for this widget', type: 'toggle' },
       { key: 'showTotalDelta', label: 'Show total delta', type: 'toggle' },
       { key: 'showNeedPerDay', label: 'Show need per day', type: 'toggle' },
       { key: 'showCategoryBlocks', label: 'Show categories', type: 'toggle' },
@@ -224,7 +234,12 @@ export const widgetsRegistry: Record<string, RegistryEntry> = {
       { key: 'customFooter', label: 'Custom footnote', type: 'textarea' },
     ],
     buildProps: (def, ctx) => {
-      const baseConfig = ctx.targetsConfig ? JSON.parse(JSON.stringify(ctx.targetsConfig)) : createDefaultTargetsConfig()
+      const useLocal = !!def.options?.useLocalConfig
+      const baseConfig = useLocal && def.options?.localConfig
+        ? JSON.parse(JSON.stringify(def.options.localConfig))
+        : ctx.targetsConfig
+          ? JSON.parse(JSON.stringify(ctx.targetsConfig))
+          : createDefaultTargetsConfig()
       const cfg = {
         ...baseConfig,
         ui: { ...baseConfig.ui },
@@ -248,6 +263,7 @@ export const widgetsRegistry: Record<string, RegistryEntry> = {
         showLegend: def.options?.showLegend !== false,
         showDelta: def.options?.showDelta !== false,
         showForecast: def.options?.showForecast !== false,
+        showPace: def.options?.showPace !== false,
         showToday: def.options?.showToday !== false,
         title: def.options?.customTitle,
         footer: def.options?.customFooter,

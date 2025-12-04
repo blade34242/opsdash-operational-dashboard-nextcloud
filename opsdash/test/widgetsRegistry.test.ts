@@ -73,6 +73,13 @@ describe('widgetsRegistry targets_v2', () => {
     expect(baseCfg.includeZeroDaysInStats).toBe(false)
   })
 
+  it('applies showPace toggle', () => {
+    const entry = widgetsRegistry.targets_v2
+    const def: any = { options: { showPace: false } }
+    const props = entry.buildProps(def, {}) as any
+    expect(props.showPace).toBe(false)
+  })
+
   it('time summary v2 applies overrides to config', () => {
     const entry = widgetsRegistry.time_summary_v2
     const baseCfg = createDefaultTargetsConfig()
