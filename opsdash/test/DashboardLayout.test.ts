@@ -239,13 +239,13 @@ describe('DashboardLayout grid add flow', () => {
       },
     })
 
-    const bar = document.body.querySelector('.layout-toolbar')
+    const bar = document.body.querySelector('.widget-toolbar')
     expect(bar).not.toBeNull()
     wrapper.unmount()
   })
 
   it('hides toolbar when not editable', () => {
-    document.querySelectorAll('.layout-toolbar').forEach((el) => el.remove())
+    document.querySelectorAll('.widget-toolbar').forEach((el) => el.remove())
     const wrapper = mount(DashboardLayout, {
       props: {
         widgets: [
@@ -260,7 +260,7 @@ describe('DashboardLayout grid add flow', () => {
       },
     })
 
-    expect(document.body.querySelector('.layout-toolbar')).toBeNull()
+    expect(document.body.querySelector('.widget-toolbar')).toBeNull()
     wrapper.unmount()
   })
 })

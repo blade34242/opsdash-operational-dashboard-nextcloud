@@ -35,7 +35,7 @@
     </div>
 
     <Teleport to="body">
-      <div v-if="editable" class="layout-toolbar">
+      <div v-if="editable" class="widget-toolbar">
         <div class="toolbar-title">
           <template v-if="selectedItem">{{ selectedItemTitle }}</template>
           <template v-else>Click a widget to edit</template>
@@ -778,7 +778,7 @@ function onDragEnd() {
   padding-bottom:120px;
   overflow:visible;
 }
-.layout-toolbar{
+.widget-toolbar{
   position:fixed;
   left:50%;
   transform:translateX(-50%);
