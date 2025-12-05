@@ -98,18 +98,6 @@
       >
         Report
       </button>
-      <button
-        id="opsdash-sidebar-tab-deck"
-        type="button"
-        class="sb-tab"
-        :class="{ active: activeTab === 'deck' }"
-        role="tab"
-        :aria-selected="activeTab === 'deck'"
-        aria-controls="opsdash-sidebar-pane-deck"
-        @click="activeTab = 'deck'"
-      >
-        Deck
-      </button>
     </div>
 
     <SidebarCalendarsPane
@@ -171,13 +159,6 @@
       @save-reporting="(value) => emit('save-reporting', value)"
     />
 
-    <SidebarDeckPane
-      v-else-if="activeTab === 'deck'"
-      :deck-settings="props.deckSettings"
-      :saving="props.reportingSaving"
-      @save-deck-settings="(value) => emit('save-deck-settings', value)"
-    />
-
     <SidebarBalancePane
       v-else-if="activeTab === 'activitybalance'"
       id="opsdash-sidebar-pane-activitybalance"
@@ -215,7 +196,6 @@ import SidebarBalancePane from './sidebar/SidebarBalancePane.vue'
 import SidebarConfigPane from './sidebar/SidebarConfigPane.vue'
 import SidebarProfilesPane from './sidebar/SidebarProfilesPane.vue'
 import SidebarReportPane from './sidebar/SidebarReportPane.vue'
-import SidebarDeckPane from './sidebar/SidebarDeckPane.vue'
 import { applyNumericUpdate, type InputMessage } from './sidebar/validation'
 
 const props = defineProps<{
@@ -270,7 +250,7 @@ const emit = defineEmits([
   'save-deck-settings',
 ])
 
-type SidebarTab = 'calendars'|'activitybalance'|'config'|'profiles'|'report'|'deck'
+type SidebarTab = 'calendars'|'activitybalance'|'config'|'profiles'|'report'
 
 const activeTab = ref<SidebarTab>('calendars')
 

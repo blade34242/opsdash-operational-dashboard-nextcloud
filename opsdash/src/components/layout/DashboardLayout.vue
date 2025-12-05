@@ -52,6 +52,7 @@
               :options="selectedItem.options"
               :open="openOptionsId === selectedItem.id"
               :show-advanced="selectedItem.type === 'targets_v2'"
+              :context="context"
               @toggle="toggleOptions(selectedItem.id, $event)"
               @open-advanced="openAdvancedTargets(selectedItem.id)"
               @change="(key,value)=>$emit('edit:options', selectedItem.id, key, value)"

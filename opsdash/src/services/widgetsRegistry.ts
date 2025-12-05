@@ -554,8 +554,9 @@ export const widgetsRegistry: Record<string, RegistryEntry> = {
       mineMode: 'assignee',
     },
     controls: [
-      { key: 'boardIds', label: 'Board IDs (comma, empty = all)', type: 'text' },
-      { key: 'filters', label: 'Filters (comma-separated keys)', type: 'textarea' },
+      { key: 'boardIds', label: 'Boards', type: 'multiselect', options: [] },
+      { key: 'filters', label: 'Filters', type: 'multiselect', options: [] },
+      { key: 'defaultFilter', label: 'Default filter', type: 'select', options: [] },
       { key: 'allowMine', label: 'Allow mine filters', type: 'toggle' },
       { key: 'mineMode', label: 'Mine mode', type: 'select', options: [
         { value: 'assignee', label: 'Assignee' },
@@ -565,20 +566,39 @@ export const widgetsRegistry: Record<string, RegistryEntry> = {
       { key: 'includeArchived', label: 'Include archived cards', type: 'toggle' },
       { key: 'includeCompleted', label: 'Include completed cards', type: 'toggle' },
     ],
-    dynamicControls: (options) => {
+    dynamicControls: (options, ctx) => {
       const filters = parseFilters(options.filters ?? options.defaultOptions?.filters)
+      const filterSelect = {
+        key: 'defaultFilter',
+        label: 'Default filter',
+        type: 'select',
+        options: filters.map((f: any) => ({ value: f, label: f })),
+      }
+      const filterChoices = [
+        'all',
+        'open_all',
+        'open_mine',
+        'done_all',
+        'done_mine',
+        'archived_all',
+        'archived_mine',
+        'created_today_all',
+        'created_today_mine',
+      ]
+      const boardOptions = Array.isArray(ctx.deckBoards)
+        ? ctx.deckBoards.map((b: any) => ({ value: b.id, label: b.title || `Board ${b.id}` }))
+        : []
       return [
-        {
-          key: 'defaultFilter',
-          label: 'Default filter',
-          type: 'select',
-          options: filters.map((f: any) => ({ value: f, label: f })),
-        },
+        { key: 'filters', label: 'Filters', type: 'multiselect', options: filterChoices.map((v) => ({ value: v, label: v })) },
+        filterSelect,
+        { key: 'boardIds', label: 'Boards', type: 'multiselect', options: boardOptions },
       ]
     },
     buildProps: (def, ctx) => {
       const filters = parseFilters(def.options?.filters ?? def.options?.defaultOptions?.filters) as any[]
-      const boardIds = parseBoardIds(def.options?.boardIds)
+      const boardIds = Array.isArray(def.options?.boardIds)
+        ? def.options.boardIds
+        : parseBoardIds(def.options?.boardIds)
       const defaultFilter = filters.includes(def.options?.defaultFilter) ? def.options?.defaultFilter : filters[0] || 'all'
       return {
         cards: ctx.deckCards || [],

@@ -113,6 +113,19 @@
               <button type="button" class="ghost sm" @click="addPalette(control.key)">+</button>
             </div>
           </template>
+          <template v-else-if="control.type === 'multiselect'">
+            <div class="multi">
+              <label v-for="opt in control.options || []" :key="`${control.key}-${opt.value}`" class="multi__item">
+                <input
+                  type="checkbox"
+                  :value="opt.value"
+                  :checked="Array.isArray(valueFor(control.key)) ? valueFor(control.key).includes(opt.value) : false"
+                  @change="onMulti(control.key, opt.value, $event)"
+                />
+                <span>{{ opt.label }}</span>
+              </label>
+            </div>
+          </template>
           <template v-else-if="control.type === 'textarea'">
             <textarea
               :id="`opt-${control.key}`"
@@ -145,6 +158,7 @@ const props = defineProps<{
   options: Record<string, any>
   open: boolean
   showAdvanced?: boolean
+  context?: Record<string, any>
 }>()
 
 const emit = defineEmits<{
@@ -181,7 +195,7 @@ const specificControls = computed(() => {
   const controls = props.entry?.controls || []
   const dynamic =
     typeof props.entry?.dynamicControls === 'function'
-      ? props.entry.dynamicControls(props.options || {})
+      ? props.entry.dynamicControls(props.options || {}, props.context || {})
       : []
   const merged = [...controls, ...dynamic].filter((c: any) => !blockKeys.has(c.key))
   return merged
@@ -216,6 +230,14 @@ function onToggle(key: string, event: Event) {
 function onText(key: string, event: Event) {
   const value = (event.target as HTMLInputElement | HTMLTextAreaElement).value
   emit('change', key, value)
+}
+function onMulti(key: string, value: any, event: Event) {
+  const checked = (event.target as HTMLInputElement).checked
+  const current = Array.isArray(local.value[key]) ? [...local.value[key]] : []
+  const next = new Set(current)
+  if (checked) next.add(value)
+  else next.delete(value)
+  emit('change', key, Array.from(next))
 }
 function valueFor(key: string) {
   if (!key.includes('.')) return local.value[key]
