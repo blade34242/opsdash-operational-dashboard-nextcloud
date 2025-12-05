@@ -14,6 +14,7 @@
       :initial-total-hours="wizardInitialTotalHours"
       :initial-deck-settings="wizardInitialDeckSettings"
       :initial-reporting-config="wizardInitialReportingConfig"
+      :initial-dashboard-mode="wizardInitialDashboardMode"
       :start-step="wizardStartStep"
       :has-existing-config="hasExistingConfig"
       :saving="isOnboardingSaving"
@@ -53,6 +54,7 @@
           :reporting-config="reportingConfig"
           :deck-settings="deckSettings"
           :reporting-saving="reportingSaving"
+          :dashboard-mode="dashboardMode"
           @load="performLoad"
           @update:range="(v)=>{ range=v as any; offset=0; performLoad() }"
           @update:offset="(v)=>{ offset=v as number; performLoad() }"
@@ -187,6 +189,7 @@
                 :context="widgetContext"
                 :editable="isLayoutEditing"
                 :widget-types="availableWidgetTypes"
+                :preset-label="dashboardModeLabel"
                 @edit:width="cycleWidth"
                 @edit:height="cycleHeight"
                 @edit:remove="removeWidget"
@@ -195,6 +198,7 @@
                 @edit:add="addWidgetAt"
                 @edit:reorder="reorderWidget"
                 @open:onboarding="openOnboardingFromLayout"
+                @reset:preset="applyDashboardPreset(dashboardMode.value)"
               />
             </div>
 
@@ -337,7 +341,7 @@ import DashboardLayout from './components/layout/DashboardLayout.vue'
 import { buildTargetsSummary, normalizeTargetsConfig, createEmptyTargetsSummary, createDefaultActivityCardConfig, createDefaultBalanceConfig, cloneTargetsConfig, convertWeekToMonth, type ActivityCardConfig, type BalanceConfig, type TargetsConfig } from './services/targets'
 import { normalizeReportingConfig, normalizeDeckSettings, type DeckFilterMode } from './services/reporting'
 import { ONBOARDING_VERSION } from './services/onboarding'
-import { createDefaultWidgets, widgetsRegistry, type WidgetDefinition, type WidgetRenderContext, type WidgetHeight, type WidgetSize } from './services/widgetsRegistry'
+import { createDefaultWidgets, createDashboardPreset, widgetsRegistry, type WidgetDefinition, type WidgetRenderContext, type WidgetHeight, type WidgetSize } from './services/widgetsRegistry'
 // Lightweight notifications without @nextcloud/dialogs
 function notifySuccess(msg: string){
   const w:any = window as any
@@ -650,6 +654,7 @@ const deckUrl = computed(() => {
 })
 
 const onboardingState = onboarding
+const dashboardMode = ref<'quick'|'standard'|'pro'>('standard')
 const hasInitialLoad = ref(false)
 
 const {
@@ -668,6 +673,10 @@ const {
 // Widget layout state (must be declared before persistence/export/import use it)
 const WIDGETS_STORAGE_KEY = 'opsdash.widgets.v1'
 const layoutWidgets = ref<WidgetDefinition[]>(loadWidgetLayout())
+function applyDashboardPreset(mode: 'quick' | 'standard' | 'pro') {
+  dashboardMode.value = mode
+  layoutWidgets.value = createDashboardPreset(mode)
+}
 const isLayoutEditing = ref(false)
 const newWidgetType = ref('')
 
@@ -797,7 +806,7 @@ function openOnboardingFromLayout(step?: string) {
 }
 
 function resetWidgets() {
-  layoutWidgets.value = createDefaultWidgets()
+  layoutWidgets.value = createDashboardPreset(dashboardMode.value)
 }
 
 function loadWidgetLayout(): WidgetDefinition[] {
@@ -941,6 +950,7 @@ const onboardingActions = useOnboardingActions({
   setTargetsConfig: (val) => { targetsConfig.value = cloneTargetsConfig(val) },
   setGroupsById: (val) => { groupsById.value = { ...val } },
   setOnboardingState: (val) => { onboarding.value = { ...(onboarding.value || {}), ...val } as any },
+  setDashboardMode: (mode) => { dashboardMode.value = mode },
 })
 
 const {
@@ -958,11 +968,12 @@ const {
   wizardInitialTotalHours,
   wizardInitialDeckSettings,
   wizardInitialReportingConfig,
+  wizardInitialDashboardMode,
   isOnboardingSaving,
   isSnapshotSaving: isWizardSnapshotSaving,
   snapshotNotice: wizardSnapshotNotice,
   evaluateOnboarding,
-  handleWizardComplete,
+  handleWizardComplete: handleWizardCompleteFlow,
   handleWizardSkip,
   handleWizardClose,
   handleWizardSaveSnapshot,
@@ -976,6 +987,13 @@ const {
   hasInitialLoad,
   actions: onboardingActions,
 })
+
+const handleWizardComplete = async (payload: any) => {
+  await handleWizardCompleteFlow(payload)
+  if (payload?.dashboardMode) {
+    applyDashboardPreset(payload.dashboardMode)
+  }
+}
 
 async function performLoad() {
   await load()
@@ -1306,6 +1324,12 @@ const widgetContext = computed<WidgetRenderContext>(() => ({
   onUpdateNotes: (val: string) => { notesCurrDraft.value = val },
 }))
 
+const dashboardModeLabel = computed(() => {
+  if (dashboardMode.value === 'quick') return 'Quick preset'
+  if (dashboardMode.value === 'pro') return 'Pro preset'
+  return 'Standard preset'
+})
+
 function n1(v:any){ return Number(v ?? 0).toFixed(1) }
 function n2(v:any){ return Number(v ?? 0).toFixed(2) }
 function arrow(v:number){ return v>0?'▲':(v<0?'▼':'—') }
@@ -1338,6 +1362,12 @@ function handleOpenShortcuts(trigger?: HTMLElement | null) {
 watch(onboardingState, (state) => {
   if (!hasInitialLoad.value) return
   evaluateOnboarding(state)
+})
+watch(onboardingState, (state) => {
+  const mode = (state as any)?.dashboardMode
+  if (mode === 'quick' || mode === 'standard' || mode === 'pro') {
+    dashboardMode.value = mode
+  }
 })
 
 

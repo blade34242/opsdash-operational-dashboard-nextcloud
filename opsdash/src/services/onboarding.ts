@@ -158,6 +158,8 @@ export function getStrategyDefinitions(): StrategyDefinition[] {
   return STRATEGIES
 }
 
+export type DashboardMode = 'quick' | 'standard' | 'pro'
+
 export function createStrategyDraft(
   strategyId: StrategyDefinition['id'],
   calendars: CalendarSummary[],

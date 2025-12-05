@@ -33,6 +33,8 @@
             :style="{
               '--mix-bg': toneStyles[cell.trend].background,
               '--mix-fg': toneStyles[cell.trend].color,
+              background: toneStyles[cell.trend].background,
+              color: toneStyles[cell.trend].color,
             }"
             :title="`${row.label} · ${cell.label} · ${formatShare(cell.share)}`"
           >

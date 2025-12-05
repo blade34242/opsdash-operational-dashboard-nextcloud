@@ -2,34 +2,29 @@ import { mount } from '@vue/test-utils'
 import { describe, it, expect } from 'vitest'
 import CategoryMixTrendCard from '../src/components/CategoryMixTrendCard.vue'
 
-const overview = {
-  categories: [
-    { id: 'work', label: 'Work', share: 0.6 },
-    { id: 'life', label: 'Life', share: 0.4 },
-  ],
-  trend: {
-    badge: 'Stable',
-    history: [
-      { offset: 1, label: '-1', categories: [{ id: 'work', label: 'Work', share: 0.5 }] },
-    ],
-  },
-}
-
 describe('CategoryMixTrendCard', () => {
-  it('renders trend rows and applies title/background', () => {
+  it('applies custom tone colors', () => {
     const wrapper = mount(CategoryMixTrendCard, {
       props: {
-        overview,
+        overview: {
+          categories: [
+            { id: 'work', label: 'Work', share: 10 },
+            { id: 'hobby', label: 'Hobby', share: 40 },
+          ],
+          trend: {
+            history: [
+              { offset: 1, label: '-1', categories: [{ id: 'work', label: 'Work', share: 80 }] },
+            ],
+          },
+        },
         rangeMode: 'week',
-        lookbackWeeks: 2,
-        showBadge: true,
-        title: 'My Mix',
-        cardBg: '#eef',
+        lookbackWeeks: 1,
+        toneLowColor: '#111111',
+        toneHighColor: '#eeeeee',
       },
     })
-
-    expect(wrapper.text()).toContain('My Mix')
-    expect(wrapper.findAll('.mix-row').length).toBeGreaterThan(0)
-    expect(wrapper.find('.mix-card').attributes('style')).toContain('background')
+    const cells = wrapper.findAll('.mix-cell').map((c) => c.element as HTMLElement)
+    expect(cells.length).toBeGreaterThan(1)
+    expect(cells.some((el) => el.style.background.includes('rgb(17, 17, 17)'))).toBe(true)
   })
 })

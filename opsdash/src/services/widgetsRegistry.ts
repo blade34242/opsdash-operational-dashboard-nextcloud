@@ -20,6 +20,7 @@ const BASE_COLORS = ['#2563EB', '#F97316', '#10B981', '#A855F7', '#EC4899', '#14
 
 export type WidgetSize = 'quarter' | 'half' | 'full'
 export type WidgetHeight = 's' | 'm' | 'l'
+export type DashboardMode = 'quick' | 'standard' | 'pro'
 
 export interface WidgetDefinition {
   id: string
@@ -945,56 +946,7 @@ function prettyFilterLabel(key: string): string {
 }
 
 export function createDefaultWidgets(): WidgetDefinition[] {
-  return [
-    {
-      id: 'widget-time-summary',
-      type: 'time_summary_v2',
-      layout: widgetsRegistry.time_summary_v2.defaultLayout,
-      version: 1,
-    },
-    {
-      id: 'widget-targets',
-      type: 'targets_v2',
-      layout: widgetsRegistry.targets_v2.defaultLayout,
-      version: 1,
-    },
-    {
-      id: 'widget-balance',
-      type: 'balance',
-      layout: widgetsRegistry.balance.defaultLayout,
-      version: 1,
-    },
-    {
-      id: 'widget-activity',
-      type: 'activity',
-      layout: widgetsRegistry.activity.defaultLayout,
-      version: 1,
-    },
-    {
-      id: 'widget-dayoff-trend',
-      type: 'dayoff_trend',
-      layout: widgetsRegistry.dayoff_trend.defaultLayout,
-      version: 1,
-    },
-    {
-      id: 'widget-category-mix-trend',
-      type: 'category_mix_trend',
-      layout: widgetsRegistry.category_mix_trend.defaultLayout,
-      version: 1,
-    },
-    {
-      id: 'widget-deck',
-      type: 'deck',
-      layout: widgetsRegistry.deck.defaultLayout,
-      version: 1,
-    },
-    {
-      id: 'widget-notes',
-      type: 'notes',
-      layout: widgetsRegistry.notes.defaultLayout,
-      version: 1,
-    },
-  ]
+  return createDashboardPreset('standard')
 }
 
 export function mapWidgetToComponent(def: WidgetDefinition, ctx: WidgetRenderContext) {
@@ -1002,4 +954,55 @@ export function mapWidgetToComponent(def: WidgetDefinition, ctx: WidgetRenderCon
   if (!entry) return null
   const props = entry.buildProps(def, ctx) || {}
   return { component: entry.component, props }
+}
+
+function cloneWidget(type: string, options: Record<string, any> = {}, layout?: Partial<WidgetDefinition['layout']>): WidgetDefinition {
+  const entry = widgetsRegistry[type]
+  const defaultLayout = entry?.defaultLayout ?? { width: 'half', height: 's', order: 50 }
+  return {
+    id: `widget-${type}-${Math.random().toString(36).slice(2, 8)}`,
+    type,
+    options,
+    layout: { ...defaultLayout, ...(layout || {}) },
+    version: 1,
+  }
+}
+
+export function createDashboardPreset(mode: DashboardMode): WidgetDefinition[] {
+  if (mode === 'quick') {
+    return [
+      cloneWidget('time_summary_v2'),
+      cloneWidget('targets_v2'),
+      cloneWidget('activity'),
+      cloneWidget('deck_cards', {
+        filters: ['open_all', 'open_mine'],
+        defaultFilter: 'open_all',
+        autoScroll: false,
+        showCount: false,
+      }),
+    ]
+  }
+  if (mode === 'pro') {
+    return [
+      cloneWidget('time_summary_v2'),
+      cloneWidget('targets_v2'),
+      cloneWidget('balance'),
+      cloneWidget('activity'),
+      cloneWidget('dayoff_trend', { showHeader: true, showBadges: true }),
+      cloneWidget('category_mix_trend', { showHeader: true }),
+      cloneWidget('deck_cards', { autoScroll: true, intervalSeconds: 5 }),
+      cloneWidget('deck', { showTicker: true }),
+      cloneWidget('notes'),
+      cloneWidget('text_block', { preset: 'targets' }),
+    ]
+  }
+  return [
+    cloneWidget('time_summary_v2'),
+    cloneWidget('targets_v2'),
+    cloneWidget('balance'),
+    cloneWidget('activity'),
+    cloneWidget('dayoff_trend'),
+    cloneWidget('category_mix_trend'),
+    cloneWidget('deck_cards'),
+  ]
 }

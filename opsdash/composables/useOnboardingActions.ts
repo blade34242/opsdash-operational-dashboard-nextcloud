@@ -22,6 +22,7 @@ export interface WizardCompletePayload {
   deckSettings: DeckFeatureSettings
   reportingConfig: ReportingConfig
   activityCard: Pick<ActivityCardConfig, 'showDayOffTrend'>
+  dashboardMode: 'quick' | 'standard' | 'pro'
 }
 
 interface OnboardingActionDeps {
@@ -39,6 +40,8 @@ interface OnboardingActionDeps {
   setTargetsConfig: (val: TargetsConfig) => void
   setGroupsById: (val: Record<string, number>) => void
   setOnboardingState?: (val: OnboardingState) => void
+  setDashboardMode?: (mode: 'quick' | 'standard' | 'pro') => void
+  setWidgets?: (widgets: any[]) => void
 }
 
 export function useOnboardingActions(deps: OnboardingActionDeps) {
@@ -65,6 +68,7 @@ export function useOnboardingActions(deps: OnboardingActionDeps) {
           completed: true,
           version: ONBOARDING_VERSION,
           strategy: payload.strategy,
+          dashboardMode: payload.dashboardMode,
           completed_at: new Date().toISOString(),
         },
       })
@@ -74,10 +78,12 @@ export function useOnboardingActions(deps: OnboardingActionDeps) {
       deps.setTargetsMonth(payload.targetsMonth)
       deps.setTargetsConfig(payload.targetsConfig)
       deps.setGroupsById(payload.groups)
+      deps.setDashboardMode?.(payload.dashboardMode)
       deps.setOnboardingState?.({
         completed: true,
         version: ONBOARDING_VERSION,
         strategy: payload.strategy,
+        dashboardMode: payload.dashboardMode,
         version_required: ONBOARDING_VERSION,
         resetRequested: false,
       } as any)

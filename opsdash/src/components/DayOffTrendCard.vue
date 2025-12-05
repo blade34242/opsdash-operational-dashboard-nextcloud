@@ -48,6 +48,8 @@ const props = defineProps<{
   lookback?: number
   title?: string
   cardBg?: string | null
+  toneLowColor?: string | null
+  toneHighColor?: string | null
 }>()
 
 const historyCount = computed(() => {

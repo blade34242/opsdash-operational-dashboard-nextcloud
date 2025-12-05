@@ -68,6 +68,7 @@
         :aria-selected="activeTab === 'profiles'"
         aria-controls="opsdash-sidebar-pane-profiles"
         @click="activeTab = 'profiles'"
+        v-if="props.dashboardMode !== 'quick'"
       >
         Profiles
       </button>
@@ -95,6 +96,7 @@
         :aria-selected="activeTab === 'report'"
         aria-controls="opsdash-sidebar-pane-report"
         @click="activeTab = 'report'"
+        v-if="props.dashboardMode !== 'quick'"
       >
         Report
       </button>
@@ -179,7 +181,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed, ref, reactive } from 'vue'
+import { computed, ref, reactive, watch } from 'vue'
 import { NcAppNavigation, NcButton, NcCheckboxRadioSwitch } from '@nextcloud/vue'
 import {
   normalizeTargetsConfig,
@@ -224,6 +226,7 @@ const props = defineProps<{
   reportingConfig: ReportingConfig
   deckSettings: DeckFeatureSettings
   reportingSaving: boolean
+  dashboardMode?: 'quick' | 'standard' | 'pro'
 }>()
 
 const emit = defineEmits([
@@ -253,6 +256,11 @@ const emit = defineEmits([
 type SidebarTab = 'calendars'|'activitybalance'|'config'|'profiles'|'report'
 
 const activeTab = ref<SidebarTab>('calendars')
+watch(() => props.dashboardMode, (mode) => {
+  if (mode === 'quick' && (activeTab.value === 'profiles' || activeTab.value === 'report')) {
+    activeTab.value = 'calendars'
+  }
+})
 
 const targets = computed(() => props.targetsConfig)
 const categoryOptions = computed(() => targets.value?.categories ?? [])

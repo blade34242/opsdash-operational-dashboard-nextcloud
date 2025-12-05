@@ -249,6 +249,27 @@
           </div>
         </section>
 
+        <section v-else-if="currentStep === 'dashboard'" class="onboarding-step">
+          <h3>Dashboard preset</h3>
+          <p class="hint">Pick how much you want to see by default. You can change widgets later.</p>
+          <div class="strategy-grid">
+            <article
+              v-for="mode in dashboardPresets"
+              :key="mode.id"
+              class="strategy-card"
+              :class="{ active: dashboardMode === mode.id }"
+              @click="dashboardMode = mode.id"
+            >
+              <h4>{{ mode.title }}</h4>
+              <p class="subtitle">{{ mode.subtitle }}</p>
+              <ul>
+                <li v-for="point in mode.highlights" :key="point">{{ point }}</li>
+              </ul>
+              <footer>Widgets: {{ mode.widgets }}</footer>
+            </article>
+          </div>
+        </section>
+
         <section v-else-if="currentStep === 'strategy'" class="onboarding-step">
           <h3>Select a starting strategy</h3>
           <div class="strategy-grid">
@@ -497,7 +518,7 @@ const props = defineProps<{
   calendars: CalendarSummary[]
   initialSelection: string[]
   initialStrategy?: StrategyDefinition['id']
-  startStep?: 'intro' | 'strategy' | 'calendars' | 'categories' | 'preferences' | 'review' | null
+  startStep?: 'intro' | 'strategy' | 'dashboard' | 'calendars' | 'categories' | 'preferences' | 'review' | null
   onboardingVersion: number
   saving?: boolean
   closable?: boolean
@@ -510,6 +531,7 @@ const props = defineProps<{
   hasExistingConfig?: boolean
   snapshotSaving?: boolean
   snapshotNotice?: { type: 'success' | 'error'; message: string } | null
+  initialDashboardMode?: 'quick' | 'standard' | 'pro'
 }>()
 
 const emit = defineEmits<{
@@ -526,15 +548,17 @@ const emit = defineEmits<{
     deckSettings: DeckFeatureSettings
     reportingConfig: ReportingConfig
     activityCard: Pick<ActivityCardConfig, 'showDayOffTrend'>
+    dashboardMode: 'quick' | 'standard' | 'pro'
   }): void
   (e: 'save-current-config'): void
 }>()
 
-const stepOrder = ['intro', 'strategy', 'calendars', 'categories', 'preferences', 'review'] as const
+const stepOrder = ['intro', 'strategy', 'dashboard', 'calendars', 'categories', 'preferences', 'review'] as const
 type StepId = typeof stepOrder[number]
 
 const stepIndex = ref(0)
 const selectedStrategy = ref<StrategyDefinition['id']>('total_only')
+const dashboardMode = ref<'quick' | 'standard' | 'pro'>(props.initialDashboardMode || 'standard')
 const localSelection = ref<string[]>([])
 const categories = ref<CategoryDraft[]>([])
 const assignments = ref<Record<string, string>>({})
@@ -549,6 +573,29 @@ const activityDraft = ref<Pick<ActivityCardConfig, 'showDayOffTrend'>>({
 const deckBoards = ref<Array<{ id: number; title: string }>>([])
 const deckBoardsLoading = ref(false)
 const deckBoardsError = ref('')
+const dashboardPresets = [
+  {
+    id: 'quick' as const,
+    title: 'Quick',
+    subtitle: 'Minimal view, core widgets only',
+    highlights: ['Time summary', 'Targets', 'Activity', 'Deck cards lite'],
+    widgets: '4 widgets',
+  },
+  {
+    id: 'standard' as const,
+    title: 'Standard',
+    subtitle: 'Balanced set for most users',
+    highlights: ['Time/Targets/Balance', 'Activity & trends', 'Deck cards'],
+    widgets: '6–7 widgets',
+  },
+  {
+    id: 'pro' as const,
+    title: 'Pro',
+    subtitle: 'Full layout with extras',
+    highlights: ['All core widgets', 'Deck cards & summary', 'Notes + text block'],
+    widgets: '8+ widgets',
+  },
+]
 const deckVisibleBoards = computed(() => {
   if (!deckSettingsDraft.value.enabled) return []
   const hidden = new Set(deckSettingsDraft.value.hiddenBoards || [])
@@ -741,6 +788,7 @@ function stepLabel(step: StepId): string {
   switch (step) {
     case 'intro': return 'Intro'
     case 'strategy': return 'Modes'
+    case 'dashboard': return 'Dashboard'
     case 'calendars': return 'Calendars'
     case 'categories': return 'Targets'
     case 'preferences': return 'Preferences'
@@ -1085,6 +1133,7 @@ function emitComplete() {
     deckSettings: cloneDeckSettings(deckSettingsDraft.value),
     reportingConfig: { ...reportingDraft.value },
     activityCard: { ...activityDraft.value },
+    dashboardMode: dashboardMode.value,
   })
 }
 

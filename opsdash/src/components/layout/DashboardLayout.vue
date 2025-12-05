@@ -57,6 +57,15 @@
               @open-advanced="openAdvancedTargets(selectedItem.id)"
               @change="(key,value)=>$emit('edit:options', selectedItem.id, key, value)"
             />
+            <button
+              v-if="presetLabel"
+              type="button"
+              class="ghost"
+              title="Reset widgets to preset"
+              @click="$emit('reset:preset')"
+            >
+              Reset {{ presetLabel }}
+            </button>
             <button type="button" class="ghost danger" title="Remove widget" @click="removeSelected">✕</button>
           </div>
           <div class="toolbar-actions" v-else>
@@ -164,6 +173,7 @@ const props = defineProps<{
   context: WidgetRenderContext
   editable?: boolean
   widgetTypes?: Array<{ type: string; label: string }>
+  presetLabel?: string | null
 }>()
 
 const emit = defineEmits<{
@@ -175,6 +185,7 @@ const emit = defineEmits<{
   (e: 'edit:add', type: string, orderHint?: number): void
   (e: 'edit:reorder', id: string, orderHint?: number | null): void
   (e: 'open:onboarding', step?: string): void
+  (e: 'reset:preset'): void
 }>()
 
 const openOptionsId = ref<string | null>(null)

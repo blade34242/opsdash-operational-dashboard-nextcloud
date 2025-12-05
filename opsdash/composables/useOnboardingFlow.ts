@@ -53,6 +53,7 @@ export function useOnboardingFlow(deps: OnboardingFlowDeps) {
   const wizardInitialTotalHours = computed(() => deps.targetsConfig.value?.totalHours ?? 40)
   const wizardInitialDeckSettings = computed(() => ({ ...(deps.deckSettings.value || {}) }))
   const wizardInitialReportingConfig = computed(() => ({ ...(deps.reportingConfig.value || {}) }))
+  const wizardInitialDashboardMode = computed(() => (deps.onboardingState.value?.dashboardMode as any) || 'standard')
 
   function shouldRequireOnboarding(state: OnboardingState | null): boolean {
     if (!state) return true
@@ -131,6 +132,7 @@ export function useOnboardingFlow(deps: OnboardingFlowDeps) {
     wizardInitialTotalHours,
     wizardInitialDeckSettings,
     wizardInitialReportingConfig,
+    wizardInitialDashboardMode,
     isOnboardingSaving,
     isSnapshotSaving,
     snapshotNotice,
