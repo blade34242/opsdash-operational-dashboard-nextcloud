@@ -59,6 +59,18 @@
       >
         Activity &amp; Balance
       </button>
+      <button
+        id="opsdash-sidebar-tab-profiles"
+        type="button"
+        class="sb-tab"
+        :class="{ active: activeTab === 'profiles' }"
+        role="tab"
+        :aria-selected="activeTab === 'profiles'"
+        aria-controls="opsdash-sidebar-pane-profiles"
+        @click="activeTab = 'profiles'"
+      >
+        Profiles
+      </button>
     </div>
 
     <div class="sb-tabs sb-tabs--secondary" role="tablist" aria-label="Advanced configuration">
@@ -73,18 +85,6 @@
         @click="activeTab = 'config'"
       >
         Config & Setup
-      </button>
-      <button
-        id="opsdash-sidebar-tab-profiles"
-        type="button"
-        class="sb-tab"
-        :class="{ active: activeTab === 'profiles' }"
-        role="tab"
-        :aria-selected="activeTab === 'profiles'"
-        aria-controls="opsdash-sidebar-pane-profiles"
-        @click="activeTab = 'profiles'"
-      >
-        Profiles
       </button>
       <button
         id="opsdash-sidebar-tab-report"
