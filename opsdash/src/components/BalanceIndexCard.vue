@@ -15,7 +15,14 @@
         <div
           v-for="(pt, idx) in filteredPoints"
           :key="idx"
-          :class="['trend-block', { current: idx === (filteredPoints.length - 1) }]"
+          :class="[
+            'trend-block',
+            {
+              current: idx === (filteredPoints.length - 1),
+              'no-range': !hasRangeLabel(idx),
+              'no-offset': !offsetEnabled,
+            },
+          ]"
           :title="pt.label || ''"
           :style="trendBlockStyle(idx)"
         >
@@ -25,11 +32,6 @@
             <span class="trend-offset">{{ displayOffset(idx) }}</span>
           </div>
         </div>
-      </div>
-      <div class="trend-delta">
-        <span class="trend-left">{{ footerIndex }}</span>
-        <span class="trend-center">{{ footerCenter }}</span>
-        <span class="trend-right">{{ footerRight }}</span>
       </div>
     </div>
 
@@ -142,7 +144,6 @@ const formatIndex = (val?: number) => {
   return Number.isFinite(val) ? (val as number).toFixed(2) : '—'
 }
 const baseTrendColor = computed(() => props.trendColor || '#2563EB')
-const footerIndex = computed(() => formatIndex(trendPoints.value[trendPoints.value.length - 1]?.index))
 
 function shadeColor(hex: string, factor: number) {
   // factor: 0..1, 0 = original, 1 = darkest mix
@@ -166,24 +167,26 @@ const trendBlockStyle = (idx: number) => {
   }
 }
 
-const leftLabel = computed(() => '')
-const rightLabel = computed(() => filteredPoints.value[0]?.label || '')
-const currentLabel = computed(() => {
-  const latest = filteredPoints.value[filteredPoints.value.length - 1]
-  return latest?.label || ''
-})
-const footerCenter = computed(() => currentLabel.value || props.rangeLabel || '')
-const footerRight = computed(() => rightLabel.value || '')
-
-const displayOffset = (idx: number) => {
-  if (props.showOffsetLabels === false) return ''
-  const offsetFromCurrent = filteredPoints.value.length - 1 - idx
-  return offsetFromCurrent === 0 ? 'Current' : `-${offsetFromCurrent} wk`
-}
-const displayRange = (idx: number) => {
+const offsetEnabled = computed(() => props.showOffsetLabels !== false)
+const resolvedRangeLabel = (idx: number) => {
   if (props.showRangeLabels === false) return ''
   const pt = filteredPoints.value[idx]
-  return pt?.label || ''
+  const isCurrent = idx === filteredPoints.value.length - 1
+  return pt?.label || (isCurrent ? props.rangeLabel || '' : '')
+}
+const hasRangeLabel = (idx: number) => !!resolvedRangeLabel(idx)
+
+const displayOffset = (idx: number) => {
+  if (!offsetEnabled.value) return ''
+  const offsetFromCurrent = filteredPoints.value.length - 1 - idx
+  const offsetLabel = offsetFromCurrent === 0 ? 'Current' : `-${offsetFromCurrent} wk`
+  const rangeLabel = resolvedRangeLabel(idx).trim().toLowerCase()
+  if (rangeLabel && rangeLabel === offsetLabel.trim().toLowerCase()) return ''
+  return offsetLabel
+}
+const displayRange = (idx: number) => {
+  const label = resolvedRangeLabel(idx)
+  return label || ''
 }
 </script>
 
@@ -243,16 +246,16 @@ const displayRange = (idx: number) => {
 }
 .trend-line{
   flex:1;
-  display:flex;
+  display:grid;
+  grid-template-columns:repeat(auto-fit, minmax(90px, 1fr));
   gap:6px;
-  justify-content:flex-end;
+  justify-content:flex-start;
 }
 .trend-block{
-  flex:1;
   min-width:0;
   background:color-mix(in oklab, var(--color-primary,#2563eb), #e5e7eb 50%);
   border-radius:8px;
-  padding:6px;
+  padding:4px 5px;
   display:flex;
   align-items:center;
   justify-content:center;
@@ -262,16 +265,39 @@ const displayRange = (idx: number) => {
   border:none;
   cursor:default;
 }
+.trend-block.no-range{
+  grid-column: span 1;
+}
+.trend-block.no-range.no-offset{
+  grid-column: span 1;
+}
+.trend-block.no-offset{
+  grid-column: span 1;
+}
 .trend-block.current{
   background:var(--color-primary,#2563eb);
   box-shadow:0 0 0 2px color-mix(in oklab, var(--color-primary,#2563eb), #ffffff 60%);
 }
 .trend-line-row{
-  display:flex;
+  display:grid;
+  grid-template-columns: 1fr 1.1fr 0.8fr;
   align-items:center;
-  justify-content:space-between;
   gap:4px;
   width:100%;
+}
+.trend-block.no-range .trend-line-row{
+  grid-template-columns: 1fr 0.9fr;
+}
+.trend-block.no-offset .trend-line-row{
+  grid-template-columns: 1fr 1.1fr;
+}
+.trend-block.no-range.no-offset .trend-line-row{
+  grid-template-columns: 1fr;
+}
+.trend-value{
+  font-weight:700;
+  font-size:calc(13px * var(--widget-text-scale, 1));
+  text-align:left;
 }
 .trend-range{
   flex:1;
@@ -283,7 +309,7 @@ const displayRange = (idx: number) => {
   white-space:nowrap;
 }
 .trend-offset{
-  min-width:42px;
+  min-width:46px;
   text-align:right;
   font-size:calc(10px * var(--widget-text-scale, 1));
   color:#cbd5f5;
