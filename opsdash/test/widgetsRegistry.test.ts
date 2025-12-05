@@ -162,4 +162,51 @@ describe('widgetsRegistry targets_v2', () => {
     expect(entry.defaultOptions?.showTotal).toBe(true)
     expect(entry.defaultOptions?.mode).toBe('active')
   })
+
+  it('balance_index uses defaults when options/context missing', () => {
+    const entry = widgetsRegistry.balance_index
+    const def: any = { options: {}, layout: {}, type: 'balance_index', id: 'w1', version: 1 }
+    const ctx: any = { balanceOverview: { trend: { history: [], delta: [], badge: '' }, categories: [], relations: [], warnings: [], index: 0 } }
+    const props = entry.buildProps(def, ctx) as any
+    expect(props.indexBasis).toBe('category')
+    expect(props.thresholds.noticeAbove).toBeCloseTo(0.15)
+    expect(props.thresholds.warnIndex).toBeCloseTo(0.6)
+    expect(props.showConfig).toBe(true)
+    expect(entry.defaultOptions?.indexBasis).toBe('category')
+    expect(entry.defaultOptions?.noticeAbove).toBeCloseTo(0.15)
+  })
+
+  it('balance_index propagates trend color and background', () => {
+    const entry = widgetsRegistry.balance_index
+    const def: any = {
+      options: {
+        trendColor: '#111111',
+        cardBg: '#fafafa',
+      },
+      layout: {},
+      type: 'balance_index',
+      id: 'w2',
+      version: 1,
+    }
+    const ctx: any = { balanceOverview: { trend: { history: [], delta: [], badge: '' }, categories: [], relations: [], warnings: [], index: 0 } }
+    const props = entry.buildProps(def, ctx) as any
+    expect(props.trendColor).toBe('#111111')
+    expect(props.cardBg).toBe('#fafafa')
+  })
+
+  it('common title prefix is applied when provided', () => {
+    const entry = widgetsRegistry.balance_index
+    const def: any = {
+      options: {
+        titlePrefix: 'My ',
+      },
+      layout: {},
+      type: 'balance_index',
+      id: 'w3',
+      version: 1,
+    }
+    const ctx: any = { balanceOverview: { trend: { history: [], delta: [], badge: '' }, categories: [], relations: [], warnings: [], index: 0 } }
+    const props = entry.buildProps(def, ctx) as any
+    expect(props.title.startsWith('My ')).toBe(true)
+  })
 })

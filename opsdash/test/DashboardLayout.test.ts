@@ -67,11 +67,17 @@ describe('DashboardLayout advanced targets overlay', () => {
       },
     })
 
-    await wrapper.find('.open-adv').trigger('click')
+    const menu = wrapper.findComponent(stubMenu)
+    expect(menu.exists()).toBe(true)
+    menu.vm.$emit('open-advanced')
     await wrapper.vm.$nextTick()
-    await wrapper.find('.set-total').trigger('click')
+    const pane = wrapper.findComponent(stubPane)
+    expect(pane.exists()).toBe(true)
+    pane.vm.$emit('total-target-input', '12')
     await wrapper.vm.$nextTick()
-    await wrapper.find('.ghost.primary').trigger('click')
+    const saveBtn = wrapper.findAll('button').find((btn) => btn.text().includes('Save'))
+    expect(saveBtn).toBeTruthy()
+    await saveBtn?.trigger('click')
 
     const edits = wrapper.emitted('edit:options') || []
     const localCfgPayload = edits.find((args) => args[1] === 'localConfig')
@@ -80,6 +86,7 @@ describe('DashboardLayout advanced targets overlay', () => {
     expect(localCfgPayload?.[0]).toBe('w1')
     expect((localCfgPayload?.[2] as any)?.totalHours).toBe(12)
     expect(flagPayload).toEqual(['w1', 'useLocalConfig', true])
+    wrapper.unmount()
   })
 
   it('can reset to global and open onboarding from overlay actions', async () => {
@@ -106,17 +113,17 @@ describe('DashboardLayout advanced targets overlay', () => {
       },
     })
 
-    await wrapper.find('.open-adv').trigger('click')
+    const menu = wrapper.findComponent(stubMenu)
+    expect(menu.exists()).toBe(true)
+    menu.vm.$emit('open-advanced')
     await wrapper.vm.$nextTick()
-    const buttons = wrapper.findAll('button')
-    const onboardingBtn = buttons.find((btn) => btn.text().includes('Edit via onboarding'))
+    const onboardingBtn = wrapper.findAll('button').find((btn) => btn.text().includes('Edit via onboarding'))
     await onboardingBtn?.trigger('click')
     expect(wrapper.emitted('open:onboarding')?.[0]).toEqual(['categories'])
 
-    await wrapper.find('.open-adv').trigger('click')
+    menu.vm.$emit('open-advanced')
     await wrapper.vm.$nextTick()
-    const buttonsAfter = wrapper.findAll('button')
-    const resetBtn = buttonsAfter.find((btn) => btn.text().includes('Use global targets'))
+    const resetBtn = wrapper.findAll('button').find((btn) => btn.text().includes('Use global targets'))
     await resetBtn?.trigger('click')
 
     const edits = wrapper.emitted('edit:options') || []
@@ -124,5 +131,136 @@ describe('DashboardLayout advanced targets overlay', () => {
     const resetConfig = edits.find((args) => args[1] === 'localConfig')
     expect(resetFlag).toEqual(['w1', 'useLocalConfig', false])
     expect(resetConfig).toEqual(['w1', 'localConfig', null])
+    wrapper.unmount()
+  })
+})
+
+describe('DashboardLayout grid add flow', () => {
+  it('opens add menu on grid context click and emits edit:add with order hint', async () => {
+    const wrapper = mount(DashboardLayout, {
+      props: {
+        widgets: [
+          { id: 'w1', type: 'targets_v2', layout: { width: 'half', height: 'm', order: 10 }, options: {}, version: 1 },
+        ],
+        widgetTypes: [
+          { type: 'targets_v2', label: 'Targets' },
+          { type: 'x', label: 'Other' },
+        ],
+        context: {},
+        editable: true,
+      },
+      global: {
+        stubs: {
+          SidebarTargetsPane: stubPane,
+          WidgetOptionsMenu: stubMenu,
+        },
+      },
+    })
+
+    const grid = wrapper.find('.layout-grid').element as HTMLElement
+    grid.getBoundingClientRect = () => ({
+      x: 0, y: 0, left: 0, top: 0, right: 1200, bottom: 600, width: 1200, height: 600, toJSON() { return {} },
+    })
+
+    await wrapper.find('.layout-grid').trigger('contextmenu', { clientX: 800, clientY: 200 })
+    await wrapper.vm.$nextTick()
+
+    const buttons = wrapper.findAll('.add-menu .add-btn')
+    expect(buttons.length).toBeGreaterThan(0)
+    await buttons[0].trigger('click')
+
+    const emitted = wrapper.emitted('edit:add') || []
+    expect(emitted[0][0]).toBe('targets_v2')
+    expect(typeof emitted[0][1]).toBe('number')
+  })
+
+  it('emits reorder on drag/drop', async () => {
+    const wrapper = mount(DashboardLayout, {
+      props: {
+        widgets: [
+          { id: 'w1', type: 'targets_v2', layout: { width: 'half', height: 'm', order: 10 }, options: {}, version: 1 },
+        ],
+        widgetTypes: [{ type: 'targets_v2', label: 'Targets' }],
+        context: {},
+        editable: true,
+      },
+      global: {
+        stubs: { SidebarTargetsPane: stubPane, WidgetOptionsMenu: stubMenu },
+      },
+    })
+
+    const grid = wrapper.find('.layout-grid').element as HTMLElement
+    grid.getBoundingClientRect = () => ({
+      x: 0, y: 0, left: 0, top: 0, right: 1200, bottom: 600, width: 1200, height: 600, toJSON() { return {} },
+    })
+
+    const item = wrapper.find('.layout-item')
+    await item.trigger('dragstart')
+    const gridWrapper = wrapper.find('.layout-grid')
+    await gridWrapper.trigger('dragover', { clientX: 900, clientY: 300 })
+    await gridWrapper.trigger('drop', { clientX: 900, clientY: 300 })
+
+    const emitted = wrapper.emitted('edit:reorder') || []
+    expect(emitted[0][0]).toBe('w1')
+    expect(typeof emitted[0][1]).toBe('number')
+  })
+
+  it('applies text size scale class based on widget options', () => {
+    const wrapper = mount(DashboardLayout, {
+      props: {
+        widgets: [
+          { id: 'w1', type: 'targets_v2', layout: { width: 'half', height: 'm', order: 10 }, options: { textSize: 'sm' }, version: 1 },
+        ],
+        widgetTypes: [{ type: 'targets_v2', label: 'Targets' }],
+        context: {},
+        editable: true,
+      },
+      global: {
+        stubs: { SidebarTargetsPane: stubPane, WidgetOptionsMenu: stubMenu },
+      },
+    })
+
+    const item = wrapper.find('.layout-item')
+    expect(item.classes()).toContain('text-scale-sm')
+  })
+
+  it('shows floating toolbar in editable mode', () => {
+    const wrapper = mount(DashboardLayout, {
+      props: {
+        widgets: [
+          { id: 'w1', type: 'targets_v2', layout: { width: 'half', height: 'm', order: 10 }, options: {}, version: 1 },
+        ],
+        widgetTypes: [{ type: 'targets_v2', label: 'Targets' }],
+        context: {},
+        editable: true,
+      },
+      global: {
+        stubs: { SidebarTargetsPane: stubPane, WidgetOptionsMenu: stubMenu },
+      },
+    })
+
+    const bar = document.body.querySelector('.layout-toolbar')
+    expect(bar).not.toBeNull()
+    wrapper.unmount()
+  })
+
+  it('hides toolbar when not editable', () => {
+    document.querySelectorAll('.layout-toolbar').forEach((el) => el.remove())
+    const wrapper = mount(DashboardLayout, {
+      props: {
+        widgets: [
+          { id: 'w1', type: 'targets_v2', layout: { width: 'half', height: 'm', order: 10 }, options: {}, version: 1 },
+        ],
+        widgetTypes: [{ type: 'targets_v2', label: 'Targets' }],
+        context: {},
+        editable: false,
+      },
+      global: {
+        stubs: { SidebarTargetsPane: stubPane, WidgetOptionsMenu: stubMenu },
+      },
+    })
+
+    expect(document.body.querySelector('.layout-toolbar')).toBeNull()
+    wrapper.unmount()
   })
 })

@@ -33,6 +33,12 @@ interface OnboardingActionDeps {
   setThemePreference: (value: ThemePreference, options?: { persist?: boolean }) => void
   savePreset: (name: string) => Promise<void>
   reloadAfterPersist: () => Promise<void>
+  setSelected: (val: string[]) => void
+  setTargetsWeek: (val: Record<string, number>) => void
+  setTargetsMonth: (val: Record<string, number>) => void
+  setTargetsConfig: (val: TargetsConfig) => void
+  setGroupsById: (val: Record<string, number>) => void
+  setOnboardingState?: (val: OnboardingState) => void
 }
 
 export function useOnboardingActions(deps: OnboardingActionDeps) {
@@ -62,6 +68,19 @@ export function useOnboardingActions(deps: OnboardingActionDeps) {
           completed_at: new Date().toISOString(),
         },
       })
+      // Optimistically update local state so sidebar/widgets reflect the new config immediately
+      deps.setSelected(payload.selected)
+      deps.setTargetsWeek(payload.targetsWeek)
+      deps.setTargetsMonth(payload.targetsMonth)
+      deps.setTargetsConfig(payload.targetsConfig)
+      deps.setGroupsById(payload.groups)
+      deps.setOnboardingState?.({
+        completed: true,
+        version: ONBOARDING_VERSION,
+        strategy: payload.strategy,
+        version_required: ONBOARDING_VERSION,
+        resetRequested: false,
+      } as any)
       await deps.reloadAfterPersist()
       deps.notifySuccess('Onboarding saved')
     } catch (error) {

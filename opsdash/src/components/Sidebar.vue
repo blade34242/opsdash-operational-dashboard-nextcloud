@@ -161,15 +161,11 @@
       :activity-forecast-mode="activitySettings.forecastMode"
       :activity-forecast-options="activityForecastOptions"
       :balance-settings="balanceSettings"
-      :balance-threshold-messages="balanceThresholdMessages"
       :balance-lookback-message="balanceLookbackMessage"
-      :help-thresholds="helpState.balanceThresholds"
       :help-trend="helpState.balanceTrend"
       :help-display="helpState.balanceDisplay"
-      @set-index-basis="setBalanceIndexBasis"
       @toggle-help="toggleBalanceHelp"
       @set-activity-forecast="setActivityForecastMode"
-      @set-threshold="handleBalanceThreshold"
       @set-lookback="setBalanceLookback"
     />
   </NcAppNavigation>
@@ -305,7 +301,6 @@ const balanceSettings = computed<BalanceConfig>(() => {
 })
 
 const helpState = reactive({
-  balanceThresholds: false,
   balanceTrend: false,
   balanceDisplay: false,
 })
@@ -315,19 +310,7 @@ const categoryTargetMessages = reactive<Record<string, InputMessage | null>>({})
 const totalTargetMessage = ref<InputMessage | null>(null)
 const allDayHoursMessage = ref<InputMessage | null>(null)
 const paceThresholdMessages = reactive<{ onTrack: InputMessage | null; atRisk: InputMessage | null }>({ onTrack: null, atRisk: null })
-const balanceThresholdMessages = reactive<{
-  noticeAbove: InputMessage | null
-  noticeBelow: InputMessage | null
-  warnAbove: InputMessage | null
-  warnBelow: InputMessage | null
-  warnIndex: InputMessage | null
-}>({
-  noticeAbove: null,
-  noticeBelow: null,
-  warnAbove: null,
-  warnBelow: null,
-  warnIndex: null,
-})
+const balanceThresholdMessages = reactive<Record<string, InputMessage | null>>({})
 const forecastMomentumMessage = ref<InputMessage | null>(null)
 const forecastPaddingMessage = ref<InputMessage | null>(null)
 const balanceLookbackMessage = ref<InputMessage | null>(null)
@@ -432,33 +415,11 @@ function setActivityForecastMode(mode: ActivityCardConfig['forecastMode']) {
 }
 
 function toggleBalanceHelp(target: 'thresholds' | 'trend' | 'display') {
-  if (target === 'thresholds') {
-    helpState.balanceThresholds = !helpState.balanceThresholds
-  } else if (target === 'trend') {
+  if (target === 'trend') {
     helpState.balanceTrend = !helpState.balanceTrend
   } else if (target === 'display') {
     helpState.balanceDisplay = !helpState.balanceDisplay
   }
-}
-
-function handleBalanceThreshold(payload: { key: 'noticeAbove' | 'noticeBelow' | 'warnAbove' | 'warnBelow' | 'warnIndex'; value: string }) {
-  setBalanceThreshold(payload.key, payload.value)
-}
-
-function handleBalanceUiToggle(payload: { key: 'showNotes'; value: boolean }) {
-  // deprecated: no-op (notes snippet moved to widget)
-}
-
-function setBalanceIndexBasis(value: string) {
-  if (value !== 'category' && value !== 'calendar' && value !== 'both' && value !== 'off') {
-    return
-  }
-  updateConfig(cfg => {
-    cfg.balance.index = {
-      ...(cfg.balance?.index ?? createDefaultBalanceConfig().index),
-      basis: value as BalanceConfig['index']['basis'],
-    }
-  })
 }
 
 function onCalendarTargetInput(id: string, value: string){

@@ -20,6 +20,12 @@ function setup(overrides: Partial<Parameters<typeof useOnboardingActions>[0]> = 
   const setThemePreference = vi.fn()
   const savePreset = vi.fn().mockResolvedValue(undefined)
   const reloadAfterPersist = vi.fn().mockResolvedValue(undefined)
+  const setSelected = vi.fn()
+  const setTargetsWeek = vi.fn()
+  const setTargetsMonth = vi.fn()
+  const setTargetsConfig = vi.fn()
+  const setGroupsById = vi.fn()
+  const setOnboardingState = vi.fn()
 
   const actions = useOnboardingActions({
     onboardingState,
@@ -30,6 +36,12 @@ function setup(overrides: Partial<Parameters<typeof useOnboardingActions>[0]> = 
     setThemePreference,
     savePreset,
     reloadAfterPersist,
+    setSelected,
+    setTargetsWeek,
+    setTargetsMonth,
+    setTargetsConfig,
+    setGroupsById,
+    setOnboardingState,
     ...overrides,
   })
 

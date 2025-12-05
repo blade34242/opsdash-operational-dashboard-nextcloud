@@ -27,10 +27,10 @@ describe('useBalance', () => {
         trend: {
           delta: [{ id: 'work', label: 'Work', delta: 10 }],
           badge: 'Shifting',
-          history: [
-            { offset: 1, label: '-1 wk', categories: [{ id: 'work', label: 'Work', share: 45 }] },
-          ],
         },
+        trendHistory: [
+          { offset: 1, label: '-1 wk', categories: [{ id: 'work', label: 'Work', share: 45 }] },
+        ],
         daily: [
           {
             date: '2025-03-03',

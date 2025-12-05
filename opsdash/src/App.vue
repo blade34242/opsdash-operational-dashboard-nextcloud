@@ -186,11 +186,14 @@
                 :widgets="widgets"
                 :context="widgetContext"
                 :editable="isLayoutEditing"
+                :widget-types="availableWidgetTypes"
                 @edit:width="cycleWidth"
                 @edit:height="cycleHeight"
                 @edit:remove="removeWidget"
                 @edit:move="moveWidget"
                 @edit:options="updateWidgetOptions"
+                @edit:add="addWidgetAt"
+                @edit:reorder="reorderWidget"
                 @open:onboarding="openOnboardingFromLayout"
               />
             </div>
@@ -372,6 +375,7 @@ import { useKeyboardShortcuts } from '../composables/useKeyboardShortcuts'
 import { useOnboardingActions } from '../composables/useOnboardingActions'
 import { useDeckCards } from '../composables/useDeckCards'
 import { trackTelemetry } from './services/telemetry'
+import './styles/widgetTextScale.css'
 // Ensure a visible version even if backend attrs are empty: use package.json as fallback
 // @ts-ignore
 import pkg from '../package.json'
@@ -736,11 +740,53 @@ function addWidget(type: string) {
   layoutWidgets.value = [...layoutWidgets.value, def]
   newWidgetType.value = ''
 }
+function addWidgetAt(type: string, orderHint?: number) {
+  const entry = widgetsRegistry[type]
+  if (!entry) return
+  const maxOrder = layoutWidgets.value.reduce((acc, w) => Math.max(acc, w.layout.order || 0), 0)
+  let order = Number.isFinite(orderHint) ? Number(orderHint) : maxOrder + 10
+  if (!Number.isFinite(order)) order = maxOrder + 10
+  while (layoutWidgets.value.some((w) => w.layout.order === order)) {
+    order += 0.1
+  }
+  const def: WidgetDefinition = {
+    id: `widget-${type}-${Date.now()}`,
+    type,
+    options: {},
+    layout: { ...entry.defaultLayout, order },
+    version: 1,
+  }
+  layoutWidgets.value = [...layoutWidgets.value, def]
+}
+function reorderWidget(id: string, orderHint?: number | null) {
+  if (!Number.isFinite(orderHint ?? NaN)) return
+  const nextOrder = Number(orderHint)
+  const items = layoutWidgets.value.map((w) =>
+    w.id === id ? { ...w, layout: { ...w.layout, order: nextOrder } } : { ...w },
+  )
+  items.sort((a, b) => (a.layout.order || 0) - (b.layout.order || 0))
+  layoutWidgets.value = items.map((w, idx) => ({
+    ...w,
+    layout: { ...w.layout, order: (idx + 1) * 10 },
+  }))
+}
 
 function updateWidgetOptions(id: string, key: string, value: any) {
   layoutWidgets.value = layoutWidgets.value.map((w) => {
     if (w.id !== id) return w
     const opts = { ...(w.options || {}) }
+    if (key.includes('.')) {
+      const parts = key.split('.')
+      const next = { ...opts }
+      let cursor: any = next
+      for (let i = 0; i < parts.length - 1; i += 1) {
+        const p = parts[i]
+        cursor[p] = { ...(cursor[p] || {}) }
+        cursor = cursor[p]
+      }
+      cursor[parts[parts.length - 1]] = value
+      return { ...w, options: next }
+    }
     opts[key] = value
     return { ...w, options: opts }
   })
@@ -889,6 +935,12 @@ const onboardingActions = useOnboardingActions({
   setThemePreference,
   savePreset,
   reloadAfterPersist: () => performLoad(),
+  setSelected: (val) => { selected.value = [...val] },
+  setTargetsWeek: (val) => { targetsWeek.value = { ...val } },
+  setTargetsMonth: (val) => { targetsMonth.value = { ...val } },
+  setTargetsConfig: (val) => { targetsConfig.value = cloneTargetsConfig(val) },
+  setGroupsById: (val) => { groupsById.value = { ...val } },
+  setOnboardingState: (val) => { onboarding.value = { ...(onboarding.value || {}), ...val } as any },
 })
 
 const {
@@ -968,6 +1020,20 @@ const {
   saveNotes: () => saveNotes(),
   openNotesPanel: () => focusSidebarTab('notes'),
   openConfigPanel: () => focusSidebarTab('config'),
+  toggleEditLayout: () => {
+    isLayoutEditing.value = !isLayoutEditing.value
+  },
+  openWidgetOptions: () => {
+    if (!isLayoutEditing.value) return
+    if (!openOptionsId.value && widgets.value.length) {
+      selectedWidgetId.value = widgets.value[0].id
+      openOptionsId.value = widgets.value[0].id
+      return
+    }
+    if (selectedWidgetId.value) {
+      openOptionsId.value = selectedWidgetId.value
+    }
+  },
   ensureSidebarVisible,
   onOpen: ({ source }) => trackTelemetry('shortcuts_opened', { source }),
 })

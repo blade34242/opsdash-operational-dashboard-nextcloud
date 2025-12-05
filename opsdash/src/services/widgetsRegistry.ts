@@ -1,6 +1,7 @@
 import TimeSummaryCard from '../components/TimeSummaryCard.vue'
 import TimeTargetsCard from '../components/TimeTargetsCard.vue'
 import BalanceOverviewCard from '../components/BalanceOverviewCard.vue'
+import BalanceIndexCard from '../components/BalanceIndexCard.vue'
 import ActivityScheduleCard from '../components/ActivityScheduleCard.vue'
 import DayOffTrendCard from '../components/DayOffTrendCard.vue'
 import CategoryMixTrendCard from '../components/CategoryMixTrendCard.vue'
@@ -10,7 +11,11 @@ import NoteSnippetWidget from '../components/NoteSnippetWidget.vue'
 import NoteEditorWidget from '../components/NoteEditorWidget.vue'
 import TextBlockWidget from '../components/TextBlockWidget.vue'
 import { createDefaultTargetsConfig, buildTargetsSummary, createEmptyTargetsSummary, convertWeekToMonth } from './targets'
+import { createDefaultBalanceConfig } from './targets/config'
 import type { TargetsConfig } from './targets'
+import { resolveWidgetColors } from './widgetColors'
+
+const BASE_COLORS = ['#2563EB', '#F97316', '#10B981', '#A855F7', '#EC4899', '#14B8A6', '#F59E0B', '#6366F1', '#0EA5E9', '#65A30D']
 
 export type WidgetSize = 'quarter' | 'half' | 'full'
 export type WidgetHeight = 's' | 'm' | 'l'
@@ -118,9 +123,7 @@ export const widgetsRegistry: Record<string, RegistryEntry> = {
       { key: 'showTopCategory', label: 'Show top category', type: 'toggle' },
       { key: 'showWorkdayStats', label: 'Show workday stats', type: 'toggle' },
       { key: 'showWeekendStats', label: 'Show weekend stats', type: 'toggle' },
-      { key: 'titlePrefix', label: 'Title prefix', type: 'text' },
-      { key: 'cardBg', label: 'Card background', type: 'text' },
-    ],
+                ],
     buildProps: (_def, ctx) => ({
       summary: ctx.summary,
       mode: 'active',
@@ -166,8 +169,6 @@ export const widgetsRegistry: Record<string, RegistryEntry> = {
       { key: 'showCalendarSummary', label: 'Top calendars', type: 'toggle' },
       { key: 'showTopCategory', label: 'Top category', type: 'toggle' },
       { key: 'showBalance', label: 'Balance index', type: 'toggle' },
-      { key: 'titlePrefix', label: 'Title prefix', type: 'text' },
-      { key: 'cardBg', label: 'Card background', type: 'text' },
     ],
     buildProps: (def, ctx) => {
       const baseConfig: TargetsConfig = ctx.targetsConfig ? JSON.parse(JSON.stringify(ctx.targetsConfig)) : createDefaultTargetsConfig()
@@ -204,8 +205,6 @@ export const widgetsRegistry: Record<string, RegistryEntry> = {
       { key: 'showForecast', label: 'Show forecast', type: 'toggle' },
       { key: 'showPace', label: 'Show pace line', type: 'toggle' },
       { key: 'showToday', label: 'Show today overlay', type: 'toggle' },
-      { key: 'titlePrefix', label: 'Title prefix', type: 'text' },
-      { key: 'cardBg', label: 'Card background', type: 'text' },
     ],
     buildProps: (def, ctx) => ({
       summary: ctx.targetsSummary ?? ctx.summary,
@@ -247,8 +246,6 @@ export const widgetsRegistry: Record<string, RegistryEntry> = {
       { key: 'badges', label: 'Status badges', type: 'toggle' },
       { key: 'includeWeekendToggle', label: 'Weekend toggle', type: 'toggle' },
       { key: 'includeZeroDaysInStats', label: 'Include zero days in pace', type: 'toggle' },
-      { key: 'titlePrefix', label: 'Title prefix', type: 'text' },
-      { key: 'cardBg', label: 'Card background', type: 'text' },
       // footer removed
     ],
     buildProps: (def, ctx) => {
@@ -301,8 +298,6 @@ export const widgetsRegistry: Record<string, RegistryEntry> = {
       { key: 'showTrend', label: 'Show trend history', type: 'toggle' },
       { key: 'showRelations', label: 'Show relations', type: 'toggle' },
       { key: 'showWarnings', label: 'Show warnings', type: 'toggle' },
-      { key: 'titlePrefix', label: 'Title prefix', type: 'text' },
-      { key: 'cardBg', label: 'Card background', type: 'text' },
     ],
     buildProps: (_def, ctx) => ({
       overview: ctx.balanceOverview,
@@ -324,6 +319,100 @@ export const widgetsRegistry: Record<string, RegistryEntry> = {
       cardBg: _def.options?.cardBg,
     }),
   },
+  balance_index: {
+    component: BalanceIndexCard,
+    defaultLayout: { width: 'half', height: 's', order: 32 },
+    label: 'Balance Index',
+    baseTitle: 'Balance Index',
+    configurable: true,
+    supportsColors: true,
+    defaultOptions: (() => {
+      const defaults = createDefaultBalanceConfig()
+      return {
+        showTrend: true,
+        showMessages: true,
+        showConfig: true,
+        indexBasis: defaults.index.basis,
+        noticeAbove: defaults.thresholds.noticeAbove,
+        noticeBelow: defaults.thresholds.noticeBelow,
+        warnAbove: defaults.thresholds.warnAbove,
+        warnBelow: defaults.thresholds.warnBelow,
+        warnIndex: defaults.thresholds.warnIndex,
+        lookbackWeeks: defaults.trend.lookbackWeeks,
+        messageDensity: 'normal',
+        trendColor: '#2563EB',
+      }
+    })(),
+    controls: [
+      { key: 'showConfig', label: 'Show config summary', type: 'toggle' },
+      { key: 'showTrend', label: 'Show trend', type: 'toggle' },
+      { key: 'showMessages', label: 'Show messages', type: 'toggle' },
+      { key: 'lookbackWeeks', label: 'Trend lookback (weeks)', type: 'number', min: 1, max: 12, step: 1 },
+      {
+        key: 'messageDensity',
+        label: 'Messages shown',
+        type: 'select',
+        options: [
+          { value: 'few', label: 'Few' },
+          { value: 'normal', label: 'Normal' },
+          { value: 'many', label: 'Many' },
+        ],
+      },
+      {
+        key: 'indexBasis',
+        label: 'Index basis',
+        type: 'select',
+        options: [
+          { value: 'off', label: 'Disabled' },
+          { value: 'category', label: 'Total categories' },
+          { value: 'calendar', label: 'Total calendars' },
+          { value: 'both', label: 'Categories + calendars' },
+        ],
+      },
+      { key: 'noticeAbove', label: 'Notice above target', type: 'number', min: 0, max: 1, step: 0.01 },
+      { key: 'noticeBelow', label: 'Notice below target', type: 'number', min: 0, max: 1, step: 0.01 },
+      { key: 'warnAbove', label: 'Warn above target', type: 'number', min: 0, max: 1, step: 0.01 },
+      { key: 'warnBelow', label: 'Warn below target', type: 'number', min: 0, max: 1, step: 0.01 },
+      { key: 'warnIndex', label: 'Warn index', type: 'number', min: 0, max: 1, step: 0.01 },
+      { key: 'trendColor', label: 'Trend color', type: 'color' },
+    ],
+    buildProps: (_def, ctx) => {
+      const cfg = ctx.balanceConfig ? JSON.parse(JSON.stringify(ctx.balanceConfig)) : createDefaultBalanceConfig()
+      const showBadge = _def.options?.showBadge !== false
+      const showTrend = _def.options?.showTrend !== false
+      const showMessages = _def.options?.showMessages ?? cfg.ui?.showMessages ?? true
+      const density = (_def.options?.messageDensity as string) || 'normal'
+      const messageLimit = density === 'few' ? 1 : density === 'many' ? Infinity : 3
+      const lookbackWeeks = Number.isFinite(_def.options?.lookbackWeeks) ? Number(_def.options?.lookbackWeeks) : cfg.trend?.lookbackWeeks ?? 4
+      const thresholds = {
+        noticeAbove: numberOr(cfg?.thresholds?.noticeAbove, _def.options?.noticeAbove),
+        noticeBelow: numberOr(cfg?.thresholds?.noticeBelow, _def.options?.noticeBelow),
+        warnAbove: numberOr(cfg?.thresholds?.warnAbove, _def.options?.warnAbove),
+        warnBelow: numberOr(cfg?.thresholds?.warnBelow, _def.options?.warnBelow),
+        warnIndex: numberOr(cfg?.thresholds?.warnIndex, _def.options?.warnIndex),
+      }
+      const indexBasis = _def.options?.indexBasis || cfg?.index?.basis || 'category'
+      const trendColor = typeof _def.options?.trendColor === 'string' && _def.options?.trendColor.trim()
+        ? _def.options.trendColor.trim()
+        : '#2563EB'
+      return {
+        overview: ctx.balanceOverview,
+        targetsCategories: ctx.targetsConfig?.categories || [],
+        rangeLabel: ctx.rangeLabel,
+        showBadge,
+        showTrend,
+        showMessages,
+        showConfig: _def.options?.showConfig !== false,
+        messageLimit,
+        lookbackWeeks,
+        indexBasis,
+        thresholds,
+        title: buildTitle(widgetsRegistry.balance_index.baseTitle!, _def.options?.titlePrefix),
+        cardBg: _def.options?.colors?.background ?? _def.options?.cardBg,
+        trendColor,
+      }
+    },
+  },
   activity: {
     component: ActivityScheduleCard,
     defaultLayout: { width: 'half', height: 'm', order: 40 },
@@ -335,8 +424,6 @@ export const widgetsRegistry: Record<string, RegistryEntry> = {
       { key: 'showBadges', label: 'Show badges', type: 'toggle' },
       { key: 'showTrends', label: 'Show trend tiles', type: 'toggle' },
       { key: 'showMeta', label: 'Show meta rows', type: 'toggle' },
-      { key: 'titlePrefix', label: 'Title prefix', type: 'text' },
-      { key: 'cardBg', label: 'Card background', type: 'text' },
     ],
     buildProps: (_def, ctx) => ({
       summary: ctx.activitySummary,
@@ -373,8 +460,6 @@ export const widgetsRegistry: Record<string, RegistryEntry> = {
       },
       { key: 'showHeader', label: 'Show header', type: 'toggle' },
       { key: 'showBadges', label: 'Show badges', type: 'toggle' },
-      { key: 'titlePrefix', label: 'Title prefix', type: 'text' },
-      { key: 'cardBg', label: 'Card background', type: 'text' },
     ],
     buildProps: (_def, ctx) => ({
       trend: ctx.activityDayOffTrend,
@@ -397,8 +482,6 @@ export const widgetsRegistry: Record<string, RegistryEntry> = {
       { key: 'showBadges', label: 'Show board badges', type: 'toggle' },
       { key: 'showTicker', label: 'Show ticker', type: 'toggle' },
       { key: 'showEmpty', label: 'Show empty states', type: 'toggle' },
-      { key: 'titlePrefix', label: 'Title prefix', type: 'text' },
-      { key: 'cardBg', label: 'Card background', type: 'text' },
     ],
     buildProps: (_def, ctx) => ({
       buckets: ctx.deckBuckets,
@@ -424,8 +507,6 @@ export const widgetsRegistry: Record<string, RegistryEntry> = {
       { key: 'showPrev', label: 'Show previous note', type: 'toggle' },
       { key: 'showLabels', label: 'Show labels', type: 'toggle' },
       { key: 'mode', label: 'Mode', type: 'select', options: [{ value: 'week', label: 'Week' }, { value: 'month', label: 'Month' }] },
-      { key: 'titlePrefix', label: 'Title prefix', type: 'text' },
-      { key: 'cardBg', label: 'Card background', type: 'text' },
     ],
     buildProps: (def, ctx) => ({
       notesPrev: ctx.notesPrev,
@@ -452,10 +533,7 @@ export const widgetsRegistry: Record<string, RegistryEntry> = {
     configurable: true,
     controls: [
       { key: 'lookbackWeeks', label: 'Lookback (weeks)', type: 'number', min: 1, max: 4, step: 1 },
-      { key: 'showBadge', label: 'Show badge', type: 'toggle' },
-      { key: 'showHeader', label: 'Show header', type: 'toggle' },
-      { key: 'titlePrefix', label: 'Title prefix', type: 'text' },
-      { key: 'cardBg', label: 'Card background', type: 'text' },
+            { key: 'showHeader', label: 'Show header', type: 'toggle' },
     ],
     buildProps: (_def, ctx) => ({
       overview: ctx.balanceOverview,
@@ -491,8 +569,6 @@ export const widgetsRegistry: Record<string, RegistryEntry> = {
       { key: 'title', label: 'Title', type: 'text' },
       { key: 'body', label: 'Body', type: 'textarea' },
       { key: 'include', label: 'Include all labels', type: 'toggle' },
-      { key: 'titlePrefix', label: 'Title prefix', type: 'text' },
-      { key: 'cardBg', label: 'Card background', type: 'text' },
     ],
     buildProps: (def, ctx) => ({
       title: buildTitle(resolvePreset(def.options?.preset as TextPresetKey).title ?? 'Text', def.options?.titlePrefix),
@@ -521,8 +597,6 @@ export const widgetsRegistry: Record<string, RegistryEntry> = {
     baseTitle: 'Note',
     configurable: true,
     controls: [
-      { key: 'titlePrefix', label: 'Title prefix', type: 'text' },
-      { key: 'cardBg', label: 'Card background', type: 'text' },
     ],
     buildProps: (_def, ctx) => ({
       notesCurr: ctx.notesCurr ?? '',
@@ -538,8 +612,6 @@ export const widgetsRegistry: Record<string, RegistryEntry> = {
     baseTitle: 'Notes',
     configurable: true,
     controls: [
-      { key: 'titlePrefix', label: 'Title prefix', type: 'text' },
-      { key: 'cardBg', label: 'Card background', type: 'text' },
       { key: 'prevLabel', label: 'Prev label', type: 'text' },
       { key: 'currLabel', label: 'Current label', type: 'text' },
     ],
@@ -599,6 +671,15 @@ function buildTitle(base: string, prefix?: string | null) {
   const trimmed = String(prefix).trim()
   if (!trimmed) return base
   return `${trimmed} · ${base}`
+}
+
+function numberOr(primary?: any, override?: any) {
+  if (override !== undefined && override !== null && override !== '') {
+    const num = Number(override)
+    if (Number.isFinite(num)) return num
+  }
+  const num = Number(primary)
+  return Number.isFinite(num) ? num : undefined
 }
 
 function resolvePreset(key?: TextPresetKey): { title?: string; body?: string } {

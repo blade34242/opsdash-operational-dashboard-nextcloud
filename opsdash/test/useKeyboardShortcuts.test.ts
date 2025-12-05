@@ -8,10 +8,12 @@ function setup(overrides: Partial<Parameters<typeof useKeyboardShortcuts>[0]> = 
     goNext: vi.fn(),
     toggleRange: vi.fn(),
     saveNotes: vi.fn(),
+    openWidgetOptions: vi.fn(),
     openNotesPanel: vi.fn(),
     openConfigPanel: vi.fn(),
     ensureSidebarVisible: vi.fn(),
     onOpen: vi.fn(),
+    toggleEditLayout: vi.fn(),
     ...overrides,
   }
   const shortcuts = useKeyboardShortcuts(deps)
@@ -62,7 +64,25 @@ describe('useKeyboardShortcuts', () => {
     expect(deps.openConfigPanel).toHaveBeenCalledTimes(1)
 
     document.dispatchEvent(new KeyboardEvent('keydown', { key: 's', ctrlKey: true, bubbles: true }))
-    expect(deps.saveNotes).toHaveBeenCalledTimes(1)
+    expect(deps.openWidgetOptions).toHaveBeenCalledTimes(1)
+
+    document.dispatchEvent(new KeyboardEvent('keydown', { key: 's', metaKey: true, bubbles: true }))
+    expect(deps.openWidgetOptions).toHaveBeenCalledTimes(2)
+
+    shortcuts.unbindShortcuts()
+  })
+
+  it('toggles edit layout on Ctrl/⌘+E outside inputs', () => {
+    const { shortcuts, deps } = setup()
+
+    document.dispatchEvent(new KeyboardEvent('keydown', { key: 'e', ctrlKey: true, bubbles: true }))
+    expect(deps.toggleEditLayout).toHaveBeenCalledTimes(1)
+
+    const input = document.createElement('input')
+    document.body.appendChild(input)
+    input.focus()
+    input.dispatchEvent(new KeyboardEvent('keydown', { key: 'e', ctrlKey: true, bubbles: true }))
+    expect(deps.toggleEditLayout).toHaveBeenCalledTimes(1)
 
     shortcuts.unbindShortcuts()
   })

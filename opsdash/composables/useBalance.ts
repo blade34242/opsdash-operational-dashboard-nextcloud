@@ -65,7 +65,11 @@ export function useBalance(input: UseBalanceInput) {
         }))
       : []
 
-    const trendHistoryRaw = Array.isArray(raw.trend?.history) ? raw.trend.history : []
+    const trendHistoryRaw = Array.isArray(raw.trend?.history)
+      ? raw.trend.history
+      : Array.isArray((raw as any)?.trendHistory)
+        ? (raw as any).trendHistory
+        : []
     const trend = {
       delta: Array.isArray(raw.trend?.delta)
         ? raw.trend.delta.map((entry: any) => ({

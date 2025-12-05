@@ -7,10 +7,12 @@ interface KeyboardShortcutDeps {
   goNext: () => void | Promise<void>
   toggleRange: () => void | Promise<void>
   saveNotes?: () => void | Promise<void>
+  openWidgetOptions?: () => void | Promise<void>
   openNotesPanel?: () => void
   openConfigPanel?: () => void
   ensureSidebarVisible?: () => void
   onOpen?: (detail: { source: 'keyboard' | 'button' | 'api' }) => void
+  toggleEditLayout?: () => void | Promise<void>
 }
 
 export function useKeyboardShortcuts(deps: KeyboardShortcutDeps) {
@@ -117,9 +119,15 @@ export function useKeyboardShortcuts(deps: KeyboardShortcutDeps) {
     const metaOrCtrl = event.metaKey || event.ctrlKey
     if (metaOrCtrl && !event.altKey) {
       if (event.key === 's' || event.key === 'S') {
-        if (deps.saveNotes) {
+        if (deps.openWidgetOptions && !editable) {
           event.preventDefault()
-          deps.saveNotes()
+          deps.openWidgetOptions()
+        }
+      }
+      if (event.key === 'e' || event.key === 'E') {
+        if (deps.toggleEditLayout && !editable) {
+          event.preventDefault()
+          deps.toggleEditLayout()
         }
       }
     }

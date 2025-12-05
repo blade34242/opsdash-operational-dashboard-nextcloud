@@ -1,0 +1,12 @@
+:root{
+  --widget-text-scale:1;
+}
+.text-scale-sm{
+  --widget-text-scale:0.84;
+}
+.text-scale-md{
+  --widget-text-scale:1;
+}
+.text-scale-lg{
+  --widget-text-scale:1.24;
+}

@@ -41,147 +41,6 @@
 
     <div class="target-section">
       <div class="section-title-row tier-2">
-        <div class="section-subtitle subtitle">Balance index</div>
-        <button
-          type="button"
-          class="info-button"
-          :aria-expanded="helpThresholds"
-          aria-label="Thresholds help"
-          @click="emit('toggle-help', 'thresholds')"
-        >
-          <span>?</span>
-        </button>
-      </div>
-      <div class="section-hint" v-if="helpThresholds">
-        <span class="hint-title">Balance index</span>
-        <span class="hint-body">Compares actual vs expected shares from your targets. Example: category targets 30/30/40 — if Work jumps to 80% you’ll get warnings. Calendar basis warns if one calendar sits far above its target. “Both” mixes categories and calendars; “Disabled” turns index + warnings off. Notice/Warn thresholds check positive and negative deviations; Warn Index fires if the overall deviation is too high.</span>
-      </div>
-      <div class="field-grid">
-        <label class="field">
-          <span class="label">Index basis</span>
-          <select
-            :value="balanceSettings.index.basis"
-            @change="emit('set-index-basis', ($event.target as HTMLSelectElement).value)"
-          >
-            <option
-              v-for="opt in resolvedIndexBasisOptions"
-              :key="opt.value"
-              :value="opt.value"
-            >
-              {{ opt.label }}
-            </option>
-          </select>
-          <div class="input-message info">
-            {{ resolvedIndexBasisOptions.find(opt => opt.value === balanceSettings.index.basis)?.hint || 'Default: categories. “Both” treats every category and calendar bucket in one index and drives warnings. “Disabled” turns off index and warnings.' }}
-          </div>
-        </label>
-      </div>
-      <div class="field-grid">
-        <label class="field">
-          <span class="label">Notice above target</span>
-          <input
-            type="number"
-            min="0"
-            max="1"
-            step="0.01"
-            :disabled="indexDisabled"
-            :value="balanceSettings.thresholds.noticeAbove"
-            :aria-invalid="!!balanceThresholdMessages.noticeAbove"
-            @input="emit('set-threshold', { key: 'noticeAbove', value: ($event.target as HTMLInputElement).value })"
-          />
-          <div class="input-message info inline-hint">Notice when actual exceeds target by more than this (e.g., 0.15 = +15pp).</div>
-          <div
-            v-if="balanceThresholdMessages.noticeAbove"
-            :class="['input-message', balanceThresholdMessages.noticeAbove?.tone]"
-          >
-            {{ balanceThresholdMessages.noticeAbove?.text }}
-          </div>
-        </label>
-        <label class="field">
-          <span class="label">Notice below target</span>
-          <input
-            type="number"
-            min="0"
-            max="1"
-            step="0.01"
-            :disabled="indexDisabled"
-            :value="balanceSettings.thresholds.noticeBelow"
-            :aria-invalid="!!balanceThresholdMessages.noticeBelow"
-            @input="emit('set-threshold', { key: 'noticeBelow', value: ($event.target as HTMLInputElement).value })"
-          />
-          <div class="input-message info inline-hint">Notice when actual falls below target by more than this.</div>
-          <div
-            v-if="balanceThresholdMessages.noticeBelow"
-            :class="['input-message', balanceThresholdMessages.noticeBelow?.tone]"
-          >
-            {{ balanceThresholdMessages.noticeBelow?.text }}
-          </div>
-        </label>
-        <label class="field">
-          <span class="label">Warn above target</span>
-          <input
-            type="number"
-            min="0"
-            max="1"
-            step="0.01"
-            :disabled="indexDisabled"
-            :value="balanceSettings.thresholds.warnAbove"
-            :aria-invalid="!!balanceThresholdMessages.warnAbove"
-            @input="emit('set-threshold', { key: 'warnAbove', value: ($event.target as HTMLInputElement).value })"
-          />
-          <div class="input-message info inline-hint">Hard warning when actual exceeds target by more than this (e.g., 0.30 = +30pp).</div>
-          <div
-            v-if="balanceThresholdMessages.warnAbove"
-            :class="['input-message', balanceThresholdMessages.warnAbove?.tone]"
-          >
-            {{ balanceThresholdMessages.warnAbove?.text }}
-          </div>
-        </label>
-        <label class="field">
-          <span class="label">Warn below target</span>
-          <input
-            type="number"
-            min="0"
-            max="1"
-            step="0.01"
-            :disabled="indexDisabled"
-            :value="balanceSettings.thresholds.warnBelow"
-            :aria-invalid="!!balanceThresholdMessages.warnBelow"
-            @input="emit('set-threshold', { key: 'warnBelow', value: ($event.target as HTMLInputElement).value })"
-          />
-          <div class="input-message info inline-hint">Hard warning when actual falls below target by more than this.</div>
-          <div
-            v-if="balanceThresholdMessages.warnBelow"
-            :class="['input-message', balanceThresholdMessages.warnBelow?.tone]"
-          >
-            {{ balanceThresholdMessages.warnBelow?.text }}
-          </div>
-        </label>
-        <label class="field">
-          <span class="label">Warn index</span>
-          <input
-            type="number"
-            min="0"
-            max="1"
-            step="0.01"
-            :disabled="indexDisabled"
-            :value="balanceSettings.thresholds.warnIndex"
-            :aria-invalid="!!balanceThresholdMessages.warnIndex"
-            @input="emit('set-threshold', { key: 'warnIndex', value: ($event.target as HTMLInputElement).value })"
-          />
-          <div class="input-message info inline-hint">Warn when the overall index (1 - max deviation) drops below this.</div>
-          <div
-            v-if="balanceThresholdMessages.warnIndex"
-            :class="['input-message', balanceThresholdMessages.warnIndex?.tone]"
-          >
-            {{ balanceThresholdMessages.warnIndex?.text }}
-          </div>
-        </label>
-      </div>
-    </div>
-
-    <div class="target-section">
-      <div class="section-title-row tier-2">
         <div class="section-subtitle subtitle">Trend &amp; relations</div>
         <button
           type="button"
@@ -234,25 +93,14 @@ const rawProps = defineProps<{
   balanceSettings: BalanceConfig
   activityForecastMode: ActivityForecastMode
   activityForecastOptions: ForecastOption[]
-  balanceThresholdMessages: {
-    noticeAbove: InputMessage | null
-    noticeBelow: InputMessage | null
-    warnAbove: InputMessage | null
-    warnBelow: InputMessage | null
-    warnIndex: InputMessage | null
-  }
   balanceLookbackMessage: InputMessage | null
-  indexBasisOptions?: Array<{ value: 'category' | 'calendar' | 'both' | 'off'; label: string; hint?: string }>
-  helpThresholds: boolean
   helpTrend: boolean
   helpDisplay: boolean
 }>()
 
 const emit = defineEmits<{
-  (e: 'toggle-help', target: 'thresholds' | 'trend' | 'display'): void
+  (e: 'toggle-help', target: 'trend' | 'display'): void
   (e: 'set-activity-forecast', mode: ActivityForecastMode): void
-  (e: 'set-index-basis', value: string): void
-  (e: 'set-threshold', payload: { key: 'noticeAbove' | 'noticeBelow' | 'warnAbove' | 'warnBelow' | 'warnIndex'; value: string }): void
   (e: 'set-lookback', value: string): void
 }>()
 
@@ -260,10 +108,7 @@ const {
   balanceSettings,
   activityForecastMode,
   activityForecastOptions,
-  balanceThresholdMessages,
   balanceLookbackMessage,
-  indexBasisOptions,
-  helpThresholds,
   helpTrend,
   helpDisplay,
 } = toRefs(rawProps)
@@ -272,19 +117,6 @@ const activityForecastDescription = computed(() => {
   const selected = activityForecastOptions.value?.find((opt) => opt.value === activityForecastMode.value)
   return selected?.description ?? ''
 })
-
-const indexDisabled = computed(() => balanceSettings.value.index.basis === 'off')
-
-const resolvedIndexBasisOptions = computed(() =>
-  indexBasisOptions.value && indexBasisOptions.value.length
-    ? indexBasisOptions.value
-    : [
-        { value: 'off', label: 'Disabled', hint: 'Do not compute index or warnings' },
-        { value: 'category', label: 'Total categories' },
-        { value: 'calendar', label: 'Total calendars' },
-        { value: 'both', label: 'Categories + calendars' },
-      ],
-)
 </script>
 
 <style scoped>

@@ -2,58 +2,126 @@
   <div class="options-wrapper" @keydown.stop>
     <button type="button" class="ghost" title="Configure widget" @click.stop="open = !open">⚙</button>
     <div v-if="open" class="options-pop">
-      <div v-for="control in mergedControls" :key="control.key" class="opt-row">
-        <label :for="`opt-${control.key}`">{{ control.label }}</label>
-        <template v-if="control.type === 'number'">
-          <input
-            :id="`opt-${control.key}`"
-            type="number"
-            :min="control.min"
-            :max="control.max"
-            :step="control.step || 1"
-            :value="local[control.key] ?? ''"
+      <div class="opt-section">
+        <div class="opt-section__title">Layout & title</div>
+        <div v-for="control in coreControls" :key="control.key" class="opt-row">
+          <label :for="`opt-${control.key}`">{{ control.label }}</label>
+          <template v-if="control.type === 'number'">
+            <input
+              :id="`opt-${control.key}`"
+              type="number"
+              :min="control.min"
+              :max="control.max"
+              :step="control.step || 1"
+              :value="valueFor(control.key) ?? ''"
+              @input="onNumber(control.key, $event)"
+            />
+          </template>
+          <template v-else-if="control.type === 'select'">
+            <select :id="`opt-${control.key}`" :value="valueFor(control.key)" @change="onSelect(control.key, $event)">
+              <option v-for="opt in control.options || []" :key="opt.value" :value="opt.value">
+                {{ opt.label }}
+              </option>
+            </select>
+          </template>
+          <template v-else-if="control.type === 'toggle'">
+            <input
+              :id="`opt-${control.key}`"
+              type="checkbox"
+              :checked="!!valueFor(control.key)"
+              @change="onToggle(control.key, $event)"
+            />
+          </template>
+          <template v-else-if="control.type === 'text'">
+            <input
+              :id="`opt-${control.key}`"
+              type="text"
+              :value="valueFor(control.key) ?? ''"
+              @input="onText(control.key, $event)"
+            />
+          </template>
+          <template v-else-if="control.type === 'color'">
+            <input
+              :id="`opt-${control.key}`"
+              type="color"
+              :value="valueFor(control.key) ?? '#ffffff'"
+              @input="onText(control.key, $event)"
+            />
+          </template>
+        </div>
+      </div>
+
+      <div class="opt-section" v-if="specificControls.length">
+        <div class="opt-section__title">Widget options</div>
+        <div v-for="control in specificControls" :key="control.key" class="opt-row">
+          <label :for="`opt-${control.key}`">{{ control.label }}</label>
+          <template v-if="control.type === 'number'">
+            <input
+              :id="`opt-${control.key}`"
+              type="number"
+              :min="control.min"
+              :max="control.max"
+              :step="control.step || 1"
+            :value="valueFor(control.key) ?? ''"
             @input="onNumber(control.key, $event)"
           />
         </template>
-        <template v-else-if="control.type === 'select'">
-          <select :id="`opt-${control.key}`" :value="local[control.key]" @change="onSelect(control.key, $event)">
-            <option v-for="opt in control.options || []" :key="opt.value" :value="opt.value">
-              {{ opt.label }}
-            </option>
-          </select>
-        </template>
-        <template v-else-if="control.type === 'toggle'">
-          <input
-            :id="`opt-${control.key}`"
-            type="checkbox"
-            :checked="!!local[control.key]"
-            @change="onToggle(control.key, $event)"
-          />
-        </template>
-        <template v-else-if="control.type === 'text'">
-          <input
-            :id="`opt-${control.key}`"
-            type="text"
-            :value="local[control.key] ?? ''"
-            @input="onText(control.key, $event)"
-          />
-        </template>
-        <template v-else-if="control.type === 'color'">
-          <input
-            :id="`opt-${control.key}`"
-            type="color"
-            :value="local[control.key] ?? '#ffffff'"
-            @input="onText(control.key, $event)"
-          />
-        </template>
-        <template v-else-if="control.type === 'textarea'">
-          <textarea
-            :id="`opt-${control.key}`"
-            rows="3"
-            :value="local[control.key] ?? ''"
-            @input="onText(control.key, $event)"
-          />
-        </template>
+          <template v-else-if="control.type === 'select'">
+            <select :id="`opt-${control.key}`" :value="valueFor(control.key)" @change="onSelect(control.key, $event)">
+              <option v-for="opt in control.options || []" :key="opt.value" :value="opt.value">
+                {{ opt.label }}
+              </option>
+            </select>
+          </template>
+          <template v-else-if="control.type === 'toggle'">
+            <input
+              :id="`opt-${control.key}`"
+              type="checkbox"
+              :checked="!!valueFor(control.key)"
+              @change="onToggle(control.key, $event)"
+            />
+          </template>
+          <template v-else-if="control.type === 'text'">
+            <input
+              :id="`opt-${control.key}`"
+              type="text"
+              :value="valueFor(control.key) ?? ''"
+              @input="onText(control.key, $event)"
+            />
+          </template>
+          <template v-else-if="control.type === 'color'">
+            <input
+              :id="`opt-${control.key}`"
+              type="color"
+              :value="valueFor(control.key) ?? '#ffffff'"
+              @input="onText(control.key, $event)"
+            />
+          </template>
+          <template v-else-if="control.type === 'colorlist'">
+            <div class="colorlist">
+              <div
+                v-for="(col, idx) in paletteValue(control.key)"
+                :key="`${control.key}-${idx}`"
+                class="colorlist__item"
+              >
+                <input
+                  type="color"
+                  :value="col"
+                  @input="onPalette(control.key, idx, $event)"
+                />
+              </div>
+              <button type="button" class="ghost sm" @click="addPalette(control.key)">+</button>
+            </div>
+          </template>
+          <template v-else-if="control.type === 'textarea'">
+            <textarea
+              :id="`opt-${control.key}`"
+              rows="3"
+              :value="valueFor(control.key) ?? ''"
+              @input="onText(control.key, $event)"
+            />
+          </template>
+        </div>
       </div>
       <div v-if="showAdvanced" class="opt-row opt-row--footer">
         <button
@@ -87,7 +155,14 @@ const emit = defineEmits<{
 
 const local = ref<Record<string, any>>({})
 
-const commonControls = [
+const coreControls = [
+  { key: 'titlePrefix', label: 'Title prefix', type: 'text' },
+  {
+    key: 'cardBg',
+    label: 'Card background',
+    type: 'color',
+    hint: 'Pick a card fill; leave empty for default.',
+  },
   {
     key: 'textSize',
     label: 'Text size',
@@ -98,23 +173,18 @@ const commonControls = [
       { value: 'lg', label: 'Large' },
     ],
   },
-  { key: 'titlePrefix', label: 'Title prefix', type: 'text' },
-  {
-    key: 'cardBg',
-    label: 'Card background',
-    type: 'color',
-    hint: 'Pick a card fill; leave empty for default.',
-  },
   { key: 'dense', label: 'Dense mode', type: 'toggle' },
 ]
 
-const mergedControls = computed(() => {
-  const specific = props.entry?.controls || []
+const specificControls = computed(() => {
+  const blockKeys = new Set(coreControls.map((c) => c.key))
+  const controls = props.entry?.controls || []
   const dynamic =
     typeof props.entry?.dynamicControls === 'function'
       ? props.entry.dynamicControls(props.options || {})
       : []
-  return [...specific, ...dynamic, ...commonControls]
+  const merged = [...controls, ...dynamic].filter((c: any) => !blockKeys.has(c.key))
+  return merged
 })
 
 watch(
@@ -147,6 +217,36 @@ function onText(key: string, event: Event) {
   const value = (event.target as HTMLInputElement | HTMLTextAreaElement).value
   emit('change', key, value)
 }
+function valueFor(key: string) {
+  if (!key.includes('.')) return local.value[key]
+  const parts = key.split('.')
+  let cur: any = local.value
+  for (const p of parts) {
+    if (cur == null) return undefined
+    cur = cur[p]
+  }
+  return cur
+}
+function paletteValue(key: string) {
+  const raw = valueFor(key)
+  if (Array.isArray(raw) && raw.length) return raw
+  if (typeof raw === 'string' && raw.trim()) {
+    return raw.split(',').map((v: string) => v.trim()).filter(Boolean)
+  }
+  return defaultPalette.slice(0, 5)
+}
+function onPalette(key: string, idx: number, event: Event) {
+  const value = (event.target as HTMLInputElement).value
+  const arr = [...paletteValue(key)]
+  arr[idx] = value
+  emit('change', key, arr)
+}
+function addPalette(key: string) {
+  const arr = [...paletteValue(key), '#cccccc']
+  emit('change', key, arr)
+}
+
+const defaultPalette = ['#2563EB', '#F97316', '#10B981', '#A855F7', '#EC4899']
 </script>
 
 <style scoped>
@@ -155,8 +255,9 @@ function onText(key: string, event: Event) {
 }
 .options-pop{
   position:absolute;
-  top:28px;
+  bottom:calc(100% + 6px);
   right:0;
+  top:auto;
   background: var(--card, #fff);
   border:1px solid var(--color-border, #d1d5db);
   border-radius:8px;
@@ -164,6 +265,8 @@ function onText(key: string, event: Event) {
   padding:8px;
   min-width:180px;
   z-index:30;
+  max-height:320px;
+  overflow:auto;
 }
 .opt-row{
   display:flex;
@@ -206,5 +309,36 @@ function onText(key: string, event: Event) {
 }
 .opt-row textarea{
   width:140px;
+}
+.opt-section{
+  margin-bottom:10px;
+  border-bottom:1px solid var(--color-border,#e5e7eb);
+  padding-bottom:6px;
+}
+.opt-section:last-child{
+  border-bottom:none;
+  padding-bottom:0;
+  margin-bottom:0;
+}
+.opt-section__title{
+  font-size:11px;
+  text-transform:uppercase;
+  letter-spacing:0.04em;
+  color:var(--muted,#6b7280);
+  margin-bottom:6px;
+  font-weight:700;
+}
+.colorlist{
+  display:flex;
+  align-items:center;
+  gap:6px;
+  flex-wrap:wrap;
+}
+.colorlist__item input[type="color"]{
+  width:38px;
+  height:28px;
+  padding:0;
+  border:none;
+  background:transparent;
 }
 </style>
