@@ -13,12 +13,7 @@
           `dayoff-tile--${entry.tone}`,
           { 'dayoff-tile--current': entry.offset === 0 },
         ]"
-        :style="{
-          '--tile-bg': toneStyles[entry.tone].background,
-          '--tile-fg': toneStyles[entry.tone].color,
-          background: toneStyles[entry.tone].background,
-          color: toneStyles[entry.tone].color,
-        }"
+        :style="tileStyle(entry.tone)"
         :title="`${entry.label} · ${shareLabel(entry.share)}`"
       >
         <div class="dayoff-tile__label">{{ entry.label }}</div>
@@ -141,6 +136,16 @@ const toneStyles = computed(() => {
 function shareLabel(value: number) {
   const pct = Math.max(0, Math.min(1, value))
   return `${Math.round(pct * 100)}% off`
+}
+
+function tileStyle(tone: 'low' | 'mid' | 'high') {
+  const style = toneStyles.value[tone]
+  return {
+    '--tile-bg': style.background,
+    '--tile-fg': style.color,
+    background: style.background,
+    color: style.color,
+  }
 }
 
 function classifyTone(value: number): 'low' | 'mid' | 'high' {
