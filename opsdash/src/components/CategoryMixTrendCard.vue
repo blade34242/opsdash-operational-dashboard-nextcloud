@@ -30,6 +30,7 @@
               `mix-cell--trend-${cell.trend}`,
               { 'mix-cell--current': cell.isCurrent },
             ]"
+            :style="toneStyles[cell.trend]"
             :title="`${row.label} · ${cell.label} · ${formatShare(cell.share)}`"
           >
             <span class="mix-cell__value">{{ formatShare(cell.share) }}</span>
@@ -75,6 +76,8 @@ const props = defineProps<{
   showBadge?: boolean
   title?: string
   cardBg?: string | null
+  toneLowColor?: string | null
+  toneHighColor?: string | null
 }>()
 
 const trendBadge = computed(() => (props.showBadge === false ? '' : props.overview?.trend?.badge ?? ''))
@@ -134,6 +137,17 @@ const mixGridStyle = computed(() => ({
   gridTemplateColumns: `52px repeat(${Math.max(columnCount.value, 1)}, minmax(32px, 1fr))`,
 }))
 
+const toneStyles = computed(() => {
+  const low = normalizeColor(props.toneLowColor) || '#e11d48'
+  const high = normalizeColor(props.toneHighColor) || '#10b981'
+  const mid = mixColor(low, high, 0.5)
+  return {
+    down: makeTone(low),
+    flat: makeTone(mid),
+    up: makeTone(high),
+  }
+})
+
 const classifyTrend = (delta: number) => {
   const threshold = 1
   if (delta > threshold) return 'up'
@@ -186,6 +200,53 @@ const lookbackLabel = computed(() => {
 })
 
 const formatShare = (value: number) => `${Math.max(0, Math.round(value))}%`
+
+function normalizeColor(value?: string | null): string | null {
+  if (!value || typeof value !== 'string') return null
+  const hex = value.trim()
+  if (/^#([0-9a-f]{3}|[0-9a-f]{6})$/i.test(hex)) return hex
+  return null
+}
+
+function mixColor(a: string, b: string, ratio = 0.5): string {
+  const pa = parseHex(a)
+  const pb = parseHex(b)
+  if (!pa || !pb) return a
+  const r = clamp(Math.round(pa.r + (pb.r - pa.r) * ratio), 0, 255)
+  const g = clamp(Math.round(pa.g + (pb.g - pa.g) * ratio), 0, 255)
+  const bl = clamp(Math.round(pa.b + (pb.b - pa.b) * ratio), 0, 255)
+  return `rgb(${r}, ${g}, ${bl})`
+}
+
+function parseHex(hex: string): { r: number; g: number; b: number } | null {
+  const clean = hex.replace('#', '')
+  if (clean.length === 3) {
+    const [r, g, b] = clean.split('').map((v) => parseInt(v.repeat(2), 16))
+    return { r, g, b }
+  }
+  if (clean.length === 6) {
+    const r = parseInt(clean.slice(0, 2), 16)
+    const g = parseInt(clean.slice(2, 4), 16)
+    const b = parseInt(clean.slice(4, 6), 16)
+    return { r, g, b }
+  }
+  return null
+}
+
+function luminance(hex: string): number {
+  const p = parseHex(hex)
+  if (!p) return 0
+  return (0.2126 * p.r + 0.7152 * p.g + 0.0722 * p.b) / 255
+}
+
+function makeTone(bg: string): { background: string; color: string } {
+  const text = luminance(bg) > 0.6 ? '#0f172a' : '#fff'
+  return { background: bg, color: text }
+}
+
+function clamp(v: number, min: number, max: number) {
+  return Math.min(max, Math.max(min, v))
+}
 </script>
 
 <style scoped>
