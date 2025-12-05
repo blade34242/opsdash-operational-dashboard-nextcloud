@@ -30,7 +30,10 @@
               `mix-cell--trend-${cell.trend}`,
               { 'mix-cell--current': cell.isCurrent },
             ]"
-            :style="toneStyles[cell.trend]"
+            :style="{
+              '--mix-bg': toneStyles[cell.trend].background,
+              '--mix-fg': toneStyles[cell.trend].color,
+            }"
             :title="`${row.label} · ${cell.label} · ${formatShare(cell.share)}`"
           >
             <span class="mix-cell__value">{{ formatShare(cell.share) }}</span>
@@ -320,8 +323,8 @@ function clamp(v: number, min: number, max: number) {
 .mix-cell{
   border-radius:8px;
   padding:6px;
-  background: color-mix(in oklab, var(--muted), transparent 85%);
-  color: var(--fg);
+  background: var(--mix-bg, color-mix(in oklab, var(--muted), transparent 85%));
+  color: var(--mix-fg, var(--fg));
   text-align:center;
   font-size:12px;
 }
@@ -330,13 +333,13 @@ function clamp(v: number, min: number, max: number) {
   outline-offset:1px;
 }
 .mix-cell--trend-up{
-  background: color-mix(in oklab, #16a34a, white 65%);
+  background: var(--mix-bg, color-mix(in oklab, #16a34a, white 65%));
 }
 .mix-cell--trend-down{
-  background: color-mix(in oklab, #dc2626, white 65%);
+  background: var(--mix-bg, color-mix(in oklab, #dc2626, white 65%));
 }
 .mix-cell--trend-flat{
-  background: color-mix(in oklab, #f97316, white 70%);
+  background: var(--mix-bg, color-mix(in oklab, #f97316, white 70%));
 }
 .mix-cell__value{
   font-weight:700;

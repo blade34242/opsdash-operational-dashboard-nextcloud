@@ -669,6 +669,8 @@ export const widgetsRegistry: Record<string, RegistryEntry> = {
     controls: [
       { key: 'lookbackWeeks', label: 'Lookback (weeks)', type: 'number', min: 1, max: 4, step: 1 },
             { key: 'showHeader', label: 'Show header', type: 'toggle' },
+      { key: 'toneLowColor', label: 'Low color', type: 'color' },
+      { key: 'toneHighColor', label: 'High color', type: 'color' },
     ],
     buildProps: (_def, ctx) => ({
       overview: ctx.balanceOverview,
@@ -678,6 +680,8 @@ export const widgetsRegistry: Record<string, RegistryEntry> = {
       showHeader: _def.options?.showHeader !== false,
       title: buildTitle(widgetsRegistry.category_mix_trend.baseTitle!, _def.options?.titlePrefix),
       cardBg: _def.options?.cardBg,
+      toneLowColor: _def.options?.toneLowColor,
+      toneHighColor: _def.options?.toneHighColor,
     }),
   },
   text_block: {
