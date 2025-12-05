@@ -258,12 +258,12 @@ const defaultPalette = ['#2563EB', '#F97316', '#10B981', '#A855F7', '#EC4899']
   bottom:calc(100% + 6px);
   right:0;
   top:auto;
-  background: var(--card, #fff);
-  border:1px solid var(--color-border, #d1d5db);
+  background:color-mix(in oklab, #111827, #1f2937 60%);
+  border:1px solid color-mix(in oklab, #4b5563, transparent 20%);
   border-radius:8px;
-  box-shadow:0 12px 28px rgba(0,0,0,0.16);
+  box-shadow:0 10px 22px rgba(0,0,0,0.22);
   padding:8px;
-  min-width:180px;
+  min-width:200px;
   z-index:30;
   max-height:320px;
   overflow:auto;
@@ -300,19 +300,29 @@ const defaultPalette = ['#2563EB', '#F97316', '#10B981', '#A855F7', '#EC4899']
 }
 .opt-row label{
   font-size:12px;
-  color:var(--muted);
+  color:#e5e7eb;
 }
 .opt-row input[type=\"number\"],
 .opt-row select,
 .opt-row input[type=\"text\"]{
-  width:90px;
+  width:100px;
+  background:#0f172a;
+  border:1px solid color-mix(in oklab, #4b5563, transparent 30%);
+  color:#e5e7eb;
+  border-radius:6px;
+  padding:4px 6px;
 }
 .opt-row textarea{
-  width:140px;
+  width:160px;
+  background:#0f172a;
+  border:1px solid color-mix(in oklab, #4b5563, transparent 30%);
+  color:#e5e7eb;
+  border-radius:6px;
+  padding:6px;
 }
 .opt-section{
   margin-bottom:10px;
-  border-bottom:1px solid var(--color-border,#e5e7eb);
+  border-bottom:1px solid color-mix(in oklab, #4b5563, transparent 25%);
   padding-bottom:6px;
 }
 .opt-section:last-child{
@@ -324,7 +334,7 @@ const defaultPalette = ['#2563EB', '#F97316', '#10B981', '#A855F7', '#EC4899']
   font-size:11px;
   text-transform:uppercase;
   letter-spacing:0.04em;
-  color:var(--muted,#6b7280);
+  color:#9ca3af;
   margin-bottom:6px;
   font-weight:700;
 }
@@ -338,7 +348,7 @@ const defaultPalette = ['#2563EB', '#F97316', '#10B981', '#A855F7', '#EC4899']
   width:38px;
   height:28px;
   padding:0;
-  border:none;
-  background:transparent;
+  border:1px solid color-mix(in oklab, #4b5563, transparent 30%);
+  background:#0f172a;
 }
 </style>

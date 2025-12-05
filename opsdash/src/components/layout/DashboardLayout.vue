@@ -35,30 +35,32 @@
     </div>
 
     <Teleport to="body">
-      <div v-if="editable" class="widget-toolbar">
-        <div class="toolbar-title">
-          <template v-if="selectedItem">{{ selectedItemTitle }}</template>
-          <template v-else>Click a widget to edit</template>
-        </div>
-        <div class="toolbar-actions" v-if="selectedItem">
-          <button type="button" class="ghost" title="Move earlier" @click="moveSelected('up')">←</button>
-          <button type="button" class="ghost" title="Move later" @click="moveSelected('down')">→</button>
-          <button type="button" class="ghost" title="Cycle width" @click="cycleSelectedWidth">{{ widthLabel(selectedItem.layout.width) }}</button>
-          <button type="button" class="ghost" title="Cycle height" @click="cycleSelectedHeight">{{ heightLabel(selectedItem.layout.height) }}</button>
-          <WidgetOptionsMenu
-            v-if="isConfigurable(selectedItem.type)"
-            :entry="registryEntry(selectedItem.type)"
-            :options="selectedItem.options"
-            :open="openOptionsId === selectedItem.id"
-            :show-advanced="selectedItem.type === 'targets_v2'"
-            @toggle="toggleOptions(selectedItem.id, $event)"
-            @open-advanced="openAdvancedTargets(selectedItem.id)"
-            @change="(key,value)=>$emit('edit:options', selectedItem.id, key, value)"
-          />
-          <button type="button" class="ghost danger" title="Remove widget" @click="removeSelected">✕</button>
-        </div>
-        <div class="toolbar-actions" v-else>
-          <button type="button" class="ghost" @click="selectFirst">Select first widget</button>
+      <div v-if="editable" class="widget-toolbar-layer">
+        <div class="widget-toolbar">
+          <div class="toolbar-title">
+            <template v-if="selectedItem">{{ selectedItemTitle }}</template>
+            <template v-else>Click a widget to edit</template>
+          </div>
+          <div class="toolbar-actions" v-if="selectedItem">
+            <button type="button" class="ghost" title="Move earlier" @click="moveSelected('up')">←</button>
+            <button type="button" class="ghost" title="Move later" @click="moveSelected('down')">→</button>
+            <button type="button" class="ghost" title="Cycle width" @click="cycleSelectedWidth">{{ widthLabel(selectedItem.layout.width) }}</button>
+            <button type="button" class="ghost" title="Cycle height" @click="cycleSelectedHeight">{{ heightLabel(selectedItem.layout.height) }}</button>
+            <WidgetOptionsMenu
+              v-if="isConfigurable(selectedItem.type)"
+              :entry="registryEntry(selectedItem.type)"
+              :options="selectedItem.options"
+              :open="openOptionsId === selectedItem.id"
+              :show-advanced="selectedItem.type === 'targets_v2'"
+              @toggle="toggleOptions(selectedItem.id, $event)"
+              @open-advanced="openAdvancedTargets(selectedItem.id)"
+              @change="(key,value)=>$emit('edit:options', selectedItem.id, key, value)"
+            />
+            <button type="button" class="ghost danger" title="Remove widget" @click="removeSelected">✕</button>
+          </div>
+          <div class="toolbar-actions" v-else>
+            <button type="button" class="ghost" @click="selectFirst">Select first widget</button>
+          </div>
         </div>
       </div>
     </Teleport>
@@ -778,35 +780,60 @@ function onDragEnd() {
   padding-bottom:120px;
   overflow:visible;
 }
-.widget-toolbar{
+.widget-toolbar-layer{
   position:fixed;
-  left:50%;
-  transform:translateX(-50%);
-  bottom:20px;
+  inset:0;
+  pointer-events:none;
+  z-index:9999;
+  display:flex;
+  align-items:flex-end;
+  justify-content:center;
+  padding:0 16px 12px;
+  background: none;
+}
+.widget-toolbar{
+  pointer-events:auto;
   margin-top:0;
-  padding:12px 14px;
-  border:1px solid var(--color-border,#e5e7eb);
-  background:color-mix(in oklab, var(--card,#fff), transparent 2%);
-  border-radius:12px;
+  padding:7px 9px;
+  border:1px solid color-mix(in oklab, var(--color-border,#9ca3af), transparent 10%);
+  background:color-mix(in oklab, #1f2937, #111827 70%);
+  border-radius:8px;
   display:flex;
   align-items:center;
   justify-content:space-between;
-  gap:8px;
-  z-index:4000;
-  box-shadow:0 12px 28px rgba(0,0,0,0.18);
-  max-width:1100px;
-  width: min(1100px, calc(100% - 32px));
-  pointer-events:auto;
+  gap:6px;
+  box-shadow:0 6px 14px rgba(0,0,0,0.16);
+  max-width:760px;
+  width: min(760px, calc(100% - 220px));
   opacity:1;
+  z-index:10000;
+  backdrop-filter: blur(6px);
+  transition: background 140ms ease, box-shadow 140ms ease, transform 140ms ease;
+}
+.widget-toolbar:hover{
+  background:color-mix(in oklab, #111827, #1f2937 30%);
+  box-shadow:0 8px 18px rgba(0,0,0,0.18);
 }
 .toolbar-title{
   font-weight:600;
+  color:#e5e7eb;
 }
 .toolbar-actions{
   display:flex;
   gap:6px;
   flex-wrap:wrap;
   align-items:center;
+}
+.widget-toolbar .ghost{
+  padding:4px 6px;
+  font-size:12px;
+  background:color-mix(in oklab, #111827, #1f2937 80%);
+  border-color:color-mix(in oklab, #4b5563, transparent 35%);
+  color:#f1f5f9;
+}
+.widget-toolbar .ghost:hover{
+  background:color-mix(in oklab, #2563EB, #111827 85%);
+  border-color:color-mix(in oklab, #2563EB, transparent 50%);
 }
 .add-menu{
   position:fixed;
