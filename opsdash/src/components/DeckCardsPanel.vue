@@ -1,32 +1,33 @@
 <template>
   <div class="deck-panel">
-<div class="deck-panel__header">
-  <div class="deck-panel__heading">
-    <div class="deck-panel__title">Deck cards</div>
-    <div class="deck-panel__subtitle" v-if="lastFetchedLabel">
-      Updated {{ lastFetchedLabel }}
+  <div class="deck-panel__header">
+    <div class="deck-panel__heading">
+      <div class="deck-panel__title">Deck cards</div>
+      <div class="deck-panel__subtitle" v-if="lastFetchedLabel">
+        Updated {{ lastFetchedLabel }}
+      </div>
+      <div class="deck-panel__subtitle" v-else>
+        Showing {{ rangeLabel.toLowerCase() }} selection
+      </div>
     </div>
-    <div class="deck-panel__subtitle" v-else>
-      Showing {{ rangeLabel.toLowerCase() }} selection
-    </div>
-  </div>
-  <div class="deck-panel__actions">
-    <a
-      v-if="deckUrl"
-      class="deck-panel__link"
-      :href="deckUrl"
-      target="_blank"
-      rel="noopener"
-    >
-      Open Deck ↗
-    </a>
-    <button
-      type="button"
-      class="deck-panel__refresh"
-      @click="$emit('refresh')"
-      :disabled="loading"
-    >
-      Refresh
+    <div class="deck-panel__actions">
+      <div v-if="showCount" class="deck-panel__count">{{ cards.length }} cards</div>
+      <a
+        v-if="deckUrl"
+        class="deck-panel__link"
+        :href="deckUrl"
+        target="_blank"
+        rel="noopener"
+      >
+        Open Deck ↗
+      </a>
+      <button
+        type="button"
+        class="deck-panel__refresh"
+        @click="$emit('refresh')"
+        :disabled="loading"
+      >
+        Refresh
       </button>
     </div>
   </div>
@@ -65,8 +66,8 @@
     name="No Deck cards"
     :description="`No cards matched this ${rangeLabel.toLowerCase()}. Confirm Deck due dates or rerun seeding.`"
   />
-      <ul v-else class="deck-card-list">
-        <li v-for="card in cards" :key="card.id" class="deck-card">
+      <ul v-else class="deck-card-list" ref="listEl">
+        <li v-for="(card, idx) in cards" :key="card.id" class="deck-card" :data-idx="idx">
           <div class="deck-card__status-row">
             <span class="deck-card__status" :class="card.status">
               {{ statusLabel(card.status) }}
@@ -112,7 +113,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed } from 'vue'
+import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { NcEmptyContent, NcLoadingIcon } from '@nextcloud/vue'
 import type { DeckCardSummary } from '../services/deck'
 import type { DeckFilterMode } from '../services/reporting'
@@ -129,6 +130,9 @@ const props = defineProps<{
   filtersEnabled?: boolean
   filterOptions?: Array<{ value: DeckFilterMode; label: string; mine?: boolean }>
   allowMineOverride?: boolean
+  autoScroll?: boolean
+  intervalSeconds?: number
+  showCount?: boolean
 }>()
 
 defineEmits<{
@@ -153,6 +157,66 @@ const filterOptions = computed<Array<{ value: DeckFilterMode; label: string; min
     { value: 'archived_mine', label: 'Archived · Mine', mine: true },
   ]
 })
+
+const listEl = ref<HTMLElement | null>(null)
+const autoTimer = ref<number | null>(null)
+const activeIndex = ref(0)
+
+const intervalMs = computed(() => {
+  const ms = Math.max(3, Math.min(10, Number(props.intervalSeconds ?? 5))) * 1000
+  return Number.isFinite(ms) ? ms : 5000
+})
+
+watch(
+  () => props.autoScroll,
+  () => {
+    resetAutoScroll()
+    startAutoScroll()
+  },
+)
+
+watch(
+  () => props.cards,
+  () => {
+    activeIndex.value = 0
+    resetAutoScroll()
+    startAutoScroll()
+  },
+  { deep: true },
+)
+
+onMounted(() => {
+  startAutoScroll()
+})
+
+onBeforeUnmount(() => {
+  resetAutoScroll()
+})
+
+function resetAutoScroll() {
+  if (autoTimer.value) {
+    clearInterval(autoTimer.value)
+    autoTimer.value = null
+  }
+}
+
+function startAutoScroll() {
+  if (!props.autoScroll || !listEl.value || (props.cards || []).length <= 1) {
+    return
+  }
+  resetAutoScroll()
+  autoTimer.value = window.setInterval(() => {
+    const total = (props.cards || []).length
+    activeIndex.value = (activeIndex.value + 1) % total
+    scrollToIndex(activeIndex.value)
+  }, intervalMs.value)
+}
+
+function scrollToIndex(idx: number) {
+  if (!listEl.value) return
+  const target = listEl.value.querySelector(`[data-idx="${idx}"]`) as HTMLElement | null
+  target?.scrollIntoView({ block: 'nearest', behavior: 'smooth' })
+}
 
 const formatter = new Intl.DateTimeFormat(undefined, {
   weekday: 'short',
@@ -207,6 +271,13 @@ function statusLabel(status: DeckCardSummary['status']) {
   display: flex;
   align-items: center;
   gap: 0.5rem;
+}
+.deck-panel__count{
+  font-size:0.9rem;
+  background:var(--color-background-darker);
+  border:1px solid var(--color-border-dark);
+  padding:2px 8px;
+  border-radius:12px;
 }
 .deck-panel__refresh {
   border: 1px solid var(--color-primary);

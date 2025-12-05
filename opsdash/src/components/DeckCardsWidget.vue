@@ -11,6 +11,9 @@
     :can-filter-mine="allowMine"
     :allow-mine-override="allowMine"
     :filter-options="filterOptionDefs"
+    :auto-scroll="props.autoScroll !== false"
+    :interval-seconds="props.intervalSeconds"
+    :show-count="props.showCount !== false"
     @refresh="$emit('refresh')"
     @update:filter="onFilter"
   />
@@ -39,6 +42,9 @@ const props = defineProps<{
   mineMode?: DeckMineMode
   includeArchived?: boolean
   includeCompleted?: boolean
+  autoScroll?: boolean
+  intervalSeconds?: number
+  showCount?: boolean
 }>()
 
 defineEmits<{

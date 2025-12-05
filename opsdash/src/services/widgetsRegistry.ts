@@ -540,6 +540,9 @@ export const widgetsRegistry: Record<string, RegistryEntry> = {
       allowMine: true,
       includeArchived: true,
       includeCompleted: true,
+      autoScroll: true,
+      intervalSeconds: 5,
+      showCount: true,
       filters: [
         'open_all',
         'open_mine',
@@ -616,6 +619,9 @@ export const widgetsRegistry: Record<string, RegistryEntry> = {
         mineMode: def.options?.mineMode || 'assignee',
         includeArchived: def.options?.includeArchived !== false,
         includeCompleted: def.options?.includeCompleted !== false,
+        autoScroll: def.options?.autoScroll !== false,
+        intervalSeconds: def.options?.intervalSeconds ?? 5,
+        showCount: def.options?.showCount !== false,
       }
     },
   },
