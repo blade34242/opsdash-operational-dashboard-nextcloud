@@ -13,7 +13,10 @@
           `dayoff-tile--${entry.tone}`,
           { 'dayoff-tile--current': entry.offset === 0 },
         ]"
-        :style="toneStyles[entry.tone]"
+        :style="{
+          '--tile-bg': toneStyles[entry.tone].background,
+          '--tile-fg': toneStyles[entry.tone].color,
+        }"
         :title="`${entry.label} · ${shareLabel(entry.share)}`"
       >
         <div class="dayoff-tile__label">{{ entry.label }}</div>
@@ -218,8 +221,8 @@ function clamp(v: number, min: number, max: number) {
   flex-direction:column;
   gap:4px;
   text-align:center;
-  background: color-mix(in oklab, var(--muted), transparent 85%);
-  color: var(--fg);
+  background: var(--tile-bg, color-mix(in oklab, var(--muted), transparent 85%));
+  color: var(--tile-fg, var(--fg));
   transition: transform .2s ease, background .2s ease;
 }
 .dayoff-tile--current{
@@ -227,16 +230,16 @@ function clamp(v: number, min: number, max: number) {
   outline-offset:1px;
 }
 .dayoff-tile--low{
-  background: color-mix(in oklab, #dc2626, white 70%);
-  color: #7f1d1d;
+  background: var(--tile-bg, color-mix(in oklab, #dc2626, white 70%));
+  color: var(--tile-fg, #7f1d1d);
 }
 .dayoff-tile--mid{
-  background: color-mix(in oklab, #f97316, white 68%);
-  color: #7c2d12;
+  background: var(--tile-bg, color-mix(in oklab, #f97316, white 68%));
+  color: var(--tile-fg, #7c2d12);
 }
 .dayoff-tile--high{
-  background: color-mix(in oklab, #16a34a, white 65%);
-  color: #14532d;
+  background: var(--tile-bg, color-mix(in oklab, #16a34a, white 65%));
+  color: var(--tile-fg, #14532d);
 }
 .dayoff-tile__label{
   font-size:11px;
