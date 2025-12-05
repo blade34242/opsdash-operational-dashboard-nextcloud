@@ -554,8 +554,8 @@ export const widgetsRegistry: Record<string, RegistryEntry> = {
       mineMode: 'assignee',
     },
     controls: [
-      { key: 'boardIds', label: 'Boards', type: 'multiselect', options: [] },
-      { key: 'filters', label: 'Filters', type: 'multiselect', options: [] },
+      { key: 'boardIds', label: 'Boards to include', type: 'multiselect', options: [] },
+      { key: 'filters', label: 'Filters to show', type: 'multiselect', options: [] },
       { key: 'defaultFilter', label: 'Default filter', type: 'select', options: [] },
       { key: 'allowMine', label: 'Allow mine filters', type: 'toggle' },
       { key: 'mineMode', label: 'Mine mode', type: 'select', options: [
@@ -575,21 +575,21 @@ export const widgetsRegistry: Record<string, RegistryEntry> = {
         options: filters.map((f: any) => ({ value: f, label: f })),
       }
       const filterChoices = [
-        'all',
-        'open_all',
-        'open_mine',
-        'done_all',
-        'done_mine',
-        'archived_all',
-        'archived_mine',
-        'created_today_all',
-        'created_today_mine',
+        { value: 'all', label: 'All cards' },
+        { value: 'open_all', label: 'Open · All' },
+        { value: 'open_mine', label: 'Open · Mine' },
+        { value: 'done_all', label: 'Done · All' },
+        { value: 'done_mine', label: 'Done · Mine' },
+        { value: 'archived_all', label: 'Archived · All' },
+        { value: 'archived_mine', label: 'Archived · Mine' },
+        { value: 'created_today_all', label: 'Created today · All' },
+        { value: 'created_today_mine', label: 'Created today · Mine' },
       ]
       const boardOptions = Array.isArray(ctx.deckBoards)
         ? ctx.deckBoards.map((b: any) => ({ value: b.id, label: b.title || `Board ${b.id}` }))
         : []
       return [
-        { key: 'filters', label: 'Filters', type: 'multiselect', options: filterChoices.map((v) => ({ value: v, label: v })) },
+        { key: 'filters', label: 'Filters', type: 'multiselect', options: filterChoices },
         filterSelect,
         { key: 'boardIds', label: 'Boards', type: 'multiselect', options: boardOptions },
       ]

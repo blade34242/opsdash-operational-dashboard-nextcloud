@@ -373,4 +373,14 @@ const defaultPalette = ['#2563EB', '#F97316', '#10B981', '#A855F7', '#EC4899']
   border:1px solid color-mix(in oklab, #4b5563, transparent 30%);
   background:#0f172a;
 }
+.multi{
+  display:grid;
+  gap:6px;
+}
+.multi__item{
+  display:flex;
+  align-items:center;
+  gap:6px;
+  font-size:13px;
+}
 </style>
