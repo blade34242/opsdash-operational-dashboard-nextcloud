@@ -567,6 +567,9 @@ export const widgetsRegistry: Record<string, RegistryEntry> = {
       ] },
       { key: 'includeArchived', label: 'Include archived cards', type: 'toggle' },
       { key: 'includeCompleted', label: 'Include completed cards', type: 'toggle' },
+      { key: 'autoScroll', label: 'Auto-scroll list', type: 'toggle' },
+      { key: 'intervalSeconds', label: 'Scroll every (s)', type: 'number', min: 3, max: 10, step: 1 },
+      { key: 'showCount', label: 'Show count pill', type: 'toggle' },
     ],
     dynamicControls: (options, ctx) => {
       const filters = parseFilters(options.filters ?? options.defaultOptions?.filters)
