@@ -16,6 +16,8 @@
         :style="{
           '--tile-bg': toneStyles[entry.tone].background,
           '--tile-fg': toneStyles[entry.tone].color,
+          background: toneStyles[entry.tone].background,
+          color: toneStyles[entry.tone].color,
         }"
         :title="`${entry.label} · ${shareLabel(entry.share)}`"
       >
