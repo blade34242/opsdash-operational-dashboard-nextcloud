@@ -556,7 +556,6 @@ export const widgetsRegistry: Record<string, RegistryEntry> = {
     controls: [
       { key: 'boardIds', label: 'Boards to include', type: 'multiselect', options: [] },
       { key: 'filters', label: 'Filters to show', type: 'multiselect', options: [] },
-      { key: 'defaultFilter', label: 'Default filter', type: 'select', options: [] },
       { key: 'allowMine', label: 'Allow mine filters', type: 'toggle' },
       { key: 'mineMode', label: 'Mine mode', type: 'select', options: [
         { value: 'assignee', label: 'Assignee' },
@@ -572,18 +571,18 @@ export const widgetsRegistry: Record<string, RegistryEntry> = {
         key: 'defaultFilter',
         label: 'Default filter',
         type: 'select',
-        options: filters.map((f: any) => ({ value: f, label: f })),
+        options: filters.map((f: any) => ({ value: f, label: prettyFilterLabel(f) })),
       }
       const filterChoices = [
-        { value: 'all', label: 'All cards' },
-        { value: 'open_all', label: 'Open · All' },
-        { value: 'open_mine', label: 'Open · Mine' },
-        { value: 'done_all', label: 'Done · All' },
-        { value: 'done_mine', label: 'Done · Mine' },
-        { value: 'archived_all', label: 'Archived · All' },
-        { value: 'archived_mine', label: 'Archived · Mine' },
-        { value: 'created_today_all', label: 'Created today · All' },
-        { value: 'created_today_mine', label: 'Created today · Mine' },
+        { value: 'all', label: prettyFilterLabel('all') },
+        { value: 'open_all', label: prettyFilterLabel('open_all') },
+        { value: 'open_mine', label: prettyFilterLabel('open_mine') },
+        { value: 'done_all', label: prettyFilterLabel('done_all') },
+        { value: 'done_mine', label: prettyFilterLabel('done_mine') },
+        { value: 'archived_all', label: prettyFilterLabel('archived_all') },
+        { value: 'archived_mine', label: prettyFilterLabel('archived_mine') },
+        { value: 'created_today_all', label: prettyFilterLabel('created_today_all') },
+        { value: 'created_today_mine', label: prettyFilterLabel('created_today_mine') },
       ]
       const boardOptions = Array.isArray(ctx.deckBoards)
         ? ctx.deckBoards.map((b: any) => ({ value: b.id, label: b.title || `Board ${b.id}` }))
@@ -599,7 +598,7 @@ export const widgetsRegistry: Record<string, RegistryEntry> = {
       const boardIds = Array.isArray(def.options?.boardIds)
         ? def.options.boardIds
         : parseBoardIds(def.options?.boardIds)
-      const defaultFilter = filters.includes(def.options?.defaultFilter) ? def.options?.defaultFilter : filters[0] || 'all'
+      const defaultFilter = filters.includes(def.options?.defaultFilter) ? def.options?.defaultFilter : (filters[0] || 'all')
       return {
         cards: ctx.deckCards || [],
         rangeLabel: ctx.deckRangeLabel || ctx.rangeLabel || '',
@@ -908,6 +907,24 @@ function parseFilters(input: any): string[] {
     'created_today_all',
     'created_today_mine',
   ]
+}
+
+function prettyFilterLabel(key: string): string {
+  switch (key) {
+    case 'all': return 'All cards'
+    case 'mine': return 'Mine (any status)'
+    case 'open_all': return 'Open · All'
+    case 'open_mine': return 'Open · Mine'
+    case 'done_all': return 'Done · All'
+    case 'done_mine': return 'Done · Mine'
+    case 'archived_all': return 'Archived · All'
+    case 'archived_mine': return 'Archived · Mine'
+    case 'created_today_all': return 'Created today · All'
+    case 'created_today_mine': return 'Created today · Mine'
+    case 'created_range_all': return 'Created this range · All'
+    case 'created_range_mine': return 'Created this range · Mine'
+    default: return key
+  }
 }
 
 export function createDefaultWidgets(): WidgetDefinition[] {
