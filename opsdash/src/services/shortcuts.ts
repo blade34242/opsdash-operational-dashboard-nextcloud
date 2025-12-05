@@ -41,8 +41,8 @@ export const KEYBOARD_SHORTCUT_GROUPS: ShortcutGroup[] = [
     title: 'Misc',
     items: [
       { id: 'shortcuts-open', label: 'Open cheat sheet', combo: ['?'], description: 'Display this overlay' },
-      { id: 'widget-options', label: 'Open widget options', combo: ['Ctrl / ⌘', 'S'], description: 'Toggle options for the selected widget (edit mode)' },
-      { id: 'layout-edit', label: 'Toggle edit layout', combo: ['Ctrl / ⌘', 'E'], description: 'Enter or exit widget layout editing' },
+      { id: 'widget-options', label: 'Open widget options', combo: ['Shift', 'C'], description: 'Toggle options for the selected widget (edit mode)' },
+      { id: 'layout-edit', label: 'Toggle edit layout', combo: ['Shift', 'E'], description: 'Enter or exit widget layout editing' },
     ],
   },
 ]

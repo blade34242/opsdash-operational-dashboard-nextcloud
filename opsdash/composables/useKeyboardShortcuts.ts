@@ -80,8 +80,8 @@ export function useKeyboardShortcuts(deps: KeyboardShortcutDeps) {
       if (!editable && (event.key === '?' || (event.shiftKey && event.key === '/'))) {
         event.preventDefault()
         openShortcuts(event.target instanceof HTMLElement ? event.target : null, 'keyboard')
+        return
       }
-      return
     }
 
     if (event.altKey && !event.ctrlKey && !event.metaKey) {
@@ -116,19 +116,16 @@ export function useKeyboardShortcuts(deps: KeyboardShortcutDeps) {
       }
     }
 
-    const metaOrCtrl = event.metaKey || event.ctrlKey
-    if (metaOrCtrl && !event.altKey) {
-      if (event.key === 's' || event.key === 'S') {
-        if (deps.openWidgetOptions && !editable) {
-          event.preventDefault()
-          deps.openWidgetOptions()
-        }
+    if (event.shiftKey && !event.altKey && !event.metaKey && !event.ctrlKey) {
+      if ((event.key === 'e' || event.key === 'E') && deps.toggleEditLayout && !editable) {
+        event.preventDefault()
+        deps.toggleEditLayout()
+        return
       }
-      if (event.key === 'e' || event.key === 'E') {
-        if (deps.toggleEditLayout && !editable) {
-          event.preventDefault()
-          deps.toggleEditLayout()
-        }
+      if ((event.key === 'c' || event.key === 'C') && deps.openWidgetOptions && !editable) {
+        event.preventDefault()
+        deps.openWidgetOptions()
+        return
       }
     }
   }

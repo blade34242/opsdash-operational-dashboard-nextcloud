@@ -54,7 +54,7 @@ describe('useKeyboardShortcuts', () => {
     shortcuts.unbindShortcuts()
   })
 
-  it('handles notes + config shortcuts and save combo', () => {
+  it('handles notes + config shortcuts and widget options', () => {
     const { shortcuts, deps } = setup()
 
     document.dispatchEvent(new KeyboardEvent('keydown', { key: 'N', altKey: true, bubbles: true }))
@@ -63,25 +63,22 @@ describe('useKeyboardShortcuts', () => {
     document.dispatchEvent(new KeyboardEvent('keydown', { key: 'T', altKey: true, bubbles: true }))
     expect(deps.openConfigPanel).toHaveBeenCalledTimes(1)
 
-    document.dispatchEvent(new KeyboardEvent('keydown', { key: 's', ctrlKey: true, bubbles: true }))
+    document.dispatchEvent(new KeyboardEvent('keydown', { key: 'c', shiftKey: true, bubbles: true }))
     expect(deps.openWidgetOptions).toHaveBeenCalledTimes(1)
-
-    document.dispatchEvent(new KeyboardEvent('keydown', { key: 's', metaKey: true, bubbles: true }))
-    expect(deps.openWidgetOptions).toHaveBeenCalledTimes(2)
 
     shortcuts.unbindShortcuts()
   })
 
-  it('toggles edit layout on Ctrl/⌘+E outside inputs', () => {
+  it('toggles edit layout on Shift+E outside inputs', () => {
     const { shortcuts, deps } = setup()
 
-    document.dispatchEvent(new KeyboardEvent('keydown', { key: 'e', ctrlKey: true, bubbles: true }))
+    document.dispatchEvent(new KeyboardEvent('keydown', { key: 'e', shiftKey: true, bubbles: true }))
     expect(deps.toggleEditLayout).toHaveBeenCalledTimes(1)
 
     const input = document.createElement('input')
     document.body.appendChild(input)
     input.focus()
-    input.dispatchEvent(new KeyboardEvent('keydown', { key: 'e', ctrlKey: true, bubbles: true }))
+    input.dispatchEvent(new KeyboardEvent('keydown', { key: 'e', shiftKey: true, bubbles: true }))
     expect(deps.toggleEditLayout).toHaveBeenCalledTimes(1)
 
     shortcuts.unbindShortcuts()
