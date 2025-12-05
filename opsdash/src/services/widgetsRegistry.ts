@@ -6,6 +6,7 @@ import ActivityScheduleCard from '../components/ActivityScheduleCard.vue'
 import DayOffTrendCard from '../components/DayOffTrendCard.vue'
 import CategoryMixTrendCard from '../components/CategoryMixTrendCard.vue'
 import DeckSummaryCard from '../components/DeckSummaryCard.vue'
+import DeckCardsWidget from '../components/DeckCardsWidget.vue'
 import NotesPanel from '../components/NotesPanel.vue'
 import NoteSnippetWidget from '../components/NoteSnippetWidget.vue'
 import NoteEditorWidget from '../components/NoteEditorWidget.vue'
@@ -63,6 +64,10 @@ export interface WidgetRenderContext {
   deckError?: string | null
   deckTicker?: any
   deckShowBoardBadges?: boolean
+  deckCards?: any[]
+  deckBoards?: Array<{ id: number; title: string; color?: string }>
+  uid?: string
+  deckUrl?: string
   notesPrev?: string
   notesCurr?: string
   notesLabelPrev?: string
@@ -525,6 +530,76 @@ export const widgetsRegistry: Record<string, RegistryEntry> = {
       cardBg: _def.options?.cardBg,
     }),
   },
+  deck_cards: {
+    component: DeckCardsWidget,
+    defaultLayout: { width: 'half', height: 'm', order: 52 },
+    label: 'Deck cards',
+    baseTitle: 'Deck cards',
+    configurable: true,
+    defaultOptions: {
+      allowMine: true,
+      includeArchived: true,
+      includeCompleted: true,
+      filters: [
+        'open_all',
+        'open_mine',
+        'done_all',
+        'done_mine',
+        'archived_all',
+        'archived_mine',
+        'created_today_all',
+        'created_today_mine',
+      ],
+      defaultFilter: 'open_all',
+      mineMode: 'assignee',
+    },
+    controls: [
+      { key: 'boardIds', label: 'Board IDs (comma, empty = all)', type: 'text' },
+      { key: 'filters', label: 'Filters (comma-separated keys)', type: 'textarea' },
+      { key: 'allowMine', label: 'Allow mine filters', type: 'toggle' },
+      { key: 'mineMode', label: 'Mine mode', type: 'select', options: [
+        { value: 'assignee', label: 'Assignee' },
+        { value: 'creator', label: 'Creator' },
+        { value: 'both', label: 'Assignee + Creator' },
+      ] },
+      { key: 'includeArchived', label: 'Include archived cards', type: 'toggle' },
+      { key: 'includeCompleted', label: 'Include completed cards', type: 'toggle' },
+    ],
+    dynamicControls: (options) => {
+      const filters = parseFilters(options.filters ?? options.defaultOptions?.filters)
+      return [
+        {
+          key: 'defaultFilter',
+          label: 'Default filter',
+          type: 'select',
+          options: filters.map((f: any) => ({ value: f, label: f })),
+        },
+      ]
+    },
+    buildProps: (def, ctx) => {
+      const filters = parseFilters(def.options?.filters ?? def.options?.defaultOptions?.filters) as any[]
+      const boardIds = parseBoardIds(def.options?.boardIds)
+      const defaultFilter = filters.includes(def.options?.defaultFilter) ? def.options?.defaultFilter : filters[0] || 'all'
+      return {
+        cards: ctx.deckCards || [],
+        rangeLabel: ctx.deckRangeLabel || ctx.rangeLabel || '',
+        from: ctx.from,
+        to: ctx.to,
+        uid: ctx.uid,
+        deckUrl: ctx.deckUrl,
+        lastFetchedAt: ctx.deckRangeLabel,
+        loading: ctx.deckLoading,
+        error: ctx.deckError,
+        boardIds,
+        filters,
+        defaultFilter,
+        allowMine: def.options?.allowMine !== false,
+        mineMode: def.options?.mineMode || 'assignee',
+        includeArchived: def.options?.includeArchived !== false,
+        includeCompleted: def.options?.includeCompleted !== false,
+      }
+    },
+  },
   notes: {
     component: NotesPanel,
     defaultLayout: { width: 'half', height: 's', order: 60 },
@@ -775,6 +850,44 @@ function collectPresetItems(key?: TextPresetKey, options: Record<string, any> = 
   const list = itemsByKey[key] || []
   if (options.include) return list
   return list.length ? [list[0]] : []
+}
+
+function parseBoardIds(input: any): Array<number> {
+  if (Array.isArray(input)) {
+    return Array.from(
+      new Set(
+        input
+          .map((id) => Number(id))
+          .filter((id) => Number.isInteger(id) && id > 0),
+      ),
+    )
+  }
+  if (typeof input === 'string') {
+    return parseBoardIds(input.split(','))
+  }
+  return []
+}
+
+function parseFilters(input: any): string[] {
+  if (Array.isArray(input)) {
+    return input.map((f) => String(f).trim()).filter(Boolean)
+  }
+  if (typeof input === 'string') {
+    return input
+      .split(',')
+      .map((f) => f.trim())
+      .filter(Boolean)
+  }
+  return [
+    'open_all',
+    'open_mine',
+    'done_all',
+    'done_mine',
+    'archived_all',
+    'archived_mine',
+    'created_today_all',
+    'created_today_mine',
+  ]
 }
 
 export function createDefaultWidgets(): WidgetDefinition[] {

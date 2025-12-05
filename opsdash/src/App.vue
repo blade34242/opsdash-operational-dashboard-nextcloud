@@ -1283,6 +1283,18 @@ const widgetContext = computed<WidgetRenderContext>(() => ({
   deckError: deckError.value,
   deckTicker: deckTickerConfig.value,
   deckShowBoardBadges: deckSettings.value?.ticker?.showBoardBadges !== false,
+  deckUrl: deckUrl.value,
+  deckCards: deckCards.value,
+  deckBoards: Array.from(
+    deckCards.value.reduce((acc, card) => {
+      if (card.boardId == null) return acc
+      if (!acc.has(card.boardId)) {
+        acc.set(card.boardId, { id: card.boardId, title: card.boardTitle, color: card.boardColor })
+      }
+      return acc
+    }, new Map<number, { id: number; title: string; color?: string }>()).values(),
+  ),
+  uid: uid.value,
   notesPrev: notesPrev.value,
   notesCurr: notesCurrDraft.value,
   notesLabelPrev: notesLabelPrev.value,

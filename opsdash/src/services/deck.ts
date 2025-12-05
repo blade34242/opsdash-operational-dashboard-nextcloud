@@ -23,6 +23,8 @@ interface DeckApiCard {
   duedate?: string | number | null
   done?: string | null
   archived?: boolean
+  created?: string | number | null
+  createdAt?: string | number | null
   stackId?: number
   labels?: DeckApiLabel[]
   assignedUsers?: DeckApiAssignee[]
@@ -74,6 +76,8 @@ export interface DeckCardSummary {
   labels: { id?: number; title: string; color?: string }[]
   assignees: { id?: number; uid?: string; displayName?: string }[]
   match: DeckCardMatch
+  created?: string
+  createdTs?: number
   createdBy?: string
   createdByDisplay?: string
   doneBy?: string
@@ -234,6 +238,7 @@ function normalizeCard(
   }
   const dueTs = toTimestamp(card.duedate)
   const doneTs = toTimestamp(card.done)
+  const createdTs = toTimestamp(card.createdAt ?? card.created)
   const boardId = card.boardId || board?.id
   if (boardId == null) {
     return null
@@ -256,6 +261,8 @@ function normalizeCard(
     doneTs: doneTs ?? undefined,
     archived: Boolean(card.archived),
     status,
+    created: createdTs != null ? new Date(createdTs).toISOString() : undefined,
+    createdTs: createdTs ?? undefined,
     createdBy: normalizeParticipant(card.owner ?? card.createdBy ?? card.creator)?.uid,
     createdByDisplay: normalizeParticipant(card.owner ?? card.createdBy ?? card.creator)?.displayName,
     doneBy: normalizeParticipant(card.doneBy ?? card.completedBy ?? card.lastEditor)?.uid,

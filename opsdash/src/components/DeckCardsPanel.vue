@@ -127,6 +127,8 @@ const props = defineProps<{
   filter?: DeckFilterMode
   canFilterMine?: boolean
   filtersEnabled?: boolean
+  filterOptions?: Array<{ value: DeckFilterMode; label: string; mine?: boolean }>
+  allowMineOverride?: boolean
 }>()
 
 defineEmits<{
@@ -135,17 +137,22 @@ defineEmits<{
 }>()
 
 const activeFilter = computed(() => props.filter ?? 'all')
-const filtersEnabledFlag = computed(() => props.filtersEnabled !== false)
-const allowMine = computed(() => filtersEnabledFlag.value && props.canFilterMine !== false)
-const filterOptions: Array<{ value: DeckFilterMode; label: string; mine: boolean }> = [
-  { value: 'all', label: 'All cards', mine: false },
-  { value: 'open_all', label: 'Open · All', mine: false },
-  { value: 'open_mine', label: 'Open · Mine', mine: true },
-  { value: 'done_all', label: 'Done · All', mine: false },
-  { value: 'done_mine', label: 'Done · Mine', mine: true },
-  { value: 'archived_all', label: 'Archived · All', mine: false },
-  { value: 'archived_mine', label: 'Archived · Mine', mine: true },
-]
+const filtersEnabledFlag = computed(() => props.filtersEnabled !== false && filterOptions.value.length > 1)
+const allowMine = computed(() => filtersEnabledFlag.value && props.canFilterMine !== false && props.allowMineOverride !== false)
+const filterOptions = computed<Array<{ value: DeckFilterMode; label: string; mine: boolean }>>(() => {
+  if (props.filterOptions && props.filterOptions.length) {
+    return props.filterOptions.map((opt) => ({ ...opt, mine: !!opt.mine }))
+  }
+  return [
+    { value: 'all', label: 'All cards', mine: false },
+    { value: 'open_all', label: 'Open · All', mine: false },
+    { value: 'open_mine', label: 'Open · Mine', mine: true },
+    { value: 'done_all', label: 'Done · All', mine: false },
+    { value: 'done_mine', label: 'Done · Mine', mine: true },
+    { value: 'archived_all', label: 'Archived · All', mine: false },
+    { value: 'archived_mine', label: 'Archived · Mine', mine: true },
+  ]
+})
 
 const formatter = new Intl.DateTimeFormat(undefined, {
   weekday: 'short',

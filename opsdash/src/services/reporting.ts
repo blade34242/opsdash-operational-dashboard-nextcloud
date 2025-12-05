@@ -22,6 +22,10 @@ export type DeckFilterMode =
   | 'done_mine'
   | 'archived_all'
   | 'archived_mine'
+  | 'created_today_all'
+  | 'created_today_mine'
+  | 'created_range_all'
+  | 'created_range_mine'
 
 export type DeckMineMode = 'assignee' | 'creator' | 'both'
 
