@@ -24,8 +24,9 @@
         </div>
       </div>
       <div class="trend-delta">
-        <span class="trend-date">{{ currentLabel }}</span>
-        <span class="trend-hint">{{ leftLabel }} · {{ rightLabel }}</span>
+        <span class="trend-left">{{ footerIndex }}</span>
+        <span class="trend-center">{{ footerCenter }}</span>
+        <span class="trend-right">{{ footerRight }}</span>
       </div>
     </div>
 
@@ -91,7 +92,7 @@ const trendPoints = computed(() => {
     basis: props.indexBasis,
     lookback,
   })
-  return points
+  return points.slice().reverse()
 })
 const hasTrend = computed(() => trendPoints.value.length > 0)
 const messages = computed(() => props.overview?.warnings || [])
@@ -121,6 +122,7 @@ const formatIndex = (val?: number) => {
   return Number.isFinite(val) ? (val as number).toFixed(2) : '—'
 }
 const baseTrendColor = computed(() => props.trendColor || '#2563EB')
+const footerIndex = computed(() => formatIndex(trendPoints.value[trendPoints.value.length - 1]?.index))
 
 function shadeColor(hex: string, factor: number) {
   // factor: 0..1, 0 = original, 1 = darkest mix
@@ -150,6 +152,8 @@ const currentLabel = computed(() => {
   const latest = trendPoints.value[trendPoints.value.length - 1]
   return latest?.label || ''
 })
+const footerCenter = computed(() => currentLabel.value || props.rangeLabel || '')
+const footerRight = computed(() => rightLabel.value || '')
 </script>
 
 <style scoped>
@@ -240,6 +244,24 @@ const currentLabel = computed(() => {
 .trend-delta{
   font-size:calc(12px * var(--widget-text-scale, 1));
   color:var(--muted);
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:8px;
+}
+.trend-left{
+  font-weight:700;
+  color:var(--fg,#0f172a);
+}
+.trend-center{
+  flex:1;
+  text-align:center;
+  font-size:calc(11px * var(--widget-text-scale, 1));
+}
+.trend-right{
+  min-width:56px;
+  text-align:right;
+  font-size:calc(11px * var(--widget-text-scale, 1));
 }
 .section-title{
   font-weight:600;

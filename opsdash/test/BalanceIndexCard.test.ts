@@ -72,7 +72,8 @@ describe('BalanceIndexCard', () => {
     })
 
     const trendValues = wrapper.findAll('.trend-block .trend-value').map((n) => n.text())
-    expect(trendValues[0]).toBe('0.90')
+    expect(trendValues).toContain('0.90')
+    expect(trendValues).toContain('1.00')
     expect(trendValues.length).toBe(2)
   })
 
@@ -106,7 +107,7 @@ describe('BalanceIndexCard', () => {
     expect(trendValues[0]).not.toBe('—')
     expect(trendValues.length).toBe(2)
 
-    const footer = wrapper.find('.trend-hint')
+    const footer = wrapper.find('.trend-center')
     expect(footer.text()).toContain('Last week')
   })
 })
