@@ -13,13 +13,17 @@
     <div class="trend" v-if="showTrend && hasTrend">
       <div class="trend-line">
         <div
-          v-for="(pt, idx) in trendPoints"
+          v-for="(pt, idx) in filteredPoints"
           :key="idx"
-          :class="['trend-block', { current: idx === (trendPoints.length - 1) }]"
+          :class="['trend-block', { current: idx === (filteredPoints.length - 1) }]"
           :title="pt.label || ''"
           :style="trendBlockStyle(idx)"
         >
-          <span class="trend-value">{{ formatIndex(pt.index) }}</span><span class="trend-label">{{ pt.label || `- wk` }}</span>
+          <div class="trend-line-row">
+            <span class="trend-value">{{ formatIndex(pt.index) }}</span>
+            <span class="trend-range">{{ displayRange(idx) }}</span>
+            <span class="trend-offset">{{ displayOffset(idx) }}</span>
+          </div>
         </div>
       </div>
       <div class="trend-delta">
@@ -61,7 +65,11 @@ const props = defineProps<{
   showConfig?: boolean
   messageLimit?: number
   lookbackWeeks?: number
+  loopbackCount?: number
   indexBasis?: string
+  showCurrent?: boolean
+  showRangeLabels?: boolean
+  showOffsetLabels?: boolean
   thresholds?: {
     noticeAbove?: number
     noticeBelow?: number
@@ -83,7 +91,14 @@ const trendPoints = computed(() => {
       ? (props.overview as any).trendHistory
       : []
   const list = [...listRaw]
-  const lookback = Number.isFinite(props.lookbackWeeks) && props.lookbackWeeks ? Number(props.lookbackWeeks) : 4
+  const lookback = Math.max(
+    1,
+    Number.isFinite(props.loopbackCount) && props.loopbackCount
+      ? Number(props.loopbackCount)
+      : Number.isFinite(props.lookbackWeeks) && props.lookbackWeeks
+        ? Number(props.lookbackWeeks)
+        : 5,
+  )
   const categories = props.targetsCategories || []
   const points = buildIndexTrend({
     history: list,
@@ -93,7 +108,13 @@ const trendPoints = computed(() => {
   })
   return points.slice().reverse()
 })
-const hasTrend = computed(() => trendPoints.value.length > 0)
+const filteredPoints = computed(() => {
+  if (props.showCurrent === false && trendPoints.value.length > 1) {
+    return trendPoints.value.slice(0, -1)
+  }
+  return trendPoints.value
+})
+const hasTrend = computed(() => filteredPoints.value.length > 0)
 const messages = computed(() => props.overview?.warnings || [])
 const limitedMessages = computed(() => {
   const list = messages.value
@@ -135,7 +156,7 @@ function shadeColor(hex: string, factor: number) {
 
 const trendBlockStyle = (idx: number) => {
   const base = baseTrendColor.value
-  const pt = trendPoints.value[idx]
+  const pt = filteredPoints.value[idx]
   const idxVal = Number(pt?.index ?? 0)
   const deviation = Math.min(1, Math.max(0, 1 - idxVal)) // 0 when perfect, 1 when worst
   const color = shadeColor(base, deviation * 0.6)
@@ -146,13 +167,24 @@ const trendBlockStyle = (idx: number) => {
 }
 
 const leftLabel = computed(() => '')
-const rightLabel = computed(() => trendPoints.value[0]?.label || '')
+const rightLabel = computed(() => filteredPoints.value[0]?.label || '')
 const currentLabel = computed(() => {
-  const latest = trendPoints.value[trendPoints.value.length - 1]
+  const latest = filteredPoints.value[filteredPoints.value.length - 1]
   return latest?.label || ''
 })
 const footerCenter = computed(() => currentLabel.value || props.rangeLabel || '')
 const footerRight = computed(() => rightLabel.value || '')
+
+const displayOffset = (idx: number) => {
+  if (props.showOffsetLabels === false) return ''
+  const offsetFromCurrent = filteredPoints.value.length - 1 - idx
+  return offsetFromCurrent === 0 ? 'Current' : `-${offsetFromCurrent} wk`
+}
+const displayRange = (idx: number) => {
+  if (props.showRangeLabels === false) return ''
+  const pt = filteredPoints.value[idx]
+  return pt?.label || ''
+}
 </script>
 
 <style scoped>
@@ -227,18 +259,34 @@ const footerRight = computed(() => rightLabel.value || '')
   position:relative;
   color:#fff;
   font-size:11px;
+  border:none;
+  cursor:default;
 }
 .trend-block.current{
   background:var(--color-primary,#2563eb);
   box-shadow:0 0 0 2px color-mix(in oklab, var(--color-primary,#2563eb), #ffffff 60%);
 }
-.trend-label{
-  text-align:center;
-  display:block;
+.trend-line-row{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:4px;
   width:100%;
+}
+.trend-range{
+  flex:1;
+  text-align:center;
+  font-size:calc(10px * var(--widget-text-scale, 1));
+  color:#e5e7eb;
   overflow:hidden;
   text-overflow:ellipsis;
-  font-size:calc(11px * var(--widget-text-scale, 1));
+  white-space:nowrap;
+}
+.trend-offset{
+  min-width:42px;
+  text-align:right;
+  font-size:calc(10px * var(--widget-text-scale, 1));
+  color:#cbd5f5;
 }
 .trend-delta{
   font-size:calc(12px * var(--widget-text-scale, 1));

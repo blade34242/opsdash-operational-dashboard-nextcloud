@@ -341,6 +341,10 @@ export const widgetsRegistry: Record<string, RegistryEntry> = {
         lookbackWeeks: defaults.trend.lookbackWeeks,
         messageDensity: 'normal',
         trendColor: '#2563EB',
+        loopbackCount: 5,
+        showCurrent: true,
+        showRangeLabels: true,
+        showOffsetLabels: true,
       }
     })(),
     controls: [
@@ -375,6 +379,10 @@ export const widgetsRegistry: Record<string, RegistryEntry> = {
       { key: 'warnBelow', label: 'Warn below target', type: 'number', min: 0, max: 1, step: 0.01 },
       { key: 'warnIndex', label: 'Warn index', type: 'number', min: 0, max: 1, step: 0.01 },
       { key: 'trendColor', label: 'Trend color', type: 'color' },
+      { key: 'loopbackCount', label: 'Loopback points', type: 'number', min: 1, max: 12, step: 1 },
+      { key: 'showCurrent', label: 'Show current period', type: 'toggle' },
+      { key: 'showRangeLabels', label: 'Show date/range labels', type: 'toggle' },
+      { key: 'showOffsetLabels', label: 'Show offset labels (-4w)', type: 'toggle' },
     ],
     buildProps: (_def, ctx) => {
       const cfg = ctx.balanceConfig ? JSON.parse(JSON.stringify(ctx.balanceConfig)) : createDefaultBalanceConfig()
@@ -395,6 +403,7 @@ export const widgetsRegistry: Record<string, RegistryEntry> = {
       const trendColor = typeof _def.options?.trendColor === 'string' && _def.options?.trendColor.trim()
         ? _def.options.trendColor.trim()
         : '#2563EB'
+      const loopbackCount = Number.isFinite(_def.options?.loopbackCount) ? Number(_def.options?.loopbackCount) : (_def.options?.lookbackWeeks ?? cfg.trend?.lookbackWeeks ?? 5)
       return {
         overview: ctx.balanceOverview,
         targetsCategories: ctx.targetsConfig?.categories || [],
@@ -405,6 +414,10 @@ export const widgetsRegistry: Record<string, RegistryEntry> = {
         showConfig: _def.options?.showConfig !== false,
         messageLimit,
         lookbackWeeks,
+        loopbackCount,
+        showCurrent: _def.options?.showCurrent !== false,
+        showRangeLabels: _def.options?.showRangeLabels !== false,
+        showOffsetLabels: _def.options?.showOffsetLabels !== false,
         indexBasis,
         thresholds,
         title: buildTitle(widgetsRegistry.balance_index.baseTitle!, _def.options?.titlePrefix),
