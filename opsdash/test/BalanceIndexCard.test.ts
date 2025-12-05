@@ -11,11 +11,10 @@ const overview = {
 }
 
 describe('BalanceIndexCard', () => {
-  it('renders badge, trend, relations, categories, messages when enabled', () => {
+  it('renders trend, relations, categories, messages when enabled', () => {
     const wrapper = mount(BalanceIndexCard, {
       props: {
         overview,
-        showBadge: true,
         showTrend: true,
         showMessages: true,
         showConfig: true,
@@ -26,7 +25,6 @@ describe('BalanceIndexCard', () => {
       },
     })
     expect(wrapper.text()).toContain('My Balance')
-    expect(wrapper.text()).toContain('Balanced')
     expect(wrapper.text()).toContain('Unassigned')
     expect(wrapper.find('.trend-block').exists()).toBe(true)
     const style = wrapper.find('.balance-card').attributes('style') || ''
@@ -39,12 +37,10 @@ describe('BalanceIndexCard', () => {
     const wrapper = mount(BalanceIndexCard, {
       props: {
         overview,
-        showBadge: false,
         showTrend: false,
         showMessages: false,
       },
     })
-    expect(wrapper.find('.badge').exists()).toBe(false)
     expect(wrapper.find('.trend').exists()).toBe(false)
     expect(wrapper.find('.messages').exists()).toBe(false)
   })

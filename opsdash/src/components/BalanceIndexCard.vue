@@ -2,7 +2,6 @@
   <div class="balance-card" :style="cardStyle">
     <div class="header">
       <div class="title-row">
-        <span class="badge" v-if="showBadge && overview?.trend?.badge">{{ overview.trend.badge }}</span>
         <span class="title">{{ titleText }}</span>
       </div>
       <div class="index" v-if="overview">
