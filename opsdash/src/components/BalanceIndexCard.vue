@@ -1,17 +1,17 @@
 <template>
   <div class="balance-card" :style="cardStyle">
-    <div class="header">
+    <div class="header" :class="{ compact: isCompact }">
       <div class="title-row">
         <span class="title">{{ titleText }}</span>
       </div>
-      <div class="index" v-if="overview">
-        <div class="index-value">{{ overview.index ?? '—' }}</div>
+      <div class="index" :class="{ centered: isCompact }" v-if="overview">
+        <div class="index-value">{{ formatIndex(overview.index) }}</div>
         <div class="index-label">Balance index</div>
       </div>
     </div>
 
     <div class="trend" v-if="showTrend && hasTrend">
-      <div class="trend-line">
+      <div class="trend-line" :style="trendLineStyle">
         <div
           v-for="(pt, idx) in filteredPoints"
           :key="idx"
@@ -20,7 +20,6 @@
             {
               current: idx === (filteredPoints.length - 1),
               'no-range': !hasRangeLabel(idx),
-              'no-offset': !offsetEnabled,
             },
           ]"
           :title="pt.label || ''"
@@ -28,8 +27,11 @@
         >
           <div class="trend-line-row">
             <span class="trend-value">{{ formatIndex(pt.index) }}</span>
-            <span class="trend-range">{{ displayRange(idx) }}</span>
-            <span class="trend-offset">{{ displayOffset(idx) }}</span>
+            <span class="trend-range">{{ labelMode === 'date' ? (computedRange(idx) || displayRange(idx)) : '' }}</span>
+            <span class="trend-offset">
+              <template v-if="labelMode === 'period'">{{ computedPeriodTag(idx) }}</template>
+              <template v-else-if="labelMode === 'offset'">{{ displayOffset(idx) }}</template>
+            </span>
           </div>
         </div>
       </div>
@@ -70,8 +72,11 @@ const props = defineProps<{
   loopbackCount?: number
   indexBasis?: string
   showCurrent?: boolean
-  showRangeLabels?: boolean
-  showOffsetLabels?: boolean
+  labelMode?: 'date' | 'period' | 'offset'
+  reverseTrend?: boolean
+  from?: string
+  to?: string
+  rangeMode?: 'week' | 'month' | string
   thresholds?: {
     noticeAbove?: number
     noticeBelow?: number
@@ -107,14 +112,19 @@ const trendPoints = computed(() => {
     targetsConfig: { categories },
     basis: props.indexBasis,
     lookback,
+    currentIndex: typeof props.overview?.index === 'number' ? props.overview.index : undefined,
   })
-  return points.slice().reverse()
+  return points.slice()
 })
 const filteredPoints = computed(() => {
-  if (props.showCurrent === false && trendPoints.value.length > 1) {
-    return trendPoints.value.slice(0, -1)
+  let pts = trendPoints.value.slice()
+  if (props.showCurrent === false) {
+    pts = pts.filter((pt: any) => (pt?.offset ?? 0) !== 0)
   }
-  return trendPoints.value
+  if (props.reverseTrend) {
+    return pts.slice().reverse()
+  }
+  return pts
 })
 const hasTrend = computed(() => filteredPoints.value.length > 0)
 const messages = computed(() => props.overview?.warnings || [])
@@ -139,11 +149,27 @@ const configSummary = computed(() => {
     ...t,
   }
 })
+const isCompact = computed(() => {
+  const noTrend = props.showTrend === false || !hasTrend.value
+  const noMessages = props.showMessages === false || limitedMessages.value.length === 0
+  const noConfig = props.showConfig === false
+  return noTrend && noMessages && noConfig
+})
 
 const formatIndex = (val?: number) => {
   return Number.isFinite(val) ? (val as number).toFixed(2) : '—'
 }
 const baseTrendColor = computed(() => props.trendColor || '#2563EB')
+const labelMode = computed<'date' | 'period' | 'offset'>(() => {
+  const mode = (props.labelMode || 'period').toString().toLowerCase()
+  if (mode === 'date' || mode === 'offset') return mode as any
+  return 'period'
+})
+const trendLineStyle = computed(() => {
+  const mode = labelMode.value
+  const min = mode === 'date' ? 108 : 88
+  return { gridTemplateColumns: `repeat(auto-fit, minmax(${min}px, 1fr))` }
+})
 
 function shadeColor(hex: string, factor: number) {
   // factor: 0..1, 0 = original, 1 = darkest mix
@@ -167,26 +193,103 @@ const trendBlockStyle = (idx: number) => {
   }
 }
 
-const offsetEnabled = computed(() => props.showOffsetLabels !== false)
 const resolvedRangeLabel = (idx: number) => {
-  if (props.showRangeLabels === false) return ''
+  if (labelMode.value !== 'date') return ''
   const pt = filteredPoints.value[idx]
-  const isCurrent = idx === filteredPoints.value.length - 1
+  const isCurrent = (pt?.offset ?? 0) === 0
   return pt?.label || (isCurrent ? props.rangeLabel || '' : '')
 }
 const hasRangeLabel = (idx: number) => !!resolvedRangeLabel(idx)
 
 const displayOffset = (idx: number) => {
-  if (!offsetEnabled.value) return ''
-  const offsetFromCurrent = filteredPoints.value.length - 1 - idx
-  const offsetLabel = offsetFromCurrent === 0 ? 'Current' : `-${offsetFromCurrent} wk`
-  const rangeLabel = resolvedRangeLabel(idx).trim().toLowerCase()
-  if (rangeLabel && rangeLabel === offsetLabel.trim().toLowerCase()) return ''
-  return offsetLabel
+  if (labelMode.value !== 'offset') return ''
+  const offsetFromCurrent = filteredPoints.value[idx]?.offset ?? idx
+  if (offsetFromCurrent === 0) return 'Current'
+  return `-${offsetFromCurrent}`
 }
 const displayRange = (idx: number) => {
+  if (labelMode.value !== 'date') return ''
   const label = resolvedRangeLabel(idx)
-  return label || ''
+  if (label) return label
+  const offsetFromCurrent = filteredPoints.value[idx]?.offset ?? idx
+  if (offsetFromCurrent === 0 && props.rangeLabel) return props.rangeLabel
+  return ''
+}
+
+function isoWeek(date: Date) {
+  const tmp = new Date(Date.UTC(date.getFullYear(), date.getMonth(), date.getDate()))
+  const dayNum = tmp.getUTCDay() || 7
+  tmp.setUTCDate(tmp.getUTCDate() + 4 - dayNum)
+  const yearStart = new Date(Date.UTC(tmp.getUTCFullYear(), 0, 1))
+  const weekNo = Math.ceil((((tmp.getTime() - yearStart.getTime()) / 86400000) + 1) / 7)
+  return weekNo
+}
+const dateFormatter = new Intl.DateTimeFormat(undefined, { day: '2-digit', month: '2-digit' })
+function addDays(base: Date, days: number) {
+  const next = new Date(base)
+  next.setDate(next.getDate() + days)
+  return next
+}
+function addMonths(base: Date, months: number) {
+  const next = new Date(base)
+  next.setMonth(next.getMonth() + months)
+  return next
+}
+function endOfMonth(date: Date) {
+  return new Date(date.getFullYear(), date.getMonth() + 1, 0)
+}
+function isDefaultOffsetLabel(label: string | undefined) {
+  return !label ? true : /^-\d+\s*wk$/i.test(label.trim())
+}
+function formatRange(from?: Date, to?: Date) {
+  if (!from || !to) return ''
+  const fromLabel = dateFormatter.format(from)
+  const toLabel = dateFormatter.format(to)
+  return fromLabel === toLabel ? fromLabel : `${fromLabel}–${toLabel}`
+}
+function computedRange(idx: number) {
+  const offsetFromCurrent = filteredPoints.value[idx]?.offset ?? idx
+  if (!props.from || !props.to) {
+    const label = filteredPoints.value[idx]?.label
+    return isDefaultOffsetLabel(label) ? '' : (label || '')
+  }
+  const mode = (props.rangeMode || '').toLowerCase()
+  const currentFrom = new Date(props.from)
+  const currentTo = new Date(props.to)
+  if (Number.isNaN(currentFrom.getTime()) || Number.isNaN(currentTo.getTime())) return ''
+  if (mode === 'month') {
+    const start = addMonths(currentFrom, -offsetFromCurrent)
+    const end = endOfMonth(start)
+    return formatRange(start, end)
+  }
+  // default week
+  const start = addDays(currentFrom, -7 * offsetFromCurrent)
+  const end = addDays(currentTo, -7 * offsetFromCurrent)
+  return formatRange(start, end)
+}
+function computedPeriodTag(idx: number) {
+  const offsetFromCurrent = filteredPoints.value[idx]?.offset ?? idx
+  const mode = (props.rangeMode || '').toLowerCase()
+  if (!props.from) {
+    return offsetFromCurrent === 0 ? 'Current' : `- ${offsetFromCurrent} wk`
+  }
+  const start = mode === 'month'
+    ? addMonths(new Date(props.from), -offsetFromCurrent)
+    : addDays(new Date(props.from), -7 * offsetFromCurrent)
+  if (Number.isNaN(start.getTime())) {
+    return offsetFromCurrent === 0 ? 'Current' : `- ${offsetFromCurrent} wk`
+  }
+  if (mode === 'month') {
+    const m = start.getMonth() + 1
+    const targetMonth = new Date(start)
+    const currentMonth = new Date(props.from).getMonth() + 1
+    const displayMonth = offsetFromCurrent === 0 ? currentMonth : targetMonth.getMonth() + 1
+    return `MONTH ${displayMonth}`
+  }
+  const w = isoWeek(start)
+  const currentWeek = isoWeek(new Date(props.from))
+  const displayWeek = offsetFromCurrent === 0 ? currentWeek : w
+  return `WEEK ${displayWeek}`
 }
 </script>
 
@@ -208,6 +311,9 @@ const displayRange = (idx: number) => {
   justify-content:space-between;
   gap:10px;
 }
+.header.compact{
+  justify-content:center;
+}
 .title-row{
   display:flex;
   align-items:center;
@@ -217,27 +323,12 @@ const displayRange = (idx: number) => {
   font-weight:600;
   font-size:calc(1em * 1.02);
 }
-.range{
-  font-size:12px;
-  color:var(--muted);
-}
-.badge{
-  background:var(--color-primary,#2563eb);
-  color:#fff;
-  border-radius:999px;
-  padding:4px 8px;
-  font-size:12px;
-}
 .index{
   text-align:right;
 }
-.index-value{
-  font-size:calc(22px * var(--widget-text-scale, 1));
-  font-weight:700;
-}
-.index-label{
-  font-size:calc(12px * var(--widget-text-scale, 1));
-  color:var(--muted);
+.index.centered{
+  text-align:center;
+  width:100%;
 }
 .trend{
   display:flex;
@@ -247,7 +338,7 @@ const displayRange = (idx: number) => {
 .trend-line{
   flex:1;
   display:grid;
-  grid-template-columns:repeat(auto-fit, minmax(90px, 1fr));
+  grid-template-columns:repeat(auto-fit, minmax(92px, 1fr));
   gap:6px;
   justify-content:flex-start;
 }
@@ -267,37 +358,32 @@ const displayRange = (idx: number) => {
 }
 .trend-block.no-range{
   grid-column: span 1;
+  padding:4px 5px;
 }
 .trend-block.no-range.no-offset{
   grid-column: span 1;
+  padding:4px;
 }
 .trend-block.no-offset{
   grid-column: span 1;
+  padding:4px 6px;
 }
 .trend-block.current{
   background:var(--color-primary,#2563eb);
   box-shadow:0 0 0 2px color-mix(in oklab, var(--color-primary,#2563eb), #ffffff 60%);
 }
 .trend-line-row{
-  display:grid;
-  grid-template-columns: 1fr 1.1fr 0.8fr;
+  display:flex;
   align-items:center;
+  justify-content:space-between;
   gap:4px;
   width:100%;
-}
-.trend-block.no-range .trend-line-row{
-  grid-template-columns: 1fr 0.9fr;
-}
-.trend-block.no-offset .trend-line-row{
-  grid-template-columns: 1fr 1.1fr;
-}
-.trend-block.no-range.no-offset .trend-line-row{
-  grid-template-columns: 1fr;
 }
 .trend-value{
   font-weight:700;
   font-size:calc(13px * var(--widget-text-scale, 1));
   text-align:left;
+  white-space:nowrap;
 }
 .trend-range{
   flex:1;
@@ -309,10 +395,11 @@ const displayRange = (idx: number) => {
   white-space:nowrap;
 }
 .trend-offset{
-  min-width:46px;
+  min-width:52px;
   text-align:right;
   font-size:calc(10px * var(--widget-text-scale, 1));
   color:#cbd5f5;
+  white-space:nowrap;
 }
 .trend-delta{
   font-size:calc(12px * var(--widget-text-scale, 1));

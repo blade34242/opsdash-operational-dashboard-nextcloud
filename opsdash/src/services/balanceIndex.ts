@@ -48,11 +48,13 @@ export function buildIndexTrend(options: {
   targetsConfig: { categories: Array<{ id: string; targetHours: number }> }
   basis?: BalanceConfig['index']['basis']
   lookback: number
+  currentIndex?: number
 }) {
   const history = Array.isArray(options.history) ? options.history : []
   const lookback = Math.max(1, Math.min(options.lookback || 4, 52))
   const targets = options.targetsConfig?.categories || []
-  return history.slice(0, lookback).map((entry, idx) => {
+  const entries = history.slice(0, lookback).slice()
+  const points = entries.map((entry, idx) => {
     const shares: Record<string, number> = {}
     if (Array.isArray(entry.categories)) {
       entry.categories.forEach((cat: any) => {
@@ -78,9 +80,25 @@ export function buildIndexTrend(options: {
     const index = computeIndexForShares({ shares, targets, basis: options.basis })
     return {
       index,
-      label: entry.label || `-${idx + 1} wk`,
+      label: entry.label || '',
+      offset: idx, // temporary
     }
   })
+  // Ensure newest item is offset 0. If backend is oldest-first, reverse; if newest-first, keep.
+  // Heuristic: assume last item is newest; reverse to make last -> first.
+  points.reverse()
+  points.forEach((pt, idx) => { pt.offset = idx })
+
+  // Inject current index if provided and missing at offset 0.
+  if (typeof options.currentIndex === 'number') {
+    if (!points.length || Math.abs((points[0].index ?? 0) - options.currentIndex) > 0.0001) {
+      points.unshift({ index: options.currentIndex, label: 'Current', offset: 0 })
+      points.forEach((pt, idx) => { pt.offset = idx })
+    } else {
+      points[0].index = options.currentIndex
+    }
+  }
+  return points.slice(0, lookback)
 }
 
 export function defaultBalanceConfig(): BalanceConfig {

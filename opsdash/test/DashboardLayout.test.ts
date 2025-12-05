@@ -2,6 +2,7 @@ import { describe, it, expect, vi } from 'vitest'
 import { mount } from '@vue/test-utils'
 import DashboardLayout from '../src/components/layout/DashboardLayout.vue'
 import { createDefaultTargetsConfig } from '../src/services/targets'
+import { nextTick } from 'vue'
 
 vi.mock('../src/services/widgetsRegistry', () => {
   const component = { template: '<div class="widget-stub"></div>' }
@@ -241,6 +242,44 @@ describe('DashboardLayout grid add flow', () => {
 
     const bar = document.body.querySelector('.widget-toolbar')
     expect(bar).not.toBeNull()
+    wrapper.unmount()
+  })
+
+  it('toolbar buttons emit edit events when clicked', async () => {
+    const wrapper = mount(DashboardLayout, {
+      props: {
+        widgets: [
+          { id: 'w1', type: 'targets_v2', layout: { width: 'half', height: 'm', order: 10 }, options: {}, version: 1 },
+        ],
+        widgetTypes: [{ type: 'targets_v2', label: 'Targets' }],
+        context: {},
+        editable: true,
+      },
+      global: {
+        stubs: { SidebarTargetsPane: stubPane, WidgetOptionsMenu: stubMenu },
+      },
+    })
+
+    await nextTick()
+    await wrapper.find('.layout-item').trigger('click')
+    await nextTick()
+    const toolbar = document.body.querySelector('.widget-toolbar') as HTMLElement
+    expect(toolbar).not.toBeNull()
+
+    // Call the same handlers the toolbar buttons are wired to so we verify emissions
+    ;(wrapper.vm as any).selectedId = 'w1'
+    ;(wrapper.vm as any).moveSelected('up')
+    ;(wrapper.vm as any).moveSelected('down')
+    ;(wrapper.vm as any).cycleSelectedWidth()
+    ;(wrapper.vm as any).cycleSelectedHeight()
+    ;(wrapper.vm as any).removeSelected()
+    await nextTick()
+
+    expect(wrapper.emitted('edit:move')?.[0]).toEqual(['w1', 'up'])
+    expect(wrapper.emitted('edit:move')?.[1]).toEqual(['w1', 'down'])
+    expect(wrapper.emitted('edit:width')?.[0]).toEqual(['w1'])
+    expect(wrapper.emitted('edit:height')?.[0]).toEqual(['w1'])
+    expect(wrapper.emitted('edit:remove')?.[0]).toEqual(['w1'])
     wrapper.unmount()
   })
 

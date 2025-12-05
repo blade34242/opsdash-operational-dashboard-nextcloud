@@ -784,7 +784,7 @@ function onDragEnd() {
   position:fixed;
   inset:0;
   pointer-events:none;
-  z-index:9999;
+  z-index:2147480000;
   display:flex;
   align-items:flex-end;
   justify-content:center;
@@ -793,8 +793,11 @@ function onDragEnd() {
 }
 .widget-toolbar{
   pointer-events:auto;
+  position:relative;
   margin-top:0;
   padding:7px 9px;
+  border:1px solid rgba(156,163,175,0.85); /* fallback for browsers without color-mix */
+  background:#111827; /* fallback for browsers without color-mix */
   border:1px solid color-mix(in oklab, var(--color-border,#9ca3af), transparent 10%);
   background:color-mix(in oklab, #1f2937, #111827 70%);
   border-radius:8px;
@@ -806,11 +809,12 @@ function onDragEnd() {
   max-width:760px;
   width: min(760px, calc(100% - 220px));
   opacity:1;
-  z-index:10000;
+  z-index:2147480001;
   backdrop-filter: blur(6px);
   transition: background 140ms ease, box-shadow 140ms ease, transform 140ms ease;
 }
 .widget-toolbar:hover{
+  background:#0f172a; /* fallback */
   background:color-mix(in oklab, #111827, #1f2937 30%);
   box-shadow:0 8px 18px rgba(0,0,0,0.18);
 }
@@ -827,11 +831,15 @@ function onDragEnd() {
 .widget-toolbar .ghost{
   padding:4px 6px;
   font-size:12px;
+  background:#0f172a; /* fallback */
+  border-color:#4b5563; /* fallback */
   background:color-mix(in oklab, #111827, #1f2937 80%);
   border-color:color-mix(in oklab, #4b5563, transparent 35%);
   color:#f1f5f9;
 }
 .widget-toolbar .ghost:hover{
+  background:#1e3a8a; /* fallback */
+  border-color:#2563eb; /* fallback */
   background:color-mix(in oklab, #2563EB, #111827 85%);
   border-color:color-mix(in oklab, #2563EB, transparent 50%);
 }
