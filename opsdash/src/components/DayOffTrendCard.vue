@@ -13,6 +13,7 @@
           `dayoff-tile--${entry.tone}`,
           { 'dayoff-tile--current': entry.offset === 0 },
         ]"
+        :style="toneStyles[entry.tone]"
         :title="`${entry.label} · ${shareLabel(entry.share)}`"
       >
         <div class="dayoff-tile__label">{{ entry.label }}</div>
@@ -121,6 +122,17 @@ const lookbackLabel = computed(() => {
 const titleText = computed(() => props.title || 'Days off trend')
 const cardStyle = computed(() => ({ background: props.cardBg || undefined }))
 
+const toneStyles = computed(() => {
+  const low = normalizeColor(props.toneLowColor) || '#dc2626'
+  const high = normalizeColor(props.toneHighColor) || '#16a34a'
+  const mid = mixColor(low, high, 0.5)
+  return {
+    low: makeTone(low),
+    mid: makeTone(mid),
+    high: makeTone(high),
+  }
+})
+
 function shareLabel(value: number) {
   const pct = Math.max(0, Math.min(1, value))
   return `${Math.round(pct * 100)}% off`
@@ -130,6 +142,53 @@ function classifyTone(value: number): 'low' | 'mid' | 'high' {
   if (value >= 0.5) return 'high'
   if (value >= 0.25) return 'mid'
   return 'low'
+}
+
+function normalizeColor(value?: string | null): string | null {
+  if (!value || typeof value !== 'string') return null
+  const hex = value.trim()
+  if (/^#([0-9a-f]{3}|[0-9a-f]{6})$/i.test(hex)) return hex
+  return null
+}
+
+function mixColor(a: string, b: string, ratio = 0.5): string {
+  const pa = parseHex(a)
+  const pb = parseHex(b)
+  if (!pa || !pb) return a
+  const r = clamp(Math.round(pa.r + (pb.r - pa.r) * ratio), 0, 255)
+  const g = clamp(Math.round(pa.g + (pb.g - pa.g) * ratio), 0, 255)
+  const bl = clamp(Math.round(pa.b + (pb.b - pa.b) * ratio), 0, 255)
+  return `rgb(${r}, ${g}, ${bl})`
+}
+
+function parseHex(hex: string): { r: number; g: number; b: number } | null {
+  const clean = hex.replace('#', '')
+  if (clean.length === 3) {
+    const [r, g, b] = clean.split('').map((v) => parseInt(v.repeat(2), 16))
+    return { r, g, b }
+  }
+  if (clean.length === 6) {
+    const r = parseInt(clean.slice(0, 2), 16)
+    const g = parseInt(clean.slice(2, 4), 16)
+    const b = parseInt(clean.slice(4, 6), 16)
+    return { r, g, b }
+  }
+  return null
+}
+
+function luminance(hex: string): number {
+  const p = parseHex(hex)
+  if (!p) return 0
+  return (0.2126 * p.r + 0.7152 * p.g + 0.0722 * p.b) / 255
+}
+
+function makeTone(bg: string): { background: string; color: string } {
+  const text = luminance(bg) > 0.6 ? '#0f172a' : '#fff'
+  return { background: bg, color: text }
+}
+
+function clamp(v: number, min: number, max: number) {
+  return Math.min(max, Math.max(min, v))
 }
 </script>
 

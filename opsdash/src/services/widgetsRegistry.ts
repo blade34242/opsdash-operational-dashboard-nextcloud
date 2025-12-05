@@ -493,6 +493,8 @@ export const widgetsRegistry: Record<string, RegistryEntry> = {
       },
       { key: 'showHeader', label: 'Show header', type: 'toggle' },
       { key: 'showBadges', label: 'Show badges', type: 'toggle' },
+      { key: 'toneLowColor', label: 'Low color', type: 'color' },
+      { key: 'toneHighColor', label: 'High color', type: 'color' },
     ],
     buildProps: (_def, ctx) => ({
       trend: ctx.activityDayOffTrend,
@@ -502,6 +504,8 @@ export const widgetsRegistry: Record<string, RegistryEntry> = {
       showBadges: _def.options?.showBadges !== false,
       title: buildTitle(widgetsRegistry.dayoff_trend.baseTitle!, _def.options?.titlePrefix),
       cardBg: _def.options?.cardBg,
+      toneLowColor: _def.options?.toneLowColor,
+      toneHighColor: _def.options?.toneHighColor,
     }),
   },
   deck: {
