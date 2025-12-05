@@ -1040,6 +1040,8 @@ const {
 
 const activeDayMode = ref<'active'|'all'>('active')
 const rangeLabel = computed(()=> range.value === 'month' ? 'Month' : 'Week')
+const openOptionsId = ref<string | null>(null)
+const selectedWidgetId = ref<string | null>(null)
 
 const targetsConfigForRange = computed(() => {
   const base = cloneTargetsConfig(targetsConfig.value)
