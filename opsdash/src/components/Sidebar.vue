@@ -75,6 +75,18 @@
         Config & Setup
       </button>
       <button
+        id="opsdash-sidebar-tab-profiles"
+        type="button"
+        class="sb-tab"
+        :class="{ active: activeTab === 'profiles' }"
+        role="tab"
+        :aria-selected="activeTab === 'profiles'"
+        aria-controls="opsdash-sidebar-pane-profiles"
+        @click="activeTab = 'profiles'"
+      >
+        Profiles
+      </button>
+      <button
         id="opsdash-sidebar-tab-report"
         type="button"
         class="sb-tab"
@@ -133,9 +145,23 @@
       @clear-warnings="() => emit('clear-preset-warnings')"
       @rerun-onboarding="() => emit('rerun-onboarding')"
       @set-theme-preference="(value: 'auto' | 'light' | 'dark') => emit('set-theme-preference', value)"
+      @open-shortcuts="(el) => emit('open-shortcuts', el)"
+    />
+
+    <SidebarProfilesPane
+      v-else-if="activeTab === 'profiles'"
+      :presets="presetsList"
+      :is-loading="props.presetsLoading"
+      :is-saving="props.presetSaving"
+      :is-applying="props.presetApplying"
+      :warnings="props.presetWarnings"
+      @save="(name: string) => emit('save-preset', name)"
+      @load="(name: string) => emit('load-preset', name)"
+      @delete="(name: string) => emit('delete-preset', name)"
+      @refresh="() => emit('refresh-presets')"
+      @clear-warnings="() => emit('clear-preset-warnings')"
       @export-config="() => emit('export-config')"
       @import-config="(file: File) => emit('import-config', file)"
-      @open-shortcuts="(el) => emit('open-shortcuts', el)"
     />
 
     <SidebarReportPane
@@ -187,6 +213,7 @@ import type { ReportingConfig, DeckFeatureSettings } from '../services/reporting
 import SidebarCalendarsPane from './sidebar/SidebarCalendarsPane.vue'
 import SidebarBalancePane from './sidebar/SidebarBalancePane.vue'
 import SidebarConfigPane from './sidebar/SidebarConfigPane.vue'
+import SidebarProfilesPane from './sidebar/SidebarProfilesPane.vue'
 import SidebarReportPane from './sidebar/SidebarReportPane.vue'
 import SidebarDeckPane from './sidebar/SidebarDeckPane.vue'
 import { applyNumericUpdate, type InputMessage } from './sidebar/validation'
@@ -243,7 +270,7 @@ const emit = defineEmits([
   'save-deck-settings',
 ])
 
-type SidebarTab = 'calendars'|'activitybalance'|'config'|'report'|'deck'
+type SidebarTab = 'calendars'|'activitybalance'|'config'|'profiles'|'report'|'deck'
 
 const activeTab = ref<SidebarTab>('calendars')
 
