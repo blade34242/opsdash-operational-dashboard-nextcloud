@@ -5,6 +5,15 @@ All notable changes to this project will be documented in this file.
 ## [Unreleased]
 - Pending changes.
 
+### Added
+- Onboarding wizard “Dashboard preset” step (Quick / Standard / Pro) that applies a preset widget layout and stores the chosen dashboard mode.
+- Deck cards widget overhaul: per-widget board/filter selection, auto-scroll/count options, reset-to-preset action in the widget toolbar.
+- Day-off trend and Category mix trend widgets now expose Low/High color pickers; colors blend and apply to tiles with contrast-aware text.
+
+### Changed
+- Sidebar hides Profiles/Report tabs when the Quick dashboard preset is active; default widgets now come from the Standard preset.
+- Widget toolbar includes “Reset preset” to restore the current dashboard mode’s layout.
+
 ## [0.4.7] - Unreleased
 ### Added
 - Targets card and By Calendar progress bars now show today's hours as an overlay in the same series color, including the over-100% portion.

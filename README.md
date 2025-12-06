@@ -15,7 +15,7 @@
 - **Know where the week went** – totals, averages, busiest days, workday/weekend split, top categories, longest tasks.
 - **Stay on target** – per-calendar & per-category goals with pacing badges, Δ indicators, and quick forecasting.
 - **Balance at a glance** – stacked bars, category pies, heatmaps, “By Calendar/Day/Top/Heatmap” tabs.
-- **Onboarding & presets** – snapshot the sidebar, rerun the wizard, and keep teammates aligned with shared profiles.
+- **Onboarding & presets** – pick Quick/Standard/Pro dashboard presets in the wizard, snapshot the sidebar, rerun onboarding, and keep teammates aligned with shared profiles.
 - **Notes + theming** – week/month notes (editable + read-only history) and per-user theme preferences that load instantly even after clearing cache.
 - **Native & private** – Vue 3 SPA rendered via Nextcloud’s CSP, CSRF, and permissions. No telemetry, no external APIs.
 
@@ -39,7 +39,7 @@ occ app:enable opsdash
 - 🧩 **Onboarding wizard & presets** – guided setup (calendars, targets, Deck boards, reporting cadence, Activity heatmap toggle), rerun from Config & Setup, save/load/delete presets, export/import, theme selector.
 - 🗓️ **Activity & schedule** – KPIs for events/active days plus a “Days off” heatmap that compares the current range with the last few weeks/months.
 - 🔐 **Nextcloud-native** – same theme, request token, permissions, Dav colors, and zero external calls.
-- 🗂️ **Deck tab (preview)** – read-only list of Deck cards due or completed in the active week/month range, with All/My cards filters and a quick link to the Deck app.
+- 🗂️ **Deck widgets** – Deck cards widget with per-widget board/filter selection, auto-scroll ticker, counts; optional Deck summary widget.
 - 📨 **Report tab (preview)** – configure weekly/monthly digests, interim reminders, and Deck visibility using Nextcloud notifications + email.
 
 ## 🛠 Local Development
