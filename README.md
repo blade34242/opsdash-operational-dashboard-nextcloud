@@ -59,6 +59,13 @@ npx playwright install --with-deps chromium
 npm run test:e2e
 ```
 
+### Packaging (App Store tarball)
+```bash
+# from repo root
+make appstore VERSION=0.4.7
+```
+This runs a clean copy into `build/opsdash`, installs deps, builds, strips dev files, and outputs `build/dist/opsdash-<version>.tar.gz`. If your environment blocks native binaries during `npm ci` (esbuild), rerun with sufficient permissions so the esbuild helper can execute.
+
 ## 🧪 QA Seeding & Fixtures
 ```bash
 # run from Nextcloud root
