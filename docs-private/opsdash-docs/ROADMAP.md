@@ -15,6 +15,7 @@ Single source of truth for the Opsdash backlog: high-level roadmap, target syste
 - Deck tab (preview) pulls real boards/cards via the Deck OCS API; CI seeds deterministic boards via `apps/opsdash/tools/seed_deck_boards.php` so Playwright stays reliable.
 - Activity & Schedule card surfaces the “Days off” comparison as a heatmap, matching Balance’s trend lookback UX.
 - Core docs (Architecture, API, Dev Workflow, Packaging, Troubleshooting) match the shipping behaviour.
+- Security scripts: CSRF token helper shared across scripts; CI runs curl-based clamps/CSRF/preset/import checks. Notes sanitised server-side; deck settings clamp hidden board IDs/booleans. DAV probe tolerates 405 with fallback to `/overview/load` colors.
 
 ---
 
@@ -23,7 +24,7 @@ Single source of truth for the Opsdash backlog: high-level roadmap, target syste
 1. ✅ **Requirements lock** for onboarding/targets/theming — docs in `ONBOARDING_WORKFLOW.md`, `TARGET_STRATEGIES`, `LIGHT_DARK_THEMING.md`. Keep pairing changes with Vitest/PHPUnit and refresh week/month fixtures.
 2. ✅ **Testing infrastructure** baseline (PHPUnit + Vitest). Next: keep adding coverage for new helpers (see Testing Guide).
 3. ✅ **Shared validation helpers** with inline feedback (numeric helpers + 400 responses).
-4. ⚠️ **Architecture refactor** — `App.vue` carved into composables; controllers/services still large. Next: split `targets.ts` and `OverviewController.php` into services + tests.
+4. ⚠️ **Architecture refactor** — `App.vue` carved into composables; controllers/services still large. Next: split `targets.ts` and `OverviewController.php` into services + tests (add DTO/validators).
 5. ✅ **Onboarding wizard + strategy profiles** — rerun entry point and preset seeding shipped.
 6. 🔄 **Theming, collapsed controls, keyboard shortcuts overlay** — theme persistence + collapsed toolbar + modal exist; polish UX/backlog items next.
 7. ✅ **Endpoint/docs rename to** `/overview/*` — copy polish pending.
@@ -46,8 +47,9 @@ Single source of truth for the Opsdash backlog: high-level roadmap, target syste
   - Extend Playwright flows with OCC seeding helpers (or nightly scripts) so each supported NC/PHP combo exercises real CalDAV data, not just mocked payloads.
   - ✅ Playwright now clicks the Deck tab and asserts QA cards render, proving the Deck seed + SPA wiring end-to-end.
   - Document the workflow (seed via OCC → capture fixtures → replay in tests) as the blessed best practice for future contributors.
-- ⏳ **CalDAV colour probe** — Script exists (`tools/security/probe_dav_colors.sh`); wire into CI with per-version PROPFIND checks and fail on missing colors.
+- 🔄 **CalDAV colour probe** — Script exists (`tools/security/probe_dav_colors.sh`); now tolerates 405 with `/overview/load` fallback in CI. Next: assert colors per NC version when PROPFIND succeeds.
 - ✅ Remove obsolete `php occ opsdash:seed-deck` job from CI — replaced by `tools/seed_opsdash.sh` in workflow.
+- 🔄 **Security CI** — curl security scripts now run in CI; keep extending coverage (preset import/export, CSRF regression).
 
 ### P1 – Frontend Structure
 
@@ -55,7 +57,7 @@ Single source of truth for the Opsdash backlog: high-level roadmap, target syste
 - ⏳ Merge Activity & Schedule data into Balance top card and move descriptive copy into Summary card. Start by reusing ActivityScheduleCard data in BalanceOverviewCard props.
 - ⏳ Add a dedicated “Charts” sidebar tab for chart config; relocate projection controls there.
 - ⏳ Improve floating header/toolbar when sidebar collapsed; repro jumpiness with scroll tests.
-- ⏳ Extend Vitest/Playwright per Testing Guide Phase 2 (coverage gaps noted above).
+- 🔄 Extend Vitest/Playwright per Testing Guide Phase 2 (coverage gaps noted above). Added deck_settings client test; onboarding Playwright flow exercises final tweaks (reporting/deck).
 - ⏳ Explore “By Calendar Events” drill-down UX (no code yet).
 - ⏳ Enhance chart labelling + info badges alignment.
 - ⏳ Category rows: add “Today” mini callouts in Targets chart.

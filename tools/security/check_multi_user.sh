@@ -29,11 +29,28 @@ fetch_selected() {
   curl -s -u "$user:$pass" -H 'OCS-APIREQUEST: true' "$LOAD_URL?range=week&offset=0" | jq -r '.selected[]' 2>/dev/null || true
 }
 
-echo "[multi-user] Setting selection for $USER_A"
-post_payload "$USER_A" "$PASS_A" '{"selected":["personal"]}'
+first_two_calendars() {
+  local user=$1 pass=$2
+  curl -s -u "$user:$pass" -H 'OCS-APIREQUEST: true' "$LOAD_URL?range=week&offset=0" \
+    | jq -r '.calendars[]?.id' 2>/dev/null | head -n2
+}
 
-echo "[multi-user] Setting selection for $USER_B"
-post_payload "$USER_B" "$PASS_B" '{"selected":["opsdash-focus"]}'
+cal_a=($(first_two_calendars "$USER_A" "$PASS_A"))
+cal_b=($(first_two_calendars "$USER_B" "$PASS_B"))
+
+if [[ ${#cal_a[@]} -eq 0 || ${#cal_b[@]} -eq 0 ]]; then
+  echo "[multi-user] Skipping: not enough calendars to compare" >&2
+  exit 0
+fi
+
+sel_a=${cal_a[0]}
+sel_b=${cal_b[-1]}
+
+echo "[multi-user] Setting selection for $USER_A -> $sel_a"
+post_payload "$USER_A" "$PASS_A" "{\"cals\":[\"$sel_a\"]}"
+
+echo "[multi-user] Setting selection for $USER_B -> $sel_b"
+post_payload "$USER_B" "$PASS_B" "{\"cals\":[\"$sel_b\"]}"
 
 sel_a=$(fetch_selected "$USER_A" "$PASS_A")
 sel_b=$(fetch_selected "$USER_B" "$PASS_B")

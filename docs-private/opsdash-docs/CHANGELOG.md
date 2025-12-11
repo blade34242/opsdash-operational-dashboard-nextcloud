@@ -8,6 +8,8 @@ All notable changes to this project are documented here. This file is served loc
 - UI: Summary sidebar tab removed; summary toggles now live per-widget (`time_summary_v2`). Sidebar docs updated.
 - UI: Time Summary widget gained a Today block (total + per-category today hours) and gear-menu defaults (only one menu open at a time).
 - UI: Targets sidebar display toggles (delta, need/day, categories, badges, weekend toggle, include zero days) moved into the Targets widget gear.
+- Security: Added shared requesttoken helper for curl scripts; CSRF regression script; `/overview/notes` sanitized; deck settings clamp hidden board IDs/booleans; CI runs curl security suite; DAV probe tolerates 405 with `/overview/load` fallback.
+- Testing: Added deck_settings client Vitest, balanceIndex test fixed; onboarding Playwright flow steps through final tweaks (reporting/deck) and saves presets.
 
 ## [0.4.6] - Unreleased
 - Feat: Onboarding wizard “Final tweaks” step now covers Deck boards, reporting cadence/reminders, and the Activity day-off heatmap toggle, and the review summary reflects those choices.
