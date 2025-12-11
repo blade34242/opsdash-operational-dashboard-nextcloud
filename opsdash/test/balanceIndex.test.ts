@@ -5,8 +5,9 @@ describe('balanceIndex', () => {
   it('normalizes percentage shares and computes index', () => {
     const trend = buildIndexTrend({
       history: [
-        { label: 'now', categories: [{ id: 'a', share: 60 }, { id: 'b', share: 40 }] },
+        // oldest first; newest last to match buildIndexTrend heuristic
         { label: 'prev', categories: [{ id: 'a', share: 50 }, { id: 'b', share: 50 }] },
+        { label: 'now', categories: [{ id: 'a', share: 60 }, { id: 'b', share: 40 }] },
       ],
       targetsConfig: { categories: [{ id: 'a', targetHours: 10 }, { id: 'b', targetHours: 10 }] },
       basis: 'category',

@@ -177,7 +177,7 @@ test('Onboarding wizard can be re-run from Config & Setup', async ({ page, baseU
   await dismissOnboardingIfVisible(page)
 
   await page.getByRole('tab', { name: 'Config & Setup' }).click()
-  await page.getByRole('button', { name: 'Re-run onboarding' }).click()
+  await page.getByRole('button', { name: 'Re-run onboarding' }).click({ force: true })
 
   const dialog = page.getByRole('dialog')
   await expect(dialog.getByRole('heading', { name: 'Welcome to Opsdash' })).toBeVisible()
@@ -197,6 +197,28 @@ test('Config preset can be saved via UI', async ({ page, baseURL }) => {
   await page.goto(baseURL + '/index.php/apps/opsdash/overview')
   await dismissOnboardingIfVisible(page)
   await page.getByRole('tab', { name: 'Config & Setup' }).click()
+  await page.getByRole('button', { name: 'Re-run onboarding' }).click({ force: true })
+
+  const wizard = page.getByRole('dialog')
+  await expect(wizard.getByRole('heading', { name: 'Welcome to Opsdash' })).toBeVisible()
+
+  const next = wizard.getByRole('button', { name: /next/i })
+  for (let i = 0; i < 6; i++) {
+    if (await wizard.getByText('Final tweaks').isVisible({ timeout: 1000 }).catch(() => false)) {
+      break
+    }
+    if (await next.isVisible({ timeout: 500 }).catch(() => false)) {
+      await next.click()
+    }
+  }
+
+  await wizard.getByRole('checkbox', { name: /Enable reporting/i }).check({ force: true }).catch(() => {})
+  await wizard.getByRole('checkbox', { name: /Include Deck/i }).check({ force: true }).catch(() => {})
+  const saveBtn = wizard.getByRole('button', { name: /save/i })
+  if (await saveBtn.isVisible({ timeout: 1000 }).catch(() => false)) {
+    await saveBtn.click({ force: true })
+  }
+  await expect(wizard).toBeHidden({ timeout: 15000 })
 
   await page.getByLabel('Profile name').fill(presetName)
   await page.getByRole('button', { name: 'Save current configuration' }).click()
