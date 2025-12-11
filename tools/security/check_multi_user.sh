@@ -43,22 +43,22 @@ if [[ ${#cal_a[@]} -eq 0 || ${#cal_b[@]} -eq 0 ]]; then
   exit 0
 fi
 
-sel_a=${cal_a[0]}
-sel_b=${cal_b[-1]}
+expected_a=${cal_a[0]}
+expected_b=${cal_b[-1]}
 
-echo "[multi-user] Setting selection for $USER_A -> $sel_a"
-post_payload "$USER_A" "$PASS_A" "{\"cals\":[\"$sel_a\"]}"
+echo "[multi-user] Setting selection for $USER_A -> $expected_a"
+post_payload "$USER_A" "$PASS_A" "{\"cals\":[\"$expected_a\"]}"
 
-echo "[multi-user] Setting selection for $USER_B -> $sel_b"
-post_payload "$USER_B" "$PASS_B" "{\"cals\":[\"$sel_b\"]}"
+echo "[multi-user] Setting selection for $USER_B -> $expected_b"
+post_payload "$USER_B" "$PASS_B" "{\"cals\":[\"$expected_b\"]}"
 
-sel_a=$(fetch_selected "$USER_A" "$PASS_A")
-sel_b=$(fetch_selected "$USER_B" "$PASS_B")
+sel_a_result=$(fetch_selected "$USER_A" "$PASS_A")
+sel_b_result=$(fetch_selected "$USER_B" "$PASS_B")
 
-echo "User $USER_A selected: $sel_a"
-echo "User $USER_B selected: $sel_b"
+echo "User $USER_A selected: $sel_a_result"
+echo "User $USER_B selected: $sel_b_result"
 
-if echo "$sel_a" | grep -q 'personal' && echo "$sel_b" | grep -q 'opsdash-focus'; then
+if echo "$sel_a_result" | grep -q "$expected_a" && echo "$sel_b_result" | grep -q "$expected_b"; then
   echo "[multi-user] Isolation OK"
 else
   echo "[multi-user] Unexpected selections" >&2
