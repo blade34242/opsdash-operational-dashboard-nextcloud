@@ -45,8 +45,8 @@ fetch_token() {
 
 selected=$(export_preset)
 if [[ -z "$selected" || "$selected" == "null" ]]; then
-  echo "No presets available to export" >&2
-  exit 1
+  echo "[preset-export] No presets available to export; skipping" >&2
+  exit 0
 fi
 
 echo "[preset-export] exporting $selected"
