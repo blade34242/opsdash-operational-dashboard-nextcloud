@@ -44,6 +44,19 @@ for URL in "${CANDIDATE_URLS[@]}"; do
   fi
 done
 
+if [[ "$HTTP_STATUS" == "405" ]]; then
+  echo "[dav-probe] WARNING: PROPFIND returned 405 (likely server config); trying /overview/load color fallback." >&2
+  COLOR_FALLBACK=$(curl -s "${curl_flags[@]}" -u "$USER:$PASS" -H 'OCS-APIREQUEST: true' "$BASE/overview/load?range=week&offset=0" \
+    | grep -o "\"$CALENDAR\" *: *\"#[0-9A-Fa-f]\\{6\\}\"" \
+    | head -n1 \
+    | sed 's/.*:\"\\(#[0-9A-Fa-f]\\{6\\}\\)\"/\\1/')
+  if [[ -n "$COLOR_FALLBACK" ]]; then
+    printf '[dav-probe] fallback color via /overview/load %s => %s\n' "$CALENDAR" "$COLOR_FALLBACK"
+    exit 0
+  fi
+  exit 0
+fi
+
 if [[ -z "$BODY_CONTENT" ]]; then
   echo "CalDAV request failed (empty response, status $HTTP_STATUS) [$LAST_URL]" >&2
   exit 7

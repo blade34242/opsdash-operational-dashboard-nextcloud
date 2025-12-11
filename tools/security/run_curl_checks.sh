@@ -13,6 +13,13 @@ LOGIN_URL="$NC_ROOT/login"
 
 echo "[security] Using basic auth to hit OCS API (establish cookie-less session)"
 AUTH_CURL=(curl -s -u "$USER:$PASS" -H 'OCS-APIREQUEST: true')
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+TOKEN_HELPER="$SCRIPT_DIR/_token.sh"
+if [[ -f "$TOKEN_HELPER" ]]; then
+  . "$TOKEN_HELPER"
+elif [[ -f "$SCRIPT_DIR/../../opsdash/tools/security/_token.sh" ]]; then
+  . "$SCRIPT_DIR/../../opsdash/tools/security/_token.sh"
+fi
 
 json_get() {
   "${AUTH_CURL[@]}" "$@"

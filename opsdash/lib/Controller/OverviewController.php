@@ -35,6 +35,7 @@ final class OverviewController extends Controller {
     private const CONFIG_ONBOARDING = 'onboarding_state';
     private const ONBOARDING_VERSION = 1;
     private const RATIO_DECIMALS = 1;
+    private const MAX_DECK_BOARD_ID = 100000;
     public function __construct(
         string $appName,
         IRequest $request,
@@ -1363,6 +1364,9 @@ final class OverviewController extends Controller {
     public function persist(): DataResponse {
         $uid = (string)($this->userSession->getUser()?->getUID() ?? '');
         if ($uid === '') return new DataResponse(['message' => 'unauthorized'], Http::STATUS_UNAUTHORIZED);
+        if ($csrf = $this->enforceCsrf()) {
+            return $csrf;
+        }
 
         // Read request
         $raw  = file_get_contents('php://input') ?: '';
@@ -1560,6 +1564,9 @@ final class OverviewController extends Controller {
     public function notesSave(): DataResponse {
         $uid = (string)($this->userSession->getUser()?->getUID() ?? '');
         if ($uid === '') return new DataResponse(['message' => 'unauthorized'], Http::STATUS_UNAUTHORIZED);
+        if ($csrf = $this->enforceCsrf()) {
+            return $csrf;
+        }
 
         $raw  = file_get_contents('php://input') ?: '';
         $data = json_decode($raw, true);
@@ -1572,6 +1579,7 @@ final class OverviewController extends Controller {
         $text   = (string)($data['content'] ?? '');
         // Clamp length to a reasonable size (e.g. 32k)
         if (strlen($text) > 32768) $text = substr($text, 0, 32768);
+        $text = htmlspecialchars($text, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
 
         [$fromCur,] = $this->rangeBounds($range, $offset);
         $key = $this->notesKey($range, $fromCur);
@@ -1594,6 +1602,29 @@ final class OverviewController extends Controller {
             if (method_exists($this->calendarManager, 'getCalendars'))       return $this->calendarManager->getCalendars($uid) ?? [];
         } catch (\Throwable $e) { $this->logger->error('getCalendars error: '.$e->getMessage()); }
         return [];
+    }
+
+    /**
+     * Enforce requesttoken presence/validity for POST endpoints.
+     */
+    private function enforceCsrf(): ?DataResponse {
+        $token = (string)$this->request->getHeader('requesttoken');
+        if ($token === '') {
+            return new DataResponse(['message' => 'missing requesttoken'], Http::STATUS_PRECONDITION_FAILED);
+        }
+        if (method_exists($this->request, 'passesCSRFCheck')) {
+            try {
+                if (!$this->request->passesCSRFCheck()) {
+                    return new DataResponse(['message' => 'invalid requesttoken'], Http::STATUS_PRECONDITION_FAILED);
+                }
+            } catch (\Throwable $e) {
+                $this->logger->warning('csrf check failed', [
+                    'app' => $this->appName,
+                    'exception' => $e,
+                ]);
+            }
+        }
+        return null;
     }
 
     private function defaultReportingConfig(): array {
@@ -1672,6 +1703,29 @@ final class OverviewController extends Controller {
         ];
     }
 
+    private function normalizeBool($value, bool $default): bool {
+        if (is_bool($value)) {
+            return $value;
+        }
+        if (is_string($value)) {
+            $filtered = filter_var($value, FILTER_VALIDATE_BOOL, FILTER_NULL_ON_FAILURE);
+            if ($filtered !== null) {
+                return $filtered;
+            }
+        }
+        if (is_int($value)) {
+            return $value === 1;
+        }
+        return $default;
+    }
+
+    private function clampDeckBoardId(int $id): ?int {
+        if ($id <= 0 || $id > self::MAX_DECK_BOARD_ID) {
+            return null;
+        }
+        return $id;
+    }
+
     private function sanitizeDeckSettings($value): array {
         $defaults = $this->defaultDeckSettings();
         if (!is_array($value)) {
@@ -1692,10 +1746,13 @@ final class OverviewController extends Controller {
             : 'all';
         $hiddenBoards = [];
         if (!empty($value['hiddenBoards']) && is_array($value['hiddenBoards'])) {
-            $hiddenBoards = array_values(array_unique(array_filter(array_map(function ($id) {
-                $num = (int)$id;
-                return $num > 0 ? $num : null;
-            }, $value['hiddenBoards']), fn ($id) => $id !== null)));
+            foreach ($value['hiddenBoards'] as $id) {
+                $clamped = $this->clampDeckBoardId((int)$id);
+                if ($clamped !== null) {
+                    $hiddenBoards[] = $clamped;
+                }
+            }
+            $hiddenBoards = array_values(array_unique($hiddenBoards));
         }
         $mineMode = 'assignee';
         if (isset($value['mineMode']) && is_string($value['mineMode'])) {
@@ -1708,7 +1765,7 @@ final class OverviewController extends Controller {
         if (isset($value['ticker']) && is_array($value['ticker'])) {
             $ticker = [
                 'autoScroll' => array_key_exists('autoScroll', $value['ticker'])
-                    ? (bool)$value['ticker']['autoScroll']
+                    ? $this->normalizeBool($value['ticker']['autoScroll'], $defaults['ticker']['autoScroll'])
                     : $defaults['ticker']['autoScroll'],
                 'intervalSeconds' => $this->clampInt(
                     $value['ticker']['intervalSeconds'] ?? $defaults['ticker']['intervalSeconds'],
@@ -1717,19 +1774,19 @@ final class OverviewController extends Controller {
                     $defaults['ticker']['intervalSeconds']
                 ),
                 'showBoardBadges' => array_key_exists('showBoardBadges', $value['ticker'])
-                    ? (bool)$value['ticker']['showBoardBadges']
+                    ? $this->normalizeBool($value['ticker']['showBoardBadges'], $defaults['ticker']['showBoardBadges'])
                     : $defaults['ticker']['showBoardBadges'],
             ];
         }
         return [
-            'enabled' => array_key_exists('enabled', $value) ? (bool)$value['enabled'] : true,
-            'filtersEnabled' => array_key_exists('filtersEnabled', $value) ? (bool)$value['filtersEnabled'] : true,
+            'enabled' => array_key_exists('enabled', $value) ? $this->normalizeBool($value['enabled'], $defaults['enabled']) : $defaults['enabled'],
+            'filtersEnabled' => array_key_exists('filtersEnabled', $value) ? $this->normalizeBool($value['filtersEnabled'], $defaults['filtersEnabled']) : $defaults['filtersEnabled'],
             'defaultFilter' => $defaultFilter,
             'hiddenBoards' => $hiddenBoards,
             'mineMode' => $mineMode,
             'solvedIncludesArchived' => array_key_exists('solvedIncludesArchived', $value)
-                ? (bool)$value['solvedIncludesArchived']
-                : true,
+                ? $this->normalizeBool($value['solvedIncludesArchived'], $defaults['solvedIncludesArchived'])
+                : $defaults['solvedIncludesArchived'],
             'ticker' => $ticker,
         ];
     }

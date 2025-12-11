@@ -8,11 +8,13 @@ OVERVIEW_URL="$BASE$APP_PATH/overview"
 
 USER=${OPSDASH_USER:-admin}
 PASS=${OPSDASH_PASS:-admin}
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+. "$SCRIPT_DIR/_token.sh"
 
 echo "[notes-csrf] Using basic auth for API calls"
 AUTH=(curl -s -u "$USER:$PASS" -H 'OCS-APIREQUEST: true')
 
-TOKEN=$("${AUTH[@]}" "$OVERVIEW_URL" | sed -n 's/.*data-requesttoken="\([^"]*\)".*/\1/p' | head -n1)
+TOKEN=$(fetch_requesttoken "$BASE$APP_PATH" "$USER" "$PASS" || true)
 if [ -z "$TOKEN" ]; then
   echo "Failed to extract requesttoken from overview HTML" >&2
   exit 1

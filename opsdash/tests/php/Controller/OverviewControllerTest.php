@@ -144,6 +144,36 @@ class OverviewControllerTest extends TestCase {
     $this->assertTrue($result['balance']['ui']['showNotes']);
   }
 
+  public function testSanitizeDeckSettingsClampsIdsAndBools(): void {
+    $method = new \ReflectionMethod(OverviewController::class, 'sanitizeDeckSettings');
+    $method->setAccessible(true);
+
+    /** @var array<string,mixed> $result */
+    $result = $method->invoke($this->controller, [
+      'enabled' => false,
+      'filtersEnabled' => 'false',
+      'defaultFilter' => 'evil',
+      'hiddenBoards' => [1, -2, 'abc', 50000, 2000000],
+      'mineMode' => 'owner',
+      'solvedIncludesArchived' => 0,
+      'ticker' => [
+        'autoScroll' => 'false',
+        'intervalSeconds' => 0,
+        'showBoardBadges' => '0',
+      ],
+    ]);
+
+    $this->assertFalse($result['enabled']);
+    $this->assertFalse($result['filtersEnabled']);
+    $this->assertSame('all', $result['defaultFilter']);
+    $this->assertSame([1, 50000], $result['hiddenBoards'], 'Hidden boards should drop invalid/oversized ids');
+    $this->assertSame('assignee', $result['mineMode'], 'Invalid mineMode falls back');
+    $this->assertFalse($result['solvedIncludesArchived']);
+    $this->assertSame(3, $result['ticker']['intervalSeconds'], 'Ticker interval clamps to min');
+    $this->assertFalse($result['ticker']['autoScroll']);
+    $this->assertFalse($result['ticker']['showBoardBadges']);
+  }
+
   public function testBalanceLookbackClamp(): void {
     $method = new \ReflectionMethod(OverviewController::class, 'cleanBalanceConfig');
     $method->setAccessible(true);

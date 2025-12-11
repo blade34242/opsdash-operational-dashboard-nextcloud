@@ -1,5 +1,14 @@
 # Opsdash Security Scripts
 
+## Token retrieval (for POSTs)
+Most scripts now scrape the Nextcloud `requesttoken` from the Opsdash overview
+page. If you need one manually, run:
+```
+TOKEN=$(curl -s -L -u admin:admin http://localhost:8088/index.php/apps/opsdash/overview \
+  | sed -n 's/.*data-requesttoken=\"\([^\"]*\)\".*/\1/p' | head -n1)
+```
+Pass `-H "requesttoken: $TOKEN"` on POST requests.
+
 ## run_curl_checks.sh
 Quick regression script that exercises the high-value REST endpoints using the
 white-box pentest scenarios:
@@ -97,7 +106,28 @@ property is missing or malformed. Useful to catch upstream changes in the Calend
 `OPSDASH_BASE`, `OPSDASH_USER`, `OPSDASH_PASS` env vars as the other scripts; override `CALDAV_CALENDAR` if needed.
 
 ```
-OPSDASH_BASE=http://localhost:8088/index.php/apps/opsdash \
+  OPSDASH_BASE=http://localhost:8088/index.php/apps/opsdash \
   OPSDASH_USER=admin OPSDASH_PASS=admin \
   ./opsdash/tools/security/probe_dav_colors.sh
 ```
+
+## check_csrf_missing_token.sh
+Posts a note to `/overview/notes` **without** the `requesttoken` header (still
+using `OCS-APIREQUEST` and credentials) to see if the payload is stored. Exits 1
+and prints the stored fragment if the write succeeds—use this to catch CSRF
+regressions on write endpoints.
+
+```
+OPSDASH_BASE=http://localhost:8088/index.php/apps/opsdash \
+  OPSDASH_USER=admin OPSDASH_PASS=admin \
+  ./tools/security/check_csrf_missing_token.sh
+```
+
+## Suggested order for a full pass
+1. `run_curl_checks.sh` (baseline clamps/auth)  
+2. `check_csrf_missing_token.sh` (CSRF guard)  
+3. `preset_export_import.sh` (preset lifecycle, uses token scrape)  
+4. `import_fuzz.sh` (envelope import ignores evil keys, uses token scrape)  
+5. `check_multi_user.sh` (isolation)  
+6. `run_notes_csrf.sh` (happy-path CSRF)  
+7. `probe_dav_colors.sh` (CalDAV color health)
