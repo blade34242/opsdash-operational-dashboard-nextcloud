@@ -154,7 +154,7 @@ jobs:
           ./tools/security/preset_export_import.sh
           ./tools/security/import_fuzz.sh
           ./tools/security/check_multi_user.sh
-          ./opsdash/tools/security/run_notes_csrf.sh
+          ./tools/security/run_notes_csrf.sh
 
       - name: Playwright smoke test
         working-directory: server/apps/${{ env.APP_NAME }}
