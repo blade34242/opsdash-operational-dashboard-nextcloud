@@ -1,13 +1,44 @@
 <template>
-  <div
-    id="opsdash-sidebar-pane-balance"
-    class="sb-pane"
-    role="tabpanel"
-    aria-labelledby="opsdash-sidebar-tab-balance"
-  >
+  <div class="sb-pane">
     <div class="pane-heading">
       <div class="heading-primary">Activity &amp; Balance</div>
       <div class="heading-subtitle">Card display &amp; warnings</div>
+    </div>
+
+    <div class="target-section">
+      <div class="section-title-row tier-2">
+        <div class="section-subtitle subtitle">Activity card</div>
+        <button
+          type="button"
+          class="info-button"
+          :aria-expanded="helpActivity"
+          aria-label="Activity help"
+          @click="emit('toggle-help', 'activity')"
+        >
+          <span>?</span>
+        </button>
+      </div>
+      <div class="section-hint" v-if="helpActivity">
+        <span class="hint-title">Card toggles</span>
+        <span class="hint-body">Enable or hide specific activity metrics. These only affect the activity card.</span>
+      </div>
+      <div class="toggle-grid">
+        <label
+          v-for="([key, label], idx) in activityToggles"
+          :key="`${key}-${idx}`"
+          class="toggle-field"
+        >
+          <input
+            type="checkbox"
+            :checked="activitySettings[key]"
+            @change="emit('set-activity-toggle', { key, value: ($event.target as HTMLInputElement).checked })"
+          />
+          <span class="toggle-copy">
+            <span class="toggle-label">{{ label }}</span>
+            <span class="toggle-description">Show in activity card</span>
+          </span>
+        </label>
+      </div>
     </div>
 
     <div class="target-section">
@@ -36,6 +67,132 @@
           <span class="hint-title">Details</span>
           <span class="hint-body">{{ activityForecastDescription }}</span>
         </div>
+      </div>
+    </div>
+
+    <div class="target-section">
+      <div class="section-title-row tier-2">
+        <div class="section-subtitle subtitle">Balance index</div>
+        <div class="inline-actions">
+          <label class="field inline-select">
+            <span class="label">Basis</span>
+            <select
+              :value="balanceSettings.index.basis"
+              :aria-disabled="false"
+              @change="emit('set-index-basis', ($event.target as HTMLSelectElement).value as any)"
+            >
+              <option value="off">Disabled</option>
+              <option value="category">Total categories</option>
+              <option value="calendar">Total calendars</option>
+              <option value="both">Categories + calendars</option>
+            </select>
+          </label>
+          <button
+            type="button"
+            class="info-button"
+            :aria-expanded="helpThresholds"
+            aria-label="Thresholds help"
+            @click="emit('toggle-help', 'thresholds')"
+          >
+            <span>?</span>
+          </button>
+        </div>
+      </div>
+      <div class="section-hint" v-if="helpThresholds">
+        <span class="hint-title">Thresholds &amp; warnings</span>
+        <span class="hint-body">Set percentage gaps for subtle notices vs. strong warnings. Values are 0–1 ratios.</span>
+      </div>
+      <div class="field-grid thresholds-grid">
+        <label class="field">
+          <span class="label">Notice above</span>
+          <input
+            type="number"
+            min="0"
+            max="1"
+            step="0.01"
+            :value="balanceSettings.thresholds.noticeAbove"
+            :aria-invalid="!!balanceThresholdMessages.noticeAbove"
+            @input="emit('set-threshold', { key: 'noticeAbove', value: ($event.target as HTMLInputElement).value })"
+          />
+          <div
+            v-if="balanceThresholdMessages.noticeAbove"
+            :class="['input-message', balanceThresholdMessages.noticeAbove?.tone]"
+          >
+            {{ balanceThresholdMessages.noticeAbove?.text }}
+          </div>
+        </label>
+        <label class="field">
+          <span class="label">Notice below</span>
+          <input
+            type="number"
+            min="0"
+            max="1"
+            step="0.01"
+            :value="balanceSettings.thresholds.noticeBelow"
+            :aria-invalid="!!balanceThresholdMessages.noticeBelow"
+            @input="emit('set-threshold', { key: 'noticeBelow', value: ($event.target as HTMLInputElement).value })"
+          />
+          <div
+            v-if="balanceThresholdMessages.noticeBelow"
+            :class="['input-message', balanceThresholdMessages.noticeBelow?.tone]"
+          >
+            {{ balanceThresholdMessages.noticeBelow?.text }}
+          </div>
+        </label>
+        <label class="field">
+          <span class="label">Warn above</span>
+          <input
+            type="number"
+            min="0"
+            max="1"
+            step="0.01"
+            :value="balanceSettings.thresholds.warnAbove"
+            :aria-invalid="!!balanceThresholdMessages.warnAbove"
+            @input="emit('set-threshold', { key: 'warnAbove', value: ($event.target as HTMLInputElement).value })"
+          />
+          <div
+            v-if="balanceThresholdMessages.warnAbove"
+            :class="['input-message', balanceThresholdMessages.warnAbove?.tone]"
+          >
+            {{ balanceThresholdMessages.warnAbove?.text }}
+          </div>
+        </label>
+        <label class="field">
+          <span class="label">Warn below</span>
+          <input
+            type="number"
+            min="0"
+            max="1"
+            step="0.01"
+            :value="balanceSettings.thresholds.warnBelow"
+            :aria-invalid="!!balanceThresholdMessages.warnBelow"
+            @input="emit('set-threshold', { key: 'warnBelow', value: ($event.target as HTMLInputElement).value })"
+          />
+          <div
+            v-if="balanceThresholdMessages.warnBelow"
+            :class="['input-message', balanceThresholdMessages.warnBelow?.tone]"
+          >
+            {{ balanceThresholdMessages.warnBelow?.text }}
+          </div>
+        </label>
+        <label class="field">
+          <span class="label">Warn index</span>
+          <input
+            type="number"
+            min="0"
+            max="1"
+            step="0.01"
+            :value="balanceSettings.thresholds.warnIndex"
+            :aria-invalid="!!balanceThresholdMessages.warnIndex"
+            @input="emit('set-threshold', { key: 'warnIndex', value: ($event.target as HTMLInputElement).value })"
+          />
+          <div
+            v-if="balanceThresholdMessages.warnIndex"
+            :class="['input-message', balanceThresholdMessages.warnIndex?.tone]"
+          >
+            {{ balanceThresholdMessages.warnIndex?.text }}
+          </div>
+        </label>
       </div>
     </div>
 
@@ -79,38 +236,86 @@
       </div>
     </div>
 
+    <div class="target-section">
+      <div class="section-title-row tier-2">
+        <div class="section-subtitle subtitle">Display</div>
+        <button
+          type="button"
+          class="info-button"
+          :aria-expanded="helpDisplay"
+          aria-label="Display help"
+          @click="emit('toggle-help', 'display')"
+        >
+          <span>?</span>
+        </button>
+      </div>
+      <div class="section-hint" v-if="helpDisplay">
+        <span class="hint-title">Notes in balance cards</span>
+        <span class="hint-body">Toggle extra notes and annotations below balance charts. This affects the dashboard only.</span>
+      </div>
+      <div class="toggle-grid">
+        <label class="toggle-field single-toggle">
+          <input
+            type="checkbox"
+            :checked="balanceSettings.ui.showNotes"
+            @change="emit('set-ui-toggle', { key: 'showNotes', value: ($event.target as HTMLInputElement).checked })"
+          />
+          <span class="toggle-copy">
+            <span class="toggle-label">Show balance notes</span>
+            <span class="toggle-description">Display note snippet under balance cards</span>
+          </span>
+        </label>
+      </div>
+    </div>
+
   </div>
 </template>
 
 <script setup lang="ts">
 import { computed, toRefs } from 'vue'
-import type { ActivityForecastMode, BalanceConfig } from '../../services/targets'
+import type { ActivityCardConfig, ActivityForecastMode, BalanceConfig } from '../../services/targets'
 
 type InputMessage = { text: string; tone: 'error' | 'warning' }
 type ForecastOption = { value: ActivityForecastMode; label: string; description?: string }
 
 const rawProps = defineProps<{
   balanceSettings: BalanceConfig
+  activitySettings: ActivityCardConfig
+  activityToggles: Array<[keyof ActivityCardConfig, string]>
   activityForecastMode: ActivityForecastMode
   activityForecastOptions: ForecastOption[]
+  balanceThresholdMessages: Record<string, InputMessage | null>
   balanceLookbackMessage: InputMessage | null
+  helpActivity: boolean
+  helpThresholds: boolean
   helpTrend: boolean
   helpDisplay: boolean
+  indexDisabled?: boolean
 }>()
 
 const emit = defineEmits<{
-  (e: 'toggle-help', target: 'trend' | 'display'): void
+  (e: 'toggle-help', target: 'activity' | 'thresholds' | 'trend' | 'display'): void
   (e: 'set-activity-forecast', mode: ActivityForecastMode): void
+  (e: 'set-activity-toggle', payload: { key: keyof ActivityCardConfig; value: boolean }): void
+  (e: 'set-threshold', payload: { key: keyof BalanceConfig['thresholds']; value: string }): void
   (e: 'set-lookback', value: string): void
+  (e: 'set-index-basis', basis: BalanceConfig['index']['basis']): void
+  (e: 'set-ui-toggle', payload: { key: keyof BalanceConfig['ui']; value: boolean }): void
 }>()
 
 const {
   balanceSettings,
+  activitySettings,
+  activityToggles,
   activityForecastMode,
   activityForecastOptions,
+  balanceThresholdMessages,
   balanceLookbackMessage,
+  helpActivity,
+  helpThresholds,
   helpTrend,
   helpDisplay,
+  indexDisabled,
 } = toRefs(rawProps)
 
 const activityForecastDescription = computed(() => {
@@ -216,6 +421,12 @@ const activityForecastDescription = computed(() => {
 .input-message.info {
   color: var(--color-text-lighter, #6b7280);
 }
+.input-message.warning {
+  color: var(--warning, #f97316);
+}
+.input-message.error {
+  color: var(--neg, #dc2626);
+}
 .inline-hint {
   background: var(--color-background-hover, rgba(0, 0, 0, 0.05));
   border: 1px solid var(--color-border, #d1d5db);
@@ -243,5 +454,18 @@ const activityForecastDescription = computed(() => {
 }
 .field-grid {
   align-items: start;
+}
+.thresholds-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 10px;
+}
+.inline-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.inline-select {
+  margin: 0;
 }
 </style>

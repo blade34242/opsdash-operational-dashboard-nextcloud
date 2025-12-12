@@ -945,6 +945,34 @@ function prettyFilterLabel(key: string): string {
   }
 }
 
+/**
+ * Normalizes a raw widgets payload coming from storage or server.
+ */
+export function normalizeWidgetLayout(raw: any, fallback: WidgetDefinition[]): WidgetDefinition[] {
+  if (!Array.isArray(raw)) return fallback
+  const cleaned: WidgetDefinition[] = []
+  raw.forEach((item: any, idx: number) => {
+    const type = String(item?.type ?? '')
+    if (!type) return
+    const id = String(item?.id ?? '') || `widget-${type}-${idx + 1}`
+    const layout = item?.layout ?? {}
+    const width: WidgetSize =
+      layout.width === 'quarter' || layout.width === 'half' ? layout.width : 'full'
+    const height: WidgetHeight =
+      layout.height === 's' || layout.height === 'l' ? layout.height : 'm'
+    const order = Number(layout.order ?? 0)
+    const options = item?.options && typeof item.options === 'object' ? { ...item.options } : {}
+    cleaned.push({
+      id,
+      type,
+      options,
+      layout: { width, height, order: Number.isFinite(order) ? order : 0 },
+      version: Number(item?.version ?? 1) || 1,
+    })
+  })
+  return cleaned.length ? cleaned : fallback
+}
+
 export function createDefaultWidgets(): WidgetDefinition[] {
   return createDashboardPreset('standard')
 }

@@ -12,6 +12,7 @@ import {
   type ReportingConfig,
   type DeckFeatureSettings,
 } from '../src/services/reporting'
+import { createDefaultWidgets, normalizeWidgetLayout, type WidgetDefinition } from '../src/services/widgetsRegistry'
 import { readBootstrapThemePreference } from '../src/services/theme'
 
 export interface OnboardingState {
@@ -36,6 +37,7 @@ interface DashboardDeps {
   fetchNotes: () => Promise<void>
   isDebug?: () => boolean
   fetchDavColors?: (uid: string, ids: string[]) => Promise<Record<string, string>>
+  widgets?: Ref<WidgetDefinition[]>
 }
 
 export function useDashboard(deps: DashboardDeps) {
@@ -155,6 +157,12 @@ export function useDashboard(deps: DashboardDeps) {
       onboarding.value = json.onboarding ? { ...json.onboarding } : null
       reportingConfig.value = normalizeReportingConfig(json.reportingConfig, reportingConfig.value)
       deckSettings.value = normalizeDeckSettings(json.deckSettings, deckSettings.value)
+      if (deps.widgets) {
+        deps.widgets.value = normalizeWidgetLayout(
+          json.widgets,
+          deps.widgets.value && deps.widgets.value.length ? deps.widgets.value : createDefaultWidgets(),
+        )
+      }
 
       const applyPaletteToCharts = () => {
         let changed = false

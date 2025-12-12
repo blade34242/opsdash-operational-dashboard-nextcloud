@@ -167,15 +167,25 @@
       class="sb-pane"
       role="tabpanel"
       aria-labelledby="opsdash-sidebar-tab-activitybalance"
+      :activity-settings="activitySettings"
+      :activity-toggles="activityToggles"
       :activity-forecast-mode="activitySettings.forecastMode"
       :activity-forecast-options="activityForecastOptions"
       :balance-settings="balanceSettings"
+      :balance-threshold-messages="balanceThresholdMessages"
       :balance-lookback-message="balanceLookbackMessage"
+      :help-activity="helpState.balanceActivity"
+      :help-thresholds="helpState.balanceThresholds"
       :help-trend="helpState.balanceTrend"
       :help-display="helpState.balanceDisplay"
+      :index-disabled="balanceIndexDisabled"
       @toggle-help="toggleBalanceHelp"
       @set-activity-forecast="setActivityForecastMode"
       @set-lookback="setBalanceLookback"
+      @set-activity-toggle="setActivityToggle"
+      @set-threshold="(payload) => setBalanceThreshold(payload.key, payload.value)"
+      @set-index-basis="setBalanceIndexBasis"
+      @set-ui-toggle="setBalanceUi"
     />
   </NcAppNavigation>
 </template>
@@ -293,6 +303,12 @@ const activitySettings = computed<ActivityCardConfig>(() => {
   return { ...createDefaultActivityCardConfig(), ...(targets.value?.activityCard ?? {}) }
 })
 
+const activityToggles: Array<[keyof ActivityCardConfig, string]> = [
+  ['showWeekendShare', 'Weekend share'],
+  ['showDayOffTrend', 'Days off trend'],
+  ['showHint', 'Show helper text'],
+]
+
 const activityForecastOptions: Array<{ value: ActivityCardConfig['forecastMode']; label: string; description: string }> = [
   { value: 'off', label: 'Do not project future days', description: 'Keep charts empty until events occur.' },
   { value: 'total', label: 'Distribute remaining total target', description: 'Split leftover total target hours evenly across future days using current calendar mix.' },
@@ -316,6 +332,8 @@ const balanceSettings = computed<BalanceConfig>(() => {
 })
 
 const helpState = reactive({
+  balanceActivity: false,
+  balanceThresholds: false,
   balanceTrend: false,
   balanceDisplay: false,
 })
@@ -329,6 +347,7 @@ const balanceThresholdMessages = reactive<Record<string, InputMessage | null>>({
 const forecastMomentumMessage = ref<InputMessage | null>(null)
 const forecastPaddingMessage = ref<InputMessage | null>(null)
 const balanceLookbackMessage = ref<InputMessage | null>(null)
+const balanceIndexDisabled = computed(() => balanceSettings.value.index.basis === 'off')
 
 function nextGroupId(): number | null {
   const used = new Set<number>()
@@ -429,11 +448,15 @@ function setActivityForecastMode(mode: ActivityCardConfig['forecastMode']) {
   })
 }
 
-function toggleBalanceHelp(target: 'thresholds' | 'trend' | 'display') {
+function toggleBalanceHelp(target: 'thresholds' | 'trend' | 'display' | 'activity') {
   if (target === 'trend') {
     helpState.balanceTrend = !helpState.balanceTrend
   } else if (target === 'display') {
     helpState.balanceDisplay = !helpState.balanceDisplay
+  } else if (target === 'thresholds') {
+    helpState.balanceThresholds = !helpState.balanceThresholds
+  } else if (target === 'activity') {
+    helpState.balanceActivity = !helpState.balanceActivity
   }
 }
 
@@ -530,6 +553,29 @@ function setBalanceLookback(value: string){
     (message) => { balanceLookbackMessage.value = message },
     (num) => updateConfig(cfg => { cfg.balance.trend.lookbackWeeks = num }),
   )
+}
+
+function setBalanceIndexBasis(value: string) {
+  const allowed: BalanceConfig['index']['basis'][] = ['off', 'category', 'calendar', 'both']
+  const basis = allowed.includes(value as any) ? (value as BalanceConfig['index']['basis']) : 'category'
+  updateConfig((cfg) => {
+    cfg.balance.index.basis = basis
+  })
+}
+
+function setBalanceUi(payload: { key: keyof BalanceConfig['ui']; value: boolean }) {
+  updateConfig((cfg) => {
+    cfg.balance.ui[payload.key] = payload.value
+  })
+}
+
+function setActivityToggle(payload: { key: keyof ActivityCardConfig; value: boolean }) {
+  updateConfig((cfg) => {
+    if (!cfg.activityCard) {
+      cfg.activityCard = createDefaultActivityCardConfig()
+    }
+    cfg.activityCard[payload.key] = payload.value
+  })
 }
 
 // showNotes toggle removed from UI; keep placeholder to avoid runtime errors where invoked

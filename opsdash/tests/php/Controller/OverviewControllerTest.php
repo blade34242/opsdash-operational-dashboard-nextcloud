@@ -246,6 +246,31 @@ class OverviewControllerTest extends TestCase {
     $this->assertSame('category', $resultFallback['index']['basis']);
   }
 
+  public function testSanitizeWidgets(): void {
+    $method = new \ReflectionMethod(OverviewController::class, 'sanitizeWidgets');
+    $method->setAccessible(true);
+
+    /** @var array<int,array<string,mixed>> $result */
+    $result = $method->invoke($this->controller, [
+      ['type' => '', 'id' => 'bad'],
+      ['type' => 'note_editor', 'layout' => ['width' => 'giant', 'height' => 'x', 'order' => 'oops'], 'options' => 'not-array'],
+      ['type' => 'deck_cards', 'layout' => ['width' => 'half', 'height' => 'l', 'order' => 7]],
+    ]);
+
+    $this->assertCount(2, $result, 'Invalid widget types should be skipped');
+    $this->assertSame('note_editor', $result[0]['type']);
+    $this->assertSame('full', $result[0]['layout']['width']);
+    $this->assertSame('m', $result[0]['layout']['height']);
+    $this->assertSame(0.0, $result[0]['layout']['order']);
+    $this->assertSame([], $result[0]['options']);
+
+    $this->assertSame('deck_cards', $result[1]['type']);
+    $this->assertSame('half', $result[1]['layout']['width']);
+    $this->assertSame('l', $result[1]['layout']['height']);
+    $this->assertSame(7.0, $result[1]['layout']['order']);
+    $this->assertStringStartsWith('widget-deck_cards-', $result[1]['id'], 'Missing ids should be generated');
+  }
+
   public function testCleanOnboardingState(): void {
     $method = new \ReflectionMethod(OverviewController::class, 'cleanOnboardingState');
     $method->setAccessible(true);

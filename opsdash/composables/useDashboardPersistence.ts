@@ -13,6 +13,7 @@ import {
   type DeckFeatureSettings,
   type ReportingConfig,
 } from '../src/services/reporting'
+import { normalizeWidgetLayout, createDefaultWidgets } from '../src/services/widgetsRegistry'
 
 interface DashboardPersistenceDeps {
   route: (name: 'persist') => string
@@ -107,7 +108,8 @@ export function useDashboardPersistence(deps: DashboardPersistenceDeps) {
         if (deps.widgets) {
           const nextWidgets = result.widgets_read ?? result.widgets_saved ?? result.widgets
           if (Array.isArray(nextWidgets)) {
-            deps.widgets.value = normaliseWidgets(nextWidgets as any[], deps.widgets.value)
+            const fallback = deps.widgets.value && deps.widgets.value.length ? deps.widgets.value : createDefaultWidgets()
+            deps.widgets.value = normalizeWidgetLayout(nextWidgets as any[], fallback)
           }
         }
 
@@ -167,27 +169,4 @@ function mergeIncomingTargetsConfig(
   }
 
   return normalizeTargetsConfig(raw as TargetsConfig)
-}
-
-function normaliseWidgets(raw: any[], fallback: WidgetDefinition[]): WidgetDefinition[] {
-  if (!Array.isArray(raw)) return fallback
-  const cleaned: WidgetDefinition[] = []
-  raw.forEach((item) => {
-    const type = String(item?.type ?? '')
-    if (!type) return
-    const id = String(item?.id ?? '')
-    const layout = item?.layout ?? {}
-    const width = layout.width === 'quarter' || layout.width === 'half' ? layout.width : 'full'
-    const height = layout.height === 's' || layout.height === 'l' ? layout.height : 'm'
-    const order = Number(layout.order ?? 0)
-    const options = item?.options && typeof item.options === 'object' ? { ...item.options } : {}
-    cleaned.push({
-      id: id || `widget-${type}-${cleaned.length + 1}`,
-      type,
-      options,
-      layout: { width, height, order: Number.isFinite(order) ? order : 0 },
-      version: Number(item?.version ?? 1) || 1,
-    })
-  })
-  return cleaned.length ? cleaned : fallback
 }

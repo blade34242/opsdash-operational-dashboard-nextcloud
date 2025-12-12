@@ -14,6 +14,17 @@ All notable changes to this project will be documented in this file.
 - Sidebar hides Profiles/Report tabs when the Quick dashboard preset is active; default widgets now come from the Standard preset.
 - Widget toolbar includes “Reset preset” to restore the current dashboard mode’s layout.
 
+## [0.4.8] - Unreleased
+### Added
+- Widget layout persistence now round-trips through `/overview/persist` and `/overview/load`, with sanitisation on the server and normalisation on the client (new `normalizeWidgetLayout`) plus Vitest/PHP coverage.
+- Balance/Activity sidebar controls restored: thresholds, index basis selector, trend lookback, display toggle, and activity card toggles with contextual help.
+### Changed
+- Dashboard save queue now records widget edits (add/remove/move/update/reset/preset apply) so layouts survive logouts and device changes.
+- Balance pane wiring updated to emit forecast/index/threshold/lookback/UI changes into targets config; index basis disables lookback when off.
+### Fixed
+- Widget layout no longer falls back to defaults after clearing cookies; server-saved layout is applied on reload.
+- Balance tests re-enabled and passing under 0.4.8 with corrected DOM structure and emits.
+
 ## [0.4.7] - Unreleased
 ### Added
 - Targets card and By Calendar progress bars now show today's hours as an overlay in the same series color, including the over-100% portion.

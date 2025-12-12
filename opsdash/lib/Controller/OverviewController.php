@@ -1226,6 +1226,17 @@ final class OverviewController extends Controller {
             $onboardingPayload['resetRequested'] = true;
         }
 
+        $widgets = [];
+        try {
+            $widgetsRaw = (string)$this->config->getUserValue($uid, $this->appName, 'widgets_layout', '');
+            if ($widgetsRaw !== '') {
+                $tmp = json_decode($widgetsRaw, true);
+                if (is_array($tmp)) {
+                    $widgets = $this->sanitizeWidgets($tmp);
+                }
+            }
+        } catch (\Throwable) {}
+
         return new DataResponse([
             'ok'   => true,
             'meta' => [
@@ -1246,6 +1257,7 @@ final class OverviewController extends Controller {
             'themePreference' => $this->readThemePreference($uid),
             'reportingConfig' => $this->readReportingConfig($uid),
             'deckSettings' => $this->readDeckSettings($uid),
+            'widgets' => $widgets,
             'onboarding' => $onboardingPayload,
             'calDebug'  => $calDebug,
             // Always include debug envelope so clients can introspect easily
@@ -1416,6 +1428,7 @@ final class OverviewController extends Controller {
         $themeSaved = null; $themeRead = null;
         $reportingSaved = null; $reportingRead = null;
         $deckSaved = null; $deckRead = null;
+        $widgetsSaved = null; $widgetsRead = null;
         if (isset($data['targets_week'])) {
             $tw = $this->cleanTargets(is_array($data['targets_week'])?$data['targets_week']:[], $allowed);
             $this->config->setUserValue($uid, $this->appName, 'cal_targets_week', json_encode($tw));
@@ -1495,6 +1508,20 @@ final class OverviewController extends Controller {
             $deckSaved = $cleanDeck;
         }
         $deckRead = $this->readDeckSettings($uid);
+        if (isset($data['widgets'])) {
+            $cleanWidgets = $this->sanitizeWidgets($data['widgets']);
+            $this->config->setUserValue($uid, $this->appName, 'widgets_layout', json_encode($cleanWidgets));
+            $widgetsSaved = $cleanWidgets;
+        }
+        try {
+            $widgetsRaw = (string)$this->config->getUserValue($uid, $this->appName, 'widgets_layout', '');
+            if ($widgetsRaw !== '') {
+                $tmp = json_decode($widgetsRaw, true);
+                if (is_array($tmp)) {
+                    $widgetsRead = $this->sanitizeWidgets($tmp);
+                }
+            }
+        } catch (\Throwable) {}
 
         // Read-back
         $readCsv = (string)$this->config->getUserValue($uid, $this->appName, 'selected_cals', '');
@@ -1526,6 +1553,8 @@ final class OverviewController extends Controller {
             'reporting_config_read' => $reportingRead,
             'deck_settings_saved' => $deckSaved,
             'deck_settings_read' => $deckRead,
+            'widgets_saved' => $widgetsSaved,
+            'widgets_read' => $widgetsRead,
         ], Http::STATUS_OK);
     }
 
@@ -1789,6 +1818,41 @@ final class OverviewController extends Controller {
                 : $defaults['solvedIncludesArchived'],
             'ticker' => $ticker,
         ];
+    }
+
+    /**
+     * Sanitize widget layout payload to avoid arbitrary data injection.
+     *
+     * @param mixed $value
+     * @return array<int,array<string,mixed>>
+     */
+    private function sanitizeWidgets($value): array {
+        if (!is_array($value)) return [];
+        $cleaned = [];
+        foreach ($value as $idx => $item) {
+            if (!is_array($item)) continue;
+            $type = substr(trim((string)($item['type'] ?? '')), 0, 64);
+            if ($type === '') continue;
+            $id = substr(trim((string)($item['id'] ?? '')), 0, 64);
+            $layout = $item['layout'] ?? [];
+            $width = ($layout['width'] ?? '') === 'quarter' || ($layout['width'] ?? '') === 'half' ? $layout['width'] : 'full';
+            $height = ($layout['height'] ?? '') === 's' || ($layout['height'] ?? '') === 'l' ? $layout['height'] : 'm';
+            $orderRaw = $layout['order'] ?? 0;
+            $order = is_numeric($orderRaw) ? (float)$orderRaw : 0.0;
+            $options = (isset($item['options']) && is_array($item['options'])) ? $item['options'] : [];
+            $cleaned[] = [
+                'id' => $id !== '' ? $id : sprintf('widget-%s-%d', $type, count($cleaned) + 1),
+                'type' => $type,
+                'options' => $options,
+                'layout' => [
+                    'width' => $width,
+                    'height' => $height,
+                    'order' => $order,
+                ],
+                'version' => (int)($item['version'] ?? 1) ?: 1,
+            ];
+        }
+        return $cleaned;
     }
 
     private function readDeckSettings(string $uid): array {

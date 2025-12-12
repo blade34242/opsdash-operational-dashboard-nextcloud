@@ -341,7 +341,7 @@ import DashboardLayout from './components/layout/DashboardLayout.vue'
 import { buildTargetsSummary, normalizeTargetsConfig, createEmptyTargetsSummary, createDefaultActivityCardConfig, createDefaultBalanceConfig, cloneTargetsConfig, convertWeekToMonth, type ActivityCardConfig, type BalanceConfig, type TargetsConfig } from './services/targets'
 import { normalizeReportingConfig, normalizeDeckSettings, type DeckFilterMode } from './services/reporting'
 import { ONBOARDING_VERSION } from './services/onboarding'
-import { createDefaultWidgets, createDashboardPreset, widgetsRegistry, type WidgetDefinition, type WidgetRenderContext, type WidgetHeight, type WidgetSize } from './services/widgetsRegistry'
+import { createDefaultWidgets, createDashboardPreset, normalizeWidgetLayout, widgetsRegistry, type WidgetDefinition, type WidgetRenderContext, type WidgetHeight, type WidgetSize } from './services/widgetsRegistry'
 // Lightweight notifications without @nextcloud/dialogs
 function notifySuccess(msg: string){
   const w:any = window as any
@@ -448,6 +448,22 @@ const notes = useNotes({
 })
 const { notesPrev, notesCurrDraft, isSavingNote, fetchNotes, saveNotes } = notes
 
+// Widget layout storage must be declared before downstream composables consume it
+const WIDGETS_STORAGE_KEY = 'opsdash.widgets.v1'
+function loadWidgetLayout(): WidgetDefinition[] {
+  try {
+    if (typeof localStorage === 'undefined') return createDefaultWidgets()
+    const raw = localStorage.getItem(WIDGETS_STORAGE_KEY)
+    if (!raw) return createDefaultWidgets()
+    const parsed = JSON.parse(raw)
+    return normalizeWidgetLayout(parsed, createDefaultWidgets()).filter((w) => Boolean(widgetsRegistry[w.type]))
+  } catch (err) {
+    console.warn('[opsdash] widget layout load failed', err)
+    return createDefaultWidgets()
+  }
+}
+const layoutWidgets = ref<WidgetDefinition[]>(loadWidgetLayout())
+
 const {
   calendars,
   colorsByName,
@@ -484,6 +500,7 @@ const {
   fetchNotes,
   isDebug: isDbg,
   fetchDavColors,
+  widgets: layoutWidgets,
 })
 
 function handleReportingConfigSave(value: any) {
@@ -656,6 +673,7 @@ const deckUrl = computed(() => {
 const onboardingState = onboarding
 const dashboardMode = ref<'quick'|'standard'|'pro'>('standard')
 const hasInitialLoad = ref(false)
+const widgetsDirty = ref(false)
 
 const {
   themePreference,
@@ -670,15 +688,20 @@ const {
   notifyError,
 })
 
-// Widget layout state (must be declared before persistence/export/import use it)
-const WIDGETS_STORAGE_KEY = 'opsdash.widgets.v1'
-const layoutWidgets = ref<WidgetDefinition[]>(loadWidgetLayout())
 function applyDashboardPreset(mode: 'quick' | 'standard' | 'pro') {
   dashboardMode.value = mode
   layoutWidgets.value = createDashboardPreset(mode)
+  widgetsDirty.value = true
 }
 const isLayoutEditing = ref(false)
 const newWidgetType = ref('')
+
+function persistWidgets() {
+  if (hasInitialLoad.value && widgetsDirty.value) {
+    queueSave(false)
+    widgetsDirty.value = false
+  }
+}
 
 const widgets = computed<WidgetDefinition[]>(() => {
   const defs = layoutWidgets.value
@@ -699,6 +722,8 @@ function updateWidget(id: string, updater: (w: WidgetDefinition) => WidgetDefini
   layoutWidgets.value = layoutWidgets.value.map((w) =>
     w.id === id ? updater({ ...w, layout: { ...w.layout } }) : w,
   )
+  widgetsDirty.value = true
+  persistWidgets()
 }
 
 function cycleWidth(id: string) {
@@ -729,10 +754,14 @@ function moveWidget(id: string, dir: 'up' | 'down') {
   ordered[idx].layout.order = ordered[targetIdx].layout.order
   ordered[targetIdx].layout.order = currentOrder
   layoutWidgets.value = ordered
+  widgetsDirty.value = true
+  persistWidgets()
 }
 
 function removeWidget(id: string) {
   layoutWidgets.value = layoutWidgets.value.filter((w) => w.id !== id)
+  widgetsDirty.value = true
+  persistWidgets()
 }
 
 function addWidget(type: string) {
@@ -748,6 +777,8 @@ function addWidget(type: string) {
   }
   layoutWidgets.value = [...layoutWidgets.value, def]
   newWidgetType.value = ''
+  widgetsDirty.value = true
+  persistWidgets()
 }
 function addWidgetAt(type: string, orderHint?: number) {
   const entry = widgetsRegistry[type]
@@ -766,6 +797,8 @@ function addWidgetAt(type: string, orderHint?: number) {
     version: 1,
   }
   layoutWidgets.value = [...layoutWidgets.value, def]
+  widgetsDirty.value = true
+  persistWidgets()
 }
 function reorderWidget(id: string, orderHint?: number | null) {
   if (!Number.isFinite(orderHint ?? NaN)) return
@@ -778,6 +811,8 @@ function reorderWidget(id: string, orderHint?: number | null) {
     ...w,
     layout: { ...w.layout, order: (idx + 1) * 10 },
   }))
+  widgetsDirty.value = true
+  persistWidgets()
 }
 
 function updateWidgetOptions(id: string, key: string, value: any) {
@@ -799,6 +834,8 @@ function updateWidgetOptions(id: string, key: string, value: any) {
     opts[key] = value
     return { ...w, options: opts }
   })
+  widgetsDirty.value = true
+  persistWidgets()
 }
 
 function openOnboardingFromLayout(step?: string) {
@@ -807,39 +844,8 @@ function openOnboardingFromLayout(step?: string) {
 
 function resetWidgets() {
   layoutWidgets.value = createDashboardPreset(dashboardMode.value)
-}
-
-function loadWidgetLayout(): WidgetDefinition[] {
-  try {
-    if (typeof localStorage === 'undefined') return createDefaultWidgets()
-    const raw = localStorage.getItem(WIDGETS_STORAGE_KEY)
-    if (!raw) return createDefaultWidgets()
-    const parsed = JSON.parse(raw)
-    if (!Array.isArray(parsed)) return createDefaultWidgets()
-    const cleaned: WidgetDefinition[] = []
-    parsed.forEach((item: any) => {
-      const type = String(item?.type ?? '')
-      if (!type || !widgetsRegistry[type]) return
-      const id = String(item?.id ?? '')
-      const width: WidgetSize =
-        item?.layout?.width === 'quarter' || item?.layout?.width === 'half' ? item.layout.width : 'full'
-      const height: WidgetHeight =
-        item?.layout?.height === 's' || item?.layout?.height === 'l' ? item.layout.height : 'm'
-      const order = Number(item?.layout?.order ?? 0)
-      const options = item?.options && typeof item.options === 'object' ? { ...item.options } : {}
-      cleaned.push({
-        id: id || `widget-${type}-${cleaned.length + 1}`,
-        type,
-        options,
-        layout: { width, height, order: Number.isFinite(order) ? order : 0 },
-        version: Number(item?.version ?? 1) || 1,
-      })
-    })
-    return cleaned.length ? cleaned : createDefaultWidgets()
-  } catch (err) {
-    console.warn('[opsdash] widget layout load failed', err)
-    return createDefaultWidgets()
-  }
+  widgetsDirty.value = true
+  persistWidgets()
 }
 
 watch(
