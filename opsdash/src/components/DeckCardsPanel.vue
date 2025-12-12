@@ -52,20 +52,21 @@
     </button>
   </div>
 
+  <div class="deck-panel__body">
     <div v-if="loading" class="deck-panel__loading">
       <NcLoadingIcon :size="20" />
       <span>Loading Deck cards…</span>
     </div>
 
-<template v-else>
-  <div v-if="error" class="deck-panel__error">
-    {{ error }}
-  </div>
-  <NcEmptyContent
-    v-else-if="!cards.length"
-    name="No Deck cards"
-    :description="`No cards matched this ${rangeLabel.toLowerCase()}. Confirm Deck due dates or rerun seeding.`"
-  />
+    <template v-else>
+      <div v-if="error" class="deck-panel__error">
+        {{ error }}
+      </div>
+      <NcEmptyContent
+        v-else-if="!cards.length"
+        name="No Deck cards"
+        :description="`No cards matched this ${rangeLabel.toLowerCase()}. Confirm Deck due dates or rerun seeding.`"
+      />
       <ul v-else class="deck-card-list" ref="listEl">
         <li v-for="(card, idx) in cards" :key="card.id" class="deck-card" :data-idx="idx">
           <div class="deck-card__status-row">
@@ -109,6 +110,7 @@
         </li>
       </ul>
     </template>
+  </div>
   </div>
 </template>
 
@@ -253,6 +255,8 @@ function statusLabel(status: DeckCardSummary['status']) {
   display: flex;
   flex-direction: column;
   gap: 1rem;
+  height: 100%;
+  min-height: 0;
 }
 .deck-panel__header {
   display: flex;
@@ -307,6 +311,12 @@ function statusLabel(status: DeckCardSummary['status']) {
   display: flex;
   gap: 0.5rem;
   flex-wrap: wrap;
+}
+.deck-panel__body{
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+  padding-right: 4px;
 }
 .deck-filter-btn {
   border: 1px solid var(--color-border-maxcontrast);
