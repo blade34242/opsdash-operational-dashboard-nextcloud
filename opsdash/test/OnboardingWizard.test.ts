@@ -26,6 +26,19 @@ function mountWizard(overrides: Record<string, any> = {}) {
 }
 
 describe('OnboardingWizard', () => {
+  it('locks body scroll while visible', async () => {
+    const wrapper = mountWizard()
+    expect(document.body.classList.contains('opsdash-onboarding-lock')).toBe(true)
+    expect(document.body.dataset.opsdashOnboarding).toBe('1')
+
+    await wrapper.setProps({ visible: false })
+    expect(document.body.classList.contains('opsdash-onboarding-lock')).toBe(false)
+    expect(document.body.dataset.opsdashOnboarding).toBeUndefined()
+
+    wrapper.unmount()
+    expect(document.body.classList.contains('opsdash-onboarding-lock')).toBe(false)
+  })
+
   it('disables the snapshot button while saving', async () => {
     const wrapper = mountWizard({ snapshotSaving: true })
     const button = wrapper.find('.config-warning button')

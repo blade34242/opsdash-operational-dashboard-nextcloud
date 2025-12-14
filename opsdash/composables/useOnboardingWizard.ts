@@ -1,29 +1,741 @@
-import { ref, computed, nextTick } from 'vue'
+import { computed, nextTick, onMounted, onUnmounted, ref, watch } from 'vue'
 
-export function createOnboardingWizardState() {
-  const autoWizardNeeded = ref(false)
-  const manualWizardOpen = ref(false)
-  const onboardingRunId = ref(0)
-  const wizardStartStep = ref<'intro' | 'strategy' | 'calendars' | 'categories' | 'preferences' | 'review' | null>(null)
+export { createOnboardingWizardState, type StepId } from './useOnboardingWizardState'
+import type { StepId } from './useOnboardingWizardState'
 
-  const onboardingWizardVisible = computed(() => autoWizardNeeded.value || manualWizardOpen.value)
+import {
+  buildStrategyResult,
+  createStrategyDraft,
+  getStrategyDefinitions,
+  type CalendarSummary,
+  type CategoryDraft,
+  type StrategyDefinition,
+} from '../src/services/onboarding'
+import {
+  createDefaultDeckSettings,
+  createDefaultReportingConfig,
+  type DeckFeatureSettings,
+  type ReportingConfig,
+} from '../src/services/reporting'
+import type { ActivityCardConfig } from '../src/services/targets'
+import { fetchDeckBoardsMeta } from '../src/services/deck'
 
-  function openWizardFromSidebar(startStep?: 'intro' | 'strategy' | 'calendars' | 'categories' | 'preferences' | 'review' | null) {
-    autoWizardNeeded.value = false
-    manualWizardOpen.value = false
-    wizardStartStep.value = startStep ?? null
-    onboardingRunId.value += 1
-    return nextTick(() => {
-      manualWizardOpen.value = true
+type WizardProps = {
+  visible: boolean
+  calendars: CalendarSummary[]
+  initialSelection: string[]
+  initialStrategy?: StrategyDefinition['id']
+  startStep?: StepId | null
+  onboardingVersion: number
+  saving?: boolean
+  closable?: boolean
+  hasExistingConfig?: boolean
+  initialThemePreference?: 'auto' | 'light' | 'dark'
+  systemTheme?: 'light' | 'dark'
+  initialAllDayHours?: number
+  initialTotalHours?: number
+  initialDeckSettings?: DeckFeatureSettings
+  initialReportingConfig?: ReportingConfig
+  initialDashboardMode?: 'quick' | 'standard' | 'pro'
+  snapshotSaving?: boolean
+  snapshotNotice?: { type: 'success' | 'error'; message: string } | null
+  // legacy/optional: was referenced without being typed in the SFC
+  initialTargetsConfig?: { activityCard?: Pick<ActivityCardConfig, 'showDayOffTrend'> } | null
+}
+
+type WizardEmit = (event: string, payload?: any) => void
+
+export function useOnboardingWizard(options: { props: WizardProps; emit: WizardEmit }) {
+  const { props, emit } = options
+
+  const stepOrder = ['intro', 'strategy', 'dashboard', 'calendars', 'categories', 'preferences', 'review'] as const
+
+  const stepIndex = ref(0)
+  const selectedStrategy = ref<StrategyDefinition['id']>('total_only')
+  const dashboardMode = ref<'quick' | 'standard' | 'pro'>(props.initialDashboardMode || 'standard')
+  const localSelection = ref<string[]>([])
+  const categories = ref<CategoryDraft[]>([])
+  const assignments = ref<Record<string, string>>({})
+  const themePreference = ref<'auto' | 'light' | 'dark'>('auto')
+  const allDayHoursInput = ref(8)
+  const totalHoursInput = ref<number | null>(null)
+  const deckSettingsDraft = ref<DeckFeatureSettings>(cloneDeckSettings(props.initialDeckSettings ?? createDefaultDeckSettings()))
+  const reportingDraft = ref<ReportingConfig>({ ...(props.initialReportingConfig ?? createDefaultReportingConfig()) })
+  const activityDraft = ref<Pick<ActivityCardConfig, 'showDayOffTrend'>>({
+    showDayOffTrend: props.initialTargetsConfig?.activityCard?.showDayOffTrend ?? true,
+  })
+  const deckBoards = ref<Array<{ id: number; title: string }>>([])
+  const deckBoardsLoading = ref(false)
+  const deckBoardsError = ref('')
+  const dashboardPresets = [
+    {
+      id: 'quick' as const,
+      title: 'Quick',
+      subtitle: 'Minimal view, core widgets only',
+      highlights: ['Time summary', 'Targets', 'Activity', 'Deck cards lite'],
+      widgets: '4 widgets',
+    },
+    {
+      id: 'standard' as const,
+      title: 'Standard',
+      subtitle: 'Balanced set for most users',
+      highlights: ['Time/Targets/Balance', 'Activity & trends', 'Deck cards'],
+      widgets: '6–7 widgets',
+    },
+    {
+      id: 'pro' as const,
+      title: 'Pro',
+      subtitle: 'Full layout with extras',
+      highlights: ['All core widgets', 'Deck cards & summary', 'Notes + text block'],
+      widgets: '8+ widgets',
+    },
+  ]
+
+  const deckVisibleBoards = computed(() => {
+    if (!deckSettingsDraft.value.enabled) return []
+    const hidden = new Set(deckSettingsDraft.value.hiddenBoards || [])
+    return deckBoards.value.filter((board) => !hidden.has(board.id))
+  })
+
+  const deckReviewSummary = computed(() => {
+    if (!deckSettingsDraft.value.enabled) return 'Deck tab disabled'
+    if (deckBoardsLoading.value) return 'Deck tab enabled — loading boards…'
+    if (deckBoardsError.value) return 'Deck tab enabled — open Deck to finish setup.'
+    if (!deckBoards.value.length) return 'Deck tab enabled — create a Deck board to see cards.'
+    if (!deckVisibleBoards.value.length) return 'Deck tab enabled — all boards hidden'
+    if (deckVisibleBoards.value.length === deckBoards.value.length) {
+      const total = deckVisibleBoards.value.length
+      return total === 1 ? 'Showing 1 board' : `Showing all ${total} boards`
+    }
+    if (deckVisibleBoards.value.length === 1) {
+      return `Showing ${deckVisibleBoards.value[0].title}`
+    }
+    if (deckVisibleBoards.value.length === 2) {
+      return `Showing ${deckVisibleBoards.value[0].title} and ${deckVisibleBoards.value[1].title}`
+    }
+    return `Showing ${deckVisibleBoards.value.length} boards`
+  })
+
+  const reportingSummary = computed(() => {
+    if (!reportingDraft.value.enabled) return 'Recap disabled'
+    const schedule =
+      reportingDraft.value.schedule === 'both'
+        ? 'Weekly + monthly recap'
+        : reportingDraft.value.schedule === 'week'
+          ? 'Weekly recap'
+          : 'Monthly recap'
+    const interim =
+      reportingDraft.value.interim === 'daily'
+        ? 'Daily reminder'
+        : reportingDraft.value.interim === 'midweek'
+          ? 'Mid-range reminder'
+          : 'No interim reminder'
+    return `${schedule} • ${interim}`
+  })
+
+  const openColorId = ref<string | null>(null)
+  const previewTheme = computed(() => {
+    if (themePreference.value === 'auto') {
+      return props.systemTheme === 'dark' ? 'dark' : 'light'
+    }
+    return themePreference.value
+  })
+  const systemThemeLabel = computed(() => (props.systemTheme === 'dark' ? 'dark' : 'light'))
+  const BASE_CATEGORY_COLORS = ['#2563EB', '#F97316', '#10B981', '#A855F7', '#EC4899', '#14B8A6', '#F59E0B', '#6366F1', '#0EA5E9', '#65A30D']
+  const categoryTotalHours = computed(() =>
+    categories.value.reduce((sum, cat) => sum + (Number.isFinite(cat.targetHours) ? cat.targetHours : 0), 0),
+  )
+
+  const categoryColorPalette = computed(() => {
+    const palette = new Set<string>()
+    const push = (value?: string | null) => {
+      const color = sanitizeColor(value)
+      if (color) palette.add(color)
+    }
+    props.calendars.forEach((cal) => push(cal.color))
+    categories.value.forEach((cat) => push(cat.color))
+    BASE_CATEGORY_COLORS.forEach((color) => palette.add(color))
+    return Array.from(palette)
+  })
+
+  const strategies = getStrategyDefinitions()
+  const selectedStrategyDef = computed(() => strategies.find((s) => s.id === selectedStrategy.value) ?? strategies[0])
+  const categoriesEnabled = computed(() => selectedStrategyDef.value.layers.categories)
+  const isClosable = computed(() => props.closable !== false)
+
+  const enabledSteps = computed(() => stepOrder.filter((step) => (step === 'categories' ? categoriesEnabled.value : true)))
+  const currentStep = computed<StepId>(() => enabledSteps.value[Math.min(stepIndex.value, enabledSteps.value.length - 1)])
+  const stepNumber = computed(() => stepIndex.value + 1)
+  const totalSteps = computed(() => enabledSteps.value.length)
+  const saving = computed(() => props.saving === true)
+  const snapshotSaving = computed(() => props.snapshotSaving === true)
+  const snapshotNotice = computed(() => props.snapshotNotice ?? null)
+
+  const BODY_SCROLL_CLASS = 'opsdash-onboarding-lock'
+
+  function setScrollLocked(locked: boolean) {
+    if (typeof document === 'undefined') return
+    const body = document.body
+    if (!body) return
+    if (locked) {
+      body.classList.add(BODY_SCROLL_CLASS)
+      body.dataset.opsdashOnboarding = '1'
+    } else {
+      body.classList.remove(BODY_SCROLL_CLASS)
+      delete body.dataset.opsdashOnboarding
+    }
+  }
+
+  watch(
+    () => props.visible,
+    (visible) => {
+      if (visible) {
+        resetWizard()
+        closeColorPopover()
+      }
+      setScrollLocked(visible)
+    },
+    { immediate: true },
+  )
+
+  onMounted(() => {
+    if (typeof document !== 'undefined') {
+      document.addEventListener('click', handleDocumentClick)
+    }
+    loadDeckBoards().catch((error) => {
+      console.error('[opsdash] deck board load failed', error)
+    })
+  })
+
+  onUnmounted(() => {
+    if (typeof document !== 'undefined') {
+      document.removeEventListener('click', handleDocumentClick)
+    }
+    setScrollLocked(false)
+  })
+
+  function resetWizard() {
+    stepIndex.value = 0
+    selectedStrategy.value = props.initialStrategy ?? 'total_only'
+    const initial = props.initialSelection?.length ? [...props.initialSelection] : props.calendars.map((c) => c.id)
+    localSelection.value = Array.from(new Set(initial.filter((id) => props.calendars.some((cal) => cal.id === id))))
+    themePreference.value = props.initialThemePreference ?? 'auto'
+    allDayHoursInput.value = clampAllDayHours(props.initialAllDayHours ?? 8)
+    totalHoursInput.value = clampTotalHours(props.initialTotalHours ?? null)
+    deckSettingsDraft.value = cloneDeckSettings(props.initialDeckSettings ?? createDefaultDeckSettings())
+    reportingDraft.value = { ...(props.initialReportingConfig ?? createDefaultReportingConfig()) }
+    activityDraft.value = {
+      showDayOffTrend: props.initialTargetsConfig?.activityCard?.showDayOffTrend ?? true,
+    }
+    initializeStrategyState()
+    if (categoriesEnabled.value) {
+      totalHoursInput.value = clampTotalHours(categoryTotalHours.value)
+    } else if (totalHoursInput.value === null) {
+      totalHoursInput.value = 40
+    }
+    applyStartStep()
+  }
+
+  function initializeStrategyState() {
+    const draft = createStrategyDraft(selectedStrategy.value, props.calendars, localSelection.value)
+    categories.value = draft.categories.map((cat) => ({ ...cat }))
+    assignments.value = { ...draft.assignments }
+    ensureAssignments()
+    syncTotalsWithStrategy()
+  }
+
+  function ensureAssignments() {
+    if (!categoriesEnabled.value || !categories.value.length) {
+      assignments.value = {}
+      return
+    }
+    const available = new Set(categories.value.map((cat) => cat.id))
+    const fallback = categories.value[0].id
+    const next: Record<string, string> = {}
+    localSelection.value.forEach((calId) => {
+      const wanted = assignments.value[calId]
+      next[calId] = available.has(wanted) ? wanted : fallback
+    })
+    assignments.value = next
+  }
+
+  const selectedCalendars = computed(() => props.calendars.filter((cal) => localSelection.value.includes(cal.id)))
+
+  const draft = computed(() =>
+    buildStrategyResult(
+      selectedStrategy.value,
+      props.calendars,
+      localSelection.value,
+      categoriesEnabled.value ? { categories: categories.value, assignments: assignments.value } : undefined,
+    ),
+  )
+
+  const strategyTitle = computed(() => selectedStrategyDef.value.title)
+
+  function syncTotalsWithStrategy() {
+    if (categoriesEnabled.value) {
+      totalHoursInput.value = clampTotalHours(categoryTotalHours.value)
+      return
+    }
+    if (totalHoursInput.value === null) {
+      totalHoursInput.value = clampTotalHours(props.initialTotalHours ?? 40)
+    }
+  }
+
+  function applyStartStep() {
+    if (!props.startStep) return
+    const idx = enabledSteps.value.indexOf(props.startStep)
+    if (idx >= 0) {
+      stepIndex.value = idx
+    }
+  }
+
+  function goToStep(step: StepId) {
+    const idx = enabledSteps.value.indexOf(step)
+    if (idx >= 0) {
+      stepIndex.value = idx
+    }
+  }
+
+  function stepLabel(step: StepId): string {
+    switch (step) {
+      case 'intro':
+        return 'Intro'
+      case 'strategy':
+        return 'Modes'
+      case 'dashboard':
+        return 'Dashboard'
+      case 'calendars':
+        return 'Calendars'
+      case 'categories':
+        return 'Targets'
+      case 'preferences':
+        return 'Preferences'
+      case 'review':
+        return 'Review'
+      default:
+        return step
+    }
+  }
+
+  watch(selectedStrategy, () => {
+    initializeStrategyState()
+    stepIndex.value = Math.min(stepIndex.value, enabledSteps.value.length - 1)
+  })
+
+  watch(enabledSteps, (steps) => {
+    if (stepIndex.value >= steps.length) {
+      stepIndex.value = Math.max(steps.length - 1, 0)
+    }
+  })
+  watch(() => props.startStep, applyStartStep)
+
+  watch(categoriesEnabled, () => {
+    syncTotalsWithStrategy()
+  })
+
+  watch(categoryTotalHours, (total) => {
+    if (categoriesEnabled.value) {
+      totalHoursInput.value = clampTotalHours(total)
+    }
+  })
+
+  watch(currentStep, (step) => {
+    if (step !== 'categories') {
+      closeColorPopover()
+    }
+  })
+
+  watch(
+    () => props.visible,
+    (visible) => {
+      if (!visible) {
+        closeColorPopover()
+      }
+    },
+  )
+
+  watch(
+    localSelection,
+    () => {
+      ensureAssignments()
+    },
+    { deep: true },
+  )
+
+  watch(
+    categories,
+    () => {
+      ensureAssignments()
+    },
+    { deep: true },
+  )
+
+  function addCategory() {
+    const id = `cat_${Date.now().toString(36)}_${categories.value.length}`
+    categories.value = [
+      ...categories.value,
+      {
+        id,
+        label: `Category ${categories.value.length + 1}`,
+        targetHours: 8,
+        includeWeekend: false,
+        paceMode: 'days_only',
+      },
+    ]
+    ensureAssignments()
+  }
+
+  function removeCategory(id: string) {
+    if (categories.value.length <= 1) return
+    categories.value = categories.value.filter((cat) => cat.id !== id)
+    ensureAssignments()
+  }
+
+  function setCategoryLabel(id: string, value: string) {
+    categories.value = categories.value.map((cat) => (cat.id === id ? { ...cat, label: value } : cat))
+  }
+
+  function setCategoryTarget(id: string, value: string) {
+    const parsed = Number(value)
+    const sanitized = Number.isFinite(parsed) ? Math.max(0, Math.min(1000, parsed)) : undefined
+    categories.value = categories.value.map((cat) => (cat.id === id ? { ...cat, targetHours: sanitized ?? cat.targetHours } : cat))
+  }
+
+  function toggleCategoryWeekend(id: string, checked: boolean) {
+    categories.value = categories.value.map((cat) => (cat.id === id ? { ...cat, includeWeekend: checked } : cat))
+  }
+
+  function assignCalendar(calId: string, categoryId: string) {
+    assignments.value = {
+      ...assignments.value,
+      [calId]: categoryId,
+    }
+  }
+
+  function toggleColorPopover(id: string) {
+    if (openColorId.value === id) {
+      closeColorPopover()
+      return
+    }
+    openColorId.value = id
+    nextTick(() => {
+      const el = document.getElementById(`onboarding-color-popover-${id}`)
+      el?.focus()
     })
   }
 
+  function closeColorPopover() {
+    openColorId.value = null
+  }
+
+  function handleDocumentClick(event: MouseEvent) {
+    const target = event.target as HTMLElement | null
+    if (!target?.closest('[data-color-popover]')) {
+      closeColorPopover()
+    }
+  }
+
+  function sanitizeColor(value: unknown): string | null {
+    if (typeof value !== 'string') return null
+    const trimmed = value.trim()
+    if (!/^#([0-9a-fA-F]{3}|[0-9a-fA-F]{6})$/.test(trimmed)) {
+      return null
+    }
+    if (trimmed.length === 4) {
+      const [, r, g, b] = trimmed
+      return `#${r}${r}${g}${g}${b}${b}`.toUpperCase()
+    }
+    return trimmed.toUpperCase()
+  }
+
+  function resolvedColor(cat: { color?: string | null }): string {
+    return sanitizeColor(cat?.color) ?? defaultColor.value
+  }
+
+  const defaultColor = computed(() => categoryColorPalette.value[0] ?? '#2563EB')
+
+  function setCategoryColor(id: string, color: string) {
+    categories.value = categories.value.map((cat) => (cat.id === id ? { ...cat, color } : cat))
+  }
+
+  function onColorInput(id: string, value: string) {
+    const color = sanitizeColor(value)
+    setCategoryColor(id, color ?? defaultColor.value)
+  }
+
+  function applyColor(id: string, value: string) {
+    const color = sanitizeColor(value)
+    setCategoryColor(id, color ?? defaultColor.value)
+    closeColorPopover()
+  }
+
+  function clampAllDayHours(value: number): number {
+    if (!Number.isFinite(value)) return 8
+    const clamped = Math.max(0, Math.min(24, value))
+    return Math.round(clamped * 100) / 100
+  }
+
+  function clampTotalHours(value: number | null): number | null {
+    if (!Number.isFinite(value)) return null
+    const clamped = Math.max(0, Math.min(1000, Number(value)))
+    return Math.round(clamped * 100) / 100
+  }
+
+  function cloneDeckSettings(value: DeckFeatureSettings): DeckFeatureSettings {
+    return JSON.parse(JSON.stringify(value))
+  }
+
+  async function loadDeckBoards() {
+    deckBoardsLoading.value = true
+    deckBoardsError.value = ''
+    const hasOcGlobal = typeof window !== 'undefined' && typeof (window as any).OC !== 'undefined'
+    if (!hasOcGlobal) {
+      deckBoardsLoading.value = false
+      deckBoards.value = []
+      return
+    }
+    try {
+      const list = await fetchDeckBoardsMeta()
+      deckBoards.value = list
+      deckBoardsError.value = ''
+    } catch (error) {
+      deckBoardsError.value = 'Unable to load Deck boards. Open Deck to create one.'
+      deckBoards.value = []
+    } finally {
+      deckBoardsLoading.value = false
+    }
+  }
+
+  function setDeckEnabled(checked: boolean) {
+    deckSettingsDraft.value = {
+      ...deckSettingsDraft.value,
+      enabled: checked,
+    }
+  }
+
+  function isDeckBoardVisible(boardId: number) {
+    const hidden = deckSettingsDraft.value.hiddenBoards || []
+    return !hidden.includes(boardId)
+  }
+
+  function toggleDeckBoard(boardId: number, visible: boolean) {
+    const current = new Set(deckSettingsDraft.value.hiddenBoards || [])
+    if (visible) {
+      current.delete(boardId)
+    } else {
+      current.add(boardId)
+    }
+    deckSettingsDraft.value = {
+      ...deckSettingsDraft.value,
+      hiddenBoards: Array.from(current).sort((a, b) => a - b),
+    }
+  }
+
+  function setCategoryPaceMode(id: string, value: CategoryDraft['paceMode']) {
+    categories.value = categories.value.map((cat) => (cat.id === id ? { ...cat, paceMode: value } : cat))
+  }
+
+  function onTotalHoursChange(input: HTMLInputElement) {
+    if (categoriesEnabled.value) return
+    const parsed = Number(input.value)
+    if (!Number.isFinite(parsed)) {
+      totalHoursInput.value = null
+      return
+    }
+    totalHoursInput.value = clampTotalHours(parsed)
+  }
+
+  function onAllDayHoursChange(input: HTMLInputElement) {
+    const parsed = Number(input.value)
+    allDayHoursInput.value = clampAllDayHours(Number.isFinite(parsed) ? parsed : allDayHoursInput.value)
+  }
+
+  function setReportingEnabled(enabled: boolean) {
+    reportingDraft.value = { ...reportingDraft.value, enabled }
+  }
+
+  function setReportingSchedule(value: ReportingConfig['schedule']) {
+    reportingDraft.value = { ...reportingDraft.value, schedule: value }
+  }
+
+  function setReportingInterim(value: ReportingConfig['interim']) {
+    reportingDraft.value = { ...reportingDraft.value, interim: value }
+  }
+
+  function updateReporting(patch: Partial<ReportingConfig>) {
+    reportingDraft.value = { ...reportingDraft.value, ...patch }
+  }
+
+  function setActivityDayOff(enabled: boolean) {
+    activityDraft.value = { ...activityDraft.value, showDayOffTrend: enabled }
+  }
+
+  const canGoBack = computed(() => stepIndex.value > 0)
+  const canGoNext = computed(() => stepIndex.value < enabledSteps.value.length - 1)
+
+  const nextDisabled = computed(() => {
+    if (currentStep.value === 'strategy') {
+      return !selectedStrategy.value
+    }
+    if (currentStep.value === 'calendars') {
+      return localSelection.value.length === 0
+    }
+    if (currentStep.value === 'categories' && categoriesEnabled.value) {
+      if (!localSelection.value.length) return true
+      if (!categories.value.length) return true
+      const available = new Set(categories.value.map((cat) => cat.id))
+      if (localSelection.value.some((id) => !available.has(assignments.value[id]))) {
+        return true
+      }
+    }
+    if (currentStep.value === 'preferences') {
+      if (!categoriesEnabled.value) {
+        if (totalHoursInput.value === null || totalHoursInput.value < 0) return true
+      }
+      if (allDayHoursInput.value < 0 || allDayHoursInput.value > 24) return true
+    }
+    return false
+  })
+
+  function nextStep() {
+    if (canGoNext.value && !nextDisabled.value) {
+      stepIndex.value++
+    }
+  }
+
+  function prevStep() {
+    if (canGoBack.value) {
+      stepIndex.value--
+    }
+  }
+
+  function handleSkip() {
+    emit('skip')
+  }
+
+  function handleClose() {
+    if (!isClosable.value) return
+    emit('close')
+  }
+
+  function emitComplete() {
+    const result = buildStrategyResult(
+      selectedStrategy.value,
+      props.calendars,
+      localSelection.value,
+      categoriesEnabled.value
+        ? { categories: categories.value.map((cat) => ({ ...cat })), assignments: { ...assignments.value } }
+        : undefined,
+    )
+    const config = result.targetsConfig
+    config.allDayHours = clampAllDayHours(allDayHoursInput.value)
+    if (categoriesEnabled.value) {
+      const total = clampTotalHours(categoryTotalHours.value)
+      if (total != null) config.totalHours = total
+    } else if (totalHoursInput.value != null) {
+      const total = clampTotalHours(totalHoursInput.value)
+      if (total != null) config.totalHours = total
+    }
+
+    emit('complete', {
+      strategy: selectedStrategy.value,
+      selected: [...localSelection.value],
+      targetsConfig: config,
+      groups: result.groups,
+      targetsWeek: result.targetsWeek,
+      targetsMonth: result.targetsMonth,
+      themePreference: themePreference.value,
+      deckSettings: cloneDeckSettings(deckSettingsDraft.value),
+      reportingConfig: { ...reportingDraft.value },
+      activityCard: { ...activityDraft.value },
+      dashboardMode: dashboardMode.value,
+    })
+  }
+
+  function toggleCalendar(id: string, input: HTMLInputElement) {
+    if (input.checked) {
+      if (!localSelection.value.includes(id)) {
+        localSelection.value = [...localSelection.value, id]
+      }
+      return
+    }
+    localSelection.value = localSelection.value.filter((cid) => cid !== id)
+  }
+
   return {
-    autoWizardNeeded,
-    manualWizardOpen,
-    onboardingRunId,
-    onboardingWizardVisible,
-    openWizardFromSidebar,
-    wizardStartStep,
+    stepOrder,
+    stepIndex,
+    selectedStrategy,
+    dashboardMode,
+    localSelection,
+    categories,
+    assignments,
+    themePreference,
+    allDayHoursInput,
+    totalHoursInput,
+    deckSettingsDraft,
+    reportingDraft,
+    activityDraft,
+    deckBoards,
+    deckBoardsLoading,
+    deckBoardsError,
+    dashboardPresets,
+    deckVisibleBoards,
+    deckReviewSummary,
+    reportingSummary,
+    openColorId,
+    previewTheme,
+    systemThemeLabel,
+    categoryTotalHours,
+    categoryColorPalette,
+    strategies,
+    categoriesEnabled,
+    isClosable,
+    enabledSteps,
+    currentStep,
+    stepNumber,
+    totalSteps,
+    saving,
+    snapshotSaving,
+    snapshotNotice,
+    selectedCalendars,
+    draft,
+    strategyTitle,
+    applyStartStep,
+    goToStep,
+    stepLabel,
+    addCategory,
+    removeCategory,
+    setCategoryLabel,
+    setCategoryTarget,
+    toggleCategoryWeekend,
+    assignCalendar,
+    toggleColorPopover,
+    closeColorPopover,
+    resolvedColor,
+    applyColor,
+    onColorInput,
+    setDeckEnabled,
+    isDeckBoardVisible,
+    toggleDeckBoard,
+    setCategoryPaceMode,
+    onTotalHoursChange,
+    onAllDayHoursChange,
+    setReportingEnabled,
+    setReportingSchedule,
+    setReportingInterim,
+    updateReporting,
+    setActivityDayOff,
+    canGoBack,
+    canGoNext,
+    nextDisabled,
+    nextStep,
+    prevStep,
+    handleSkip,
+    handleClose,
+    emitComplete,
+    toggleCalendar,
+    resetWizard,
   }
 }

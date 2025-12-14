@@ -23,7 +23,7 @@ tests can replay realistic `/overview` responses without hitting the server.
      "http://localhost:8088/index.php/apps/opsdash/overview/load?range=month&offset=0" \
      > test/fixtures/load-month.json
    ```
-   Repeat with `offset=-1`/`1` if forecasts depend on previous/next periods.
+   Repeat with `offset=-4..4` to cover navigation and forecast edge-cases.
 4. **Persist response**
    - In the UI, adjust selections/targets and capture the POST body (e.g. via
      DevTools) or manually craft one.

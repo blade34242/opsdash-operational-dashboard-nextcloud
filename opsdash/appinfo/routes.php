@@ -8,9 +8,9 @@ return [
     ['name' => 'overview#notes',          'url' => '/overview/notes',          'verb' => 'GET'],
     ['name' => 'overview#notesSave',      'url' => '/overview/notes',          'verb' => 'POST'],
     ['name' => 'overview#ping',           'url' => '/overview/ping',           'verb' => 'GET'],
-    ['name' => 'overview#presetsList',    'url' => '/overview/presets',        'verb' => 'GET'],
-    ['name' => 'overview#presetsSave',    'url' => '/overview/presets',        'verb' => 'POST'],
-    ['name' => 'overview#presetsLoad',    'url' => '/overview/presets/{name}', 'verb' => 'GET'],
-    ['name' => 'overview#presetsDelete',  'url' => '/overview/presets/{name}', 'verb' => 'DELETE'],
+    ['name' => 'presets#presetsList',    'url' => '/overview/presets',        'verb' => 'GET'],
+    ['name' => 'presets#presetsSave',    'url' => '/overview/presets',        'verb' => 'POST'],
+    ['name' => 'presets#presetsLoad',    'url' => '/overview/presets/{name}', 'verb' => 'GET'],
+    ['name' => 'presets#presetsDelete',  'url' => '/overview/presets/{name}', 'verb' => 'DELETE'],
   ],
 ];

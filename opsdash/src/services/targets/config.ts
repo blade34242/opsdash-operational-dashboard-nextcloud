@@ -21,6 +21,7 @@ export interface ActivityCardConfig {
   showOverlaps: boolean
   showLongestSession: boolean
   showLastDayOff: boolean
+  showDayOffTrend: boolean
   showHint: boolean
   forecastMode: ActivityForecastMode
 }
@@ -107,6 +108,7 @@ export function createDefaultActivityCardConfig(): ActivityCardConfig {
     showOverlaps: true,
     showLongestSession: true,
     showLastDayOff: true,
+    showDayOffTrend: true,
     showHint: true,
     forecastMode: 'total',
   }
@@ -282,6 +284,7 @@ function normalizeActivityCardConfig(input: any, base: ActivityCardConfig): Acti
     'showOverlaps',
     'showLongestSession',
     'showLastDayOff',
+    'showDayOffTrend',
     'showHint',
   ]
   booleanKeys.forEach((key) => {

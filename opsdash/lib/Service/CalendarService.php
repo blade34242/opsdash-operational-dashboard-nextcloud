@@ -12,11 +12,12 @@ use Psr\Log\LoggerInterface;
 use Sabre\VObject\Reader;
 
 class CalendarService {
+    private const APP_NAME = 'opsdash';
+
     public function __construct(
         private IManager $calendarManager,
         private IConfig $config,
         private LoggerInterface $logger,
-        private string $appName,
     ) {
     }
 
@@ -36,7 +37,7 @@ class CalendarService {
                 return $this->calendarManager->getCalendars($uid) ?? [];
             }
         } catch (\Throwable $e) {
-            $this->logger->error('getCalendars error: ' . $e->getMessage(), ['app' => $this->appName]);
+            $this->logger->error('getCalendars error: ' . $e->getMessage(), ['app' => self::APP_NAME]);
         }
         return [];
     }
@@ -103,6 +104,7 @@ class CalendarService {
             if (++$count > $maxRows) {
                 break;
             }
+            $rowAllDay = is_array($row) && array_key_exists('allday', $row) ? (bool)$row['allday'] : false;
             if (is_array($row) && isset($row['objects']) && is_array($row['objects'])) {
                 $objects = $row['objects'];
                 $payload = $objects[0] ?? [];
@@ -127,6 +129,10 @@ class CalendarService {
                                     $hours = ($dtEnd instanceof DateTimeInterface && $dtStart instanceof DateTimeInterface)
                                         ? ($dtEnd->getTimestamp() - $dtStart->getTimestamp()) / 3600
                                         : null;
+                                    $evtAllDay = $rowAllDay;
+                                    if (!$evtAllDay && isset($vevent->DTSTART) && method_exists($vevent->DTSTART, 'hasTime')) {
+                                        $evtAllDay = !$vevent->DTSTART->hasTime();
+                                    }
 
                                     $out[] = [
                                         'calendar' => $calendarName,
@@ -137,6 +143,7 @@ class CalendarService {
                                         'end' => $this->fmt($dtEnd),
                                         'endTz' => $dtEnd?->getTimezone()->getName(),
                                         'hours' => $hours !== null ? round($hours, 2) : null,
+                                        'allday' => $evtAllDay,
                                         'status' => (string)($vevent->STATUS?->getValue() ?? ''),
                                         'location' => (string)($vevent->LOCATION?->getValue() ?? ''),
                                         'desc' => $this->shorten((string)($vevent->DESCRIPTION?->getValue() ?? ''), 160),
@@ -181,6 +188,10 @@ class CalendarService {
                             $hours = ($dtEnd instanceof DateTimeInterface && $dtStart instanceof DateTimeInterface)
                                 ? ($dtEnd->getTimestamp() - $dtStart->getTimestamp()) / 3600
                                 : null;
+                            $evtAllDay = $rowAllDay;
+                            if (!$evtAllDay && isset($vevent->DTSTART) && method_exists($vevent->DTSTART, 'hasTime')) {
+                                $evtAllDay = !$vevent->DTSTART->hasTime();
+                            }
                             $out[] = [
                                 'calendar' => $calendarName,
                                 'calendar_id' => $calendarId,
@@ -190,6 +201,7 @@ class CalendarService {
                                 'end' => $this->fmt($dtEnd),
                                 'endTz' => $dtEnd?->getTimezone()->getName(),
                                 'hours' => $hours !== null ? round($hours, 2) : null,
+                                'allday' => $evtAllDay,
                                 'status' => (string)($vevent->STATUS?->getValue() ?? ''),
                                 'location' => (string)($vevent->LOCATION?->getValue() ?? ''),
                                 'desc' => $this->shorten((string)($vevent->DESCRIPTION?->getValue() ?? ''), 160),
@@ -228,6 +240,19 @@ class CalendarService {
                 $hours = ($dtEnd instanceof DateTimeInterface && $dtStart instanceof DateTimeInterface)
                     ? ($dtEnd->getTimestamp() - $dtStart->getTimestamp()) / 3600
                     : null;
+                $isAllDay = $rowAllDay;
+                if (!$isAllDay && isset($pStart['VALUE'])) {
+                    $valueType = $pStart['VALUE'];
+                    if (is_array($valueType)) {
+                        $valueType = reset($valueType);
+                    }
+                    if (is_object($valueType) && method_exists($valueType, '__toString')) {
+                        $valueType = (string)$valueType;
+                    }
+                    if (is_string($valueType) && strtoupper($valueType) === 'DATE') {
+                        $isAllDay = true;
+                    }
+                }
                 $out[] = [
                     'calendar' => $calendarName,
                     'calendar_id' => $calendarId,
@@ -237,6 +262,7 @@ class CalendarService {
                     'end' => $this->fmt($dtEnd),
                     'endTz' => $this->tzid($pEnd, $dtEnd),
                     'hours' => $hours !== null ? round($hours, 2) : null,
+                    'allday' => $isAllDay,
                     'status' => $this->text($status),
                     'location' => $this->text($location),
                     'desc' => $this->shorten($this->text($desc) ?? '', 160),
@@ -247,7 +273,7 @@ class CalendarService {
 
         if (($icsParsed || $icsSkipped > 0) && $this->isDebugEnabled()) {
             $this->logger->debug('parseRows ICS fallback', [
-                'app' => $this->appName,
+                'app' => self::APP_NAME,
                 'calendar' => $calendarName,
                 'icsParsed' => $icsParsed,
                 'icsSkipped' => $icsSkipped,

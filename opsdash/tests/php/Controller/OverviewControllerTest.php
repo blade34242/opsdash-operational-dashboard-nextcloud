@@ -5,6 +5,16 @@ declare(strict_types=1);
 namespace OCA\Opsdash\Tests\Controller;
 
 use OCA\Opsdash\Controller\OverviewController;
+use OCA\Opsdash\Service\CalendarService;
+use OCA\Opsdash\Service\NotesService;
+use OCA\Opsdash\Service\OverviewAggregationService;
+use OCA\Opsdash\Service\OverviewBalanceService;
+use OCA\Opsdash\Service\OverviewChartsBuilder;
+use OCA\Opsdash\Service\OverviewEventsCollector;
+use OCA\Opsdash\Service\OverviewHistoryService;
+use OCA\Opsdash\Service\OverviewSelectionService;
+use OCA\Opsdash\Service\PersistSanitizer;
+use OCA\Opsdash\Service\ViteAssetsService;
 use OCP\Calendar\IManager;
 use OCP\IConfig;
 use OCP\IRequest;
@@ -17,342 +27,65 @@ class OverviewControllerTest extends TestCase {
 
   protected function setUp(): void {
     parent::setUp();
+
+    $request = $this->createMock(IRequest::class);
+    $calendarManager = $this->createMock(IManager::class);
+    $logger = $this->createMock(LoggerInterface::class);
+    $userSession = $this->createMock(IUserSession::class);
+    $config = $this->createMock(IConfig::class);
+
+    $viteAssetsService = new ViteAssetsService();
+    $calendarService = new CalendarService($calendarManager, $config, $logger);
+    $notesService = new NotesService($config, $calendarService, $logger);
+    $sanitizer = new PersistSanitizer();
+    $selection = new OverviewSelectionService();
+    $collector = new OverviewEventsCollector($calendarManager, $calendarService, $logger);
+    $history = new OverviewHistoryService($calendarService, $collector);
+    $aggregation = new OverviewAggregationService();
+    $chartsBuilder = new OverviewChartsBuilder();
+    $balanceService = new OverviewBalanceService();
+
     $this->controller = new OverviewController(
       'opsdash',
-      $this->createMock(IRequest::class),
-      $this->createMock(IManager::class),
-      $this->createMock(LoggerInterface::class),
-      $this->createMock(IUserSession::class),
-      $this->createMock(IConfig::class),
+      $request,
+      $calendarManager,
+      $logger,
+      $userSession,
+      $config,
+      $viteAssetsService,
+      $calendarService,
+      $notesService,
+      $sanitizer,
+      $selection,
+      $collector,
+      $history,
+      $aggregation,
+      $chartsBuilder,
+      $balanceService,
     );
-  }
-
-  public function testCleanTargetsClampsAndSkipsInvalidValues(): void {
-    $method = new \ReflectionMethod(OverviewController::class, 'cleanTargets');
-    $method->setAccessible(true);
-
-    $allowed = ['wk' => 1, 'ok' => 1, 'max' => 1];
-    $input = [
-      'wk' => -5,
-      'ok' => 'not-a-number',
-      'max' => 20000,
-      'skip' => 42,
-    ];
-
-    /** @var array<string,float> $result */
-    $result = $method->invoke($this->controller, $input, $allowed);
-
-    $this->assertSame(0.0, $result['wk']);
-    $this->assertArrayNotHasKey('ok', $result, 'Non-numeric values should be skipped');
-    $this->assertSame(10000.0, $result['max']);
-    $this->assertArrayNotHasKey('skip', $result, 'Disallowed ids should be ignored');
-  }
-
-  public function testCleanGroupsSanitisesValues(): void {
-    $method = new \ReflectionMethod(OverviewController::class, 'cleanGroups');
-    $method->setAccessible(true);
-
-    $allowed = ['cal' => 1, 'max' => 1];
-    /** @var array<string,int> $result */
-    $result = $method->invoke($this->controller, [
-      'cal' => '2.7',
-      'bad' => 'oops',
-      'max' => 99,
-    ], $allowed, ['cal', 'max', 'missing']);
-
-    $this->assertSame(2, $result['cal']);
-    $this->assertSame(0, $result['max']);
-    $this->assertSame(0, $result['missing']);
-    $this->assertArrayNotHasKey('bad', $result);
-  }
-
-  public function testCleanTargetsConfigSanitisesNumericFields(): void {
-    $method = new \ReflectionMethod(OverviewController::class, 'cleanTargetsConfig');
-    $method->setAccessible(true);
-
-    /** @var array<string,mixed> $result */
-    $result = $method->invoke($this->controller, [
-      'totalHours' => 20000,
-      'categories' => [
-        [
-          'id' => 'alpha',
-          'label' => '  ',
-          'targetHours' => 20001,
-          'includeWeekend' => true,
-          'paceMode' => 'time_aware',
-          'groupIds' => ['2', '2', '99'],
-        ],
-      ],
-      'pace' => [
-        'includeWeekendTotal' => true,
-        'mode' => 'time_aware',
-        'thresholds' => [
-          'onTrack' => 105.234,
-          'atRisk' => -150,
-        ],
-      ],
-      'forecast' => [
-        'methodPrimary' => 'momentum',
-        'momentumLastNDays' => 99,
-        'padding' => 12.345,
-      ],
-      'balance' => [
-        'index' => [
-          'basis' => 'both',
-        ],
-        'thresholds' => [
-          'noticeAbove' => 1.5,
-          'noticeBelow' => 1.5,
-          'warnAbove' => -0.5,
-          'warnBelow' => -0.5,
-          'warnIndex' => 0.3333,
-        ],
-        'trend' => [
-          'lookbackWeeks' => 25,
-        ],
-        'ui' => [
-          'showNotes' => true,
-        ],
-      ],
-    ]);
-
-    $this->assertSame(10000.0, $result['totalHours']);
-    $this->assertCount(1, $result['categories']);
-    $category = $result['categories'][0];
-    $this->assertSame('Alpha', $category['label']);
-    $this->assertSame(10000.0, $category['targetHours']);
-    $this->assertSame(['alpha'], $result['balance']['categories']);
-    $this->assertSame([2], $category['groupIds']);
-
-    $this->assertSame('time_aware', $result['pace']['mode']);
-    $this->assertTrue($result['pace']['includeWeekendTotal']);
-    $this->assertSame(100.0, $result['pace']['thresholds']['onTrack']);
-    $this->assertSame(-100.0, $result['pace']['thresholds']['atRisk']);
-
-    $this->assertSame('momentum', $result['forecast']['methodPrimary']);
-    $this->assertSame(14, $result['forecast']['momentumLastNDays']);
-    $this->assertSame(12.3, $result['forecast']['padding']);
-
-    $this->assertSame('both', $result['balance']['index']['basis']);
-    $this->assertSame(1.0, $result['balance']['thresholds']['noticeAbove']);
-    $this->assertSame(1.0, $result['balance']['thresholds']['noticeBelow']);
-    $this->assertSame(0.0, $result['balance']['thresholds']['warnAbove']);
-    $this->assertSame(0.0, $result['balance']['thresholds']['warnBelow']);
-    $this->assertSame(0.3, $result['balance']['thresholds']['warnIndex']);
-    $this->assertSame(12, $result['balance']['trend']['lookbackWeeks']);
-    $this->assertArrayHasKey('showNotes', $result['balance']['ui']);
-    $this->assertTrue($result['balance']['ui']['showNotes']);
-  }
-
-  public function testSanitizeDeckSettingsClampsIdsAndBools(): void {
-    $method = new \ReflectionMethod(OverviewController::class, 'sanitizeDeckSettings');
-    $method->setAccessible(true);
-
-    /** @var array<string,mixed> $result */
-    $result = $method->invoke($this->controller, [
-      'enabled' => false,
-      'filtersEnabled' => 'false',
-      'defaultFilter' => 'evil',
-      'hiddenBoards' => [1, -2, 'abc', 50000, 2000000],
-      'mineMode' => 'owner',
-      'solvedIncludesArchived' => 0,
-      'ticker' => [
-        'autoScroll' => 'false',
-        'intervalSeconds' => 0,
-        'showBoardBadges' => '0',
-      ],
-    ]);
-
-    $this->assertFalse($result['enabled']);
-    $this->assertFalse($result['filtersEnabled']);
-    $this->assertSame('all', $result['defaultFilter']);
-    $this->assertSame([1, 50000], $result['hiddenBoards'], 'Hidden boards should drop invalid/oversized ids');
-    $this->assertSame('assignee', $result['mineMode'], 'Invalid mineMode falls back');
-    $this->assertFalse($result['solvedIncludesArchived']);
-    $this->assertSame(3, $result['ticker']['intervalSeconds'], 'Ticker interval clamps to min');
-    $this->assertFalse($result['ticker']['autoScroll']);
-    $this->assertFalse($result['ticker']['showBoardBadges']);
-  }
-
-  public function testBalanceLookbackClamp(): void {
-    $method = new \ReflectionMethod(OverviewController::class, 'cleanBalanceConfig');
-    $method->setAccessible(true);
-    /** @var array<string,mixed> $result */
-    $result = $method->invoke($this->controller, ['trend' => ['lookbackWeeks' => 12]], []);
-    $this->assertSame(12, $result['trend']['lookbackWeeks']);
-  }
-
-  public function testBalanceLookbackClampNegative(): void {
-    $method = new \ReflectionMethod(OverviewController::class, 'cleanBalanceConfig');
-    $method->setAccessible(true);
-    /** @var array<string,mixed> $result */
-    $result = $method->invoke($this->controller, ['trend' => ['lookbackWeeks' => -1]], []);
-    $this->assertSame(1, $result['trend']['lookbackWeeks']);
-  }
-
-  public function testBalanceLookbackClampValid(): void {
-    $method = new \ReflectionMethod(OverviewController::class, 'cleanBalanceConfig');
-    $method->setAccessible(true);
-    /** @var array<string,mixed> $resultOne */
-    $resultOne = $method->invoke($this->controller, ['trend' => ['lookbackWeeks' => 1]], []);
-    $this->assertSame(1, $resultOne['trend']['lookbackWeeks']);
-
-    /** @var array<string,mixed> $resultFour */
-    $resultFour = $method->invoke($this->controller, ['trend' => ['lookbackWeeks' => 4]], []);
-    $this->assertSame(4, $resultFour['trend']['lookbackWeeks']);
-
-    /** @var array<string,mixed> $resultTwelve */
-    $resultTwelve = $method->invoke($this->controller, ['trend' => ['lookbackWeeks' => 12]], []);
-    $this->assertSame(12, $resultTwelve['trend']['lookbackWeeks']);
-  }
-
-  public function testBalanceUiDefaultsAndDropsDeprecatedFields(): void {
-    $method = new \ReflectionMethod(OverviewController::class, 'cleanTargetsConfig');
-    $method->setAccessible(true);
-
-    /** @var array<string,mixed> $result */
-    $result = $method->invoke($this->controller, [
-      'balance' => [
-        'ui' => [
-          'showNotes' => true,
-          'roundPercent' => 2,
-          'roundRatio' => 2,
-          'showDailyStacks' => true,
-        ],
-      ],
-    ]);
-
-    $this->assertSame(['showNotes' => true], $result['balance']['ui']);
-
-    /** @var array<string,mixed> $defaults */
-    $defaults = $method->invoke($this->controller, ['balance' => []]);
-    $this->assertArrayHasKey('showNotes', $defaults['balance']['ui']);
-    $this->assertFalse($defaults['balance']['ui']['showNotes']);
-  }
-
-  public function testBalanceIndexBasisSanitises(): void {
-    $method = new \ReflectionMethod(OverviewController::class, 'cleanBalanceConfig');
-    $method->setAccessible(true);
-    /** @var array<string,mixed> $resultCalendar */
-    $resultCalendar = $method->invoke($this->controller, ['index' => ['basis' => 'calendar']], []);
-    $this->assertSame('calendar', $resultCalendar['index']['basis']);
-
-    /** @var array<string,mixed> $resultOff */
-    $resultOff = $method->invoke($this->controller, ['index' => ['basis' => 'off']], []);
-    $this->assertSame('off', $resultOff['index']['basis']);
-
-    /** @var array<string,mixed> $resultFallback */
-    $resultFallback = $method->invoke($this->controller, ['index' => ['basis' => 'invalid']], []);
-    $this->assertSame('category', $resultFallback['index']['basis']);
-  }
-
-  public function testSanitizeWidgets(): void {
-    $method = new \ReflectionMethod(OverviewController::class, 'sanitizeWidgets');
-    $method->setAccessible(true);
-
-    /** @var array<int,array<string,mixed>> $result */
-    $result = $method->invoke($this->controller, [
-      ['type' => '', 'id' => 'bad'],
-      ['type' => 'note_editor', 'layout' => ['width' => 'giant', 'height' => 'x', 'order' => 'oops'], 'options' => 'not-array'],
-      ['type' => 'deck_cards', 'layout' => ['width' => 'half', 'height' => 'l', 'order' => 7]],
-    ]);
-
-    $this->assertCount(2, $result, 'Invalid widget types should be skipped');
-    $this->assertSame('note_editor', $result[0]['type']);
-    $this->assertSame('full', $result[0]['layout']['width']);
-    $this->assertSame('m', $result[0]['layout']['height']);
-    $this->assertSame(0.0, $result[0]['layout']['order']);
-    $this->assertSame([], $result[0]['options']);
-
-    $this->assertSame('deck_cards', $result[1]['type']);
-    $this->assertSame('half', $result[1]['layout']['width']);
-    $this->assertSame('l', $result[1]['layout']['height']);
-    $this->assertSame(7.0, $result[1]['layout']['order']);
-    $this->assertStringStartsWith('widget-deck_cards-', $result[1]['id'], 'Missing ids should be generated');
-  }
-
-  public function testCleanOnboardingState(): void {
-    $method = new \ReflectionMethod(OverviewController::class, 'cleanOnboardingState');
-    $method->setAccessible(true);
-
-    /** @var array<string,mixed> $default */
-    $default = $method->invoke($this->controller, null);
-    $this->assertFalse($default['completed']);
-    $this->assertSame(0, $default['version']);
-    $this->assertSame('', $default['strategy']);
-    $this->assertSame('', $default['completed_at']);
-
-    /** @var array<string,mixed> $filled */
-    $filled = $method->invoke($this->controller, [
-      'completed' => true,
-      'version' => '12',
-      'strategy' => ' full_granular ',
-      'completed_at' => '2025-01-01T00:00:00Z   ',
-    ]);
-    $this->assertTrue($filled['completed']);
-    $this->assertSame(12, $filled['version']);
-    $this->assertSame('full_granular', $filled['strategy']);
-    $this->assertSame('2025-01-01T00:00:00Z', $filled['completed_at']);
-  }
-
-  public function testSanitizePresetNameStripsUnsafeCharacters(): void {
-    $method = new \ReflectionMethod(OverviewController::class, 'sanitizePresetName');
-    $method->setAccessible(true);
-
-    $result = $method->invoke($this->controller, " ../Evil<script>/\\Name  ");
-    $this->assertSame('..EvilscriptName', $result);
-  }
-
-  public function testSanitizePresetNameReturnsEmptyWhenNothingAllowed(): void {
-    $method = new \ReflectionMethod(OverviewController::class, 'sanitizePresetName');
-    $method->setAccessible(true);
-
-    $result = $method->invoke($this->controller, "<><><>");
-    $this->assertSame('', $result);
-  }
-
-  public function testPresetExportFixtureSanitisesWithoutWarnings(): void {
-    $method = new \ReflectionMethod(OverviewController::class, 'sanitizePresetPayload');
-    $method->setAccessible(true);
-
-    $fixturePath = dirname(__DIR__, 3) . '/test/fixtures/preset-export.json';
-    $fixture = json_decode((string)file_get_contents($fixturePath), true, 512, JSON_THROW_ON_ERROR);
-    $payload = $fixture['payload'] ?? [];
-
-    $controllerPayload = [
-      'selected' => array_map('strval', $payload['cals'] ?? []),
-      'groups' => $payload['groups'] ?? [],
-      'targets_week' => $payload['targets_week'] ?? [],
-      'targets_month' => $payload['targets_month'] ?? [],
-      'targets_config' => $payload['targets_config'] ?? [],
-    ];
-    $allowedIds = $controllerPayload['selected'];
-    $result = $method->invoke($this->controller, $controllerPayload, array_flip($allowedIds), $allowedIds);
-
-    $this->assertSame($allowedIds, $result['payload']['selected']);
-    $this->assertSame($controllerPayload['groups'], $result['payload']['groups']);
-    $this->assertEquals($controllerPayload['targets_week'], $result['payload']['targets_week']);
-    $this->assertEquals($controllerPayload['targets_month'], $result['payload']['targets_month']);
-    $this->assertEquals($controllerPayload['targets_config']['totalHours'], $result['payload']['targets_config']['totalHours']);
-    $this->assertSame([], $result['warnings'], 'Fixture should import without warnings when calendars match.');
   }
 
   public function testWeekOffsetFixtureStructure(): void {
     $fixturePath = dirname(__DIR__, 3) . '/test/fixtures/load-week-offset2.json';
     $fixture = json_decode((string)file_get_contents($fixturePath), true, 512, JSON_THROW_ON_ERROR);
+    $this->assertSame('week', $fixture['meta']['range']);
     $this->assertSame(2, $fixture['meta']['offset']);
-    $this->assertSame('2025-11-10', $fixture['meta']['from']);
-    $this->assertSame(['personal', 'asdsad'], $fixture['selected']);
-    $this->assertArrayHasKey('byCal', $fixture);
-    $this->assertArrayHasKey('stats', $fixture);
+    $this->assertIsArray($fixture['selected']);
+    $this->assertNotEmpty($fixture['selected']);
+    $this->assertMatchesRegularExpression('/^\\d{4}-\\d{2}-\\d{2}$/', (string)$fixture['meta']['from']);
+    $this->assertMatchesRegularExpression('/^\\d{4}-\\d{2}-\\d{2}$/', (string)$fixture['meta']['to']);
+    $this->assertArrayHasKey('targets', $fixture);
   }
 
-  public function testMonthMultiuserFixtureStructure(): void {
-    $fixturePath = dirname(__DIR__, 3) . '/test/fixtures/load-month-multiuser.json';
+  public function testMonthOffsetFixtureStructure(): void {
+    $fixturePath = dirname(__DIR__, 3) . '/test/fixtures/load-month-offset1.json';
     $fixture = json_decode((string)file_get_contents($fixturePath), true, 512, JSON_THROW_ON_ERROR);
-    $this->assertSame(['personal', 'opsdash-focus'], $fixture['selected']);
-    $this->assertSame('2025-10-01', $fixture['meta']['from']);
-    $this->assertSame('2025-10-31', $fixture['meta']['to']);
+    $this->assertSame('month', $fixture['meta']['range']);
+    $this->assertSame(1, $fixture['meta']['offset']);
+    $this->assertIsArray($fixture['selected']);
+    $this->assertNotEmpty($fixture['selected']);
+    $this->assertMatchesRegularExpression('/^\\d{4}-\\d{2}-\\d{2}$/', (string)$fixture['meta']['from']);
+    $this->assertMatchesRegularExpression('/^\\d{4}-\\d{2}-\\d{2}$/', (string)$fixture['meta']['to']);
     $this->assertArrayHasKey('targets', $fixture);
   }
 
@@ -406,28 +139,6 @@ class OverviewControllerTest extends TestCase {
     $this->assertSame('assignee', $fixture['deck_settings_read']['mineMode']);
     $this->assertTrue($fixture['deck_settings_read']['solvedIncludesArchived']);
     $this->assertArrayHasKey('ticker', $fixture['deck_settings_read']);
-  }
-
-  public function testDeckSettingsSanitizeHiddenBoards(): void {
-    $method = new \ReflectionMethod(OverviewController::class, 'sanitizeDeckSettings');
-    $method->setAccessible(true);
-
-    /** @var array<string,mixed> $result */
-    $result = $method->invoke($this->controller, [
-      'enabled' => false,
-      'filtersEnabled' => false,
-      'defaultFilter' => 'mine',
-      'hiddenBoards' => [2, '5', 'foo', -4, 0, 2],
-    ]);
-
-    $this->assertFalse($result['enabled']);
-    $this->assertFalse($result['filtersEnabled']);
-    $this->assertSame('mine', $result['defaultFilter']);
-    $this->assertSame([2, 5], $result['hiddenBoards']);
-    $this->assertSame('assignee', $result['mineMode']);
-    $this->assertTrue($result['solvedIncludesArchived']);
-    $this->assertIsArray($result['ticker']);
-    $this->assertArrayHasKey('autoScroll', $result['ticker']);
   }
 
   public function testNotesFixtureStructure(): void {

@@ -341,7 +341,7 @@ import DashboardLayout from './components/layout/DashboardLayout.vue'
 import { buildTargetsSummary, normalizeTargetsConfig, createEmptyTargetsSummary, createDefaultActivityCardConfig, createDefaultBalanceConfig, cloneTargetsConfig, convertWeekToMonth, type ActivityCardConfig, type BalanceConfig, type TargetsConfig } from './services/targets'
 import { normalizeReportingConfig, normalizeDeckSettings, type DeckFilterMode } from './services/reporting'
 import { ONBOARDING_VERSION } from './services/onboarding'
-import { createDefaultWidgets, createDashboardPreset, normalizeWidgetLayout, widgetsRegistry, type WidgetDefinition, type WidgetRenderContext, type WidgetHeight, type WidgetSize } from './services/widgetsRegistry'
+import { createDefaultWidgets, createDashboardPreset, normalizeWidgetLayout, widgetsRegistry, type WidgetDefinition, type WidgetHeight, type WidgetSize } from './services/widgetsRegistry'
 // Lightweight notifications without @nextcloud/dialogs
 function notifySuccess(msg: string){
   const w:any = window as any
@@ -354,7 +354,7 @@ function notifyError(msg: string){
   else { console.error('ERROR:', msg); alert(msg) }
 }
 
-import { onMounted, ref, watch, nextTick, computed } from 'vue'
+import { ref, watch, computed } from 'vue'
 import { useNotes } from '../composables/useNotes'
 import { useDashboard, type OnboardingState } from '../composables/useDashboard'
 import { useDashboardPersistence } from '../composables/useDashboardPersistence'
@@ -378,6 +378,10 @@ import { useSidebarState } from '../composables/useSidebarState'
 import { useKeyboardShortcuts } from '../composables/useKeyboardShortcuts'
 import { useOnboardingActions } from '../composables/useOnboardingActions'
 import { useDeckCards } from '../composables/useDeckCards'
+import { useDeckFiltering, sanitizeDeckFilter } from '../composables/useDeckFiltering'
+import { useWidgetLayoutManager } from '../composables/useWidgetLayoutManager'
+import { useDashboardBoot } from '../composables/useDashboardBoot'
+import { useWidgetRenderContext } from '../composables/useWidgetRenderContext'
 import { trackTelemetry } from './services/telemetry'
 import './styles/widgetTextScale.css'
 // Ensure a visible version even if backend attrs are empty: use package.json as fallback
@@ -449,20 +453,40 @@ const notes = useNotes({
 const { notesPrev, notesCurrDraft, isSavingNote, fetchNotes, saveNotes } = notes
 
 // Widget layout storage must be declared before downstream composables consume it
-const WIDGETS_STORAGE_KEY = 'opsdash.widgets.v1'
-function loadWidgetLayout(): WidgetDefinition[] {
-  try {
-    if (typeof localStorage === 'undefined') return createDefaultWidgets()
-    const raw = localStorage.getItem(WIDGETS_STORAGE_KEY)
-    if (!raw) return createDefaultWidgets()
-    const parsed = JSON.parse(raw)
-    return normalizeWidgetLayout(parsed, createDefaultWidgets()).filter((w) => Boolean(widgetsRegistry[w.type]))
-  } catch (err) {
-    console.warn('[opsdash] widget layout load failed', err)
-    return createDefaultWidgets()
-  }
-}
-const layoutWidgets = ref<WidgetDefinition[]>(loadWidgetLayout())
+const hasInitialLoad = ref(false)
+const dashboardMode = ref<'quick' | 'standard' | 'pro'>('standard')
+const widgetsQueueSaveRef = ref<null | ((silent?: boolean) => void)>(null)
+const deckEnabledForWidgets = ref(true)
+
+const {
+  layoutWidgets,
+  widgetsDirty,
+  isLayoutEditing,
+  newWidgetType,
+  widgets,
+  availableWidgetTypes,
+  applyDashboardPreset,
+  updateWidget,
+  cycleWidth,
+  cycleHeight,
+  moveWidget,
+  removeWidget,
+  addWidget,
+  addWidgetAt,
+  reorderWidget,
+  updateWidgetOptions,
+  resetWidgets,
+} = useWidgetLayoutManager({
+  storageKey: 'opsdash.widgets.v1',
+  widgetsRegistry,
+  createDefaultWidgets,
+  normalizeWidgetLayout,
+  createDashboardPreset,
+  dashboardMode,
+  deckEnabled: deckEnabledForWidgets,
+  hasInitialLoad,
+  queueSaveRef: widgetsQueueSaveRef,
+})
 
 const {
   calendars,
@@ -516,22 +540,14 @@ function handleDeckSettingsSave(value: any) {
 }
 
 watch(
-  () => deckSettings.value.defaultFilter,
-  (next) => {
-    const sanitized = sanitizeDeckFilter(next)
-    if (sanitized !== deckFilter.value) {
-      deckFilter.value = sanitized
-    }
-  },
-)
-
-watch(
   () => deckSettings.value.enabled,
   (enabled) => {
+    deckEnabledForWidgets.value = enabled
     if (!enabled && pane.value === 'deck') {
       pane.value = 'cal'
     }
   },
+  { immediate: true },
 )
 
 const {
@@ -546,134 +562,22 @@ const {
   notifyError,
 })
 
-const deckFilter = ref<DeckFilterMode>(sanitizeDeckFilter(deckSettings.value.defaultFilter))
-const deckVisibleCards = computed(() => {
-  const hidden = new Set(
-    (deckSettings.value.hiddenBoards || []).map((id) => Number(id)).filter((id) => Number.isFinite(id)),
-  )
-  return deckCards.value.filter((card) => !hidden.has(card.boardId))
-})
-
-const deckMineMatcher = computed(() => {
-  const mineMode = deckSettings.value.mineMode ?? 'assignee'
-  const userId = (uid.value || '').trim().toLowerCase()
-  return (card: any) => {
-    if (!userId) return false
-    const assigneeMatch = (card.assignees || []).some(
-      (assignee: any) => typeof assignee.uid === 'string' && assignee.uid.toLowerCase() === userId,
-    )
-    const creatorId = typeof card.createdBy === 'string' ? card.createdBy.trim().toLowerCase() : ''
-    const creatorMatch = creatorId && creatorId === userId
-    const doneById = typeof card.doneBy === 'string' ? card.doneBy.trim().toLowerCase() : ''
-    const doneMatch = doneById && doneById === userId
-    if (mineMode === 'creator') return creatorMatch || doneMatch
-    if (mineMode === 'assignee') return assigneeMatch || doneMatch
-    return assigneeMatch || creatorMatch || doneMatch
-  }
-})
-
-const deckStatusMatches = (card: any, status: 'open' | 'done' | 'archived', includeArchivedInDone: boolean) => {
-  if (status === 'open') return card.status === 'active'
-  if (status === 'archived') return card.status === 'archived'
-  if (status === 'done') {
-    if (card.status === 'done') return true
-    return includeArchivedInDone && card.status === 'archived'
-  }
-  return false
-}
-
-const deckFilteredCards = computed(() => {
-  const mineMatch = deckMineMatcher.value
-  const includeArchivedInDone = deckSettings.value.solvedIncludesArchived !== false
-  const filter = deckFilter.value
-  const cards = deckVisibleCards.value
-  if (filter === 'all') return cards
-  if (filter === 'mine') {
-    return cards.filter((card) => mineMatch(card))
-  }
-  const [statusKey, scope] = filter.split('_') as ['open' | 'done' | 'archived', 'all' | 'mine']
-  return cards.filter((card) => {
-    const statusOk = deckStatusMatches(card, statusKey, includeArchivedInDone)
-    const mineOk = scope === 'all' ? true : mineMatch(card)
-    return statusOk && mineOk
-  })
-})
-
-const deckSummaryBuckets = computed(() => {
-  const mineMatch = deckMineMatcher.value
-  const includeArchivedInDone = deckSettings.value.solvedIncludesArchived !== false
-  const cards = deckVisibleCards.value
-  const rows: Array<{
-    key: DeckFilterMode
-    label: string
-    titles: string[]
-    count: number
-    board?: { title: string; color?: string }
-  }> = []
-  const defs: Array<{ key: DeckFilterMode; label: string; status: 'open' | 'done' | 'archived'; mine: boolean }> = [
-    { key: 'open_all', label: 'Open · All', status: 'open', mine: false },
-    { key: 'open_mine', label: 'Open · Mine', status: 'open', mine: true },
-    { key: 'done_all', label: 'Done · All', status: 'done', mine: false },
-    { key: 'done_mine', label: 'Done · Mine', status: 'done', mine: true },
-    { key: 'archived_all', label: 'Archived · All', status: 'archived', mine: false },
-    { key: 'archived_mine', label: 'Archived · Mine', status: 'archived', mine: true },
-  ]
-
-  defs.forEach((def) => {
-    const filtered = cards.filter((card) => {
-      const statusOk = deckStatusMatches(card, def.status, includeArchivedInDone)
-      const mineOk = def.mine ? mineMatch(card) : true
-      return statusOk && mineOk
-    })
-    const boardCounts = new Map<number, { count: number; title: string; color?: string }>()
-    filtered.forEach((card) => {
-      if (card.boardId == null) return
-      const entry = boardCounts.get(card.boardId) || { count: 0, title: card.boardTitle, color: card.boardColor }
-      entry.count += 1
-      entry.title = card.boardTitle
-      entry.color = card.boardColor
-      boardCounts.set(card.boardId, entry)
-    })
-    let board: { title: string; color?: string } | undefined
-    if (boardCounts.size) {
-      const sorted = Array.from(boardCounts.entries()).sort((a, b) => b[1].count - a[1].count)
-      board = { title: sorted[0][1].title, color: sorted[0][1].color }
-    }
-    rows.push({
-      key: def.key,
-      label: def.label,
-      titles: filtered.map((card) => card.title || `Card ${card.id}`),
-      count: filtered.length,
-      board,
-    })
-  })
-
-  return rows
-})
-
-const deckTickerConfig = computed(() => {
-  const ticker = deckSettings.value.ticker || { autoScroll: true, intervalSeconds: 5, showBoardBadges: true }
-  const interval = Math.min(10, Math.max(3, Number(ticker.intervalSeconds ?? 5) || 5))
-  return {
-    autoScroll: ticker.autoScroll !== false,
-    intervalSeconds: interval,
-  }
-})
-
-const deckCanFilterMine = computed(
-  () => deckSettings.value.filtersEnabled && deckSettings.value.enabled && Boolean((uid.value || '').trim()),
-)
-
-
-const deckUrl = computed(() => {
-  const base = root.value || ''
-  return `${base}/apps/deck/`
+const {
+  deckFilter,
+  deckVisibleCards,
+  deckFilteredCards,
+  deckSummaryBuckets,
+  deckTickerConfig,
+  deckCanFilterMine,
+  deckUrl,
+} = useDeckFiltering({
+  deckSettings,
+  deckCards,
+  uid,
+  root,
 })
 
 const onboardingState = onboarding
-const dashboardMode = ref<'quick'|'standard'|'pro'>('standard')
-const hasInitialLoad = ref(false)
-const widgetsDirty = ref(false)
 
 const {
   themePreference,
@@ -688,178 +592,9 @@ const {
   notifyError,
 })
 
-function applyDashboardPreset(mode: 'quick' | 'standard' | 'pro') {
-  dashboardMode.value = mode
-  layoutWidgets.value = createDashboardPreset(mode)
-  widgetsDirty.value = true
-}
-const isLayoutEditing = ref(false)
-const newWidgetType = ref('')
-
-function persistWidgets() {
-  if (hasInitialLoad.value && widgetsDirty.value) {
-    queueSave(false)
-    widgetsDirty.value = false
-  }
-}
-
-const widgets = computed<WidgetDefinition[]>(() => {
-  const defs = layoutWidgets.value
-  if (!deckSettings.value.enabled) {
-    return defs.filter((w) => w.type !== 'deck')
-  }
-  return defs
-})
-
-const availableWidgetTypes = computed(() =>
-  Object.keys(widgetsRegistry).map((type) => ({
-    type,
-    label: widgetsRegistry[type]?.label || type,
-  })),
-)
-
-function updateWidget(id: string, updater: (w: WidgetDefinition) => WidgetDefinition) {
-  layoutWidgets.value = layoutWidgets.value.map((w) =>
-    w.id === id ? updater({ ...w, layout: { ...w.layout } }) : w,
-  )
-  widgetsDirty.value = true
-  persistWidgets()
-}
-
-function cycleWidth(id: string) {
-  const order: WidgetSize[] = ['quarter', 'half', 'full']
-  updateWidget(id, (w) => {
-    const idx = order.indexOf(w.layout.width as WidgetSize)
-    const next = order[(idx + 1) % order.length]
-    return { ...w, layout: { ...w.layout, width: next } }
-  })
-}
-
-function cycleHeight(id: string) {
-  const order: WidgetHeight[] = ['s', 'm', 'l']
-  updateWidget(id, (w) => {
-    const idx = order.indexOf(w.layout.height as WidgetHeight)
-    const next = order[(idx + 1) % order.length]
-    return { ...w, layout: { ...w.layout, height: next } }
-  })
-}
-
-function moveWidget(id: string, dir: 'up' | 'down') {
-  const ordered = [...layoutWidgets.value].sort((a, b) => (a.layout.order || 0) - (b.layout.order || 0))
-  const idx = ordered.findIndex((w) => w.id === id)
-  if (idx < 0) return
-  const targetIdx = dir === 'up' ? idx - 1 : idx + 1
-  if (targetIdx < 0 || targetIdx >= ordered.length) return
-  const currentOrder = ordered[idx].layout.order
-  ordered[idx].layout.order = ordered[targetIdx].layout.order
-  ordered[targetIdx].layout.order = currentOrder
-  layoutWidgets.value = ordered
-  widgetsDirty.value = true
-  persistWidgets()
-}
-
-function removeWidget(id: string) {
-  layoutWidgets.value = layoutWidgets.value.filter((w) => w.id !== id)
-  widgetsDirty.value = true
-  persistWidgets()
-}
-
-function addWidget(type: string) {
-  const entry = widgetsRegistry[type]
-  if (!entry) return
-  const maxOrder = layoutWidgets.value.reduce((acc, w) => Math.max(acc, w.layout.order || 0), 0)
-  const def: WidgetDefinition = {
-    id: `widget-${type}-${Date.now()}`,
-    type,
-    options: {},
-    layout: { ...entry.defaultLayout, order: maxOrder + 10 },
-    version: 1,
-  }
-  layoutWidgets.value = [...layoutWidgets.value, def]
-  newWidgetType.value = ''
-  widgetsDirty.value = true
-  persistWidgets()
-}
-function addWidgetAt(type: string, orderHint?: number) {
-  const entry = widgetsRegistry[type]
-  if (!entry) return
-  const maxOrder = layoutWidgets.value.reduce((acc, w) => Math.max(acc, w.layout.order || 0), 0)
-  let order = Number.isFinite(orderHint) ? Number(orderHint) : maxOrder + 10
-  if (!Number.isFinite(order)) order = maxOrder + 10
-  while (layoutWidgets.value.some((w) => w.layout.order === order)) {
-    order += 0.1
-  }
-  const def: WidgetDefinition = {
-    id: `widget-${type}-${Date.now()}`,
-    type,
-    options: {},
-    layout: { ...entry.defaultLayout, order },
-    version: 1,
-  }
-  layoutWidgets.value = [...layoutWidgets.value, def]
-  widgetsDirty.value = true
-  persistWidgets()
-}
-function reorderWidget(id: string, orderHint?: number | null) {
-  if (!Number.isFinite(orderHint ?? NaN)) return
-  const nextOrder = Number(orderHint)
-  const items = layoutWidgets.value.map((w) =>
-    w.id === id ? { ...w, layout: { ...w.layout, order: nextOrder } } : { ...w },
-  )
-  items.sort((a, b) => (a.layout.order || 0) - (b.layout.order || 0))
-  layoutWidgets.value = items.map((w, idx) => ({
-    ...w,
-    layout: { ...w.layout, order: (idx + 1) * 10 },
-  }))
-  widgetsDirty.value = true
-  persistWidgets()
-}
-
-function updateWidgetOptions(id: string, key: string, value: any) {
-  layoutWidgets.value = layoutWidgets.value.map((w) => {
-    if (w.id !== id) return w
-    const opts = { ...(w.options || {}) }
-    if (key.includes('.')) {
-      const parts = key.split('.')
-      const next = { ...opts }
-      let cursor: any = next
-      for (let i = 0; i < parts.length - 1; i += 1) {
-        const p = parts[i]
-        cursor[p] = { ...(cursor[p] || {}) }
-        cursor = cursor[p]
-      }
-      cursor[parts[parts.length - 1]] = value
-      return { ...w, options: next }
-    }
-    opts[key] = value
-    return { ...w, options: opts }
-  })
-  widgetsDirty.value = true
-  persistWidgets()
-}
-
 function openOnboardingFromLayout(step?: string) {
   openWizardFromSidebar((step as any) || 'categories')
 }
-
-function resetWidgets() {
-  layoutWidgets.value = createDashboardPreset(dashboardMode.value)
-  widgetsDirty.value = true
-  persistWidgets()
-}
-
-watch(
-  () => layoutWidgets.value,
-  (next) => {
-    try {
-      if (typeof localStorage === 'undefined') return
-      localStorage.setItem(WIDGETS_STORAGE_KEY, JSON.stringify(next))
-    } catch (err) {
-      console.warn('[opsdash] widget layout save failed', err)
-    }
-  },
-  { deep: true },
-)
 
 const { exportSidebarConfig, importSidebarConfig } = useConfigExportImport({
   selected,
@@ -894,6 +629,8 @@ const { queueSave, isSaving: reportingSaving } = useDashboardPersistence({
   deckSettings,
   widgets: layoutWidgets,
 })
+
+widgetsQueueSaveRef.value = queueSave
 
 const {
   isSelected,
@@ -1278,57 +1015,45 @@ const {
   notesLabelPrevTitle,
   notesLabelCurrTitle,
 } = useNotesLabels(range)
-const widgetContext = computed<WidgetRenderContext>(() => ({
-  summary: timeSummary.value,
-  activeDayMode: activeDayMode.value,
-  targetsSummary: targetsSummary.value,
-  targetsConfig: targetsConfig.value,
+
+const { widgetContext } = useWidgetRenderContext({
+  timeSummary,
+  activeDayMode,
+  targetsSummary,
+  targetsConfig,
   stats,
-  byDay: byDay.value,
-  byCal: byCal.value,
-  groupsById: groupsById.value,
-  groups: calendarGroupsWithToday.value,
-  balanceOverview: balanceOverview.value,
-  balanceConfig: balanceCardConfig.value,
-  rangeLabel: rangeLabel.value,
-  rangeMode: range.value,
-  from: from.value,
-  to: to.value,
-  lookbackWeeks: trendLookbackWeeks.value,
-  balanceNote: balanceNote.value,
-  activitySummary: activitySummary.value,
-  activityConfig: activityCardConfig.value,
-  activityDayOffTrend: activityDayOffTrend.value,
-  activityTrendUnit: range.value === 'month' ? 'mo' : 'wk',
-  activityDayOffLookback: trendLookbackWeeks.value,
-  deckBuckets: deckSummaryBuckets.value,
-  deckRangeLabel: rangeLabel.value,
-  deckLoading: deckLoading.value,
-  deckError: deckError.value,
-  deckTicker: deckTickerConfig.value,
-  deckShowBoardBadges: deckSettings.value?.ticker?.showBoardBadges !== false,
-  deckUrl: deckUrl.value,
-  deckCards: deckCards.value,
-  deckBoards: Array.from(
-    deckCards.value.reduce((acc, card) => {
-      if (card.boardId == null) return acc
-      if (!acc.has(card.boardId)) {
-        acc.set(card.boardId, { id: card.boardId, title: card.boardTitle, color: card.boardColor })
-      }
-      return acc
-    }, new Map<number, { id: number; title: string; color?: string }>()).values(),
-  ),
-  uid: uid.value,
-  notesPrev: notesPrev.value,
-  notesCurr: notesCurrDraft.value,
-  notesLabelPrev: notesLabelPrev.value,
-  notesLabelCurr: notesLabelCurr.value,
-  notesLabelPrevTitle: notesLabelPrevTitle.value,
-  notesLabelCurrTitle: notesLabelCurrTitle.value,
-  isSavingNote: isSavingNote.value,
-  onSaveNote: () => saveNotes(),
-  onUpdateNotes: (val: string) => { notesCurrDraft.value = val },
-}))
+  byDay,
+  byCal,
+  groupsById,
+  calendarGroupsWithToday,
+  balanceOverview,
+  balanceCardConfig,
+  rangeLabel,
+  range,
+  from,
+  to,
+  trendLookbackWeeks,
+  balanceNote,
+  activitySummary,
+  activityCardConfig,
+  activityDayOffTrend,
+  deckSummaryBuckets,
+  deckLoading,
+  deckError,
+  deckTickerConfig,
+  deckSettings,
+  deckUrl,
+  deckCards,
+  uid,
+  notesPrev,
+  notesCurrDraft,
+  notesLabelPrev,
+  notesLabelCurr,
+  notesLabelPrevTitle,
+  notesLabelCurrTitle,
+  isSavingNote,
+  saveNotes,
+})
 
 const dashboardModeLabel = computed(() => {
   if (dashboardMode.value === 'quick') return 'Quick preset'
@@ -1347,49 +1072,20 @@ function formatDateKey(date: Date): string {
   return `${year}-${month}-${day}`
 }
 
-function sanitizeDeckFilter(value: DeckFilterMode | string | undefined): DeckFilterMode {
-  const allowed: DeckFilterMode[] = [
-    'all',
-    'mine',
-    'open_all',
-    'open_mine',
-    'done_all',
-    'done_mine',
-    'archived_all',
-    'archived_mine',
-  ]
-  return allowed.includes(value as DeckFilterMode) ? (value as DeckFilterMode) : 'all'
-}
-
 function handleOpenShortcuts(trigger?: HTMLElement | null) {
   openShortcuts(trigger ?? null, 'button')
 }
 
-watch(onboardingState, (state) => {
-  if (!hasInitialLoad.value) return
-  evaluateOnboarding(state)
+useDashboardBoot({
+  performLoad,
+  refreshPresets,
+  range,
+  offset,
+  onboardingState,
+  hasInitialLoad,
+  evaluateOnboarding,
+  dashboardMode,
 })
-watch(onboardingState, (state) => {
-  const mode = (state as any)?.dashboardMode
-  if (mode === 'quick' || mode === 'standard' || mode === 'pro') {
-    dashboardMode.value = mode
-  }
-})
-
-
-onMounted(async () => {
-  console.info('[opsdash] start')
-  try {
-    await performLoad()
-  } catch (err) {
-    console.error(err)
-    alert('Initial load failed')
-  }
-  refreshPresets().catch(err => console.warn('[opsdash] presets fetch failed', err))
-  // charts handled by components; no global resize wiring
-})
-
-watch(range, () => { offset.value = 0; performLoad().catch(console.error) })
 </script>
 
 <!-- styles moved to global css/style.css to satisfy strict CSP -->

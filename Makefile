@@ -6,6 +6,7 @@ APP_BUILD_DIR := $(BUILD_DIR)/$(APP_NAME)
 VERSION ?= $(shell sed -n 's/.*<version>\(.*\)<\/version>.*/\1/p' $(SRC_DIR)/appinfo/info.xml | head -n 1)
 
 .PHONY: clean deps build test appstore
+.PHONY: smoke
 
 clean:
 	@echo "[make] Cleaning build artifacts"
@@ -26,6 +27,16 @@ test:
 	cd $(SRC_DIR) && npm run test -- --run
 	@echo "[make] Running PHPUnit"
 	cd $(SRC_DIR) && composer run test:unit
+
+# Docker-based smoke check against a running Nextcloud container.
+# Override defaults: `make smoke NC_CONTAINER=nc31-dev NC_USER=admin NC_PASS=admin`
+smoke:
+	@echo "[make] Smoke checking Nextcloud /overview/load"
+	NC_CONTAINER="$(NC_CONTAINER)"; \
+	NC_USER="$${NC_USER:-admin}"; \
+	NC_PASS="$${NC_PASS:-admin}"; \
+	NC_CONTAINER="$${NC_CONTAINER:-nc31-dev}"; \
+	bash $(SRC_DIR)/tools/smoke_overview_load.sh "$$NC_CONTAINER" "$$NC_USER" "$$NC_PASS"
 
 appstore: clean
 	@if [ -z "$(VERSION)" ]; then echo "VERSION is required (pass VERSION=x.y.z)" >&2; exit 1; fi

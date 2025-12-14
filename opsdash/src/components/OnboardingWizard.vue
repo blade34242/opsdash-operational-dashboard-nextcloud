@@ -39,440 +39,105 @@
 
         <main class="onboarding-body">
           <section v-if="currentStep === 'intro'" class="onboarding-step">
-            <h3>Opsdash visualises your calendar time and keeps goals on track.</h3>
-          <ul class="highlights">
-            <li>Targets — stay aligned with your weekly/monthly goals.</li>
-            <li>Balance — ensure your focus areas get the right attention.</li>
-            <li>Notes — capture insights and the story behind the numbers.</li>
-          </ul>
-          <div v-if="props.hasExistingConfig" class="config-warning">
-            <p>
-              You already have a dashboard configuration. Saving a preset now keeps a backup before onboarding applies new values.
-            </p>
-            <NcButton
-              type="tertiary"
-              size="small"
-              :disabled="snapshotSaving || saving"
-              :aria-busy="snapshotSaving"
-              @click="emit('save-current-config')"
-            >
-              Save current setup as preset
-            </NcButton>
-          </div>
-          <p class="hint">You can change configuration later from the Sidebar.</p>
-          <div
-            v-if="snapshotNotice"
-            class="snapshot-notice"
-            :class="`snapshot-notice--${snapshotNotice.type}`"
-            role="status"
-          >
-            {{ snapshotNotice.message }}
-          </div>
-        </section>
+            <OnboardingIntroStep
+              :has-existing-config="props.hasExistingConfig ?? false"
+              :snapshot-saving="props.snapshotSaving ?? false"
+              :saving="saving"
+              :snapshot-notice="props.snapshotNotice ?? null"
+              :on-save-current-config="() => emit('save-current-config')"
+            />
+          </section>
 
         <section v-else-if="currentStep === 'preferences'" class="onboarding-step">
-          <h3>Final tweaks</h3>
-          <p class="hint">You can change these options later from Config &amp; Setup.</p>
-          <div class="preferences-grid">
-            <article class="pref-card">
-              <h4>Theme &amp; appearance</h4>
-              <p class="pref-desc">Choose how Opsdash reacts to your Nextcloud theme. Charts keep their calendar colors.</p>
-              <div class="theme-options" role="radiogroup" aria-label="Theme preference">
-                <label class="theme-option">
-                  <input
-                    type="radio"
-                    name="onboarding-theme"
-                    value="auto"
-                    :checked="themePreference === 'auto'"
-                    @change="themePreference = 'auto'"
-                  />
-                  <div class="theme-copy">
-                    <div class="theme-option__title">Follow Nextcloud</div>
-                    <div class="theme-option__desc">Matches your account theme (currently {{ systemThemeLabel }}).</div>
-                  </div>
-                </label>
-                <label class="theme-option">
-                  <input
-                    type="radio"
-                    name="onboarding-theme"
-                    value="light"
-                    :checked="themePreference === 'light'"
-                    @change="themePreference = 'light'"
-                  />
-                  <div class="theme-copy">
-                    <div class="theme-option__title">Force light</div>
-                    <div class="theme-option__desc">Always use the light palette, even if Nextcloud switches to dark.</div>
-                  </div>
-                </label>
-                <label class="theme-option">
-                  <input
-                    type="radio"
-                    name="onboarding-theme"
-                    value="dark"
-                    :checked="themePreference === 'dark'"
-                    @change="themePreference = 'dark'"
-                  />
-                  <div class="theme-copy">
-                    <div class="theme-option__title">Force dark</div>
-                    <div class="theme-option__desc">Keep Opsdash dark, even when Nextcloud stays light.</div>
-                  </div>
-                </label>
-              </div>
-              <div class="theme-preview">Preview: {{ previewTheme === 'dark' ? 'Dark' : 'Light' }} mode</div>
-            </article>
-
-            <article class="pref-card">
-              <h4>Total weekly target</h4>
-              <p class="pref-desc">Set your overall weekly goal. You can fine-tune per-category targets later.</p>
-              <label class="field">
-                <span class="label">Total target (h / week)</span>
-                <input
-                  type="number"
-                  :value="totalHoursInput ?? categoryTotalHours"
-                  :disabled="categoriesEnabled"
-                  min="0"
-                  max="1000"
-                  step="0.5"
-                  @input="onTotalHoursChange($event.target as HTMLInputElement)"
-                />
-              </label>
-              <p v-if="categoriesEnabled" class="pref-hint">Using categories — total derives from category targets ({{ categoryTotalHours.toFixed(1) }} h).</p>
-            </article>
-
-            <article class="pref-card">
-              <h4>All-day events</h4>
-              <p class="pref-desc">Tell Opsdash how many hours an all-day calendar event should contribute per day.</p>
-              <label class="field">
-                <span class="label">All-day hours per day</span>
-                <input
-                  type="number"
-                  :value="allDayHoursInput"
-                  min="0"
-                  max="24"
-                  step="0.25"
-                  @input="onAllDayHoursChange($event.target as HTMLInputElement)"
-                />
-              </label>
-              <p class="pref-hint">Default is 8 h — adjust if your organisation tracks different durations.</p>
-            </article>
-
-            <article class="pref-card pref-card--deck">
-              <h4>Deck cards</h4>
-              <p class="pref-desc">Bring Deck boards into Opsdash. Cards remain read-only so you can focus on status.</p>
-              <label class="toggle-row">
-                <input
-                  type="checkbox"
-                  :checked="deckSettingsDraft.enabled"
-                  @change="setDeckEnabled(($event.target as HTMLInputElement).checked)"
-                />
-                <span>Show Deck tab inside Config &amp; Setup</span>
-              </label>
-              <template v-if="deckSettingsDraft.enabled">
-                <p class="pref-hint">Select which boards appear. Deck permissions still apply.</p>
-                <div class="deck-board-list">
-                  <p v-if="deckBoardsLoading" class="deck-status">Loading Deck boards…</p>
-                  <p v-else-if="deckBoardsError" class="deck-status deck-status--error">{{ deckBoardsError }}</p>
-                  <template v-else>
-                    <p v-if="!deckBoards.length" class="deck-status">Open the Deck app to create a board.</p>
-                    <div v-else class="deck-board-options" role="list">
-                      <label
-                        v-for="board in deckBoards"
-                        :key="board.id"
-                        class="deck-board-option"
-                        role="listitem"
-                      >
-                        <input
-                          type="checkbox"
-                          :checked="isDeckBoardVisible(board.id)"
-                          @change="toggleDeckBoard(board.id, ($event.target as HTMLInputElement).checked)"
-                        />
-                        <span>{{ board.title }}</span>
-                      </label>
-                    </div>
-                  </template>
-                </div>
-              </template>
-            </article>
-
-            <article class="pref-card pref-card--reporting">
-              <h4>Weekly/monthly recap</h4>
-              <p class="pref-desc">Opsdash can send a summary of targets, balance, and notes so you stay aligned.</p>
-              <label class="toggle-row">
-                <input
-                  type="checkbox"
-                  :checked="reportingDraft.enabled"
-                  @change="setReportingEnabled(($event.target as HTMLInputElement).checked)"
-                />
-                <span>Send a recap automatically</span>
-              </label>
-              <template v-if="reportingDraft.enabled">
-                <label class="field">
-                  <span class="label">Schedule</span>
-                  <select :value="reportingDraft.schedule" @change="setReportingSchedule(($event.target as HTMLSelectElement).value as ReportingConfig['schedule'])">
-                    <option value="week">Weekly</option>
-                    <option value="month">Monthly</option>
-                    <option value="both">Weekly + Monthly</option>
-                  </select>
-                </label>
-                <label class="field">
-                  <span class="label">Mid-range reminders</span>
-                  <select :value="reportingDraft.interim" @change="setReportingInterim(($event.target as HTMLSelectElement).value as ReportingConfig['interim'])">
-                    <option value="none">No interim reminder</option>
-                    <option value="midweek">Mid-week / mid-month only</option>
-                    <option value="daily">Daily nudge while enabled</option>
-                  </select>
-                </label>
-                <label class="field checkbox toggle-row">
-                  <input
-                    type="checkbox"
-                    :checked="reportingDraft.alertOnRisk"
-                    @change="updateReporting({ alertOnRisk: ($event.target as HTMLInputElement).checked })"
-                  />
-                  <span>Highlight when targets drift off-track</span>
-                </label>
-              </template>
-            </article>
-
-            <article class="pref-card pref-card--activity">
-              <h4>Activity insights</h4>
-              <p class="pref-desc">Choose whether the Activity &amp; Schedule card shows the day-off heatmap.</p>
-              <label class="toggle-row">
-                <input
-                  type="checkbox"
-                  :checked="activityDraft.showDayOffTrend"
-                  @change="setActivityDayOff(($event.target as HTMLInputElement).checked)"
-                />
-                <span>Show “Days off” trend heatmap</span>
-              </label>
-              <p class="pref-hint">Helps you compare recent weeks/months at a glance.</p>
-            </article>
-          </div>
+          <OnboardingPreferencesStep
+            :theme-preference="themePreference"
+            :system-theme-label="systemThemeLabel"
+            :preview-theme="previewTheme"
+            :set-theme-preference="(value) => (themePreference = value)"
+            :total-hours-input="totalHoursInput"
+            :category-total-hours="categoryTotalHours"
+            :categories-enabled="categoriesEnabled"
+            :on-total-hours-change="onTotalHoursChange"
+            :all-day-hours-input="allDayHoursInput"
+            :on-all-day-hours-change="onAllDayHoursChange"
+            :deck-settings-draft="deckSettingsDraft"
+            :set-deck-enabled="setDeckEnabled"
+            :deck-boards="deckBoards"
+            :deck-boards-loading="deckBoardsLoading"
+            :deck-boards-error="deckBoardsError"
+            :is-deck-board-visible="isDeckBoardVisible"
+            :toggle-deck-board="toggleDeckBoard"
+            :reporting-draft="reportingDraft"
+            :set-reporting-enabled="setReportingEnabled"
+            :set-reporting-schedule="setReportingSchedule"
+            :set-reporting-interim="setReportingInterim"
+            :update-reporting="updateReporting"
+            :activity-draft="activityDraft"
+            :set-activity-day-off="setActivityDayOff"
+          />
         </section>
 
         <section v-else-if="currentStep === 'dashboard'" class="onboarding-step">
-          <h3>Dashboard preset</h3>
-          <p class="hint">Pick how much you want to see by default. You can change widgets later.</p>
-          <div class="strategy-grid">
-            <article
-              v-for="mode in dashboardPresets"
-              :key="mode.id"
-              class="strategy-card"
-              :class="{ active: dashboardMode === mode.id }"
-              @click="dashboardMode = mode.id"
-            >
-              <h4>{{ mode.title }}</h4>
-              <p class="subtitle">{{ mode.subtitle }}</p>
-              <ul>
-                <li v-for="point in mode.highlights" :key="point">{{ point }}</li>
-              </ul>
-              <footer>Widgets: {{ mode.widgets }}</footer>
-            </article>
-          </div>
+          <OnboardingDashboardStep
+            :dashboard-mode="dashboardMode"
+            :set-dashboard-mode="(mode) => (dashboardMode = mode)"
+            :dashboard-presets="dashboardPresets"
+          />
         </section>
 
         <section v-else-if="currentStep === 'strategy'" class="onboarding-step">
-          <h3>Select a starting strategy</h3>
-          <div class="strategy-grid">
-            <article
-              v-for="strategy in strategies"
-              :key="strategy.id"
-              class="strategy-card"
-              :class="{ active: selectedStrategy === strategy.id }"
-              @click="selectedStrategy = strategy.id"
-            >
-              <h4>{{ strategy.title }}</h4>
-              <p class="subtitle">{{ strategy.subtitle }}</p>
-              <ul>
-                <li v-for="point in strategy.highlights" :key="point">{{ point }}</li>
-              </ul>
-              <footer>Best for: {{ strategy.recommendedFor }}</footer>
-            </article>
-          </div>
+          <OnboardingStrategyStep
+            :strategies="strategies"
+            :selected-strategy="selectedStrategy"
+            :set-selected-strategy="(id) => (selectedStrategy = id)"
+          />
         </section>
 
         <section v-else-if="currentStep === 'calendars'" class="onboarding-step">
-          <h3>Choose calendars to include</h3>
-          <p>Select the calendars you want to track. You can adjust later at any time.</p>
-          <div class="calendar-list">
-            <label v-for="cal in calendars" :key="cal.id" :class="['calendar-item', { checked: localSelection.includes(cal.id) }]">
-              <input
-                type="checkbox"
-                :value="cal.id"
-                :checked="localSelection.includes(cal.id)"
-                @change="toggleCalendar(cal.id, $event.target as HTMLInputElement)"
-              />
-              <span class="dot" :style="{ backgroundColor: cal.color || '#3B82F6' }"></span>
-              <span>{{ cal.displayname }}</span>
-            </label>
-          </div>
-          <div v-if="!localSelection.length" class="warning">Select at least one calendar to continue.</div>
+          <OnboardingCalendarsStep
+            :calendars="calendars"
+            :local-selection="localSelection"
+            :toggle-calendar="toggleCalendar"
+          />
         </section>
 
         <section v-else-if="currentStep === 'categories'" class="onboarding-step">
-          <h3>Configure categories &amp; targets</h3>
-          <p v-if="!categoriesEnabled" class="hint">This strategy does not require categories.</p>
-          <template v-else>
-            <div class="categories-editor">
-              <article v-for="cat in categories" :key="cat.id" class="category-card">
-                <header class="category-card__header">
-                  <span
-                    class="category-color-indicator"
-                    :style="{ backgroundColor: resolvedColor(cat) }"
-                    aria-hidden="true"
-                  />
-                  <input
-                    class="category-name"
-                    type="text"
-                    :value="cat.label"
-                    placeholder="Category name"
-                    @input="setCategoryLabel(cat.id, ($event.target as HTMLInputElement).value)"
-                  />
-                  <div class="category-actions">
-                    <button
-                      class="remove-category"
-                      type="button"
-                      :disabled="categories.length <= 1"
-                      title="Remove category"
-                      @click="removeCategory(cat.id)"
-                    >
-                      ✕
-                    </button>
-                  </div>
-                </header>
-                <div class="category-card__fields">
-                  <label class="field">
-                    <span class="label">Target (h / week)</span>
-                    <input
-                      type="number"
-                      :value="cat.targetHours"
-                      min="0"
-                      step="0.5"
-                      @input="setCategoryTarget(cat.id, ($event.target as HTMLInputElement).value)"
-                    />
-                  </label>
-                  <label class="field checkbox">
-                    <input
-                      type="checkbox"
-                      :checked="cat.includeWeekend"
-                      @change="toggleCategoryWeekend(cat.id, ($event.target as HTMLInputElement).checked)"
-                    />
-                    <span>Include weekend</span>
-                  </label>
-                  <div class="field color-field">
-                    <button
-                      type="button"
-                      class="color-link"
-                      :aria-expanded="openColorId === cat.id"
-                      :aria-label="`Choose color for ${cat.label}`"
-                      data-color-popover
-                      @click.stop="toggleColorPopover(cat.id)"
-                    >
-                      Color
-                    </button>
-                    <div
-                      v-if="openColorId === cat.id"
-                      class="color-popover"
-                      :id="`onboarding-color-popover-${cat.id}`"
-                      tabindex="-1"
-                      @keydown.esc.prevent="closeColorPopover()"
-                    >
-                      <div class="swatch-grid" role="group" aria-label="Preset colors">
-                        <button
-                          v-for="swatch in categoryColorPalette"
-                          :key="`${cat.id}-swatch-${swatch}`"
-                          type="button"
-                          class="color-swatch"
-                          :class="{ active: resolvedColor(cat) === swatch }"
-                          :style="{ backgroundColor: swatch }"
-                          :aria-label="`Use color ${swatch}`"
-                          @click="applyColor(cat.id, swatch)"
-                        />
-                      </div>
-                      <label class="custom-color">
-                        <span>Custom</span>
-                        <input
-                          class="color-input"
-                          type="color"
-                          :value="resolvedColor(cat)"
-                          aria-label="Pick custom color"
-                          @input="onColorInput(cat.id, ($event.target as HTMLInputElement).value)"
-                        />
-                      </label>
-                    </div>
-                  </div>
-                </div>
-              </article>
-              <NcButton type="tertiary" class="add-category" @click="addCategory">Add category</NcButton>
-              <div class="category-total">Total weekly target: {{ categoryTotalHours.toFixed(1) }} h</div>
-            </div>
-
-            <div class="calendar-assignments" v-if="selectedCalendars.length">
-              <h4>Assign calendars</h4>
-              <div
-                v-for="cal in selectedCalendars"
-                :key="cal.id"
-                class="assignment-row"
-              >
-                <span class="cal-name">{{ cal.displayname }}</span>
-                <select
-                  :value="assignments[cal.id]"
-                  @change="assignCalendar(cal.id, ($event.target as HTMLSelectElement).value)"
-                >
-                  <option v-for="cat in categories" :key="cat.id" :value="cat.id">{{ cat.label }}</option>
-                </select>
-              </div>
-            </div>
-            <p v-else class="hint">Select at least one calendar to continue.</p>
-          </template>
+          <OnboardingCategoriesStep
+            :categories-enabled="categoriesEnabled"
+            :categories="categories"
+            :category-total-hours="categoryTotalHours"
+            :selected-calendars="selectedCalendars"
+            :assignments="assignments"
+            :add-category="addCategory"
+            :remove-category="removeCategory"
+            :set-category-label="setCategoryLabel"
+            :set-category-target="setCategoryTarget"
+            :toggle-category-weekend="toggleCategoryWeekend"
+            :assign-calendar="assignCalendar"
+            :open-color-id="openColorId"
+            :toggle-color-popover="toggleColorPopover"
+            :close-color-popover="closeColorPopover"
+            :category-color-palette="categoryColorPalette"
+            :resolved-color="resolvedColor"
+            :apply-color="applyColor"
+            :on-color-input="onColorInput"
+          />
         </section>
 
         <section v-else-if="currentStep === 'review'" class="onboarding-step">
-          <h3>Review your setup</h3>
-          <div class="review-grid">
-            <div>
-              <h5>Strategy</h5>
-              <p>{{ strategyTitle }}</p>
-            </div>
-            <div>
-              <h5>Calendars</h5>
-              <ul>
-                <li v-for="cal in selectedCalendars" :key="cal.id">{{ cal.displayname }}</li>
-              </ul>
-            </div>
-            <div>
-              <h5>Targets preview</h5>
-              <template v-if="draft.targetsConfig.categories.length">
-                <ul>
-                  <li v-for="cat in draft.targetsConfig.categories" :key="cat.id">
-                    {{ cat.label }} — {{ cat.targetHours }} h
-                  </li>
-                </ul>
-                <p class="hint">Total weekly target: {{ categoryTotalHours.toFixed(1) }} h</p>
-              </template>
-              <template v-else>
-                <p>Total target: {{ draft.targetsConfig.totalHours }} h per week</p>
-              </template>
-            </div>
-            <div>
-              <h5>Deck tab</h5>
-              <p>{{ deckReviewSummary }}</p>
-              <ul v-if="deckSettingsDraft.enabled && deckVisibleBoards.length">
-                <li v-for="board in deckVisibleBoards.slice(0, 3)" :key="board.id">{{ board.title }}</li>
-                <li v-if="deckVisibleBoards.length > 3">+{{ deckVisibleBoards.length - 3 }} more</li>
-              </ul>
-            </div>
-            <div>
-              <h5>Reporting</h5>
-              <p>
-                {{ reportingDraft.enabled ? reportingSummary : 'Recap disabled' }}
-              </p>
-            </div>
-            <div>
-              <h5>Activity card</h5>
-              <p>{{ activityDraft.showDayOffTrend ? 'Days-off heatmap enabled' : 'Heatmap hidden' }}</p>
-            </div>
-          </div>
-          <p class="hint">You can fine-tune categories, goals, and pacing once the dashboard loads.</p>
+          <OnboardingReviewStep
+            :strategy-title="strategyTitle"
+            :selected-calendars="selectedCalendars"
+            :draft-targets-categories="draft.targetsConfig.categories"
+            :draft-total-hours="draft.targetsConfig.totalHours"
+            :category-total-hours="categoryTotalHours"
+            :deck-review-summary="deckReviewSummary"
+            :deck-enabled="deckSettingsDraft.enabled"
+            :deck-visible-boards="deckVisibleBoards"
+            :reporting-enabled="reportingDraft.enabled"
+            :reporting-summary="reportingSummary"
+            :show-day-off-trend="activityDraft.showDayOffTrend"
+          />
         </section>
       </main>
 
@@ -494,24 +159,18 @@
 </template>
 
 <script setup lang="ts">
-import { computed, ref, watch, onUnmounted, onMounted, nextTick } from 'vue'
 import { NcButton } from '@nextcloud/vue'
-import {
-  getStrategyDefinitions,
-  buildStrategyResult,
-  createStrategyDraft,
-  type StrategyDefinition,
-  type CalendarSummary,
-  type CategoryDraft,
-} from '../services/onboarding'
-import {
-  createDefaultDeckSettings,
-  createDefaultReportingConfig,
-  type DeckFeatureSettings,
-  type ReportingConfig,
-} from '../services/reporting'
-import { createDefaultActivityCardConfig, type ActivityCardConfig } from '../services/targets'
-import { fetchDeckBoardsMeta } from '../services/deck'
+import OnboardingIntroStep from './onboarding/OnboardingIntroStep.vue'
+import OnboardingPreferencesStep from './onboarding/OnboardingPreferencesStep.vue'
+import OnboardingDashboardStep from './onboarding/OnboardingDashboardStep.vue'
+import OnboardingStrategyStep from './onboarding/OnboardingStrategyStep.vue'
+import OnboardingCalendarsStep from './onboarding/OnboardingCalendarsStep.vue'
+import OnboardingCategoriesStep from './onboarding/OnboardingCategoriesStep.vue'
+import OnboardingReviewStep from './onboarding/OnboardingReviewStep.vue'
+import type { CalendarSummary, StrategyDefinition } from '../services/onboarding'
+import type { DeckFeatureSettings, ReportingConfig } from '../services/reporting'
+import type { ActivityCardConfig, TargetsConfig } from '../services/targets'
+import { useOnboardingWizard } from '../../composables/useOnboardingWizard'
 
 const props = defineProps<{
   visible: boolean
@@ -532,6 +191,7 @@ const props = defineProps<{
   snapshotSaving?: boolean
   snapshotNotice?: { type: 'success' | 'error'; message: string } | null
   initialDashboardMode?: 'quick' | 'standard' | 'pro'
+  initialTargetsConfig?: { activityCard?: Pick<ActivityCardConfig, 'showDayOffTrend'> } | null
 }>()
 
 const emit = defineEmits<{
@@ -540,7 +200,7 @@ const emit = defineEmits<{
   (e: 'complete', payload: {
     strategy: StrategyDefinition['id']
     selected: string[]
-    targetsConfig: ReturnType<typeof buildStrategyResult>['targetsConfig']
+    targetsConfig: TargetsConfig
     groups: Record<string, number>
     targetsWeek: Record<string, number>
     targetsMonth: Record<string, number>
@@ -553,603 +213,78 @@ const emit = defineEmits<{
   (e: 'save-current-config'): void
 }>()
 
-const stepOrder = ['intro', 'strategy', 'dashboard', 'calendars', 'categories', 'preferences', 'review'] as const
-type StepId = typeof stepOrder[number]
+const {
+  stepNumber,
+  totalSteps,
+  enabledSteps,
+  currentStep,
+  isClosable,
+  saving,
+  stepLabel,
+  goToStep,
+  handleClose,
+  handleSkip,
+  canGoBack,
+  canGoNext,
+  nextDisabled,
+  prevStep,
+  nextStep,
+  emitComplete,
+  themePreference,
+  systemThemeLabel,
+  previewTheme,
+  totalHoursInput,
+  categoryTotalHours,
+  categoriesEnabled,
+  onTotalHoursChange,
+  allDayHoursInput,
+  onAllDayHoursChange,
+  deckSettingsDraft,
+  setDeckEnabled,
+  deckBoards,
+  deckBoardsLoading,
+  deckBoardsError,
+  isDeckBoardVisible,
+  toggleDeckBoard,
+  reportingDraft,
+  setReportingEnabled,
+  setReportingSchedule,
+  setReportingInterim,
+  updateReporting,
+  activityDraft,
+  setActivityDayOff,
+  dashboardMode,
+  dashboardPresets,
+  strategies,
+  selectedStrategy,
+  localSelection,
+  toggleCalendar,
+  categories,
+  selectedCalendars,
+  assignments,
+  addCategory,
+  removeCategory,
+  setCategoryLabel,
+  setCategoryTarget,
+  toggleCategoryWeekend,
+  assignCalendar,
+  openColorId,
+  toggleColorPopover,
+  closeColorPopover,
+  categoryColorPalette,
+  resolvedColor,
+  applyColor,
+  onColorInput,
+  draft,
+  strategyTitle,
+  deckReviewSummary,
+  deckVisibleBoards,
+  reportingSummary,
+} = useOnboardingWizard({ props, emit })
 
-const stepIndex = ref(0)
-const selectedStrategy = ref<StrategyDefinition['id']>('total_only')
-const dashboardMode = ref<'quick' | 'standard' | 'pro'>(props.initialDashboardMode || 'standard')
-const localSelection = ref<string[]>([])
-const categories = ref<CategoryDraft[]>([])
-const assignments = ref<Record<string, string>>({})
-const themePreference = ref<'auto' | 'light' | 'dark'>('auto')
-const allDayHoursInput = ref(8)
-const totalHoursInput = ref<number | null>(null)
-const deckSettingsDraft = ref<DeckFeatureSettings>(cloneDeckSettings(props.initialDeckSettings ?? createDefaultDeckSettings()))
-const reportingDraft = ref<ReportingConfig>({ ...(props.initialReportingConfig ?? createDefaultReportingConfig()) })
-const activityDraft = ref<Pick<ActivityCardConfig, 'showDayOffTrend'>>({
-  showDayOffTrend: props.initialTargetsConfig?.activityCard?.showDayOffTrend ?? true,
-})
-const deckBoards = ref<Array<{ id: number; title: string }>>([])
-const deckBoardsLoading = ref(false)
-const deckBoardsError = ref('')
-const dashboardPresets = [
-  {
-    id: 'quick' as const,
-    title: 'Quick',
-    subtitle: 'Minimal view, core widgets only',
-    highlights: ['Time summary', 'Targets', 'Activity', 'Deck cards lite'],
-    widgets: '4 widgets',
-  },
-  {
-    id: 'standard' as const,
-    title: 'Standard',
-    subtitle: 'Balanced set for most users',
-    highlights: ['Time/Targets/Balance', 'Activity & trends', 'Deck cards'],
-    widgets: '6–7 widgets',
-  },
-  {
-    id: 'pro' as const,
-    title: 'Pro',
-    subtitle: 'Full layout with extras',
-    highlights: ['All core widgets', 'Deck cards & summary', 'Notes + text block'],
-    widgets: '8+ widgets',
-  },
-]
-const deckVisibleBoards = computed(() => {
-  if (!deckSettingsDraft.value.enabled) return []
-  const hidden = new Set(deckSettingsDraft.value.hiddenBoards || [])
-  return deckBoards.value.filter((board) => !hidden.has(board.id))
-})
-const deckReviewSummary = computed(() => {
-  if (!deckSettingsDraft.value.enabled) return 'Deck tab disabled'
-  if (deckBoardsLoading.value) return 'Deck tab enabled — loading boards…'
-  if (deckBoardsError.value) return 'Deck tab enabled — open Deck to finish setup.'
-  if (!deckBoards.value.length) return 'Deck tab enabled — create a Deck board to see cards.'
-  if (!deckVisibleBoards.value.length) return 'Deck tab enabled — all boards hidden'
-  if (deckVisibleBoards.value.length === deckBoards.value.length) {
-    const total = deckVisibleBoards.value.length
-    return total === 1 ? 'Showing 1 board' : `Showing all ${total} boards`
-  }
-  if (deckVisibleBoards.value.length === 1) {
-    return `Showing ${deckVisibleBoards.value[0].title}`
-  }
-  if (deckVisibleBoards.value.length === 2) {
-    return `Showing ${deckVisibleBoards.value[0].title} and ${deckVisibleBoards.value[1].title}`
-  }
-  return `Showing ${deckVisibleBoards.value.length} boards`
-})
-
-const reportingSummary = computed(() => {
-  if (!reportingDraft.value.enabled) return 'Recap disabled'
-  const schedule = reportingDraft.value.schedule === 'both'
-    ? 'Weekly + monthly recap'
-    : reportingDraft.value.schedule === 'week'
-      ? 'Weekly recap'
-      : 'Monthly recap'
-  const interim = reportingDraft.value.interim === 'daily'
-    ? 'Daily reminder'
-    : reportingDraft.value.interim === 'midweek'
-      ? 'Mid-range reminder'
-      : 'No interim reminder'
-  return `${schedule} • ${interim}`
-})
-const openColorId = ref<string | null>(null)
-const previewTheme = computed(() => {
-  if (themePreference.value === 'auto') {
-    return props.systemTheme === 'dark' ? 'dark' : 'light'
-  }
-  return themePreference.value
-})
-const systemThemeLabel = computed(() => props.systemTheme === 'dark' ? 'dark' : 'light')
-const BASE_CATEGORY_COLORS = ['#2563EB', '#F97316', '#10B981', '#A855F7', '#EC4899', '#14B8A6', '#F59E0B', '#6366F1', '#0EA5E9', '#65A30D']
-const categoryTotalHours = computed(() =>
-  categories.value.reduce((sum, cat) => sum + (Number.isFinite(cat.targetHours) ? cat.targetHours : 0), 0),
-)
-
-const categoryColorPalette = computed(() => {
-  const palette = new Set<string>()
-  const push = (value?: string | null) => {
-    const color = sanitizeColor(value)
-    if (color) palette.add(color)
-  }
-  props.calendars.forEach((cal) => push(cal.color))
-  categories.value.forEach((cat) => push(cat.color))
-  BASE_CATEGORY_COLORS.forEach((color) => palette.add(color))
-  return Array.from(palette)
-})
-
-const strategies = getStrategyDefinitions()
-const selectedStrategyDef = computed(() => strategies.find((s) => s.id === selectedStrategy.value) ?? strategies[0])
-const categoriesEnabled = computed(() => selectedStrategyDef.value.layers.categories)
-const isClosable = computed(() => props.closable !== false)
-
-const enabledSteps = computed(() => stepOrder.filter((step) => (step === 'categories' ? categoriesEnabled.value : true)))
-const currentStep = computed<StepId>(() => enabledSteps.value[Math.min(stepIndex.value, enabledSteps.value.length - 1)])
-const stepNumber = computed(() => stepIndex.value + 1)
-const totalSteps = computed(() => enabledSteps.value.length)
-const saving = computed(() => props.saving === true)
-const snapshotSaving = computed(() => props.snapshotSaving === true)
-const snapshotNotice = computed(() => props.snapshotNotice ?? null)
-
-const BODY_SCROLL_CLASS = 'opsdash-onboarding-lock'
-
-function setScrollLocked(locked: boolean) {
-  if (typeof document === 'undefined') return
-  const body = document.body
-  if (!body) return
-  if (locked) {
-    body.classList.add(BODY_SCROLL_CLASS)
-    body.dataset.opsdashOnboarding = '1'
-  } else {
-    body.classList.remove(BODY_SCROLL_CLASS)
-    delete body.dataset.opsdashOnboarding
-  }
-}
-
-watch(
-  () => props.visible,
-  (visible) => {
-    if (visible) {
-      resetWizard()
-      closeColorPopover()
-    }
-    setScrollLocked(visible)
-  },
-  { immediate: true },
-)
-
-onMounted(() => {
-  if (typeof document !== 'undefined') {
-    document.addEventListener('click', handleDocumentClick)
-  }
-  loadDeckBoards().catch((error) => {
-    console.error('[opsdash] deck board load failed', error)
-  })
-})
-
-onUnmounted(() => {
-  if (typeof document !== 'undefined') {
-    document.removeEventListener('click', handleDocumentClick)
-  }
-  setScrollLocked(false)
-})
-
-function resetWizard() {
-  stepIndex.value = 0
-  selectedStrategy.value = props.initialStrategy ?? 'total_only'
-  const initial = props.initialSelection?.length ? [...props.initialSelection] : props.calendars.map((c) => c.id)
-  localSelection.value = Array.from(new Set(initial.filter((id) => props.calendars.some((cal) => cal.id === id))))
-  themePreference.value = props.initialThemePreference ?? 'auto'
-  allDayHoursInput.value = clampAllDayHours(props.initialAllDayHours ?? 8)
-  totalHoursInput.value = clampTotalHours(props.initialTotalHours ?? null)
-  deckSettingsDraft.value = cloneDeckSettings(props.initialDeckSettings ?? createDefaultDeckSettings())
-  reportingDraft.value = { ...(props.initialReportingConfig ?? createDefaultReportingConfig()) }
-  activityDraft.value = {
-    showDayOffTrend: props.initialTargetsConfig?.activityCard?.showDayOffTrend ?? true,
-  }
-  initializeStrategyState()
-  if (categoriesEnabled.value) {
-    totalHoursInput.value = clampTotalHours(categoryTotalHours.value)
-  } else if (totalHoursInput.value === null) {
-    totalHoursInput.value = 40
-  }
-  applyStartStep()
-}
-
-function initializeStrategyState() {
-  const draft = createStrategyDraft(selectedStrategy.value, props.calendars, localSelection.value)
-  categories.value = draft.categories.map((cat) => ({ ...cat }))
-  assignments.value = { ...draft.assignments }
-  ensureAssignments()
-  syncTotalsWithStrategy()
-}
-
-function ensureAssignments() {
-  if (!categoriesEnabled.value || !categories.value.length) {
-    assignments.value = {}
-    return
-  }
-  const available = new Set(categories.value.map((cat) => cat.id))
-  const fallback = categories.value[0].id
-  const nextAssignments: Record<string, string> = {}
-  localSelection.value.forEach((calId) => {
-    const wanted = assignments.value[calId]
-    nextAssignments[calId] = available.has(wanted) ? wanted : fallback
-  })
-  assignments.value = nextAssignments
-}
-
-function syncTotalsWithStrategy() {
-  if (categoriesEnabled.value) {
-    totalHoursInput.value = clampTotalHours(categoryTotalHours.value)
-  } else {
-    const inferred = clampTotalHours(props.initialTotalHours ?? totalHoursInput.value ?? 40)
-    totalHoursInput.value = inferred ?? 40
-  }
-}
-
-function applyStartStep() {
-  if (!props.startStep) return
-  const idx = enabledSteps.value.indexOf(props.startStep)
-  if (idx >= 0) {
-    stepIndex.value = idx
-  }
-}
-
-function goToStep(step: StepId) {
-  const idx = enabledSteps.value.indexOf(step)
-  if (idx >= 0) {
-    stepIndex.value = idx
-  }
-}
-
-function stepLabel(step: StepId): string {
-  switch (step) {
-    case 'intro': return 'Intro'
-    case 'strategy': return 'Modes'
-    case 'dashboard': return 'Dashboard'
-    case 'calendars': return 'Calendars'
-    case 'categories': return 'Targets'
-    case 'preferences': return 'Preferences'
-    case 'review': return 'Review'
-    default: return step
-  }
-}
-
-watch(selectedStrategy, () => {
-  initializeStrategyState()
-  stepIndex.value = Math.min(stepIndex.value, enabledSteps.value.length - 1)
-})
-
-watch(enabledSteps, (steps) => {
-  if (stepIndex.value >= steps.length) {
-    stepIndex.value = Math.max(steps.length - 1, 0)
-  }
-})
-watch(() => props.startStep, applyStartStep)
-
-watch(categoriesEnabled, () => {
-  syncTotalsWithStrategy()
-})
-
-watch(categoryTotalHours, (total) => {
-  if (categoriesEnabled.value) {
-    totalHoursInput.value = clampTotalHours(total)
-  }
-})
-
-watch(currentStep, (step) => {
-  if (step !== 'categories') {
-    closeColorPopover()
-  }
-})
-
-watch(() => props.visible, (visible) => {
-  if (!visible) {
-    closeColorPopover()
-  }
-})
-
-watch(localSelection, () => {
-  ensureAssignments()
-}, { deep: true })
-
-watch(categories, () => {
-  ensureAssignments()
-}, { deep: true })
-
-function addCategory() {
-  const id = `cat_${Date.now().toString(36)}_${categories.value.length}`
-  categories.value = [
-    ...categories.value,
-    {
-      id,
-      label: `Category ${categories.value.length + 1}`,
-      targetHours: 8,
-      includeWeekend: false,
-      paceMode: 'days_only',
-    },
-  ]
-  ensureAssignments()
-}
-
-function removeCategory(id: string) {
-  if (categories.value.length <= 1) return
-  categories.value = categories.value.filter((cat) => cat.id !== id)
-  ensureAssignments()
-}
-
-function setCategoryLabel(id: string, value: string) {
-  categories.value = categories.value.map((cat) => (cat.id === id ? { ...cat, label: value } : cat))
-}
-
-function setCategoryTarget(id: string, value: string) {
-  const parsed = Number(value)
-  const sanitized = Number.isFinite(parsed) ? Math.max(0, Math.min(1000, parsed)) : undefined
-  categories.value = categories.value.map((cat) =>
-    cat.id === id ? { ...cat, targetHours: sanitized ?? cat.targetHours } : cat,
-  )
-}
-
-function toggleCategoryWeekend(id: string, checked: boolean) {
-  categories.value = categories.value.map((cat) => (cat.id === id ? { ...cat, includeWeekend: checked } : cat))
-}
-
-function assignCalendar(calId: string, categoryId: string) {
-  assignments.value = {
-    ...assignments.value,
-    [calId]: categoryId,
-  }
-}
-
-function toggleColorPopover(id: string) {
-  if (openColorId.value === id) {
-    closeColorPopover()
-    return
-  }
-  openColorId.value = id
-  nextTick(() => {
-    const el = document.getElementById(`onboarding-color-popover-${id}`)
-    el?.focus()
-  })
-}
-
-function closeColorPopover() {
-  openColorId.value = null
-}
-
-function handleDocumentClick(event: MouseEvent) {
-  const target = event.target as HTMLElement | null
-  if (!target?.closest('[data-color-popover]')) {
-    closeColorPopover()
-  }
-}
-
-function sanitizeColor(value: unknown): string | null {
-  if (typeof value !== 'string') return null
-  const trimmed = value.trim()
-  if (!/^#([0-9a-fA-F]{3}|[0-9a-fA-F]{6})$/.test(trimmed)) {
-    return null
-  }
-  if (trimmed.length === 4) {
-    const [, r, g, b] = trimmed
-    return `#${r}${r}${g}${g}${b}${b}`.toUpperCase()
-  }
-  return trimmed.toUpperCase()
-}
-
-function resolvedColor(cat: { color?: string | null }): string {
-  return sanitizeColor(cat?.color) ?? defaultColor.value
-}
-
-function onColorInput(id: string, value: string) {
-  const color = sanitizeColor(value)
-  setCategoryColor(id, color ?? defaultColor.value)
-}
-
-function applyColor(id: string, value: string) {
-  const color = sanitizeColor(value)
-  setCategoryColor(id, color ?? defaultColor.value)
-  closeColorPopover()
-}
-
-function clampAllDayHours(value: number): number {
-  if (!Number.isFinite(value)) return 8
-  const clamped = Math.max(0, Math.min(24, value))
-  return Math.round(clamped * 100) / 100
-}
-
-function clampTotalHours(value: number | null): number | null {
-  if (!Number.isFinite(value)) return null
-  const clamped = Math.max(0, Math.min(1000, Number(value)))
-  return Math.round(clamped * 100) / 100
-}
-
-function cloneDeckSettings(value: DeckFeatureSettings): DeckFeatureSettings {
-  return JSON.parse(JSON.stringify(value))
-}
-
-async function loadDeckBoards() {
-  deckBoardsLoading.value = true
-  deckBoardsError.value = ''
-  const hasOcGlobal = typeof window !== 'undefined' && typeof (window as any).OC !== 'undefined'
-  if (!hasOcGlobal) {
-    deckBoardsLoading.value = false
-    deckBoards.value = []
-    return
-  }
-  try {
-    const list = await fetchDeckBoardsMeta()
-    deckBoards.value = list
-      .map((entry) => ({
-        id: Number(entry?.id ?? 0),
-        title: String(entry?.title ?? 'Untitled board'),
-      }))
-      .filter((entry) => Number.isInteger(entry.id) && entry.id > 0)
-  } catch (error) {
-    console.error('[opsdash] deck board request failed', error)
-    deckBoardsError.value = 'Unable to load Deck boards. Open Deck to create one.'
-    deckBoards.value = []
-  } finally {
-    deckBoardsLoading.value = false
-  }
-}
-
-function setDeckEnabled(checked: boolean) {
-  deckSettingsDraft.value = {
-    ...deckSettingsDraft.value,
-    enabled: checked,
-  }
-}
-
-function isDeckBoardVisible(boardId: number) {
-  const hidden = deckSettingsDraft.value.hiddenBoards || []
-  return !hidden.includes(boardId)
-}
-
-function toggleDeckBoard(boardId: number, visible: boolean) {
-  const current = new Set(deckSettingsDraft.value.hiddenBoards || [])
-  if (visible) {
-    current.delete(boardId)
-  } else {
-    current.add(boardId)
-  }
-  deckSettingsDraft.value = {
-    ...deckSettingsDraft.value,
-    hiddenBoards: Array.from(current).sort((a, b) => a - b),
-  }
-}
-
-function setCategoryColor(id: string, color: string | null) {
-  categories.value = categories.value.map((cat) =>
-    cat.id === id ? { ...cat, color } : cat,
-  )
-}
-
-function onTotalHoursChange(input: HTMLInputElement) {
-  if (categoriesEnabled.value) return
-  const parsed = Number(input.value)
-  if (!Number.isFinite(parsed)) {
-    totalHoursInput.value = null
-    return
-  }
-  totalHoursInput.value = clampTotalHours(parsed)
-}
-
-function onAllDayHoursChange(input: HTMLInputElement) {
-  const parsed = Number(input.value)
-  allDayHoursInput.value = clampAllDayHours(Number.isFinite(parsed) ? parsed : allDayHoursInput.value)
-}
-
-function setReportingEnabled(enabled: boolean) {
-  reportingDraft.value = { ...reportingDraft.value, enabled }
-}
-
-function setReportingSchedule(value: ReportingConfig['schedule']) {
-  reportingDraft.value = { ...reportingDraft.value, schedule: value }
-}
-
-function setReportingInterim(value: ReportingConfig['interim']) {
-  reportingDraft.value = { ...reportingDraft.value, interim: value }
-}
-
-function updateReporting(patch: Partial<ReportingConfig>) {
-  reportingDraft.value = { ...reportingDraft.value, ...patch }
-}
-
-function setActivityDayOff(enabled: boolean) {
-  activityDraft.value = { ...activityDraft.value, showDayOffTrend: enabled }
-}
-
-const selectedCalendars = computed(() =>
-  props.calendars.filter((cal) => localSelection.value.includes(cal.id)),
-)
-
-const draft = computed(() =>
-  buildStrategyResult(selectedStrategy.value, props.calendars, localSelection.value, categoriesEnabled.value
-    ? { categories: categories.value, assignments: assignments.value }
-    : undefined),
-)
-
-const strategyTitle = computed(() => selectedStrategyDef.value.title)
-
-const canGoBack = computed(() => stepIndex.value > 0)
-const canGoNext = computed(() => stepIndex.value < enabledSteps.value.length - 1)
-const nextDisabled = computed(() => {
-  if (currentStep.value === 'strategy') {
-    return !selectedStrategy.value
-  }
-  if (currentStep.value === 'calendars') {
-    return localSelection.value.length === 0
-  }
-  if (currentStep.value === 'categories' && categoriesEnabled.value) {
-    if (!localSelection.value.length) return true
-    if (!categories.value.length) return true
-    const available = new Set(categories.value.map((cat) => cat.id))
-    if (localSelection.value.some((id) => !available.has(assignments.value[id]))) {
-      return true
-    }
-  }
-  if (currentStep.value === 'preferences') {
-    if (!categoriesEnabled.value) {
-      if (totalHoursInput.value === null || totalHoursInput.value < 0) return true
-    }
-    if (allDayHoursInput.value < 0 || allDayHoursInput.value > 24) return true
-  }
-  return false
-})
-
-function nextStep() {
-  if (canGoNext.value && !nextDisabled.value) {
-    stepIndex.value += 1
-  }
-}
-
-function prevStep() {
-  if (canGoBack.value) {
-    stepIndex.value -= 1
-  }
-}
-
-function handleSkip() {
-  emit('skip')
-}
-
-function handleClose() {
-  if (!isClosable.value) return
-  emit('close')
-}
-
-function emitComplete() {
-  const result = buildStrategyResult(
-    selectedStrategy.value,
-    props.calendars,
-    localSelection.value,
-    categoriesEnabled.value
-      ? { categories: categories.value.map((cat) => ({ ...cat })), assignments: { ...assignments.value } }
-      : undefined,
-  )
-
-  const config = { ...result.targetsConfig }
-  config.allDayHours = clampAllDayHours(allDayHoursInput.value)
-  if (categoriesEnabled.value) {
-    const total = clampTotalHours(categoryTotalHours.value)
-    if (total != null) config.totalHours = total
-  } else if (totalHoursInput.value != null) {
-    const total = clampTotalHours(totalHoursInput.value)
-    if (total != null) config.totalHours = total
-  }
-  result.targetsConfig = config
-
-  emit('complete', {
-    strategy: selectedStrategy.value,
-    selected: result.selected,
-    targetsConfig: result.targetsConfig,
-    groups: result.groups,
-    targetsWeek: result.targetsWeek,
-    targetsMonth: result.targetsMonth,
-    themePreference: themePreference.value,
-    deckSettings: cloneDeckSettings(deckSettingsDraft.value),
-    reportingConfig: { ...reportingDraft.value },
-    activityCard: { ...activityDraft.value },
-    dashboardMode: dashboardMode.value,
-  })
-}
-
-function toggleCalendar(id: string, checkbox: HTMLInputElement) {
-  const checked = checkbox.checked
-  if (checked) {
-    if (!localSelection.value.includes(id)) {
-      localSelection.value = [...localSelection.value, id]
-    }
-  } else {
-    localSelection.value = localSelection.value.filter((cid) => cid !== id)
-  }
-}
 </script>
 
-<style scoped>
+<style>
 .onboarding-fade-enter-active,
 .onboarding-fade-leave-active {
   transition: opacity 0.2s ease;
@@ -1212,7 +347,7 @@ function toggleCalendar(id: string, checkbox: HTMLInputElement) {
   color: var(--color-text-light);
 }
 
-.skip-link {
+.onboarding-overlay .skip-link {
   background: none;
   border: none;
   color: var(--color-primary);
@@ -1220,7 +355,7 @@ function toggleCalendar(id: string, checkbox: HTMLInputElement) {
   font-size: 0.95rem;
 }
 
-.close-btn {
+.onboarding-overlay .close-btn {
   background: none;
   border: none;
   font-size: 1.4rem;
@@ -1229,7 +364,7 @@ function toggleCalendar(id: string, checkbox: HTMLInputElement) {
   color: var(--color-text-light);
 }
 
-.close-btn:hover {
+.onboarding-overlay .close-btn:hover {
   color: var(--color-primary);
 }
 
@@ -1239,7 +374,7 @@ function toggleCalendar(id: string, checkbox: HTMLInputElement) {
   gap:8px;
   margin:0 0 12px;
 }
-.step-pill{
+.onboarding-overlay .step-pill{
   border:1px solid var(--color-border);
   background:var(--color-background-contrast);
   padding:6px 10px;
@@ -1248,12 +383,12 @@ function toggleCalendar(id: string, checkbox: HTMLInputElement) {
   cursor:pointer;
   color:var(--color-text);
 }
-.step-pill.active{
+.onboarding-overlay .step-pill.active{
   border-color:var(--color-primary);
   color:var(--color-primary);
   background:rgba(37,99,235,0.08);
 }
-.step-pill:disabled{
+.onboarding-overlay .step-pill:disabled{
   opacity:0.6;
   cursor:default;
 }
@@ -1269,11 +404,11 @@ function toggleCalendar(id: string, checkbox: HTMLInputElement) {
   margin-top: 0;
 }
 
-.highlights {
+.onboarding-overlay .highlights {
   padding-left: 18px;
 }
 
-.config-warning {
+.onboarding-overlay .config-warning {
   border: 1px solid color-mix(in srgb, var(--color-warning, #f97316) 35%, transparent);
   background: color-mix(in srgb, var(--color-warning, #f97316) 12%, transparent);
   border-radius: 8px;
@@ -1284,41 +419,41 @@ function toggleCalendar(id: string, checkbox: HTMLInputElement) {
   gap: 8px;
 }
 
-.config-warning p {
+.onboarding-overlay .config-warning p {
   margin: 0;
   font-size: 0.95rem;
   color: var(--color-text);
 }
 
-.hint {
+.onboarding-overlay .hint {
   color: var(--color-text-light);
   margin-top: 12px;
 }
 
-.snapshot-notice {
+.onboarding-overlay .snapshot-notice {
   margin-top: 12px;
   padding: 10px 12px;
   border-radius: 8px;
   font-size: 0.9rem;
 }
 
-.snapshot-notice--success {
+.onboarding-overlay .snapshot-notice--success {
   background: color-mix(in srgb, #22c55e 15%, transparent);
   color: #14532d;
 }
 
-.snapshot-notice--error {
+.onboarding-overlay .snapshot-notice--error {
   background: color-mix(in srgb, #ef4444 15%, transparent);
   color: #7f1d1d;
 }
 
-.strategy-grid {
+.onboarding-overlay .strategy-grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
   gap: 16px;
 }
 
-.strategy-card {
+.onboarding-overlay .strategy-card {
   border: 1px solid var(--color-border);
   border-radius: 8px;
   padding: 16px;
@@ -1329,33 +464,33 @@ function toggleCalendar(id: string, checkbox: HTMLInputElement) {
   transition: border-color 0.15s ease, box-shadow 0.15s ease;
 }
 
-.strategy-card.active {
+.onboarding-overlay .strategy-card.active {
   border-color: var(--color-primary);
   box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.2);
 }
 
-.strategy-card h4 {
+.onboarding-overlay .strategy-card h4 {
   margin: 0;
 }
 
-.strategy-card .subtitle {
+.onboarding-overlay .strategy-card .subtitle {
   color: var(--color-text-light);
   margin: 0;
 }
 
-.strategy-card footer {
+.onboarding-overlay .strategy-card footer {
   margin-top: auto;
   font-size: 0.85rem;
   color: var(--color-text-light);
 }
 
-.calendar-list {
+.onboarding-overlay .calendar-list {
   display: grid;
   gap: 8px;
   margin-top: 8px;
 }
 
-.calendar-item {
+.onboarding-overlay .calendar-item {
   display: grid;
   grid-template-columns: auto auto 1fr;
   align-items: center;
@@ -1365,43 +500,43 @@ function toggleCalendar(id: string, checkbox: HTMLInputElement) {
   border-radius: 6px;
 }
 
-.calendar-item.checked {
+.onboarding-overlay .calendar-item.checked {
   border-color: var(--color-primary);
 }
 
-.calendar-item input {
+.onboarding-overlay .calendar-item input {
   margin: 0;
 }
 
-.calendar-item .dot {
+.onboarding-overlay .calendar-item .dot {
   width: 12px;
   height: 12px;
   border-radius: 50%;
 }
 
-.warning {
+.onboarding-overlay .warning {
   color: var(--color-error);
   margin-top: 12px;
 }
 
-.review-grid {
+.onboarding-overlay .review-grid {
   display: grid;
   gap: 16px;
   grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
 }
 
-.review-grid h5 {
+.onboarding-overlay .review-grid h5 {
   margin: 0 0 8px;
   font-size: 0.95rem;
   color: var(--color-text-light);
 }
 
-.categories-editor {
+.onboarding-overlay .categories-editor {
   display: grid;
   gap: 16px;
 }
 
-.category-card {
+.onboarding-overlay .category-card {
   border: 1px solid var(--color-border);
   border-radius: 8px;
   padding: 16px;
@@ -1411,13 +546,13 @@ function toggleCalendar(id: string, checkbox: HTMLInputElement) {
   gap: 12px;
 }
 
-.category-card__header {
+.onboarding-overlay .category-card__header {
   display: flex;
   gap: 12px;
   align-items: center;
 }
 
-.category-color-indicator {
+.onboarding-overlay .category-color-indicator {
   width: 14px;
   height: 14px;
   border-radius: 50%;
@@ -1425,19 +560,19 @@ function toggleCalendar(id: string, checkbox: HTMLInputElement) {
   flex-shrink: 0;
 }
 
-.category-name {
+.onboarding-overlay .category-name {
   flex: 1;
   padding: 6px 8px;
   border: 1px solid var(--color-border);
   border-radius: 4px;
 }
 
-.category-actions {
+.onboarding-overlay .category-actions {
   display: flex;
   gap: 8px;
 }
 
-.remove-category {
+.onboarding-overlay .remove-category {
   background: none;
   border: none;
   color: var(--color-text-light);
@@ -1445,29 +580,29 @@ function toggleCalendar(id: string, checkbox: HTMLInputElement) {
   font-size: 1.1rem;
 }
 
-.remove-category:disabled {
+.onboarding-overlay .remove-category:disabled {
   opacity: 0.4;
   cursor: default;
 }
 
-.remove-category:not(:disabled):hover {
+.onboarding-overlay .remove-category:not(:disabled):hover {
   color: var(--color-error);
 }
 
-.category-card__fields {
+.onboarding-overlay .category-card__fields {
   display: flex;
   flex-wrap: wrap;
   gap: 16px;
 }
 
-.color-field {
+.onboarding-overlay .color-field {
   display: flex;
   flex-direction: column;
   gap: 6px;
   position: relative;
 }
 
-.color-link {
+.onboarding-overlay .color-link {
   align-self: flex-start;
   border: none;
   background: transparent;
@@ -1478,12 +613,12 @@ function toggleCalendar(id: string, checkbox: HTMLInputElement) {
   cursor: pointer;
 }
 
-.color-link:focus-visible {
+.onboarding-overlay .color-link:focus-visible {
   outline: 2px solid color-mix(in oklab, var(--brand, #2563eb), transparent 45%);
   outline-offset: 2px;
 }
 
-.color-popover {
+.onboarding-overlay .color-popover {
   position: absolute;
   top: calc(100% + 6px);
   left: 0;
@@ -1499,19 +634,19 @@ function toggleCalendar(id: string, checkbox: HTMLInputElement) {
   gap: 8px;
 }
 
-.color-popover:focus-visible {
+.onboarding-overlay .color-popover:focus-visible {
   outline: 2px solid color-mix(in oklab, var(--brand, #2563eb), transparent 45%);
   outline-offset: 2px;
 }
 
-.swatch-grid {
+.onboarding-overlay .swatch-grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(0, 20px));
   justify-content: flex-start;
   gap: 6px;
 }
 
-.color-swatch {
+.onboarding-overlay .color-swatch {
   width: 18px;
   height: 18px;
   aspect-ratio: 1 / 1;
@@ -1524,16 +659,16 @@ function toggleCalendar(id: string, checkbox: HTMLInputElement) {
   justify-content: center;
 }
 
-.color-swatch.active {
+.onboarding-overlay .color-swatch.active {
   box-shadow: 0 0 0 2px color-mix(in oklab, var(--brand, #2563eb), transparent 55%);
 }
 
-.color-swatch:focus-visible {
+.onboarding-overlay .color-swatch:focus-visible {
   outline: 2px solid color-mix(in oklab, var(--brand, #2563eb), transparent 45%);
   outline-offset: 1px;
 }
 
-.custom-color {
+.onboarding-overlay .custom-color {
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -1542,7 +677,7 @@ function toggleCalendar(id: string, checkbox: HTMLInputElement) {
   color: var(--color-text-light);
 }
 
-.color-input {
+.onboarding-overlay .color-input {
   width: 44px;
   height: 26px;
   padding: 0;
@@ -1551,33 +686,33 @@ function toggleCalendar(id: string, checkbox: HTMLInputElement) {
   background: transparent;
 }
 
-.add-category {
+.onboarding-overlay .add-category {
   justify-self: flex-start;
 }
 
-.category-total {
+.onboarding-overlay .category-total {
   font-size: 0.9rem;
   color: var(--color-text-light);
 }
 
-.calendar-assignments {
+.onboarding-overlay .calendar-assignments {
   margin-top: 24px;
   display: grid;
   gap: 12px;
 }
 
-.assignment-row {
+.onboarding-overlay .assignment-row {
   display: grid;
   grid-template-columns: 1fr minmax(160px, 220px);
   gap: 12px;
   align-items: center;
 }
 
-.assignment-row select {
+.onboarding-overlay .assignment-row select {
   padding: 6px 8px;
 }
 
-.cal-name {
+.onboarding-overlay .cal-name {
   font-size: 0.95rem;
 }
 
@@ -1588,13 +723,13 @@ function toggleCalendar(id: string, checkbox: HTMLInputElement) {
   margin-top: 24px;
 }
 
-.preferences-grid {
+.onboarding-overlay .preferences-grid {
   display: grid;
   gap: 16px;
   grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
 }
 
-.pref-card {
+.onboarding-overlay .pref-card {
   border: 1px solid color-mix(in oklab, var(--color-border), transparent 30%);
   border-radius: 10px;
   padding: 12px;
@@ -1604,22 +739,22 @@ function toggleCalendar(id: string, checkbox: HTMLInputElement) {
   gap: 12px;
 }
 
-.pref-card h4 {
+.onboarding-overlay .pref-card h4 {
   margin: 0;
 }
 
-.pref-card--deck .toggle-row {
+.onboarding-overlay .pref-card--deck .toggle-row {
   display: flex;
   gap: 10px;
   align-items: center;
   font-size: 0.95rem;
 }
 
-.pref-card--deck input[type="checkbox"] {
+.onboarding-overlay .pref-card--deck input[type="checkbox"] {
   transform: scale(1.05);
 }
 
-.deck-board-list {
+.onboarding-overlay .deck-board-list {
   border: 1px solid color-mix(in oklab, var(--color-border), transparent 40%);
   border-radius: 8px;
   padding: 10px;
@@ -1629,47 +764,47 @@ function toggleCalendar(id: string, checkbox: HTMLInputElement) {
   gap: 8px;
 }
 
-.deck-board-options {
+.onboarding-overlay .deck-board-options {
   display: flex;
   flex-direction: column;
   gap: 6px;
 }
 
-.deck-board-option {
+.onboarding-overlay .deck-board-option {
   display: flex;
   gap: 8px;
   align-items: center;
   font-size: 0.9rem;
 }
 
-.deck-status {
+.onboarding-overlay .deck-status {
   font-size: 0.85rem;
   color: var(--color-text-light);
 }
 
-.deck-status--error {
+.onboarding-overlay .deck-status--error {
   color: var(--color-error);
 }
 
-.pref-desc {
+.onboarding-overlay .pref-desc {
   margin: 0;
   font-size: 0.9rem;
   color: var(--color-text-light);
 }
 
-.pref-hint {
+.onboarding-overlay .pref-hint {
   margin: 0;
   font-size: 0.85rem;
   color: var(--color-text-light);
 }
 
-.theme-options {
+.onboarding-overlay .theme-options {
   display: flex;
   flex-direction: column;
   gap: 8px;
 }
 
-.theme-option {
+.onboarding-overlay .theme-option {
   display: flex;
   gap: 10px;
   align-items: flex-start;
@@ -1679,28 +814,28 @@ function toggleCalendar(id: string, checkbox: HTMLInputElement) {
   background: color-mix(in oklab, var(--color-main-background, #fff), transparent 8%);
 }
 
-.theme-option input[type="radio"] {
+.onboarding-overlay .theme-option input[type="radio"] {
   margin-top: 4px;
 }
 
-.theme-copy {
+.onboarding-overlay .theme-copy {
   display: flex;
   flex-direction: column;
   gap: 2px;
   font-size: 0.9rem;
 }
 
-.theme-option__title {
+.onboarding-overlay .theme-option__title {
   font-weight: 600;
   color: var(--color-text);
 }
 
-.theme-option__desc {
+.onboarding-overlay .theme-option__desc {
   color: var(--color-text-light);
   font-size: 0.85rem;
 }
 
-.theme-preview {
+.onboarding-overlay .theme-preview {
   font-size: 0.85rem;
   color: var(--color-text-light);
 }

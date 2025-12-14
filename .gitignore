@@ -18,6 +18,7 @@ aaacalstatsdashxyz/dist/
 opsdash/node_modules/
 opsdash/.vite/
 opsdash/dist/
+opsdash/tests/.phpunit.result.cache
 build/
 docs-private/
 docker-compose*.yml
