@@ -1,4 +1,8 @@
-import NoteSnippetWidget from '../../../components/NoteSnippetWidget.vue'
+import { defineAsyncComponent } from 'vue'
+
+const NoteSnippetWidget = defineAsyncComponent(() =>
+  import('../../../components/NoteSnippetWidget.vue').then((m) => m.default),
+)
 
 import { buildTitle } from '../helpers'
 import type { RegistryEntry } from '../types'
@@ -19,4 +23,3 @@ export const noteSnippetEntry: RegistryEntry = {
     cardBg: def.options?.cardBg,
   }),
 }
-

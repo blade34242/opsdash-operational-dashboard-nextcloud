@@ -1,4 +1,8 @@
-import DayOffTrendCard from '../../../components/DayOffTrendCard.vue'
+import { defineAsyncComponent } from 'vue'
+
+const DayOffTrendCard = defineAsyncComponent(() =>
+  import('../../../components/DayOffTrendCard.vue').then((m) => m.default),
+)
 
 import { buildTitle } from '../helpers'
 import type { RegistryEntry } from '../types'
@@ -39,4 +43,3 @@ export const dayOffTrendEntry: RegistryEntry = {
     toneHighColor: def.options?.toneHighColor,
   }),
 }
-

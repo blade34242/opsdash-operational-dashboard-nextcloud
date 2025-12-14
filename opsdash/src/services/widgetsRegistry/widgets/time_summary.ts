@@ -1,4 +1,8 @@
-import TimeSummaryCard from '../../../components/TimeSummaryCard.vue'
+import { defineAsyncComponent } from 'vue'
+
+const TimeSummaryCard = defineAsyncComponent(() =>
+  import('../../../components/TimeSummaryCard.vue').then((m) => m.default),
+)
 
 import { buildTitle } from '../helpers'
 import type { RegistryEntry } from '../types'
@@ -29,4 +33,3 @@ export const timeSummaryEntry: RegistryEntry = {
     cardBg: def.options?.cardBg,
   }),
 }
-

@@ -1,4 +1,8 @@
-import TimeTargetsCard from '../../../components/TimeTargetsCard.vue'
+import { defineAsyncComponent } from 'vue'
+
+const TimeTargetsCard = defineAsyncComponent(() =>
+  import('../../../components/TimeTargetsCard.vue').then((m) => m.default),
+)
 
 import { attachUi, buildTitle, copyConfigForRange, safeBuildTargetsSummary } from '../helpers'
 import { createDefaultTargetsConfig } from '../../targets'
@@ -74,4 +78,3 @@ export const targetsV2Entry: RegistryEntry = {
     }
   },
 }
-

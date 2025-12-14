@@ -1,4 +1,8 @@
-import BalanceIndexCard from '../../../components/BalanceIndexCard.vue'
+import { defineAsyncComponent } from 'vue'
+
+const BalanceIndexCard = defineAsyncComponent(() =>
+  import('../../../components/BalanceIndexCard.vue').then((m) => m.default),
+)
 
 import { buildTitle, numberOr } from '../helpers'
 import { createDefaultBalanceConfig } from '../../targets/config'
@@ -128,4 +132,3 @@ export const balanceIndexEntry: RegistryEntry = {
     }
   },
 }
-

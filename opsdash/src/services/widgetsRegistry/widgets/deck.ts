@@ -1,4 +1,8 @@
-import DeckSummaryCard from '../../../components/DeckSummaryCard.vue'
+import { defineAsyncComponent } from 'vue'
+
+const DeckSummaryCard = defineAsyncComponent(() =>
+  import('../../../components/DeckSummaryCard.vue').then((m) => m.default),
+)
 
 import { buildTitle } from '../helpers'
 import type { RegistryEntry } from '../types'
@@ -31,4 +35,3 @@ export const deckEntry: RegistryEntry = {
     cardBg: def.options?.cardBg,
   }),
 }
-

@@ -1,4 +1,8 @@
-import CategoryMixTrendCard from '../../../components/CategoryMixTrendCard.vue'
+import { defineAsyncComponent } from 'vue'
+
+const CategoryMixTrendCard = defineAsyncComponent(() =>
+  import('../../../components/CategoryMixTrendCard.vue').then((m) => m.default),
+)
 
 import { buildTitle } from '../helpers'
 import type { RegistryEntry } from '../types'
@@ -29,4 +33,3 @@ export const categoryMixTrendEntry: RegistryEntry = {
     toneHighColor: def.options?.toneHighColor,
   }),
 }
-

@@ -9,8 +9,12 @@ All notable changes to this project will be documented in this file.
 - Onboarding wizard “Dashboard preset” step (Quick / Standard / Pro) that applies a preset widget layout and stores the chosen dashboard mode.
 - Deck cards widget overhaul: per-widget board/filter selection, auto-scroll/count options, reset-to-preset action in the widget toolbar.
 - Day-off trend and Category mix trend widgets now expose Low/High color pickers; colors blend and apply to tiles with contrast-aware text.
+- Backend refactor: extracted `/overview/persist` and `/overview/notes` into dedicated controllers (URLs unchanged).
+- Frontend refactor: split `DashboardLayout` into grid/toolbar/add-menu/advanced-overlay components.
 
 ### Changed
+- Backend refactor: `OverviewController` focuses on `/overview/load` (+ index/ping); config reads consolidated in `UserConfigService`.
+- Frontend perf: widget components are now lazy-loaded via `defineAsyncComponent()` from per-widget registry files (enables future code-splitting/tree-shaking).
 - Sidebar hides Profiles/Report tabs when the Quick dashboard preset is active; default widgets now come from the Standard preset.
 - Widget toolbar includes “Reset preset” to restore the current dashboard mode’s layout.
 

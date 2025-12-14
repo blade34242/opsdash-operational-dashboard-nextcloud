@@ -1,4 +1,8 @@
-import BalanceOverviewCard from '../../../components/BalanceOverviewCard.vue'
+import { defineAsyncComponent } from 'vue'
+
+const BalanceOverviewCard = defineAsyncComponent(() =>
+  import('../../../components/BalanceOverviewCard.vue').then((m) => m.default),
+)
 
 import { buildTitle } from '../helpers'
 import type { RegistryEntry } from '../types'
@@ -37,4 +41,3 @@ export const balanceEntry: RegistryEntry = {
     cardBg: def.options?.cardBg,
   }),
 }
-

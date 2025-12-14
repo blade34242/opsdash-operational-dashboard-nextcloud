@@ -24,7 +24,7 @@ Single source of truth for the Opsdash backlog: high-level roadmap, target syste
 1. ✅ **Requirements lock** for onboarding/targets/theming — docs in `ONBOARDING_WORKFLOW.md`, `TARGET_STRATEGIES`, `LIGHT_DARK_THEMING.md`. Keep pairing changes with Vitest/PHPUnit and refresh week/month fixtures.
 2. ✅ **Testing infrastructure** baseline (PHPUnit + Vitest). Next: keep adding coverage for new helpers (see Testing Guide).
 3. ✅ **Shared validation helpers** with inline feedback (numeric helpers + 400 responses).
-4. ⚠️ **Architecture refactor** — `App.vue` carved into composables; controllers/services still large. Next: split `targets.ts` and `OverviewController.php` into services + tests (add DTO/validators).
+4. 🔄 **Architecture refactor** — `App.vue` carved into composables; controllers/components are being split. Next: keep carving `/overview/load` into smaller services + fixtures, and continue shrinking the remaining large Vue components.
 5. ✅ **Onboarding wizard + strategy profiles** — rerun entry point and preset seeding shipped.
 6. 🔄 **Theming, collapsed controls, keyboard shortcuts overlay** — theme persistence + collapsed toolbar + modal exist; polish UX/backlog items next.
 7. ✅ **Endpoint/docs rename to** `/overview/*` — copy polish pending.
@@ -220,11 +220,13 @@ Single source of truth for the Opsdash backlog: high-level roadmap, target syste
 - Composables: `useDashboard`, `useDashboardPersistence`, `useDashboardSelection`, `useDashboardPresets`, `useChartScheduler`, `useOcHttp`, `useAppMeta`, `useCalendarLinks`, onboarding helpers.
 - Sidebar panes split into dedicated components with shared validation helper (`sidebar/validation.ts`).
 - Numeric validation + localisation delivered; onboarding wizard + strategy cards shipped.
+- Backend: presets + persist + notes endpoints extracted into dedicated controllers (`PresetsController`, `PersistController`, `NotesController`).
+- Frontend: `DashboardLayout` split into grid/toolbar/add-menu/advanced-overlay components; widgets registry moved to per-widget modules and supports async component loading.
 
 ### In Progress / Next
 
-1. Break `targets.ts` into focused modules (`config`, `progress`, `forecast`) with Vitest coverage.
-2. Carve PHP controller into services (`CalendarService`, `TargetsService`, `NotesService`); keep controller thin.
+1. Continue splitting `targets.ts` (already partially split under `src/services/targets/`) and add targeted Vitest coverage for the remaining heavy helpers.
+2. Carve `/overview/load` further: extract remaining read helpers from `OverviewController` and expand fixture-backed tests for week/month offsets.
 3. Move theme/favicons out of `main.ts` into `services/theme.ts` invoked at boot.
 4. Add PHPUnit + Vitest for new services/composables.
 5. Update `ARCHITECTURE.md` after each refactor slice.

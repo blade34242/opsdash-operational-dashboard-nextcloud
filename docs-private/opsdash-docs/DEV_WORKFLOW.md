@@ -51,7 +51,7 @@ The Vue mount pulls its entrypoint from the manifest, so filenames never need ma
 
 ### Theme Overrides
 - Config & Setup → Theme lets users pick `Follow Nextcloud`, `Force light`, or `Force dark`.
-- Preference currently lives in `localStorage`, but gets serialised during preset export/import to keep multiple devices in sync. Server-side persistence is on the roadmap (`LIGHT_DARK_THEMING.md`).
+- Preference is persisted per-user server-side (`theme_preference` via `/overview/persist`) and bootstrapped into the DOM for instant paint; preset export/import includes it so profiles stay portable.
 
 ### Presets
 - `GET/POST/DELETE /overview/presets` manage named snapshots of the full sidebar state.

@@ -4,6 +4,8 @@ All notable changes to this project are documented here. This file is served loc
 
 ## [Unreleased]
 - Pending changes.
+- Backend: extracted `/overview/persist` + `/overview/notes` into `PersistController` and `NotesController` (URLs unchanged); `OverviewController` focuses on `/overview/load` (+ index/ping).
+- Frontend: split `DashboardLayout` into smaller layout components; widgets are lazy-loaded via `defineAsyncComponent()` in the per-widget registry files.
 - Tests/fixtures: removed deprecated `roundPercent`/`roundRatio`/`showDailyStacks` balance fields from all week/month load, persist, onboarding, and preset fixtures to match the streamlined balance config.
 - UI: Summary sidebar tab removed; summary toggles now live per-widget (`time_summary_v2`). Sidebar docs updated.
 - UI: Time Summary widget gained a Today block (total + per-category today hours) and gear-menu defaults (only one menu open at a time).

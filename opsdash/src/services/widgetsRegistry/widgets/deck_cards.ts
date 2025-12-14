@@ -1,4 +1,8 @@
-import DeckCardsWidget from '../../../components/DeckCardsWidget.vue'
+import { defineAsyncComponent } from 'vue'
+
+const DeckCardsWidget = defineAsyncComponent(() =>
+  import('../../../components/DeckCardsWidget.vue').then((m) => m.default),
+)
 
 import { parseBoardIds, parseFilters, prettyFilterLabel } from '../helpers'
 import type { RegistryEntry } from '../types'
@@ -103,4 +107,3 @@ export const deckCardsEntry: RegistryEntry = {
     }
   },
 }
-

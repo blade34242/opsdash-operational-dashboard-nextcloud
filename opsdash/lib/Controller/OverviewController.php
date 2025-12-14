@@ -17,8 +17,8 @@ use Psr\Log\LoggerInterface;
 
 use OCA\Opsdash\Service\ColorPalette;
 use OCA\Opsdash\Service\CalendarService;
-use OCA\Opsdash\Service\NotesService;
 use OCA\Opsdash\Service\PersistSanitizer;
+use OCA\Opsdash\Service\UserConfigService;
 use OCA\Opsdash\Service\OverviewSelectionService;
 use OCA\Opsdash\Service\OverviewEventsCollector;
 use OCA\Opsdash\Service\OverviewHistoryService;
@@ -32,7 +32,6 @@ final class OverviewController extends Controller {
     private const MAX_GROUP = 9;
     private const MAX_AGG_PER_CAL = 2000;
     private const MAX_AGG_TOTAL   = 5000;
-    private const CONFIG_ONBOARDING = 'onboarding_state';
     private const ONBOARDING_VERSION = 1;
     private const RATIO_DECIMALS = 1;
     public function __construct(
@@ -44,8 +43,8 @@ final class OverviewController extends Controller {
         private IConfig $config,
         private ViteAssetsService $viteAssetsService,
         private CalendarService $calendarService,
-        private NotesService $notesService,
         private PersistSanitizer $persistSanitizer,
+        private UserConfigService $userConfigService,
         private OverviewSelectionService $selectionService,
         private OverviewEventsCollector $eventsCollector,
         private OverviewHistoryService $historyService,
@@ -89,7 +88,7 @@ final class OverviewController extends Controller {
         $bootstrapTheme = 'auto';
         if ($uid !== '') {
             try {
-                $bootstrapTheme = $this->readThemePreference($uid);
+                $bootstrapTheme = $this->userConfigService->readThemePreference($this->appName, $uid);
             } catch (\Throwable) {
                 $bootstrapTheme = 'auto';
             }
@@ -188,7 +187,7 @@ final class OverviewController extends Controller {
         $idToName = [];
         $colorsById = [];
         $colorsByName = [];
-        $dbgFlag = (bool)($data['debug'] ?? false) || $this->isDebugEnabled();
+        $dbgFlag = (bool)($data['debug'] ?? false) || $this->userConfigService->isDebugEnabled();
         $queryDbg = [];
         $calDebug = [];
         $includeAll = $sel['includeAll'];
@@ -228,7 +227,7 @@ final class OverviewController extends Controller {
                 'checked'=> $includeAll ? true : in_array($id,$selectedIds,true)
             ];
             $colorsById[$id] = $color; $colorsByName[$name] = $color; $idToName[$id] = $name;
-            if ($this->isDebugEnabled()) { $calDebug[$id] = ['name'=>$name,'raw'=>$raw,'norm'=>$color,'src'=>$src]; }
+            if ($this->userConfigService->isDebugEnabled()) { $calDebug[$id] = ['name'=>$name,'raw'=>$raw,'norm'=>$color,'src'=>$src]; }
         }
 
         // Selected list to return to client: if not provided and no saved, default to all calendars
@@ -269,7 +268,7 @@ final class OverviewController extends Controller {
         $targetsWeek = $this->persistSanitizer->cleanTargets($targetsWeek, $allowedSet);
         $targetsMonth = $this->persistSanitizer->cleanTargets($targetsMonth, $allowedSet);
 
-        $targetsConfig = $this->readTargetsConfig($uid);
+        $targetsConfig = $this->userConfigService->readTargetsConfig($this->appName, $uid);
 
         // Derive category metadata and group mapping for balance calculations
         $categoryMeta = [];
@@ -539,7 +538,7 @@ final class OverviewController extends Controller {
             'events'        => $eventsCount - $prevEvents,
         ];
 
-        $onboardingState = $this->readOnboardingState($uid);
+        $onboardingState = $this->userConfigService->readOnboardingState($this->appName, $uid);
         $needsOnboarding = !$onboardingState['completed'] || $onboardingState['version'] < self::ONBOARDING_VERSION;
         if ($forceReset) {
             $needsOnboarding = true;
@@ -579,9 +578,9 @@ final class OverviewController extends Controller {
             'groups'    => ['byId'=>$groupsById],
             'targets'   => ['week'=>$targetsWeek, 'month'=>$targetsMonth],
             'targetsConfig' => $targetsConfig,
-            'themePreference' => $this->readThemePreference($uid),
-            'reportingConfig' => $this->readReportingConfig($uid),
-            'deckSettings' => $this->readDeckSettings($uid),
+            'themePreference' => $this->userConfigService->readThemePreference($this->appName, $uid),
+            'reportingConfig' => $this->userConfigService->readReportingConfig($this->appName, $uid),
+            'deckSettings' => $this->userConfigService->readDeckSettings($this->appName, $uid),
             'widgets' => $widgets,
             'onboarding' => $onboardingPayload,
             'calDebug'  => $calDebug,
@@ -662,7 +661,7 @@ final class OverviewController extends Controller {
         $allowedSet = array_flip($allowedIds);
         $filtered = array_values(array_filter($cals, fn($id)=>isset($allowedSet[$id])));
         $rejected = array_values(array_diff($cals, $filtered));
-        if (!empty($rejected) && $this->isDebugEnabled()) {
+        if (!empty($rejected) && $this->userConfigService->isDebugEnabled()) {
             $this->logger->debug('save selection filtered ids', ['app'=>$this->appName, 'rejected'=>$rejected]);
         }
         $cals = $filtered;
@@ -689,288 +688,6 @@ final class OverviewController extends Controller {
         }
     }
 
-    #[NoAdminRequired]
-    public function persist(): DataResponse {
-        $uid = (string)($this->userSession->getUser()?->getUID() ?? '');
-        if ($uid === '') return new DataResponse(['message' => 'unauthorized'], Http::STATUS_UNAUTHORIZED);
-        if ($csrf = $this->enforceCsrf()) {
-            return $csrf;
-        }
-
-        // Read request
-        $raw  = file_get_contents('php://input') ?: '';
-        $data = json_decode($raw, true);
-        if (!is_array($data)) return new DataResponse(['message' => 'invalid json'], Http::STATUS_BAD_REQUEST);
-        $hasCals = array_key_exists('cals', $data);
-        $reqOriginal = null;
-        if ($hasCals) {
-            $reqOriginal = $data['cals'];
-            if (is_string($reqOriginal)) {
-                $reqOriginal = array_values(array_filter(explode(',', $reqOriginal), fn($x)=>$x!==''));
-            }
-            $reqOriginal = is_array($reqOriginal) ? $reqOriginal : [];
-        }
-
-        // Intersect with user's calendars
-        $allowedIds = [];
-        foreach ($this->calendarService->getCalendarsFor($uid) as $cal) { $allowedIds[] = (string)($cal->getUri() ?? spl_object_id($cal)); }
-        $allowed = array_flip($allowedIds);
-
-        // Save
-        $after = null;
-        $csv = null;
-        if ($hasCals) {
-            $after = array_values(array_unique(array_filter(array_map(fn($x)=>substr((string)$x,0,128), $reqOriginal), fn($x)=>isset($allowed[$x]))));
-            $csv = implode(',', $after);
-            $this->config->setUserValue($uid, $this->appName, 'selected_cals', $csv);
-        }
-
-        // Optional: groups mapping
-        $groupsSaved = null; $groupsRead = null;
-        if (isset($data['groups']) && is_array($data['groups'])) {
-            $gclean = $this->persistSanitizer->cleanGroups($data['groups'], $allowed, array_keys($allowed));
-            $this->config->setUserValue($uid, $this->appName, 'cal_groups', json_encode($gclean));
-            $groupsSaved = $gclean;
-            try {
-                $gjson = (string)$this->config->getUserValue($uid, $this->appName, 'cal_groups', '');
-                $tmp = $gjson!=='' ? json_decode($gjson, true) : [];
-                if (is_array($tmp)) $groupsRead = $tmp;
-            } catch (\Throwable) {}
-        }
-
-        // Optional: per-calendar targets (week/month) mapping: { id: hours }
-        $targetsWeekSaved = null; $targetsMonthSaved = null; $targetsWeekRead = null; $targetsMonthRead = null;
-        $targetsConfigSaved = null; $targetsConfigRead = null;
-        $onboardingSaved = null; $onboardingRead = null;
-        $themeSaved = null; $themeRead = null;
-        $reportingSaved = null; $reportingRead = null;
-        $deckSaved = null; $deckRead = null;
-        $widgetsSaved = null; $widgetsRead = null;
-        if (isset($data['targets_week'])) {
-            $tw = $this->persistSanitizer->cleanTargets(is_array($data['targets_week'])?$data['targets_week']:[], $allowed);
-            $this->config->setUserValue($uid, $this->appName, 'cal_targets_week', json_encode($tw));
-            $targetsWeekSaved = $tw;
-            try {
-                $r = (string)$this->config->getUserValue($uid, $this->appName, 'cal_targets_week', '');
-                $targetsWeekRead = $r!=='' ? json_decode($r, true) : [];
-            } catch (\Throwable) {}
-        }
-        if (isset($data['targets_config'])) {
-            $cleanCfg = $this->persistSanitizer->cleanTargetsConfig($data['targets_config']);
-            $this->config->setUserValue($uid, $this->appName, 'targets_config', json_encode($cleanCfg));
-            $targetsConfigSaved = $cleanCfg;
-            try {
-                $cfgJson = (string)$this->config->getUserValue($uid, $this->appName, 'targets_config', '');
-                if ($cfgJson !== '') {
-                    $tmp = json_decode($cfgJson, true);
-                    if (is_array($tmp)) {
-                        $targetsConfigRead = $this->persistSanitizer->cleanTargetsConfig($tmp);
-                    }
-                }
-            } catch (\Throwable) {}
-        }
-        if (isset($data['targets_month'])) {
-            $tm = $this->persistSanitizer->cleanTargets(is_array($data['targets_month'])?$data['targets_month']:[], $allowed);
-            $this->config->setUserValue($uid, $this->appName, 'cal_targets_month', json_encode($tm));
-            $targetsMonthSaved = $tm;
-            try {
-                $r = (string)$this->config->getUserValue($uid, $this->appName, 'cal_targets_month', '');
-                $targetsMonthRead = $r!=='' ? json_decode($r, true) : [];
-            } catch (\Throwable) {}
-        }
-        if (!empty($data['onboarding_reset'])) {
-            try {
-                $this->config->deleteUserValue($uid, $this->appName, self::CONFIG_ONBOARDING);
-            } catch (\Throwable) {}
-        } elseif (array_key_exists('onboarding', $data)) {
-            $cleanOnboarding = $this->persistSanitizer->cleanOnboardingState($data['onboarding']);
-            $this->config->setUserValue($uid, $this->appName, self::CONFIG_ONBOARDING, json_encode($cleanOnboarding));
-            $onboardingSaved = $cleanOnboarding;
-        }
-        $onboardingRead = $this->readOnboardingState($uid);
-        if (array_key_exists('theme_preference', $data)) {
-            $themeValue = $this->persistSanitizer->sanitizeThemePreference($data['theme_preference']);
-            if ($themeValue === null) {
-                try { $this->config->deleteUserValue($uid, $this->appName, 'theme_preference'); } catch (\Throwable) {}
-            } else {
-                $this->config->setUserValue($uid, $this->appName, 'theme_preference', $themeValue);
-                $themeSaved = $themeValue;
-            }
-            $themeRead = $this->readThemePreference($uid);
-        }
-        if (isset($data['reporting_config'])) {
-            $cleanReporting = $this->persistSanitizer->sanitizeReportingConfig($data['reporting_config']);
-            $this->config->setUserValue($uid, $this->appName, 'reporting_config', json_encode($cleanReporting));
-            $reportingSaved = $cleanReporting;
-        }
-        $reportingRead = $this->readReportingConfig($uid);
-        if (isset($data['targets_config_activity'])) {
-            $activity = $data['targets_config_activity'];
-            if (is_array($activity) && array_key_exists('showDayOffTrend', $activity)) {
-                $currentCfg = $targetsConfigSaved ?? $this->readTargetsConfig($uid);
-                if (is_array($currentCfg)) {
-                    if (!isset($currentCfg['activityCard']) || !is_array($currentCfg['activityCard'])) {
-                        $currentCfg['activityCard'] = [];
-                    }
-                    $currentCfg['activityCard']['showDayOffTrend'] = $activity['showDayOffTrend'] !== false;
-                    $this->config->setUserValue($uid, $this->appName, 'targets_config', json_encode($currentCfg));
-                    $targetsConfigSaved = $currentCfg;
-                    $targetsConfigRead = $currentCfg;
-                }
-            }
-        }
-        if (isset($data['deck_settings'])) {
-            $cleanDeck = $this->persistSanitizer->sanitizeDeckSettings($data['deck_settings']);
-            $this->config->setUserValue($uid, $this->appName, 'deck_settings', json_encode($cleanDeck));
-            $deckSaved = $cleanDeck;
-        }
-        $deckRead = $this->readDeckSettings($uid);
-        if (isset($data['widgets'])) {
-            $cleanWidgets = $this->persistSanitizer->sanitizeWidgets($data['widgets']);
-            $this->config->setUserValue($uid, $this->appName, 'widgets_layout', json_encode($cleanWidgets));
-            $widgetsSaved = $cleanWidgets;
-        }
-        try {
-            $widgetsRaw = (string)$this->config->getUserValue($uid, $this->appName, 'widgets_layout', '');
-            if ($widgetsRaw !== '') {
-                $tmp = json_decode($widgetsRaw, true);
-                if (is_array($tmp)) {
-                    $widgetsRead = $this->persistSanitizer->sanitizeWidgets($tmp);
-                }
-            }
-        } catch (\Throwable) {}
-
-        // Read-back
-        $readCsv = (string)$this->config->getUserValue($uid, $this->appName, 'selected_cals', '');
-        $read = array_values(array_filter(explode(',', $readCsv), fn($x)=>$x!==''));
-        if ($themeRead === null) {
-            $themeRead = $this->readThemePreference($uid);
-        }
-
-        return new DataResponse([
-            'ok' => true,
-            'request' => $hasCals ? $reqOriginal : null,
-            'saved_csv' => $csv,
-            'read_csv' => $readCsv,
-            'saved' => $after,
-            'read'  => $read,
-            'groups_saved' => $groupsSaved,
-            'groups_read'  => $groupsRead,
-            'targets_week_saved'  => $targetsWeekSaved,
-            'targets_week_read'   => $targetsWeekRead,
-            'targets_month_saved' => $targetsMonthSaved,
-            'targets_month_read'  => $targetsMonthRead,
-            'targets_config_saved' => $targetsConfigSaved,
-            'targets_config_read'  => $targetsConfigRead,
-            'onboarding_saved' => $onboardingSaved,
-            'onboarding_read'  => $onboardingRead,
-            'theme_preference_saved' => $themeSaved,
-            'theme_preference_read' => $themeRead,
-            'reporting_config_saved' => $reportingSaved,
-            'reporting_config_read' => $reportingRead,
-            'deck_settings_saved' => $deckSaved,
-            'deck_settings_read' => $deckRead,
-            'widgets_saved' => $widgetsSaved,
-            'widgets_read' => $widgetsRead,
-        ], Http::STATUS_OK);
-    }
-
-    #[NoAdminRequired]
-    #[NoCSRFRequired]
-    public function notes(): DataResponse {
-        $uid = (string)($this->userSession->getUser()?->getUID() ?? '');
-        if ($uid === '') return new DataResponse(['message' => 'unauthorized'], Http::STATUS_UNAUTHORIZED);
-
-        $range  = strtolower((string)$this->request->getParam('range', 'week'));
-        if ($range !== 'month') $range = 'week';
-        $offset = (int)$this->request->getParam('offset', 0);
-        if ($offset > 24) $offset = 24; elseif ($offset < -24) $offset = -24;
-
-        $payload = $this->notesService->getNotes($uid, $range, $offset);
-        return new DataResponse(array_merge(['ok' => true], $payload), Http::STATUS_OK);
-    }
-
-    #[NoAdminRequired]
-    public function notesSave(): DataResponse {
-        $uid = (string)($this->userSession->getUser()?->getUID() ?? '');
-        if ($uid === '') return new DataResponse(['message' => 'unauthorized'], Http::STATUS_UNAUTHORIZED);
-        if ($csrf = $this->enforceCsrf()) {
-            return $csrf;
-        }
-
-        $raw  = file_get_contents('php://input') ?: '';
-        $data = json_decode($raw, true);
-        if (!is_array($data)) return new DataResponse(['message' => 'invalid json'], Http::STATUS_BAD_REQUEST);
-
-        $range  = strtolower((string)($data['range'] ?? 'week'));
-        if ($range !== 'month') $range = 'week';
-        $offset = (int)($data['offset'] ?? 0);
-        if ($offset > 24) $offset = 24; elseif ($offset < -24) $offset = -24;
-        $text   = (string)($data['content'] ?? '');
-        if ($this->notesService->saveNotes($uid, $range, $offset, $text)) {
-            return new DataResponse(['ok'=>true], Http::STATUS_OK);
-        }
-        return new DataResponse(['message'=>'error'], Http::STATUS_INTERNAL_SERVER_ERROR);
-    }
-
-    /**
-     * Enforce requesttoken presence/validity for POST endpoints.
-     */
-    private function enforceCsrf(): ?DataResponse {
-        $token = (string)$this->request->getHeader('requesttoken');
-        if ($token === '') {
-            return new DataResponse(['message' => 'missing requesttoken'], Http::STATUS_PRECONDITION_FAILED);
-        }
-        if (method_exists($this->request, 'passesCSRFCheck')) {
-            try {
-                if (!$this->request->passesCSRFCheck()) {
-                    return new DataResponse(['message' => 'invalid requesttoken'], Http::STATUS_PRECONDITION_FAILED);
-                }
-            } catch (\Throwable $e) {
-                $this->logger->warning('csrf check failed', [
-                    'app' => $this->appName,
-                    'exception' => $e,
-                ]);
-            }
-        }
-        return null;
-    }
-
-    private function readReportingConfig(string $uid): array {
-        try {
-            $raw = (string)$this->config->getUserValue($uid, $this->appName, 'reporting_config', '');
-            if ($raw !== '') {
-                $decoded = json_decode($raw, true);
-                if (is_array($decoded)) {
-                    return $this->persistSanitizer->sanitizeReportingConfig($decoded);
-                }
-            }
-        } catch (\Throwable) {}
-        return $this->persistSanitizer->sanitizeReportingConfig(null);
-    }
-
-    private function readDeckSettings(string $uid): array {
-        try {
-            $raw = (string)$this->config->getUserValue($uid, $this->appName, 'deck_settings', '');
-            if ($raw !== '') {
-                $decoded = json_decode($raw, true);
-                if (is_array($decoded)) {
-                    return $this->persistSanitizer->sanitizeDeckSettings($decoded);
-                }
-            }
-        } catch (\Throwable) {}
-        return $this->persistSanitizer->sanitizeDeckSettings(null);
-    }
-
-    private function isDebugEnabled(): bool {
-        try {
-            $lvl = (int)$this->config->getSystemValue('loglevel', 2);
-            return $lvl === 0; // 0 = debug
-        } catch (\Throwable) {
-            return false;
-        }
-    }
-
     /**
      * Normalize various color formats to #RRGGBB
      */
@@ -993,23 +710,6 @@ final class OverviewController extends Controller {
         }
         // fallback
         return $c;
-    }
-
-    private function readTargetsConfig(string $uid): array {
-        try {
-            $json = (string)$this->config->getUserValue($uid, $this->appName, 'targets_config', '');
-            if ($json !== '') {
-                $tmp = json_decode($json, true);
-                if (is_array($tmp)) {
-                    return $this->persistSanitizer->cleanTargetsConfig($tmp);
-                }
-            }
-        } catch (\Throwable $e) {
-            if ($this->isDebugEnabled()) {
-                $this->logger->debug('read targets config failed', ['app'=>$this->appName, 'error'=>$e->getMessage()]);
-            }
-        }
-        return $this->persistSanitizer->cleanTargetsConfig(null);
     }
 
     private function defaultActivityCardConfig(): array {
@@ -1046,33 +746,6 @@ final class OverviewController extends Controller {
                 'showNotes' => false,
             ],
         ];
-    }
-
-    private function readOnboardingState(string $uid): array {
-        try {
-            $raw = (string)$this->config->getUserValue($uid, $this->appName, self::CONFIG_ONBOARDING, '');
-        } catch (\Throwable $e) {
-            $raw = '';
-        }
-        if ($raw === '') {
-            return $this->persistSanitizer->cleanOnboardingState(null);
-        }
-        try {
-            $decoded = json_decode($raw, true, flags: JSON_THROW_ON_ERROR);
-        } catch (\Throwable $e) {
-            $decoded = null;
-        }
-        return $this->persistSanitizer->cleanOnboardingState($decoded);
-    }
-
-    private function readThemePreference(string $uid): string {
-        try {
-            $stored = (string)$this->config->getUserValue($uid, $this->appName, 'theme_preference', '');
-        } catch (\Throwable $e) {
-            $stored = '';
-        }
-        $normalized = $this->persistSanitizer->sanitizeThemePreference($stored);
-        return $normalized ?? 'auto';
     }
 
 }

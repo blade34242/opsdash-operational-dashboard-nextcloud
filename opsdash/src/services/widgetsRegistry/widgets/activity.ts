@@ -1,4 +1,8 @@
-import ActivityScheduleCard from '../../../components/ActivityScheduleCard.vue'
+import { defineAsyncComponent } from 'vue'
+
+const ActivityScheduleCard = defineAsyncComponent(() =>
+  import('../../../components/ActivityScheduleCard.vue').then((m) => m.default),
+)
 
 import { buildTitle } from '../helpers'
 import type { RegistryEntry } from '../types'
@@ -33,4 +37,3 @@ export const activityEntry: RegistryEntry = {
     cardBg: def.options?.cardBg,
   }),
 }
-

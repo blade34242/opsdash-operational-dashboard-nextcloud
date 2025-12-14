@@ -1,4 +1,8 @@
-import NoteEditorWidget from '../../../components/NoteEditorWidget.vue'
+import { defineAsyncComponent } from 'vue'
+
+const NoteEditorWidget = defineAsyncComponent(() =>
+  import('../../../components/NoteEditorWidget.vue').then((m) => m.default),
+)
 
 import { buildTitle } from '../helpers'
 import type { RegistryEntry } from '../types'
@@ -27,4 +31,3 @@ export const noteEditorEntry: RegistryEntry = {
     onUpdateModelValue: ctx.onUpdateNotes,
   }),
 }
-

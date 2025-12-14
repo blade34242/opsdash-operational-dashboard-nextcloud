@@ -1,4 +1,8 @@
-import NotesPanel from '../../../components/NotesPanel.vue'
+import { defineAsyncComponent } from 'vue'
+
+const NotesPanel = defineAsyncComponent(() =>
+  import('../../../components/NotesPanel.vue').then((m) => m.default),
+)
 
 import { buildTitle } from '../helpers'
 import type { RegistryEntry } from '../types'
@@ -33,4 +37,3 @@ export const notesEntry: RegistryEntry = {
     cardBg: def.options?.cardBg,
   }),
 }
-

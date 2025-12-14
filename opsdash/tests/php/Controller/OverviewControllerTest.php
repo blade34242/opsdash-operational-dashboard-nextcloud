@@ -6,7 +6,6 @@ namespace OCA\Opsdash\Tests\Controller;
 
 use OCA\Opsdash\Controller\OverviewController;
 use OCA\Opsdash\Service\CalendarService;
-use OCA\Opsdash\Service\NotesService;
 use OCA\Opsdash\Service\OverviewAggregationService;
 use OCA\Opsdash\Service\OverviewBalanceService;
 use OCA\Opsdash\Service\OverviewChartsBuilder;
@@ -14,6 +13,7 @@ use OCA\Opsdash\Service\OverviewEventsCollector;
 use OCA\Opsdash\Service\OverviewHistoryService;
 use OCA\Opsdash\Service\OverviewSelectionService;
 use OCA\Opsdash\Service\PersistSanitizer;
+use OCA\Opsdash\Service\UserConfigService;
 use OCA\Opsdash\Service\ViteAssetsService;
 use OCP\Calendar\IManager;
 use OCP\IConfig;
@@ -36,8 +36,8 @@ class OverviewControllerTest extends TestCase {
 
     $viteAssetsService = new ViteAssetsService();
     $calendarService = new CalendarService($calendarManager, $config, $logger);
-    $notesService = new NotesService($config, $calendarService, $logger);
     $sanitizer = new PersistSanitizer();
+    $userConfigService = new UserConfigService($config, $sanitizer, $logger);
     $selection = new OverviewSelectionService();
     $collector = new OverviewEventsCollector($calendarManager, $calendarService, $logger);
     $history = new OverviewHistoryService($calendarService, $collector);
@@ -54,8 +54,8 @@ class OverviewControllerTest extends TestCase {
       $config,
       $viteAssetsService,
       $calendarService,
-      $notesService,
       $sanitizer,
+      $userConfigService,
       $selection,
       $collector,
       $history,

@@ -20,7 +20,11 @@ opsdash/.vite/
 opsdash/dist/
 opsdash/tests/.phpunit.result.cache
 build/
-docs-private/
+docs-private/*
+!docs-private/opsdash-docs/
+docs-private/opsdash-docs/**
+!docs-private/opsdash-docs/**/*.md
+opsdash/docs-private/
 docker-compose*.yml
 
 AGENTS.md

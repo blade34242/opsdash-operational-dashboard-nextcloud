@@ -1,4 +1,8 @@
-import TextBlockWidget from '../../../components/TextBlockWidget.vue'
+import { defineAsyncComponent } from 'vue'
+
+const TextBlockWidget = defineAsyncComponent(() =>
+  import('../../../components/TextBlockWidget.vue').then((m) => m.default),
+)
 
 import { buildTitle, collectPresetItems, resolvePreset } from '../helpers'
 import type { RegistryEntry, TextPresetKey } from '../types'
@@ -48,4 +52,3 @@ export const textBlockEntry: RegistryEntry = {
     ]
   },
 }
-

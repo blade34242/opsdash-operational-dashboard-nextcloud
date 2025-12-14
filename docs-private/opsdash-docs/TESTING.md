@@ -139,7 +139,7 @@ curl -sS -u qa:${OC_PASS} -X PROPFIND \
 ```
 Save successful payloads under `opsdash/test/fixtures/` (see `test/fixtures/README.md`). Use anonymised calendar IDs (`cal-1`, `opsdash-week`).
 - Preset envelopes live alongside those payloads (`preset-export.json`); `test/useDashboardPresets.test.ts` replays that export end-to-end to ensure imported configs apply cleanly and still trigger `queueSave`.
-- PHP unit tests (`tests/php/Controller/OverviewControllerTest.php`) reuse the same preset fixture to assert the controller’s `sanitizePresetPayload()` accepts exported data without warnings.
+- PHP unit tests (`tests/php/Controller/PresetsControllerTest.php`) reuse the same preset fixture to assert `sanitizePresetPayload()` accepts exported data without warnings.
 - Offset fixtures (`load-week-offset-1.json`, `load-week-offset2.json`, `load-month-offset1.json`) keep Vitest and PHPUnit in sync on date-boundaries; `dashboardIntegration.test.ts` ensures the SPA honours `meta.offset`, and the PHP suite parses them to watch for schema changes.
 - Additional fixture coverage:
   - `load-month-multiuser.json` exercises month view with multiple calendars.
@@ -165,7 +165,7 @@ Phased plan (adapted from the former `TESTING_IMPROVEMENT_PLAN.md`). Update this
 
 ### Phase 2 – Integration Harness (in progress)
 - Expand Vitest integration suites using captured fixtures.
-- Add PHPUnit coverage for `OverviewController` load/persist/presets sanitisation.
+- Add PHPUnit coverage for `OverviewController` (`/overview/load`) plus the write controllers (`PersistController`, `PresetsController`, `NotesController`) sanitisation and schema stability.
 - Extend Playwright to exercise onboarding reruns + preset save/load (parts already landed; continue iterating).
 
 ### Phase 3 – Regression Workflow
