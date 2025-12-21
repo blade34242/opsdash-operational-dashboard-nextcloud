@@ -42,7 +42,7 @@ The Vue mount pulls its entrypoint from the manifest, so filenames never need ma
 ## 4. Configuration, Targets & Sidebar
 - `/overview/persist` stores per-user state: selected calendars, notes, sidebar tabs, category mapping, pacing thresholds, balance insights, and forecast toggles.
 - “All-day hours” (0–24 h) defines how multi-day all-day events contribute per day.
-- Sidebar remembers open/closed state via `localStorage` so the dock reopens in the last used position.
+- Sidebar open/closed state is derived from server-persisted config; no localStorage fallback is used.
 
 ### Cache Controls
 - Response cache toggle (global): `occ config:app:set opsdash cache_enabled --value=0` (set `1` to enable).
@@ -51,8 +51,8 @@ The Vue mount pulls its entrypoint from the manifest, so filenames never need ma
 
 ### Targets & Cards
 - Range switch (Week/Month) recalculates totals; monthly targets default to weekly×4 unless explicitly set.
-- Activity card toggles include weekend share, evening share, overlaps, longest session, last day off, projection modes, etc. These live under `targets_config.activityCard`.
-- Balance card controls thresholds, insight toggles, pinning a note, and ratio precision. Stored under `targets_config.balanceCard`.
+- Activity card projection mode lives under `targets_config.activityCard.forecastMode`.
+- Balance trend lookback lives under `targets_config.balance.trend.lookbackWeeks` and is edited in Calendars → Projection & Trend.
 
 ### Widget Layout & Sizing
 - Widget width/height define the available grid space; content must never render outside this box.
@@ -60,7 +60,7 @@ The Vue mount pulls its entrypoint from the manifest, so filenames never need ma
 - Scrolling is a fallback only when a user makes a widget too small for its chosen Scale/Dense.
 
 ### Theme Overrides
-- Config & Setup → Theme lets users pick `Follow Nextcloud`, `Force light`, or `Force dark`.
+- Theme tab lets users pick `Follow Nextcloud`, `Force light`, or `Force dark`.
 - Preference is persisted per-user server-side (`theme_preference` via `/overview/persist`) and bootstrapped into the DOM for instant paint; preset export/import includes it so profiles stay portable.
 
 ### Presets

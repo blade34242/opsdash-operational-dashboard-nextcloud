@@ -1,4 +1,4 @@
-# Sidebar Configuration Reference (Opsdash 0.4.7)
+# Sidebar Configuration Reference (Opsdash 0.4.9)
 
 Canonical map of every setting that lives in the sidebar and how it persists.
 Keep this file updated whenever a new toggle/value is added or renamed.
@@ -11,8 +11,8 @@ All sidebar state can be represented as a single JSON envelope:
 
 ```json
 {
-  "version": "0.4.4",
-  "generated": "2025-11-04T19:45:00Z",
+  "version": "0.4.9",
+  "generated": "2025-12-21T19:45:00Z",
   "payload": {
     "cals": ["cal-1", "cal-3"],
     "groups": { "cal-1": 0, "cal-3": 2 },
@@ -49,7 +49,7 @@ All sidebar state can be represented as a single JSON envelope:
 | `targets_week` | `Record<string, number>` | Weekly goal per calendar | Hours, floats allowed. |
 | `targets_month` | `Record<string, number>` | Monthly goal per calendar | Hours, floats allowed. |
 | `targets_config` | `TargetsConfig` object | All targets/balance/activity/summary UI + numeric settings | See sections 3–6. |
-| `theme_preference` | `'auto' | 'light' | 'dark'` | Config & Setup theme toggle | Empty / unknown ⇒ falls back to `auto`. |
+| `theme_preference` | `'auto' | 'light' | 'dark'` | Theme tab toggle | Empty / unknown ⇒ falls back to `auto`. |
 | `onboarding` | `OnboardingState` | Wizard completion state | Optional. `onboarding_reset` in payload clears it. |
 | `deck_settings` | `DeckFeatureSettings` | Deck tab visibility, filters, hidden boards, mine-mode, solved/archived toggle, ticker prefs | Enabled flag doubles as Deck tab toggle. |
 | `reporting_config` | `ReportingConfig` | Recap cadence (week/month/both), interim reminders, alerting | Shared between Sidebar → Report tab and onboarding final tweaks. |
@@ -108,7 +108,7 @@ All sidebar state can be represented as a single JSON envelope:
 
 ---
 
-## 4. Balance tab (`targets_config.balance`)
+## 4. Balance config (`targets_config.balance`)
 
 | Path | Description |
 | ---- | ----------- |
@@ -137,7 +137,7 @@ These thresholds influence both the Balance card and the `warning`/`insight` tex
 
 ---
 
-## 5. Activity & schedule tab (`targets_config.activityCard`)
+## 5. Activity & schedule config (`targets_config.activityCard`)
 
 | Field | Description |
 | ----- | ----------- |
@@ -168,7 +168,7 @@ These thresholds influence both the Balance card and the `warning`/`insight` tex
 
 ---
 
-## 8. Config & Setup tab
+## 8. Theme tab
 
 | Field | Description |
 | ----- | ----------- |
@@ -186,17 +186,16 @@ Already covered by top-level keys:
 - `groups`: calendar grouping.
 - `targets_week` / `targets_month`: per-calendar targets.
 
-Buttons such as “All/None” are pure UI helpers and require no persistence.
+Calendars also exposes:
+- `targets_config.activityCard.forecastMode` (projection mode for charts).
+- `targets_config.balance.trend.lookbackWeeks` (trend lookback window).
+- “Re-run onboarding” + “Keyboard shortcuts” actions (no persistence).
 
 ---
 
 ## 10. Local storage & ephemeral state
 
-| Key | Description |
-| --- | ----------- |
-| `opsdash.sidebarOpen` | Tracks whether the navigation pane is collapsed. |
-| (none) | Theme preference is bootstrapped into the initial HTML and persisted server-side as `theme_preference`; it is not stored in localStorage. |
-| Range / offset / active tab | Determined per request; not persisted server side. |
+No sidebar or widget state is persisted in localStorage. Theme preference is bootstrapped into the initial HTML and persisted server-side as `theme_preference`.
 
 ---
 
@@ -209,7 +208,7 @@ Buttons such as “All/None” are pure UI helpers and require no persistence.
 
 ## 12. UI import / export
 
-The Config & Setup tab now exposes two buttons:
+The Profiles tab exposes two buttons:
 
 - **Export configuration** – downloads the current payload wrapped in the envelope described above.
 - **Import configuration** – upload a JSON export; the app sanitises it with the whitelist and persists via `/overview/persist`, reporting any ignored keys.

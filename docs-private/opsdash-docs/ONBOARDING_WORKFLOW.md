@@ -16,7 +16,7 @@ needed to guide new users toward a useful initial configuration.
 ## Current Status (0.4.9+)
 - ✅ Wizard ships with intro → strategy → calendars → categories → preferences → review sequence.
 - ✅ Theme selector, all-day hours input, total-hours summary, and Deck quick-setup block are live; deck settings are emitted via `deck_settings` so the SPA + server stay in sync.
-- ✅ Snapshot reminder + preset backup live on the intro screen; Config & Setup exposes “Re-run onboarding”.
+- ✅ Snapshot reminder + preset backup live on the intro screen; Calendars tab exposes “Re-run onboarding”.
 - ✅ Reporting cadence + alerts are configurable in the preferences step and included in the review summary (`reporting_config` persisted via `/overview/persist`).
 - ✅ Activity day-off heatmap toggle is exposed and persisted (`targets_config_activity.showDayOffTrend`).
 
@@ -44,7 +44,7 @@ needed to guide new users toward a useful initial configuration.
    - List of highlights (Targets, Balance, Notes).
    - `Get started` primary action, `Maybe later` secondary (skip sets default 
      profile and marks onboarding complete).
-   - If an existing configuration is detected, display a reminder to save a preset first (button triggers the same save flow as Config & Setup → “Save current configuration”).
+   - If an existing configuration is detected, display a reminder to save a preset first (button triggers the same save flow as Theme → “Save current configuration”).
 2. **Target Strategy Step**
    - Presents the strategies described in `TARGET_STRATEGIES.md`.
    - Each strategy card includes: recommended audience, quick bullet benefits, 
@@ -91,10 +91,10 @@ needed to guide new users toward a useful initial configuration.
 - When missing or `version < current`, prompt onboarding.
 - Store the initial target/weekend/category choices using existing fields 
   (`targets_week`, `targets_month`, `targets_config`, `groups`).
-- Include a UI toggle in Sidebar → Config & Setup: “Re-run onboarding”. — ✅ wired to `createOnboardingWizardState` so the wizard remounts on every manual reopen (0.4.4, 2025-11).
+- Include a UI toggle in Sidebar → Calendars: “Re-run onboarding”. — ✅ wired to `createOnboardingWizardState` so the wizard remounts on every manual reopen (0.4.4, 2025-11).
 - Persist new preferences alongside the existing payload:
   - `theme_preference`
-  - `targets_config.balance.trend.lookbackWeeks` (user can edit later in Balance pane)
+  - `targets_config.balance.trend.lookbackWeeks` (user can edit later in Calendars → Projection & Trend)
   - `reporting_config` (enabled/schedule/interim/reminders)
   - `deck_settings` (`enabled`, `defaultFilter`, `hiddenBoards`)
   - `targets_config.activityCard.showDayOffTrend`

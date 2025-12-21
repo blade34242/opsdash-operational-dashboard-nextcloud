@@ -4,6 +4,9 @@ All notable changes to this project are documented here. This file is served loc
 
 ## [Unreleased]
 - Pending changes.
+- UI: Sidebar removed Activity/Balance pane; projection + trend lookback now live under Calendars.
+- UI: “Config & Setup” renamed to Theme; rerun onboarding + keyboard shortcuts moved into Calendars; All/None calendar buttons removed.
+- Config: Sidebar and widget layout no longer persist via localStorage; server persistence only.
 - Backend: extracted `/overview/persist` + `/overview/notes` into `PersistController` and `NotesController` (URLs unchanged); `OverviewController` focuses on `/overview/load` (+ index/ping).
 - Frontend: split `DashboardLayout` into smaller layout components; widgets are lazy-loaded via `defineAsyncComponent()` in the per-widget registry files.
 - Tests/fixtures: removed deprecated `roundPercent`/`roundRatio`/`showDailyStacks` balance fields from all week/month load, persist, onboarding, and preset fixtures to match the streamlined balance config.

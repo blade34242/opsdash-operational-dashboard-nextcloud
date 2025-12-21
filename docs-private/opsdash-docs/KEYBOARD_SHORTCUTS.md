@@ -49,7 +49,7 @@ be triggered from the sidebar and via a shortcut (`?`).
 - The overlay uses a custom panel (`role="dialog"`, focus trap, Esc to close) to
   satisfy CSP without relying on runtime-injected styles.
 - `useKeyboardShortcuts` binds listeners immediately (Alt+←/→, Alt+Shift+R,
-  Alt+N, Alt+T, Ctrl/⌘+S, `?`) and exposes helpers for Notes/Config tabs.
+  Alt+N, Alt+T, Ctrl/⌘+S, `?`) and exposes helpers for Notes/Theme tabs.
 - Opening the overlay fires a `shortcuts_opened` telemetry event via
   `trackTelemetry`, capturing whether it came from keyboard or UI.
 - Add analytics event (`shortcuts_opened`) once telemetry is approved.
@@ -62,7 +62,7 @@ be triggered from the sidebar and via a shortcut (`?`).
 | Navigation | Toggle week/month | `Alt` + `Shift` + `R` |
 | Notes | Open Notes pane | `Alt` + `N` |
 | Notes | Save note | `Ctrl / ⌘` + `S` |
-| Targets | Open Config & Setup | `Alt` + `T` |
+| Targets | Open Theme | `Alt` + `T` |
 | Misc | Keyboard overlay | `?` |
 
 ## Dependencies

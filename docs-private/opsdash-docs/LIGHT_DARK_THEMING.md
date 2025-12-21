@@ -40,11 +40,9 @@ first-class light/dark experience across Opsdash.
      the Nextcloud profile).
    - Fallback to `prefers-color-scheme` when Nextcloud provides no explicit
      theme.
-   - Store optional app-level override in `localStorage` (`opsdashTheme`) and 
-     persist via `/persist` only after onboarding completes.
-   - Expose toggle in Sidebar → Summary (`Auto / Light / Dark`). “Auto” mirrors 
-     Nextcloud/user preference; manual picks override locally and update the 
-     left sidebar state immediately.
+   - Persist optional app-level override via `/overview/persist` (`theme_preference`).
+   - Expose toggle in Sidebar → Theme (`Auto / Light / Dark`). “Auto” mirrors 
+     Nextcloud/user preference; manual picks update the UI immediately.
 3. **Incremental Roll-out**
    - Phase 1 (post-onboarding milestone): apply tokens to main dashboard shell 
      (`App.vue` pane, cards, sidebar header). Use this to validate palette and
@@ -73,7 +71,7 @@ first-class light/dark experience across Opsdash.
      dark`. Default to `auto` until onboarding writes the record.
    - Switching theme updates document attribute (`document.documentElement.dataset.theme`)
      and fires a custom `opsdash:theme:changed` event so charts/modules can react.
-  - **Status 2025-12:** Overrides now persist via `/overview/persist` (Config & Setup + onboarding), and `services/theme.ts` bootstraps from the server-provided preference before `/load` completes so cache clears no longer force “Auto”.
+  - **Status 2025-12:** Overrides now persist via `/overview/persist` (Theme + onboarding), and `services/theme.ts` bootstraps from the server-provided preference before `/load` completes so cache clears no longer force “Auto”.
 
 ## Accessibility & QA
 - Contrast testing for primary text, secondary text, link states, badges, 

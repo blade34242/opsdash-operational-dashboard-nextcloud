@@ -24,7 +24,10 @@ All notable changes to this project will be documented in this file.
 - Balance/Activity sidebar controls restored: thresholds, index basis selector, trend lookback, display toggle, and activity card toggles with contextual help.
 ### Changed
 - Dashboard save queue now records widget edits (add/remove/move/update/reset/preset apply) so layouts survive logouts and device changes.
-- Balance pane wiring updated to emit forecast/index/threshold/lookback/UI changes into targets config; index basis disables lookback when off.
+- Sidebar layout: Activity/Balance pane removed; projection + trend lookback now live in the Calendars tab alongside per-calendar targets.
+- Sidebar naming: “Config & Setup” is now “Theme”, and rerun onboarding + keyboard shortcuts moved to Calendars.
+- Removed sidebar All/None calendar shortcuts to keep selection explicit.
+- Widget layout and sidebar state no longer persist via localStorage (server persistence only).
 - Deck cards widget now scrolls inside its card (no main page scroll) so long lists stay contained.
 ### Fixed
 - Widget layout no longer falls back to defaults after clearing cookies; server-saved layout is applied on reload.

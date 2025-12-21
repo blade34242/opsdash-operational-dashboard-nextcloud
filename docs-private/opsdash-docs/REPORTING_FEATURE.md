@@ -36,6 +36,6 @@ OC_Mail` to send a templated HTML email (respecting Nextcloud mail settings).
 4. Decide on the first delivery channel (Activity vs Email) and document data retention expectations.
 
 ## Open Questions
-- Should users opt-in per account? (Likely via Config & Setup toggle.)
+- Should users opt-in per account? (Likely via Theme/Profile toggle.)
 - What cadence do we support initially (weekly only?).
 - Translation needs once the feature stabilises.
