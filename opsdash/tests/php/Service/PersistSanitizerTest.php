@@ -175,6 +175,11 @@ class PersistSanitizerTest extends TestCase {
     $this->assertSame(12, $resultTwelve['trend']['lookbackWeeks']);
   }
 
+  public function testBalanceLookbackDefaultsToFour(): void {
+    $result = $this->sanitizer->cleanTargetsConfig(['balance' => []]);
+    $this->assertSame(4, $result['balance']['trend']['lookbackWeeks']);
+  }
+
   public function testBalanceLookbackClampNegative(): void {
     $result = $this->sanitizer->cleanBalanceConfig(['trend' => ['lookbackWeeks' => -1]], []);
     $this->assertSame(1, $result['trend']['lookbackWeeks']);
@@ -215,9 +220,10 @@ class PersistSanitizerTest extends TestCase {
       ['type' => '', 'id' => 'bad'],
       ['type' => 'note_editor', 'layout' => ['width' => 'giant', 'height' => 'x', 'order' => 'oops'], 'options' => 'not-array'],
       ['type' => 'deck_cards', 'layout' => ['width' => 'half', 'height' => 'l', 'order' => 7]],
+      ['type' => 'category_mix_trend', 'layout' => ['width' => 'quarter', 'height' => 'xl', 'order' => 12]],
     ]);
 
-    $this->assertCount(2, $result, 'Invalid widget types should be skipped');
+    $this->assertCount(3, $result, 'Invalid widget types should be skipped');
     $this->assertSame('note_editor', $result[0]['type']);
     $this->assertSame('full', $result[0]['layout']['width']);
     $this->assertSame('m', $result[0]['layout']['height']);
@@ -229,6 +235,11 @@ class PersistSanitizerTest extends TestCase {
     $this->assertSame('l', $result[1]['layout']['height']);
     $this->assertSame(7.0, $result[1]['layout']['order']);
     $this->assertStringStartsWith('widget-deck_cards-', $result[1]['id'], 'Missing ids should be generated');
+
+    $this->assertSame('category_mix_trend', $result[2]['type']);
+    $this->assertSame('quarter', $result[2]['layout']['width']);
+    $this->assertSame('xl', $result[2]['layout']['height']);
+    $this->assertSame(12.0, $result[2]['layout']['order']);
   }
 
   public function testCleanOnboardingState(): void {
@@ -260,4 +271,3 @@ class PersistSanitizerTest extends TestCase {
     $this->assertSame('', $result);
   }
 }
-

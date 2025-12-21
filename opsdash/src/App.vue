@@ -576,6 +576,9 @@ const {
   uid,
   root,
 })
+const setDeckFilter = (value: DeckFilterMode) => {
+  deckFilter.value = sanitizeDeckFilter(value)
+}
 
 const onboardingState = onboarding
 
@@ -995,6 +998,9 @@ const { timeSummary, activitySummary, activityDayOffTrend } = useSummaries({
   calendars,
   selected,
   rangeLabel,
+  rangeStart: from,
+  rangeEnd: to,
+  offset,
   activeDayMode,
   topCategory,
 })
@@ -1030,6 +1036,7 @@ const { widgetContext } = useWidgetRenderContext({
   balanceCardConfig,
   rangeLabel,
   range,
+  offset,
   from,
   to,
   trendLookbackWeeks,
@@ -1041,6 +1048,8 @@ const { widgetContext } = useWidgetRenderContext({
   deckLoading,
   deckError,
   deckTickerConfig,
+  deckFilter,
+  setDeckFilter,
   deckSettings,
   deckUrl,
   deckCards,

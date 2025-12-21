@@ -21,10 +21,11 @@ describe('CategoryMixTrendCard', () => {
         lookbackWeeks: 1,
         toneLowColor: '#111111',
         toneHighColor: '#eeeeee',
+        colorMode: 'trend',
       },
     })
     const cells = wrapper.findAll('.mix-cell').map((c) => c.element as HTMLElement)
     expect(cells.length).toBeGreaterThan(1)
-    expect(cells.some((el) => el.style.background.includes('rgb(17, 17, 17)'))).toBe(true)
+    expect(cells.some((el) => el.style.getPropertyValue('--mix-bg').includes('#111111'))).toBe(true)
   })
 })

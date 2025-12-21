@@ -22,7 +22,20 @@
       No Deck data
     </div>
     <ul v-else class="deck-summary-card__rows" @mouseenter="pause" @mouseleave="resume">
-      <li v-for="bucket in buckets" :key="bucket.key" class="deck-summary-card__row">
+      <li
+        v-for="bucket in buckets"
+        :key="bucket.key"
+        class="deck-summary-card__row"
+        :class="{
+          'deck-summary-card__row--active': bucket.key === activeFilter,
+          'deck-summary-card__row--clickable': canFilter,
+        }"
+        role="button"
+        tabindex="0"
+        @click="handleFilter(bucket.key)"
+        @keydown.enter.prevent="handleFilter(bucket.key)"
+        @keydown.space.prevent="handleFilter(bucket.key)"
+      >
         <div class="deck-summary-card__row-head">
           <span class="bucket-label">{{ bucket.label }}</span>
           <span class="bucket-count">{{ bucket.count }}</span>
@@ -31,7 +44,7 @@
           <span
             v-if="showBoardBadges && bucket.board"
             class="bucket-board"
-            :style="{ borderColor: bucket.board.color || 'var(--brand)' }"
+            :style="badgeStyle(bucket.board.color)"
           >
             {{ bucket.board.title }}
           </span>
@@ -70,6 +83,8 @@ const props = defineProps<{
   error?: string
   ticker: { autoScroll: boolean; intervalSeconds: number }
   showBoardBadges?: boolean
+  activeFilter?: DeckFilterMode
+  onFilter?: (key: DeckFilterMode) => void
   title?: string
   cardBg?: string | null
 }>()
@@ -81,6 +96,8 @@ let timer: ReturnType<typeof setInterval> | null = null
 const hasAnyData = computed(() => props.buckets.some((bucket) => bucket.count > 0))
 const titleText = computed(() => props.title || 'Deck summary')
 const cardStyle = computed(() => ({ background: props.cardBg || undefined }))
+const activeFilter = computed(() => props.activeFilter)
+const canFilter = computed(() => typeof props.onFilter === 'function')
 
 function visibleTitles(bucket: (typeof props.buckets)[number]) {
   if (!bucket.titles.length) return []
@@ -119,6 +136,21 @@ function resume() {
   paused.value = false
 }
 
+function handleFilter(key: DeckFilterMode) {
+  if (props.onFilter) {
+    props.onFilter(key)
+  }
+}
+
+function badgeStyle(color?: string) {
+  const base = color || 'var(--brand)'
+  return {
+    borderColor: base,
+    color: base,
+    background: `color-mix(in srgb, ${base} 18%, transparent)`,
+  }
+}
+
 watch(
   () => [props.ticker.autoScroll, props.ticker.intervalSeconds],
   () => {
@@ -136,7 +168,8 @@ onBeforeUnmount(() => {
 .deck-summary-card {
   display: flex;
   flex-direction: column;
-  gap: 0.75rem;
+  gap: calc(12px * var(--widget-space, 1));
+  font-size: var(--widget-font, 14px);
 }
 .deck-summary-card__header {
   display: flex;
@@ -145,29 +178,29 @@ onBeforeUnmount(() => {
 }
 .deck-summary-card__title {
   font-weight: 700;
-  font-size: 1rem;
+  font-size: calc(16px * var(--widget-scale, 1));
 }
 .deck-summary-card__subtitle {
   color: var(--color-text-maxcontrast);
-  font-size: 0.85rem;
+  font-size: calc(14px * var(--widget-scale, 1));
 }
 .deck-summary-card__meta {
   color: var(--color-text-maxcontrast);
-  font-size: 0.85rem;
+  font-size: calc(14px * var(--widget-scale, 1));
 }
 .deck-summary-card__loading,
 .deck-summary-card__error,
 .deck-summary-card__empty {
   display: flex;
   align-items: center;
-  gap: 0.5rem;
+  gap: calc(8px * var(--widget-space, 1));
   color: var(--color-text-maxcontrast);
 }
 .deck-summary-card__error {
   background: var(--color-error-hover);
   color: var(--color-error-text);
-  border-radius: 8px;
-  padding: 0.5rem 0.75rem;
+  border-radius: calc(8px * var(--widget-space, 1));
+  padding: calc(8px * var(--widget-space, 1)) calc(12px * var(--widget-space, 1));
 }
 .deck-summary-card__rows {
   list-style: none;
@@ -175,16 +208,23 @@ onBeforeUnmount(() => {
   margin: 0;
   display: flex;
   flex-direction: column;
-  gap: 0.5rem;
+  gap: calc(8px * var(--widget-space, 1));
 }
 .deck-summary-card__row {
   border: 1px solid var(--color-border);
-  border-radius: 10px;
-  padding: 0.6rem 0.75rem;
+  border-radius: calc(10px * var(--widget-space, 1));
+  padding: calc(10px * var(--widget-space, 1)) calc(12px * var(--widget-space, 1));
   display: flex;
   flex-direction: column;
-  gap: 0.35rem;
+  gap: calc(6px * var(--widget-space, 1));
   background: var(--color-main-background);
+}
+.deck-summary-card__row--clickable {
+  cursor: pointer;
+}
+.deck-summary-card__row--active {
+  border-color: var(--color-primary);
+  box-shadow: inset 0 0 0 1px var(--color-primary);
 }
 .deck-summary-card__row-head {
   display: flex;
@@ -193,37 +233,37 @@ onBeforeUnmount(() => {
   font-weight: 600;
 }
 .bucket-label {
-  font-size: 0.9rem;
+  font-size: calc(14px * var(--widget-scale, 1));
 }
 .bucket-count {
-  font-size: 0.85rem;
+  font-size: calc(13px * var(--widget-scale, 1));
   border-radius: 999px;
-  padding: 0.1rem 0.55rem;
+  padding: calc(2px * var(--widget-space, 1)) calc(9px * var(--widget-space, 1));
   background: var(--color-background-darker);
 }
 .deck-summary-card__row-body {
   display: flex;
   flex-wrap: wrap;
-  gap: 0.5rem;
+  gap: calc(8px * var(--widget-space, 1));
   align-items: center;
 }
 .bucket-board {
   border: 2px solid var(--color-border);
-  padding: 0.2rem 0.6rem;
+  padding: calc(3px * var(--widget-space, 1)) calc(10px * var(--widget-space, 1));
   border-radius: 999px;
-  font-size: 0.75rem;
+  font-size: calc(12px * var(--widget-scale, 1));
   text-transform: uppercase;
 }
 .bucket-titles {
   display: flex;
   flex-wrap: wrap;
-  gap: 0.35rem;
+  gap: calc(6px * var(--widget-space, 1));
 }
 .bucket-title {
-  padding: 0.15rem 0.5rem;
+  padding: calc(2px * var(--widget-space, 1)) calc(8px * var(--widget-space, 1));
   background: var(--color-background-darker);
   border-radius: 999px;
-  font-size: 0.8rem;
+  font-size: calc(13px * var(--widget-scale, 1));
 }
 .bucket-title--muted {
   color: var(--color-text-maxcontrast);

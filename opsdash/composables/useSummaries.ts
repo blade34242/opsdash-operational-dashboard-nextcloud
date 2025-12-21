@@ -3,11 +3,14 @@ import type { TargetsProgress } from '../src/services/targets'
 
 export interface TimeSummary {
   rangeLabel: string
+  rangeStart: string
+  rangeEnd: string
+  offset: number
   totalHours: number
   avgDay: number
   avgEvent: number
   medianDay: number
-  busiest: string | null
+  busiest: { date?: string; hours?: number } | null
   workdayAvg: number
   workdayMedian: number
   weekendAvg: number
@@ -16,6 +19,12 @@ export interface TimeSummary {
   activeCalendars: number
   calendarSummary: string
   balanceIndex: number | null
+  delta: {
+    totalHours: number
+    avgPerDay: number
+    avgPerEvent: number
+    events: number
+  } | null
   topCategory: {
     label: string
     actualHours: number
@@ -35,6 +44,10 @@ export interface ActivitySummary {
   typicalEnd: string | null
   weekendShare: number | null
   eveningShare: number | null
+  delta: {
+    weekendShare: number | null
+    eveningShare: number | null
+  } | null
   earliestStart: string | null
   latestEnd: string | null
   overlapEvents: number | null
@@ -82,6 +95,9 @@ interface UseSummariesInput {
   calendars: Ref<any[]>
   selected: Ref<string[]>
   rangeLabel: ComputedRef<string>
+  rangeStart: Ref<string>
+  rangeEnd: Ref<string>
+  offset: Ref<number>
   activeDayMode: Ref<'active' | 'all'>
   topCategory: ComputedRef<{
     id: string
@@ -172,6 +188,9 @@ export function useSummaries(input: UseSummariesInput) {
 
   const timeSummary = computed<TimeSummary>(() => ({
     rangeLabel: input.rangeLabel.value,
+    rangeStart: input.rangeStart.value,
+    rangeEnd: input.rangeEnd.value,
+    offset: input.offset.value,
     totalHours: Number((input.stats as any)?.total_hours ?? 0),
     avgDay: avg(filteredDailyTotals.value),
     avgEvent: Number((input.stats as any)?.avg_per_event ?? 0),
@@ -185,6 +204,16 @@ export function useSummaries(input: UseSummariesInput) {
     activeCalendars: activeCalendarsCount.value,
     calendarSummary: calendarSummary.value,
     balanceIndex: balanceIndex.value,
+    delta: (() => {
+      const raw: any = (input.stats as any)?.delta
+      if (!raw || typeof raw !== 'object') return null
+      return {
+        totalHours: numOrNull(raw.total_hours) ?? 0,
+        avgPerDay: numOrNull(raw.avg_per_day) ?? 0,
+        avgPerEvent: numOrNull(raw.avg_per_event) ?? 0,
+        events: safeInt(raw.events),
+      }
+    })(),
     topCategory: input.topCategory.value
       ? {
           label: input.topCategory.value.label,
@@ -200,6 +229,16 @@ export function useSummaries(input: UseSummariesInput) {
 
   const activitySummary = computed<ActivitySummary>(() => {
     const raw: any = input.stats
+    const deltaRaw: any = raw?.delta
+    const weekendDelta = numOrNull(deltaRaw?.weekend_share ?? deltaRaw?.weekendShare)
+    const eveningDelta = numOrNull(deltaRaw?.evening_share ?? deltaRaw?.eveningShare)
+    const delta =
+      weekendDelta != null || eveningDelta != null
+        ? {
+            weekendShare: weekendDelta,
+            eveningShare: eveningDelta,
+          }
+        : null
     return {
       rangeLabel: input.rangeLabel.value,
       events: safeInt(raw.events),
@@ -208,6 +247,7 @@ export function useSummaries(input: UseSummariesInput) {
       typicalEnd: stringOrNull(raw.typical_end),
       weekendShare: numOrNull(raw.weekend_share),
       eveningShare: numOrNull(raw.evening_share),
+      delta,
       earliestStart: stringOrNull(raw.earliest_start),
       latestEnd: stringOrNull(raw.latest_end),
       overlapEvents: numOrNull(raw.overlap_events),

@@ -276,9 +276,9 @@ function classifyDayOffTone(value: number): 'low' | 'mid' | 'high' {
 .activity-card {
   display: flex;
   flex-direction: column;
-  gap: 8px;
-  padding: 14px;
-  font-size: 13px;
+  gap: var(--widget-gap, 8px);
+  padding: var(--widget-pad, 14px);
+  font-size: var(--widget-font, 13px);
   color: var(--muted);
 }
 .activity-card__header {
@@ -287,21 +287,21 @@ function classifyDayOffTone(value: number): 'low' | 'mid' | 'high' {
   align-items: center;
   font-weight: 600;
   color: var(--fg);
-  font-size: 12px;
+  font-size: calc(12px * var(--widget-scale, 1));
 }
 .activity-card__hero {
   font-weight: 600;
   color: var(--fg);
 }
 .activity-card__subline {
-  font-size: 12px;
+  font-size: calc(12px * var(--widget-scale, 1));
 }
 .activity-card__meta,
 .activity-card__extra {
   display: flex;
   flex-wrap: wrap;
-  gap: 8px 14px;
-  font-size: 12px;
+  gap: calc(8px * var(--widget-space, 1)) calc(14px * var(--widget-space, 1));
+  font-size: calc(12px * var(--widget-scale, 1));
 }
 .activity-card__meta strong,
 .activity-card__extra strong {
@@ -309,21 +309,21 @@ function classifyDayOffTone(value: number): 'low' | 'mid' | 'high' {
   color: var(--fg);
 }
 .activity-card__hint {
-  font-size: 11px;
+  font-size: calc(11px * var(--widget-scale, 1));
   color: var(--muted);
   opacity: .8;
 }
 .activity-card__trend {
   border-top: 1px solid var(--color-border-maxcontrast, rgba(125, 125, 125, 0.2));
-  padding-top: 10px;
+  padding-top: calc(10px * var(--widget-space, 1));
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: var(--widget-gap, 8px);
 }
 .dayoff-header {
   display: flex;
   justify-content: space-between;
-  font-size: 11px;
+  font-size: calc(11px * var(--widget-scale, 1));
   color: var(--muted);
 }
 .dayoff-meta {
@@ -331,15 +331,15 @@ function classifyDayOffTone(value: number): 'low' | 'mid' | 'high' {
 }
 .dayoff-heatmap {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(110px, 1fr));
-  gap: 8px;
+  grid-template-columns: repeat(auto-fit, minmax(calc(110px * var(--widget-scale, 1)), 1fr));
+  gap: var(--widget-gap, 8px);
 }
 .dayoff-tile {
-  border-radius: 10px;
-  padding: 10px 8px;
+  border-radius: calc(10px * var(--widget-space, 1));
+  padding: calc(10px * var(--widget-space, 1)) calc(8px * var(--widget-space, 1));
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: calc(4px * var(--widget-space, 1));
   text-align: center;
   background: color-mix(in oklab, var(--muted), transparent 85%);
   color: var(--fg);
@@ -362,25 +362,25 @@ function classifyDayOffTone(value: number): 'low' | 'mid' | 'high' {
   color: #14532d;
 }
 .dayoff-tile__label {
-  font-size: 11px;
+  font-size: calc(11px * var(--widget-scale, 1));
   font-weight: 600;
 }
 .dayoff-tile__value {
-  font-size: 14px;
+  font-size: calc(14px * var(--widget-scale, 1));
   font-weight: 700;
   font-variant-numeric: tabular-nums;
 }
 .dayoff-tile__meta {
-  font-size: 10px;
+  font-size: calc(10px * var(--widget-scale, 1));
   color: color-mix(in oklab, currentColor, transparent 55%);
   font-variant-numeric: tabular-nums;
 }
 .pill {
   display: inline-flex;
   align-items: center;
-  gap: 4px;
-  padding: 2px 8px;
-  font-size: 11px;
+  gap: calc(4px * var(--widget-space, 1));
+  padding: calc(2px * var(--widget-space, 1)) calc(8px * var(--widget-space, 1));
+  font-size: calc(11px * var(--widget-scale, 1));
   border-radius: 999px;
   background: color-mix(in srgb, var(--brand) 15%, white);
   color: var(--brand);

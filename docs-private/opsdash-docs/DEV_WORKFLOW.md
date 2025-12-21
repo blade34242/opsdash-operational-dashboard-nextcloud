@@ -44,10 +44,20 @@ The Vue mount pulls its entrypoint from the manifest, so filenames never need ma
 - “All-day hours” (0–24 h) defines how multi-day all-day events contribute per day.
 - Sidebar remembers open/closed state via `localStorage` so the dock reopens in the last used position.
 
+### Cache Controls
+- Response cache toggle (global): `occ config:app:set opsdash cache_enabled --value=0` (set `1` to enable).
+- TTL override (seconds): `occ config:app:set opsdash cache_ttl --value=60` or `OPSDASH_CACHE_TTL=60`.
+- Env shortcut: `OPSDASH_CACHE_ENABLED=0` disables caching regardless of app config.
+
 ### Targets & Cards
 - Range switch (Week/Month) recalculates totals; monthly targets default to weekly×4 unless explicitly set.
 - Activity card toggles include weekend share, evening share, overlaps, longest session, last day off, projection modes, etc. These live under `targets_config.activityCard`.
 - Balance card controls thresholds, insight toggles, pinning a note, and ratio precision. Stored under `targets_config.balanceCard`.
+
+### Widget Layout & Sizing
+- Widget width/height define the available grid space; content must never render outside this box.
+- Scale (`sm`/`md`/`lg`/`xl`) controls font and element sizing inside the widget; Dense tightens spacing without changing layout size.
+- Scrolling is a fallback only when a user makes a widget too small for its chosen Scale/Dense.
 
 ### Theme Overrides
 - Config & Setup → Theme lets users pick `Follow Nextcloud`, `Force light`, or `Force dark`.
@@ -57,6 +67,9 @@ The Vue mount pulls its entrypoint from the manifest, so filenames never need ma
 - `GET/POST/DELETE /overview/presets` manage named snapshots of the full sidebar state.
 - Loading a preset sanitises mismatched calendars/categories and reports warnings back to the UI.
 - Export/import helpers (`tools/security/preset_export_import.sh`) validate round-trips.
+
+### Reporting CLI
+- `occ opsdash:report --user=<uid> --range=week --offset=0 --format=json` prints a lightweight report snapshot.
 
 ---
 

@@ -3,6 +3,7 @@ declare(strict_types=1);
 
 namespace OCA\Opsdash\AppInfo;
 
+use OCA\Opsdash\Command\ReportCommand;
 use OCP\AppFramework\App;
 use OCP\AppFramework\Bootstrap\IBootstrap;
 use OCP\AppFramework\Bootstrap\IRegistrationContext;
@@ -15,7 +16,7 @@ class Application extends App implements IBootstrap {
     }
 
     public function register(IRegistrationContext $context): void {
-        // Deck seeding command is disabled; nothing to register
+        $context->registerCommand(ReportCommand::class);
     }
 
     public function boot(IBootContext $context): void {

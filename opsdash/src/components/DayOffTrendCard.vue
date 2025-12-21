@@ -208,7 +208,7 @@ function clamp(v: number, min: number, max: number) {
 .dayoff-card{
   display:flex;
   flex-direction:column;
-  gap:10px;
+  gap:var(--widget-gap, 10px);
 }
 .dayoff-card__header{
   display:flex;
@@ -216,19 +216,19 @@ function clamp(v: number, min: number, max: number) {
   justify-content:space-between;
   font-weight:600;
   color:var(--fg);
-  font-size:12px;
+  font-size:calc(12px * var(--widget-scale, 1));
 }
 .dayoff-heatmap{
   display:grid;
-  grid-template-columns:repeat(auto-fit, minmax(110px, 1fr));
-  gap:8px;
+  grid-template-columns:repeat(auto-fit, minmax(calc(110px * var(--widget-scale, 1)), 1fr));
+  gap:var(--widget-gap, 8px);
 }
 .dayoff-tile{
-  border-radius:10px;
-  padding:10px 8px;
+  border-radius:calc(10px * var(--widget-space, 1));
+  padding:calc(10px * var(--widget-space, 1)) calc(8px * var(--widget-space, 1));
   display:flex;
   flex-direction:column;
-  gap:4px;
+  gap:calc(4px * var(--widget-space, 1));
   text-align:center;
   background: var(--tile-bg, color-mix(in oklab, var(--muted), transparent 85%));
   color: var(--tile-fg, var(--fg));
@@ -251,25 +251,25 @@ function clamp(v: number, min: number, max: number) {
   color: var(--tile-fg, #14532d);
 }
 .dayoff-tile__label{
-  font-size:11px;
+  font-size:calc(11px * var(--widget-scale, 1));
   font-weight:600;
 }
 .dayoff-tile__value{
-  font-size:14px;
+  font-size:calc(14px * var(--widget-scale, 1));
   font-weight:700;
   font-variant-numeric: tabular-nums;
 }
 .dayoff-tile__meta{
-  font-size:10px;
+  font-size:calc(10px * var(--widget-scale, 1));
   color: color-mix(in oklab, currentColor, transparent 55%);
   font-variant-numeric: tabular-nums;
 }
 .pill{
   display:inline-flex;
   align-items:center;
-  gap:4px;
-  padding:2px 8px;
-  font-size:11px;
+  gap:calc(4px * var(--widget-space, 1));
+  padding:calc(2px * var(--widget-space, 1)) calc(8px * var(--widget-space, 1));
+  font-size:calc(11px * var(--widget-scale, 1));
   border-radius:999px;
   background: color-mix(in srgb, var(--brand) 15%, white);
   color: var(--brand);
@@ -277,7 +277,7 @@ function clamp(v: number, min: number, max: number) {
   letter-spacing: .05em;
 }
 .hint{
-  font-size:12px;
+  font-size:calc(12px * var(--widget-scale, 1));
   color:var(--muted);
 }
 </style>

@@ -37,7 +37,10 @@ function fixtureExists(name: string) {
 }
 
 function offsetFixtureName(range: 'week' | 'month', offset: number) {
-  return offset === 0 ? `load-${range}.json` : `load-${range}-offset${offset}.json`
+  if (offset === 0) return `load-${range}.json`
+  const base = `load-${range}-offset${offset}.json`
+  const trend = base.replace('.json', '-trend.json')
+  return fixtureExists(trend) ? trend : base
 }
 
 async function createIntegrationHarness(options: { fixture: string; range: 'week' | 'month'; offset?: number }): Promise<IntegrationHarness> {
@@ -368,5 +371,29 @@ describe('Dashboard integration fixtures', () => {
         expect(Array.isArray(harness.dashboard.byCal.value)).toBe(true)
       })
     })
+  })
+
+  it('keeps trend history for multi-offset fixtures', async () => {
+    const weekFixture = offsetFixtureName('week', 3)
+    if (fixtureExists(weekFixture)) {
+      const fixture = loadFixture(weekFixture)
+      vi.setSystemTime(new Date(`${fixture.meta.from}T12:00:00Z`))
+      const harness = await createIntegrationHarness({ range: 'week', fixture: weekFixture, offset: 3 })
+      expect(Array.isArray(harness.dashboard.stats.day_off_trend)).toBe(true)
+      expect(harness.dashboard.stats.day_off_trend.length).toBeGreaterThan(1)
+      expect(Array.isArray(harness.dashboard.stats.balance_overview?.trend?.history)).toBe(true)
+      expect(harness.dashboard.stats.balance_overview.trend.history.length).toBeGreaterThan(0)
+    }
+
+    const monthFixture = offsetFixtureName('month', -3)
+    if (fixtureExists(monthFixture)) {
+      const fixture = loadFixture(monthFixture)
+      vi.setSystemTime(new Date(`${fixture.meta.from}T12:00:00Z`))
+      const harness = await createIntegrationHarness({ range: 'month', fixture: monthFixture, offset: -3 })
+      expect(Array.isArray(harness.dashboard.stats.day_off_trend)).toBe(true)
+      expect(harness.dashboard.stats.day_off_trend.length).toBeGreaterThan(1)
+      expect(Array.isArray(harness.dashboard.stats.balance_overview?.trend?.history)).toBe(true)
+      expect(harness.dashboard.stats.balance_overview.trend.history.length).toBeGreaterThan(0)
+    }
   })
 })

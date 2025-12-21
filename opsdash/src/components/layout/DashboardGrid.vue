@@ -15,15 +15,14 @@
       :class="[
         widthClass(item.layout.width),
         heightClass(item.layout.height),
-        textClass(item.options?.textSize),
-        textScaleClass(item.options?.textSize),
+        scaleClass(item.options),
         {
           'is-editable': editable,
-          'is-dense': item.options?.dense,
           'is-selected': editable && selectedId === item.id,
           'is-dragging': editable && draggingId === item.id,
         },
       ]"
+      :style="widgetVars(item.options)"
       :draggable="editable"
       @click.stop="emit('select', item.id)"
       @dragstart="onDragStart(item.id)"
@@ -96,16 +95,6 @@ const layoutRows = computed(() => {
   return rows
 })
 
-const rowHeights = computed(() => {
-  const map: Record<string, number> = { s: 140, m: 220, l: 320 }
-  const heights = layoutRows.value.map((row) => {
-    const maxHeight = row.items.reduce((acc, item) => Math.max(acc, map[item.layout.height] || map.m), map.m)
-    return maxHeight
-  })
-  heights.push(200)
-  return heights
-})
-
 function widthClass(width: string) {
   switch (width) {
     case 'quarter': return 'w-quarter'
@@ -124,20 +113,29 @@ function heightClass(height: string) {
   switch (height) {
     case 's': return 'h-s'
     case 'l': return 'h-l'
+    case 'xl': return 'h-xl'
     default: return 'h-m'
   }
 }
 
-function textClass(size?: string) {
-  if (size === 'sm') return 'text-sm'
-  if (size === 'lg') return 'text-lg'
-  return 'text-md'
+function scaleClass(options?: { scale?: string; textSize?: string }) {
+  const size = options?.scale || options?.textSize || 'md'
+  if (size === 'sm') return 'scale-sm'
+  if (size === 'lg') return 'scale-lg'
+  if (size === 'xl') return 'scale-xl'
+  return 'scale-md'
 }
 
-function textScaleClass(size?: string) {
-  if (size === 'sm') return 'text-scale-sm'
-  if (size === 'lg') return 'text-scale-lg'
-  return 'text-scale-md'
+function widgetVars(options?: { scale?: string; textSize?: string; dense?: boolean }) {
+  const size = options?.scale || options?.textSize || 'md'
+  const scale = size === 'sm' ? 0.92 : size === 'lg' ? 1.12 : size === 'xl' ? 1.24 : 1
+  const density = options?.dense ? 0.84 : 1
+  const space = scale * density
+  return {
+    '--widget-scale': String(scale),
+    '--widget-space': String(space),
+    '--widget-density': String(density),
+  } as Record<string, string>
 }
 
 function gridPositionFromEvent(evt: MouseEvent) {
@@ -150,19 +148,9 @@ function gridPositionFromEvent(evt: MouseEvent) {
   const offsetX = Math.max(0, Math.min(rect.width, evt.clientX - rect.left))
   const col = Math.min(3, Math.max(0, Math.floor(offsetX / (colWidth + gap)))) + 1
 
-  const heights = rowHeights.value
   const offsetY = Math.max(0, Math.min(rect.height + 400, evt.clientY - rect.top))
-  let acc = 0
-  let row = 0
-  for (let i = 0; i < heights.length; i++) {
-    const h = heights[i]
-    if (offsetY <= acc + h) {
-      row = i
-      break
-    }
-    acc += h + gap
-    row = i
-  }
+  const rowSize = Number.parseFloat(getComputedStyle(el).getPropertyValue('--grid-row')) || 24
+  const row = Math.max(0, Math.floor(offsetY / (rowSize + gap)))
   return { row, col }
 }
 
@@ -249,12 +237,15 @@ function onDragEnd() {
   gap:12px;
   width:100%;
   position:relative;
+  --grid-row: 24px;
+  grid-auto-rows: var(--grid-row);
+  grid-auto-flow: row;
 }
 .layout-grid.show-guides{
   background-image:
     linear-gradient(to right, rgba(148,163,184,0.15) 1px, transparent 1px),
     linear-gradient(to bottom, rgba(148,163,184,0.12) 1px, transparent 1px);
-  background-size: calc((100% - 36px) / 4) 100%, 100% 48px;
+  background-size: calc((100% - 36px) / 4) 100%, 100% var(--grid-row);
   background-position: 0 0, 0 0;
 }
 .layout-grid.show-guides::after{
@@ -269,16 +260,31 @@ function onDragEnd() {
   display:flex;
   padding:0;
   cursor:grab;
+  align-self:stretch;
+  overflow:hidden;
+  --widget-scale:1;
+  --widget-space:1;
+  --widget-density:1;
+  --widget-text-scale: var(--widget-scale);
+  --widget-pad: calc(12px * var(--widget-space));
+  --widget-gap: calc(8px * var(--widget-space));
+  --widget-gap-tight: calc(6px * var(--widget-space));
+  --widget-font: calc(14px * var(--widget-scale));
 }
 .layout-item > *{
   flex:1 1 auto;
+  min-width:0;
+  min-height:0;
+  height:100%;
+  overflow:auto;
 }
 .w-quarter{ grid-column: span 1; }
 .w-half{ grid-column: span 2; }
 .w-full{ grid-column: span 4; }
-.h-s > *{ min-height:140px; }
-.h-m > *{ min-height:220px; }
-.h-l > *{ min-height:320px; }
+.h-s{ grid-row-end: span 4; }
+.h-m{ grid-row-end: span 6; }
+.h-l{ grid-row-end: span 9; }
+.h-xl{ grid-row-end: span 12; }
 .is-editable{
   outline:1px dashed rgba(107,114,128,0.5);
   border-radius:10px;
@@ -289,10 +295,10 @@ function onDragEnd() {
 .is-dragging{
   opacity:0.6;
 }
-.text-sm{ font-size:12px; line-height:1.2; }
-.text-md{ font-size:14px; line-height:1.35; }
-.text-lg{ font-size:18px; line-height:1.5; }
-.is-dense{ line-height:1.2; }
+.scale-sm{ --widget-scale:0.92; }
+.scale-md{ --widget-scale:1; }
+.scale-lg{ --widget-scale:1.12; }
+.scale-xl{ --widget-scale:1.24; }
 @media (max-width: 1024px){
   .w-quarter{ grid-column: span 2; }
   .w-half{ grid-column: span 2; }
@@ -302,4 +308,3 @@ function onDragEnd() {
   .w-quarter,.w-half,.w-full{ grid-column: span 4; }
 }
 </style>
-

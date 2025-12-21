@@ -37,6 +37,7 @@ Single reference for how we approach caching across the dashboard stack. Capture
    - Build key → check cache → if hit, return cached payload + refresh metrics.
    - If miss, run current aggregation, store result, then respond.
 4. Add config flag (app config + env) to disable caching (fallback for debugging).
+   - `OPSDASH_CACHE_ENABLED=0` or `occ config:app:set opsdash cache_enabled --value=0`
 5. Update `DEV_WORKFLOW.md` + `TROUBLESHOOTING.md` with “how to flush cache” instructions (e.g., `occ config:app:set opsdash cache_ttl 0` or `redis-cli FLUSHDB` if dedicated namespace).
 
 ## 5. Testing Plan

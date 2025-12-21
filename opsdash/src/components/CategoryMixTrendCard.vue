@@ -1,13 +1,21 @@
 <template>
-  <div class="card mix-card" :style="cardStyle">
-    <div class="mix-header">
+  <div
+    class="card mix-card"
+    :style="cardStyle"
+    :class="{
+      'mix-card--no-header': !showHeader,
+      'mix-card--dense': density === 'dense',
+      'mix-card--square': squareCells,
+    }"
+  >
+    <div v-if="showHeader" class="mix-header">
       <div>
         <div class="mix-title">{{ titleText }}</div>
         <div class="mix-subtitle">{{ lookbackLabel }}</div>
       </div>
       <span v-if="trendBadge" class="mix-badge">{{ trendBadge }}</span>
     </div>
-    <div class="mix-columns" :style="mixGridStyle" v-if="historyColumns.length || trendRows.length">
+    <div class="mix-columns" :style="mixHeaderStyle" v-if="historyColumns.length || trendRows.length">
       <span class="mix-column-label mix-column-label--label">CAT</span>
       <span
         v-for="column in historyColumns"
@@ -21,21 +29,17 @@
     <ul class="mix-list" v-if="trendRows.length">
       <li v-for="row in trendRows" :key="row.id" class="mix-row">
         <span class="mix-label">{{ row.label }}:</span>
-        <div class="mix-cells" :style="mixGridStyle">
+        <div class="mix-cells" :style="mixCellsStyle">
           <div
             v-for="(cell, idx) in row.cells"
             :key="`${row.id}-cell-${idx}`"
             class="mix-cell"
             :class="[
               `mix-cell--trend-${cell.trend}`,
+              `mix-cell--mode-${colorMode}`,
               { 'mix-cell--current': cell.isCurrent },
             ]"
-            :style="{
-              '--mix-bg': toneStyles[cell.trend].background,
-              '--mix-fg': toneStyles[cell.trend].color,
-              background: toneStyles[cell.trend].background,
-              color: toneStyles[cell.trend].color,
-            }"
+            :style="cell.style"
             :title="`${row.label} · ${cell.label} · ${formatShare(cell.share)}`"
           >
             <span class="mix-cell__value">{{ formatShare(cell.share) }}</span>
@@ -74,20 +78,47 @@ type BalanceOverview = {
   trend: BalanceTrend
 }
 
+type ColorMode = 'trend' | 'share' | 'hybrid'
+type DensityMode = 'normal' | 'dense'
+type LabelMode = 'period' | 'offset' | 'label' | 'compact' | 'date'
+
 const props = defineProps<{
   overview: BalanceOverview | null
   rangeMode: 'week' | 'month'
   lookbackWeeks: number
   showBadge?: boolean
+  showHeader?: boolean
+  colorMode?: ColorMode
+  density?: DensityMode
+  labelMode?: LabelMode
+  squareCells?: boolean
+  rangeLabel?: string
+  from?: string
+  to?: string
   title?: string
   cardBg?: string | null
   toneLowColor?: string | null
   toneHighColor?: string | null
+  shareLowColor?: string | null
+  shareHighColor?: string | null
 }>()
 
+const showHeader = computed(() => props.showHeader !== false)
+const density = computed<DensityMode>(() => (props.density === 'dense' ? 'dense' : 'normal'))
+const labelMode = computed<LabelMode>(() => {
+  const mode = (props.labelMode || 'period').toString().toLowerCase()
+  if (mode === 'offset' || mode === 'label' || mode === 'compact' || mode === 'date') return mode as LabelMode
+  return 'period'
+})
+const squareCells = computed(() => props.squareCells === true)
+const colorMode = computed<ColorMode>(() => {
+  const mode = props.colorMode
+  return mode === 'trend' || mode === 'share' || mode === 'hybrid' ? mode : 'hybrid'
+})
 const trendBadge = computed(() => (props.showBadge === false ? '' : props.overview?.trend?.badge ?? ''))
 const historyUnit = computed(() => (props.rangeMode === 'month' ? 'MO' : 'WE'))
-const currentColumnLabel = computed(() => `CU. ${historyUnit.value}`)
+const historyShortUnit = computed(() => (props.rangeMode === 'month' ? 'M' : 'W'))
+const currentColumnLabel = computed(() => formatCurrentLabel())
 const lookbackCount = computed(() => Math.max(1, Math.min(4, props.lookbackWeeks || 1)))
 const titleText = computed(() => props.title || 'Category mix trend')
 const cardStyle = computed(() => ({ background: props.cardBg || undefined }))
@@ -113,6 +144,15 @@ const rawHistoryEntries = computed<TrendHistoryEntry[]>(() => {
 })
 
 const fallbackHistoryLabel = (offset: number) => `-${offset} ${historyUnit.value}`
+const formatHistoryLabel = (offset: number, entryLabel?: string) => {
+  if (labelMode.value === 'label' && entryLabel) return entryLabel
+  if (labelMode.value === 'date') {
+    return computedRangeLabel(offset, entryLabel) || fallbackHistoryLabel(offset)
+  }
+  if (labelMode.value === 'offset') return `-${offset}`
+  if (labelMode.value === 'compact') return `${historyShortUnit.value}-${offset}`
+  return computedPeriodLabel(offset)
+}
 
 const historyColumns = computed<TrendHistoryColumn[]>(() => {
   if (!props.overview) {
@@ -130,7 +170,7 @@ const historyColumns = computed<TrendHistoryColumn[]>(() => {
     })
     byOffset.set(offset, {
       offset,
-      label: fallbackHistoryLabel(offset),
+      label: formatHistoryLabel(offset, entry.label),
       shares,
     })
   })
@@ -138,9 +178,19 @@ const historyColumns = computed<TrendHistoryColumn[]>(() => {
 })
 
 const columnCount = computed(() => historyColumns.value.length + 1)
-const mixGridStyle = computed(() => ({
-  gridTemplateColumns: `52px repeat(${Math.max(columnCount.value, 1)}, minmax(32px, 1fr))`,
-}))
+const mixHeaderStyle = computed(() => {
+  const count = Math.max(columnCount.value, 1)
+  const labelCol = 'minmax(0, var(--mix-label-width, 52px))'
+  return {
+    gridTemplateColumns: `${labelCol} repeat(${count}, minmax(0, 1fr))`,
+  }
+})
+const mixCellsStyle = computed(() => {
+  const count = Math.max(columnCount.value, 1)
+  return {
+    gridTemplateColumns: `repeat(${count}, minmax(0, 1fr))`,
+  }
+})
 
 const toneStyles = computed(() => {
   const low = normalizeColor(props.toneLowColor) || '#e11d48'
@@ -152,6 +202,17 @@ const toneStyles = computed(() => {
     up: makeTone(high),
   }
 })
+
+const sharePalette = computed(() => {
+  const low = normalizeColor(props.shareLowColor) || '#e2e8f0'
+  const high = normalizeColor(props.shareHighColor) || '#60a5fa'
+  return { low, high }
+})
+
+const shareColor = (value: number) => {
+  const ratio = clamp(value, 0, 100) / 100
+  return mixColor(sharePalette.value.low, sharePalette.value.high, ratio)
+}
 
 const classifyTrend = (delta: number) => {
   const threshold = 1
@@ -177,11 +238,23 @@ const trendRows = computed(() => {
     const cells = slots.map((slot, idx) => {
       const prevShare = idx === 0 ? slot.share : slots[idx - 1].share
       const delta = slot.share - prevShare
+      const trend = idx === 0 ? 'flat' : classifyTrend(delta)
+      const mode = colorMode.value
+      const trendTone = toneStyles.value[trend]
+      const shareBg = shareColor(slot.share)
+      const shareTone = makeTone(shareBg)
+      const bg = mode === 'trend' ? trendTone.background : shareBg
+      const fg = mode === 'trend' ? trendTone.color : shareTone.color
       return {
         label: slot.label,
         share: slot.share,
         isCurrent: !!slot.isCurrent,
-        trend: idx === 0 ? 'flat' : classifyTrend(delta),
+        trend,
+        style: {
+          '--mix-bg': bg,
+          '--mix-fg': fg,
+          '--mix-accent': trendTone.background,
+        },
       }
     })
     return {
@@ -206,6 +279,83 @@ const lookbackLabel = computed(() => {
 
 const formatShare = (value: number) => `${Math.max(0, Math.round(value))}%`
 
+const dateFormatter = new Intl.DateTimeFormat(undefined, { day: '2-digit', month: '2-digit' })
+function addDays(base: Date, days: number) {
+  const next = new Date(base)
+  next.setDate(next.getDate() + days)
+  return next
+}
+function addMonths(base: Date, months: number) {
+  const next = new Date(base)
+  next.setMonth(next.getMonth() + months)
+  return next
+}
+function endOfMonth(date: Date) {
+  return new Date(date.getFullYear(), date.getMonth() + 1, 0)
+}
+function isoWeek(date: Date) {
+  const tmp = new Date(Date.UTC(date.getFullYear(), date.getMonth(), date.getDate()))
+  const dayNum = tmp.getUTCDay() || 7
+  tmp.setUTCDate(tmp.getUTCDate() + 4 - dayNum)
+  const yearStart = new Date(Date.UTC(tmp.getUTCFullYear(), 0, 1))
+  const weekNo = Math.ceil((((tmp.getTime() - yearStart.getTime()) / 86400000) + 1) / 7)
+  return weekNo
+}
+function formatRange(from?: Date, to?: Date) {
+  if (!from || !to) return ''
+  const fromLabel = dateFormatter.format(from)
+  const toLabel = dateFormatter.format(to)
+  return fromLabel === toLabel ? fromLabel : `${fromLabel}–${toLabel}`
+}
+function computedRangeLabel(offset: number, entryLabel?: string) {
+  if (!props.from || !props.to) return entryLabel || ''
+  const mode = (props.rangeMode || '').toLowerCase()
+  const currentFrom = new Date(props.from)
+  const currentTo = new Date(props.to)
+  if (Number.isNaN(currentFrom.getTime()) || Number.isNaN(currentTo.getTime())) return entryLabel || ''
+  if (mode === 'month') {
+    const start = addMonths(currentFrom, -offset)
+    const end = endOfMonth(start)
+    return formatRange(start, end)
+  }
+  const start = addDays(currentFrom, -7 * offset)
+  const end = addDays(currentTo, -7 * offset)
+  return formatRange(start, end)
+}
+function computedPeriodLabel(offset: number) {
+  const mode = (props.rangeMode || '').toLowerCase()
+  if (!props.from) {
+    if (offset === 0) return 'Current'
+    return mode === 'month' ? `-${offset} mo` : `-${offset} wk`
+  }
+  const start = mode === 'month'
+    ? addMonths(new Date(props.from), -offset)
+    : addDays(new Date(props.from), -7 * offset)
+  if (Number.isNaN(start.getTime())) {
+    if (offset === 0) return 'Current'
+    return mode === 'month' ? `-${offset} mo` : `-${offset} wk`
+  }
+  if (mode === 'month') {
+    const currentMonth = new Date(props.from).getMonth() + 1
+    const displayMonth = offset === 0 ? currentMonth : start.getMonth() + 1
+    return `MONTH ${displayMonth}`
+  }
+  const currentWeek = isoWeek(new Date(props.from))
+  const displayWeek = offset === 0 ? currentWeek : isoWeek(start)
+  return `WEEK ${displayWeek}`
+}
+function formatCurrentLabel() {
+  if (labelMode.value === 'offset') return 'Current'
+  if (labelMode.value === 'compact') return 'CUR'
+  if (labelMode.value === 'label') {
+    return props.rangeLabel || (props.rangeMode === 'month' ? 'This month' : 'This week')
+  }
+  if (labelMode.value === 'date') {
+    return computedRangeLabel(0, props.rangeLabel || '') || (props.rangeMode === 'month' ? 'This month' : 'This week')
+  }
+  return computedPeriodLabel(0)
+}
+
 function normalizeColor(value?: string | null): string | null {
   if (!value || typeof value !== 'string') return null
   const hex = value.trim()
@@ -220,7 +370,7 @@ function mixColor(a: string, b: string, ratio = 0.5): string {
   const r = clamp(Math.round(pa.r + (pb.r - pa.r) * ratio), 0, 255)
   const g = clamp(Math.round(pa.g + (pb.g - pa.g) * ratio), 0, 255)
   const bl = clamp(Math.round(pa.b + (pb.b - pa.b) * ratio), 0, 255)
-  return `rgb(${r}, ${g}, ${bl})`
+  return `#${[r, g, bl].map((v) => v.toString(16).padStart(2, '0')).join('')}`
 }
 
 function parseHex(hex: string): { r: number; g: number; b: number } | null {
@@ -258,7 +408,31 @@ function clamp(v: number, min: number, max: number) {
 .mix-card{
   display:flex;
   flex-direction:column;
-  gap:10px;
+  gap:var(--widget-gap, 10px);
+  --mix-label-width: clamp(34px, calc(52px * var(--widget-scale, 1)), 64px);
+  --mix-gap: clamp(2px, calc(6px * var(--widget-space, 1)), 8px);
+  --mix-row-gap: clamp(4px, calc(8px * var(--widget-space, 1)), 12px);
+  --mix-cell-padding: clamp(2px, calc(6px * var(--widget-space, 1)), 8px);
+  --mix-cell-font: clamp(9px, calc(12px * var(--widget-scale, 1)), 14px);
+  --mix-label-font: clamp(9px, calc(12px * var(--widget-scale, 1)), 13px);
+  --mix-column-font: clamp(9px, calc(12px * var(--widget-scale, 1)), 12px);
+  --mix-cell-min: clamp(18px, calc(30px * var(--widget-scale, 1)), 36px);
+  --mix-radius: clamp(4px, calc(8px * var(--widget-space, 1)), 10px);
+}
+.mix-card--dense{
+  gap:calc(6px * var(--widget-space, 1));
+  --mix-label-width: clamp(28px, calc(40px * var(--widget-scale, 1)), 52px);
+  --mix-gap: clamp(1px, calc(3px * var(--widget-space, 1)), 6px);
+  --mix-row-gap: clamp(3px, calc(5px * var(--widget-space, 1)), 8px);
+  --mix-cell-padding: clamp(1px, calc(3px * var(--widget-space, 1)), 5px);
+  --mix-cell-font: clamp(8px, calc(10px * var(--widget-scale, 1)), 12px);
+  --mix-label-font: clamp(8px, calc(10px * var(--widget-scale, 1)), 11px);
+  --mix-column-font: clamp(8px, calc(9px * var(--widget-scale, 1)), 10px);
+  --mix-cell-min: clamp(16px, calc(22px * var(--widget-scale, 1)), 30px);
+  --mix-radius: clamp(3px, calc(5px * var(--widget-space, 1)), 8px);
+}
+.mix-card--no-header{
+  gap:calc(6px * var(--widget-space, 1));
 }
 .mix-header{
   display:flex;
@@ -270,13 +444,13 @@ function clamp(v: number, min: number, max: number) {
   color:var(--fg);
 }
 .mix-subtitle{
-  font-size:12px;
+  font-size:calc(12px * var(--widget-scale, 1));
   color:var(--muted);
 }
 .mix-badge{
-  padding:4px 8px;
-  border-radius:8px;
-  font-size:12px;
+  padding:calc(4px * var(--widget-space, 1)) calc(8px * var(--widget-space, 1));
+  border-radius:calc(8px * var(--widget-space, 1));
+  font-size:calc(12px * var(--widget-scale, 1));
   font-weight:600;
   background: color-mix(in oklab, var(--brand), transparent 80%);
   border: 1px solid color-mix(in oklab, var(--brand), transparent 60%);
@@ -288,28 +462,37 @@ function clamp(v: number, min: number, max: number) {
   margin:0;
   display:flex;
   flex-direction:column;
-  gap:8px;
+  gap:var(--mix-row-gap);
 }
 .mix-row{
   display:grid;
-  grid-template-columns:52px 1fr;
-  gap:6px;
+  grid-template-columns:var(--mix-label-width) 1fr;
+  gap:var(--mix-gap);
   align-items:center;
 }
 .mix-label{
   font-weight:600;
   color:var(--fg);
-  font-size:12px;
+  font-size:var(--mix-label-font);
+  white-space:nowrap;
+  overflow:hidden;
+  text-overflow:ellipsis;
 }
 .mix-columns{
   display:grid;
-  gap:6px;
+  gap:var(--mix-gap);
   align-items:center;
-  font-size:12px;
+  justify-content:start;
+  font-size:var(--mix-column-font);
   color:var(--muted);
 }
 .mix-column-label{
   text-align:center;
+  white-space:nowrap;
+  font-variant-numeric: tabular-nums;
+  line-height:1.1;
+  overflow:hidden;
+  text-overflow:ellipsis;
 }
 .mix-column-label--label{
   text-align:left;
@@ -320,32 +503,49 @@ function clamp(v: number, min: number, max: number) {
 }
 .mix-cells{
   display:grid;
-  gap:6px;
+  gap:var(--mix-gap);
+  align-items:stretch;
+  justify-content:start;
+  width:100%;
+  min-width:0;
 }
 .mix-cell{
-  border-radius:8px;
-  padding:6px;
-  background: var(--mix-bg, color-mix(in oklab, var(--muted), transparent 85%));
+  position:relative;
+  border-radius:var(--mix-radius);
+  padding:var(--mix-cell-padding);
+  background: linear-gradient(
+    135deg,
+    color-mix(in oklab, var(--mix-bg), white 12%),
+    var(--mix-bg)
+  );
   color: var(--mix-fg, var(--fg));
   text-align:center;
-  font-size:12px;
+  font-size:var(--mix-cell-font);
+  border: 1px solid color-mix(in oklab, var(--mix-bg), var(--fg) 12%);
+  box-shadow: inset 0 0 0 1px color-mix(in oklab, var(--mix-bg), transparent 60%);
+  min-height:var(--mix-cell-min);
+  display:flex;
+  align-items:center;
+  justify-content:center;
 }
 .mix-cell--current{
   outline: 1px solid color-mix(in oklab, var(--brand), transparent 35%);
   outline-offset:1px;
 }
-.mix-cell--trend-up{
-  background: var(--mix-bg, color-mix(in oklab, #16a34a, white 65%));
+.mix-cell--mode-hybrid{
+  box-shadow: inset 0 -3px 0 0 color-mix(in oklab, var(--mix-accent), transparent 30%);
 }
-.mix-cell--trend-down{
-  background: var(--mix-bg, color-mix(in oklab, #dc2626, white 65%));
+.mix-cell--mode-share{
+  box-shadow: inset 0 0 0 1px color-mix(in oklab, var(--mix-bg), transparent 40%);
 }
-.mix-cell--trend-flat{
-  background: var(--mix-bg, color-mix(in oklab, #f97316, white 70%));
+.mix-card--square .mix-cell{
+  aspect-ratio:1 / 1;
+  min-height:0;
 }
 .mix-cell__value{
   font-weight:700;
   font-variant-numeric: tabular-nums;
+  white-space:nowrap;
 }
 .pill{
   display:inline-flex;

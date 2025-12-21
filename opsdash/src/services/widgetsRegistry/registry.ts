@@ -50,9 +50,13 @@ export function normalizeWidgetLayout(raw: any, fallback: WidgetDefinition[]): W
     const width: WidgetSize =
       layout.width === 'quarter' || layout.width === 'half' ? layout.width : 'full'
     const height: WidgetHeight =
-      layout.height === 's' || layout.height === 'l' ? layout.height : 'm'
+      layout.height === 's' || layout.height === 'l' || layout.height === 'xl' ? layout.height : 'm'
     const order = Number(layout.order ?? 0)
     const options = item?.options && typeof item.options === 'object' ? { ...item.options } : {}
+    if (options.scale == null && options.textSize != null) {
+      options.scale = options.textSize
+      delete options.textSize
+    }
     cleaned.push({
       id,
       type,
@@ -125,4 +129,3 @@ export function createDashboardPreset(mode: DashboardMode): WidgetDefinition[] {
     cloneWidget('deck_cards'),
   ]
 }
-

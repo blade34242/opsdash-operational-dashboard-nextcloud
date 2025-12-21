@@ -244,31 +244,31 @@ function colorMix(hex: string, factor = 0.5, darker = false): string {
 </script>
 
 <style scoped>
-.targets-card{ display:flex; flex-direction:column; gap:8px }
+.targets-card{ display:flex; flex-direction:column; gap:var(--widget-gap, 8px); font-size:var(--widget-font, 14px) }
 .targets-header{ display:flex; justify-content:space-between; align-items:center }
-.targets-header strong{ font-size:14px }
-.targets-main{ display:flex; flex-direction:column; gap:4px; font-size:13px }
-.targets-main .line{ display:flex; flex-wrap:wrap; gap:6px }
-.targets-main .line.forecast{ flex-direction:column; gap:2px }
-.targets-main .line .value{ display:flex; gap:6px; align-items:center }
-.targets-badges{ display:flex; flex-wrap:wrap; gap:6px }
-.targets-categories{ display:flex; flex-direction:column; gap:10px; padding-top:6px; border-top:1px solid var(--line) }
-.category{ display:flex; flex-direction:column; gap:6px; font-size:12px; padding:4px 0 }
-.category .cat-top{ display:flex; align-items:center; justify-content:space-between; gap:8px }
-.category .cat-label{ display:flex; align-items:center; gap:6px; font-weight:600; color:var(--fg) }
-.category .cat-label .dot{ width:10px; height:10px; border-radius:50%; background:var(--brand); box-shadow:0 0 0 1px color-mix(in srgb, var(--fg) 10%, transparent) }
+.targets-header strong{ font-size:calc(14px * var(--widget-scale, 1)) }
+.targets-main{ display:flex; flex-direction:column; gap:calc(4px * var(--widget-space, 1)); font-size:calc(13px * var(--widget-scale, 1)) }
+.targets-main .line{ display:flex; flex-wrap:wrap; gap:calc(6px * var(--widget-space, 1)) }
+.targets-main .line.forecast{ flex-direction:column; gap:calc(2px * var(--widget-space, 1)) }
+.targets-main .line .value{ display:flex; gap:calc(6px * var(--widget-space, 1)); align-items:center }
+.targets-badges{ display:flex; flex-wrap:wrap; gap:calc(6px * var(--widget-space, 1)) }
+.targets-categories{ display:flex; flex-direction:column; gap:calc(10px * var(--widget-space, 1)); padding-top:calc(6px * var(--widget-space, 1)); border-top:1px solid var(--line) }
+.category{ display:flex; flex-direction:column; gap:calc(6px * var(--widget-space, 1)); font-size:calc(12px * var(--widget-scale, 1)); padding:calc(4px * var(--widget-space, 1)) 0 }
+.category .cat-top{ display:flex; align-items:center; justify-content:space-between; gap:calc(8px * var(--widget-space, 1)) }
+.category .cat-label{ display:flex; align-items:center; gap:calc(6px * var(--widget-space, 1)); font-weight:600; color:var(--fg) }
+.category .cat-label .dot{ width:calc(10px * var(--widget-space, 1)); height:calc(10px * var(--widget-space, 1)); border-radius:50%; background:var(--brand); box-shadow:0 0 0 1px color-mix(in srgb, var(--fg) 10%, transparent) }
 .category .cat-label .name{ color:var(--fg) }
-.category .cat-meta{ display:flex; align-items:center; gap:6px; font-weight:600; color:var(--muted) }
+.category .cat-meta{ display:flex; align-items:center; gap:calc(6px * var(--widget-space, 1)); font-weight:600; color:var(--muted) }
 .category .cat-meta .percent{ font-variant-numeric:tabular-nums; color:var(--fg) }
-.cat-progress .bar{ position:relative; width:100%; height:8px; border-radius:999px; background:color-mix(in srgb, var(--muted) 20%, transparent); overflow:hidden }
+.cat-progress .bar{ position:relative; width:100%; height:calc(8px * var(--widget-space, 1)); border-radius:999px; background:color-mix(in srgb, var(--muted) 20%, transparent); overflow:hidden }
 .cat-progress .bar .fill{ height:100%; border-radius:999px; transition:width .2s ease; max-width:100% }
-.cat-progress .bar .today-overlay{ position:absolute; top:-2px; height:12px; border-radius:8px; opacity:0.85; border:1px solid transparent; pointer-events:none }
-.today-chip{ position:absolute; top:-22px; transform:translateX(-50%); padding:2px 8px; border-radius:999px; font-size:10px; font-weight:700; color:#fff; border:1px solid transparent; white-space:nowrap; box-shadow:0 2px 6px rgba(0,0,0,0.12) }
-.today-label{ font-size:10px; line-height:1.2 }
-.category .cat-metrics{ display:flex; flex-wrap:wrap; gap:6px; align-items:center; color:var(--fg) }
+.cat-progress .bar .today-overlay{ position:absolute; top:calc(-2px * var(--widget-space, 1)); height:calc(12px * var(--widget-space, 1)); border-radius:calc(8px * var(--widget-space, 1)); opacity:0.85; border:1px solid transparent; pointer-events:none }
+.today-chip{ position:absolute; top:calc(-22px * var(--widget-space, 1)); transform:translateX(-50%); padding:calc(2px * var(--widget-space, 1)) calc(8px * var(--widget-space, 1)); border-radius:999px; font-size:calc(10px * var(--widget-scale, 1)); font-weight:700; color:#fff; border:1px solid transparent; white-space:nowrap; box-shadow:0 2px 6px rgba(0,0,0,0.12) }
+.today-label{ font-size:calc(10px * var(--widget-scale, 1)); line-height:1.2 }
+.category .cat-metrics{ display:flex; flex-wrap:wrap; gap:calc(6px * var(--widget-space, 1)); align-items:center; color:var(--fg) }
 .cat-footer{ display:flex; justify-content:space-between; align-items:center }
-.hint{ color:var(--muted); font-size:12px }
-.badge{ display:inline-flex; align-items:center; gap:4px; padding:2px 8px; border-radius:999px; font-size:11px; font-weight:600; text-transform:uppercase; letter-spacing:.05em }
+.hint{ color:var(--muted); font-size:calc(12px * var(--widget-scale, 1)) }
+.badge{ display:inline-flex; align-items:center; gap:calc(4px * var(--widget-space, 1)); padding:calc(2px * var(--widget-space, 1)) calc(8px * var(--widget-space, 1)); border-radius:999px; font-size:calc(11px * var(--widget-scale, 1)); font-weight:600; text-transform:uppercase; letter-spacing:.05em }
 .status-label{ font-weight:600 }
 .status-on{ background:color-mix(in srgb, var(--brand) 20%, white); color:var(--brand) }
 .status-risk{ background:color-mix(in srgb, #f97316 20%, white); color:#f97316 }
@@ -278,8 +278,8 @@ function colorMix(hex: string, factor = 0.5, darker = false): string {
 .delta{ font-weight:600 }
 .delta.pos{ color:var(--pos) }
 .delta.neg{ color:var(--neg) }
-.cat-metrics .hint{ font-size:11px }
-.cat-footer .hint{ font-size:11px }
-.cat-progress{ padding:2px 0 }
-.cat-meta .badge{ font-size:10px }
+.cat-metrics .hint{ font-size:calc(11px * var(--widget-scale, 1)) }
+.cat-footer .hint{ font-size:calc(11px * var(--widget-scale, 1)) }
+.cat-progress{ padding:calc(2px * var(--widget-space, 1)) 0 }
+.cat-meta .badge{ font-size:calc(10px * var(--widget-scale, 1)) }
 </style>

@@ -154,6 +154,27 @@ test('Operational Dashboard loads without console errors', async ({ page, baseUR
   expect(hasOpsdashError, `Console errors encountered: ${consoleErrors.join('\n')}`).toBeFalsy()
 })
 
+test('Offset navigation keeps day-off trend visible', async ({ page, baseURL }) => {
+  if (!baseURL) {
+    test.skip()
+    return
+  }
+
+  await page.goto(baseURL + '/index.php/apps/opsdash/overview')
+  await dismissOnboardingIfVisible(page)
+
+  const prevButton = page.locator('button[title="Previous"]')
+  if (await prevButton.isVisible().catch(() => false)) {
+    await prevButton.click()
+    await prevButton.click()
+  }
+
+  const trend = page.locator('.activity-card__trend')
+  await expect(trend).toBeVisible({ timeout: 15000 })
+  const tiles = page.locator('.dayoff-tile')
+  expect(await tiles.count()).toBeGreaterThan(1)
+})
+
 test('CalDAV calendar exposes color metadata', async ({ page, baseURL }) => {
   if (!baseURL) {
     test.skip()

@@ -192,6 +192,9 @@ final class PersistController extends Controller {
         if ($themeRead === null) {
             $themeRead = $this->userConfigService->readThemePreference($this->appName, $uid);
         }
+        if ($targetsConfigRead === null) {
+            $targetsConfigRead = $this->userConfigService->readTargetsConfig($this->appName, $uid);
+        }
 
         return new DataResponse([
             'ok' => true,
@@ -221,4 +224,3 @@ final class PersistController extends Controller {
         ], Http::STATUS_OK);
     }
 }
-

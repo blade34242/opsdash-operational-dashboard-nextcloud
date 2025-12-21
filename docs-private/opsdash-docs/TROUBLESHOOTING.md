@@ -27,6 +27,10 @@
 - Reduce range to week or select fewer calendars.
 - Monitor server caps via the banner; caps are 2k per calendar, 5k total.
 
+## Cache toggle (server)
+- Disable response cache: `occ config:app:set opsdash cache_enabled --value=0` or `OPSDASH_CACHE_ENABLED=0`.
+- Adjust TTL: `occ config:app:set opsdash cache_ttl --value=60` or `OPSDASH_CACHE_TTL=60`.
+
 ## UI changes not visible (stale cache)
 - Rebuild: `npm run build` (produces new hashed assets in `js/assets/`).
 - Restart container; re-enable app: `occ app:disable/enable opsdash`.

@@ -59,11 +59,16 @@ export const timeSummaryV2Entry: RegistryEntry = {
 
     return {
       summary: ctx.summary,
+      activitySummary: ctx.activitySummary,
       mode: (def.options?.mode as 'active' | 'all' | undefined) ?? ctx.activeDayMode ?? 'active',
       config: cfg.timeSummary,
       todayGroups: def.props?.todayGroups ?? ctx.groups,
       title: buildTitle(baseTitle, def.options?.titlePrefix),
       cardBg: def.options?.cardBg,
+      rangeMode: ctx.rangeMode,
+      rangeStart: ctx.from,
+      rangeEnd: ctx.to,
+      offset: ctx.offset,
     }
   },
 }

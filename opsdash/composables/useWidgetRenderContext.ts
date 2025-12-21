@@ -19,6 +19,7 @@ interface WidgetRenderContextDeps {
   balanceCardConfig: ValueRef<any>
   rangeLabel: ValueRef<string>
   range: ValueRef<'week' | 'month'>
+  offset: ValueRef<number>
   from: ValueRef<string>
   to: ValueRef<string>
   trendLookbackWeeks: ValueRef<number>
@@ -30,6 +31,8 @@ interface WidgetRenderContextDeps {
   deckLoading: ValueRef<boolean>
   deckError: ValueRef<any>
   deckTickerConfig: ValueRef<any>
+  deckFilter: ValueRef<any>
+  setDeckFilter: (filter: any) => void
   deckSettings: ValueRef<any>
   deckUrl: ValueRef<string>
   deckCards: ValueRef<any[]>
@@ -73,6 +76,7 @@ export function useWidgetRenderContext(deps: WidgetRenderContextDeps): {
     balanceConfig: deps.balanceCardConfig.value,
     rangeLabel: deps.rangeLabel.value,
     rangeMode: deps.range.value,
+    offset: deps.offset.value,
     from: deps.from.value,
     to: deps.to.value,
     lookbackWeeks: deps.trendLookbackWeeks.value,
@@ -87,6 +91,8 @@ export function useWidgetRenderContext(deps: WidgetRenderContextDeps): {
     deckLoading: deps.deckLoading.value,
     deckError: deps.deckError.value,
     deckTicker: deps.deckTickerConfig.value,
+    deckFilter: deps.deckFilter.value,
+    onDeckFilter: (filter: any) => deps.setDeckFilter(filter),
     deckShowBoardBadges: deps.deckSettings.value?.ticker?.showBoardBadges !== false,
     deckUrl: deps.deckUrl.value,
     deckCards: deps.deckCards.value,
@@ -107,4 +113,3 @@ export function useWidgetRenderContext(deps: WidgetRenderContextDeps): {
 
   return { widgetContext }
 }
-

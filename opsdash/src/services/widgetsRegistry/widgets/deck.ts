@@ -27,6 +27,8 @@ export const deckEntry: RegistryEntry = {
     loading: ctx.deckLoading,
     error: ctx.deckError,
     ticker: ctx.deckTicker,
+    activeFilter: ctx.deckFilter,
+    onFilter: ctx.onDeckFilter,
     showBoardBadges: def.options?.showBadges ?? ctx.deckShowBoardBadges,
     showHeader: def.options?.showHeader !== false,
     showTicker: def.options?.showTicker !== false,

@@ -105,57 +105,79 @@ class CalendarService {
                 break;
             }
             $rowAllDay = is_array($row) && array_key_exists('allday', $row) ? (bool)$row['allday'] : false;
-            if (is_array($row) && isset($row['objects']) && is_array($row['objects'])) {
+            if (is_array($row) && isset($row['objects'])) {
                 $objects = $row['objects'];
-                $payload = $objects[0] ?? [];
-                if (isset($payload['calendardata'])) {
-                    $ics = (string)$payload['calendardata'];
-                    if ($ics !== '' && strlen($ics) < $maxIcsBytes) {
-                        try {
-                            $vobj = Reader::read($ics);
-                            if ($vobj && isset($vobj->VEVENT)) {
-                                foreach ($vobj->select('VEVENT') as $vevent) {
-                                    $dtStart = $vevent->DTSTART?->getDateTime();
-                                    $dtEnd = $vevent->DTEND?->getDateTime();
-                                    if (!$dtEnd && $dtStart && isset($vevent->DURATION)) {
-                                        try {
-                                            $dtEnd = (clone $dtStart)->add(new DateInterval((string)$vevent->DURATION->getValue()));
-                                        } catch (\Throwable) {
-                                            $dtEnd = (clone $dtStart)->modify('+1 hour');
-                                        }
-                                    } elseif (!$dtEnd && $dtStart) {
-                                        $dtEnd = (clone $dtStart)->modify('+1 hour');
-                                    }
-                                    $hours = ($dtEnd instanceof DateTimeInterface && $dtStart instanceof DateTimeInterface)
-                                        ? ($dtEnd->getTimestamp() - $dtStart->getTimestamp()) / 3600
-                                        : null;
-                                    $evtAllDay = $rowAllDay;
-                                    if (!$evtAllDay && isset($vevent->DTSTART) && method_exists($vevent->DTSTART, 'hasTime')) {
-                                        $evtAllDay = !$vevent->DTSTART->hasTime();
-                                    }
-
-                                    $out[] = [
-                                        'calendar' => $calendarName,
-                                        'calendar_id' => $calendarId,
-                                        'title' => $this->text($vevent->SUMMARY ?? null),
-                                        'start' => $this->fmt($dtStart),
-                                        'startTz' => $dtStart?->getTimezone()->getName(),
-                                        'end' => $this->fmt($dtEnd),
-                                        'endTz' => $dtEnd?->getTimezone()->getName(),
-                                        'hours' => $hours !== null ? round($hours, 2) : null,
-                                        'allday' => $evtAllDay,
-                                        'status' => (string)($vevent->STATUS?->getValue() ?? ''),
-                                        'location' => (string)($vevent->LOCATION?->getValue() ?? ''),
-                                        'desc' => $this->shorten((string)($vevent->DESCRIPTION?->getValue() ?? ''), 160),
-                                    ];
-                                }
-                                $icsParsed = true;
-                            }
-                        } catch (\Throwable) {
-                            // ignore malformed ICS
+                if ($objects instanceof \ArrayObject) {
+                    $objects = $objects->getArrayCopy();
+                } elseif ($objects instanceof \stdClass) {
+                    $objects = (array)$objects;
+                }
+                if (is_array($objects)) {
+                    foreach ($objects as $payload) {
+                        if ($payload instanceof \ArrayObject) {
+                            $payload = $payload->getArrayCopy();
+                        } elseif ($payload instanceof \stdClass) {
+                            $payload = (array)$payload;
                         }
-                    } else {
-                        $icsSkipped++;
+                        if (!is_array($payload)) {
+                            continue;
+                        }
+                        if (isset($payload['calendardata'])) {
+                            $ics = (string)$payload['calendardata'];
+                            if ($ics !== '' && strlen($ics) < $maxIcsBytes) {
+                                try {
+                                    $vobj = Reader::read($ics);
+                                    if ($vobj && isset($vobj->VEVENT)) {
+                                        foreach ($vobj->select('VEVENT') as $vevent) {
+                                            $dtStart = $vevent->DTSTART?->getDateTime();
+                                            $dtEnd = $vevent->DTEND?->getDateTime();
+                                            if (!$dtEnd && $dtStart && isset($vevent->DURATION)) {
+                                                try {
+                                                    $dtEnd = (clone $dtStart)->add(new DateInterval((string)$vevent->DURATION->getValue()));
+                                                } catch (\Throwable) {
+                                                    $dtEnd = (clone $dtStart)->modify('+1 hour');
+                                                }
+                                            } elseif (!$dtEnd && $dtStart) {
+                                                $dtEnd = (clone $dtStart)->modify('+1 hour');
+                                            }
+                                            $hours = ($dtEnd instanceof DateTimeInterface && $dtStart instanceof DateTimeInterface)
+                                                ? ($dtEnd->getTimestamp() - $dtStart->getTimestamp()) / 3600
+                                                : null;
+                                            $evtAllDay = $rowAllDay;
+                                            if (!$evtAllDay && isset($vevent->DTSTART) && method_exists($vevent->DTSTART, 'hasTime')) {
+                                                $evtAllDay = !$vevent->DTSTART->hasTime();
+                                            }
+
+                                            $out[] = [
+                                                'calendar' => $calendarName,
+                                                'calendar_id' => $calendarId,
+                                                'title' => $this->text($vevent->SUMMARY ?? null),
+                                                'start' => $this->fmt($dtStart),
+                                                'startTz' => $dtStart?->getTimezone()->getName(),
+                                                'end' => $this->fmt($dtEnd),
+                                                'endTz' => $dtEnd?->getTimezone()->getName(),
+                                                'hours' => $hours !== null ? round($hours, 2) : null,
+                                                'allday' => $evtAllDay,
+                                                'status' => (string)($vevent->STATUS?->getValue() ?? ''),
+                                                'location' => (string)($vevent->LOCATION?->getValue() ?? ''),
+                                                'desc' => $this->shorten((string)($vevent->DESCRIPTION?->getValue() ?? ''), 160),
+                                            ];
+                                        }
+                                        $icsParsed = true;
+                                    }
+                                } catch (\Throwable) {
+                                    // ignore malformed ICS
+                                }
+                            } else {
+                                $icsSkipped++;
+                            }
+                            continue;
+                        }
+
+                        $structured = $this->parseStructuredObject($payload, $rowAllDay, $calendarName, $calendarId);
+                        if ($structured !== null) {
+                            $out[] = $structured;
+                        }
                     }
                 }
                 continue;
@@ -281,6 +303,121 @@ class CalendarService {
         }
 
         return $out;
+    }
+
+    /**
+     * @param array<string, mixed> $payload
+     * @return array<string, mixed>|null
+     */
+    private function parseStructuredObject(array $payload, bool $rowAllDay, string $calendarName, ?string $calendarId): ?array {
+        if (!isset($payload['DTSTART'])) {
+            return null;
+        }
+
+        $dtStart = $this->structuredDate($payload['DTSTART']);
+        $dtEnd = $this->structuredDate($payload['DTEND'] ?? null);
+        if (!$dtEnd && $dtStart && isset($payload['DURATION'])) {
+            $duration = $this->structuredText($payload['DURATION']);
+            if ($duration !== '') {
+                try {
+                    $dtEnd = (new DateTimeImmutable($dtStart->format(DateTimeInterface::ATOM)))->add(new DateInterval($duration));
+                } catch (\Throwable) {
+                    $dtEnd = $dtStart->modify('+1 hour');
+                }
+            }
+        } elseif (!$dtEnd && $dtStart) {
+            $dtEnd = $dtStart->modify('+1 hour');
+        }
+
+        $hours = ($dtEnd instanceof DateTimeInterface && $dtStart instanceof DateTimeInterface)
+            ? ($dtEnd->getTimestamp() - $dtStart->getTimestamp()) / 3600
+            : null;
+
+        $evtAllDay = $rowAllDay;
+        if (!$evtAllDay) {
+            $params = $this->structuredParams($payload['DTSTART'] ?? null);
+            $valueType = $params['VALUE'] ?? null;
+            if (is_array($valueType)) {
+                $valueType = reset($valueType);
+            }
+            if (is_string($valueType) && strtoupper($valueType) === 'DATE') {
+                $evtAllDay = true;
+            }
+        }
+
+        return [
+            'calendar' => $calendarName,
+            'calendar_id' => $calendarId,
+            'title' => $this->structuredText($payload['SUMMARY'] ?? null),
+            'start' => $this->fmt($dtStart),
+            'startTz' => $dtStart?->getTimezone()->getName(),
+            'end' => $this->fmt($dtEnd),
+            'endTz' => $dtEnd?->getTimezone()->getName(),
+            'hours' => $hours !== null ? round($hours, 2) : null,
+            'allday' => $evtAllDay,
+            'status' => $this->structuredText($payload['STATUS'] ?? null),
+            'location' => $this->structuredText($payload['LOCATION'] ?? null),
+            'desc' => $this->shorten($this->structuredText($payload['DESCRIPTION'] ?? null), 160),
+        ];
+    }
+
+    private function structuredParams(mixed $entry): array {
+        if (!is_array($entry)) {
+            return [];
+        }
+        $params = $entry[1] ?? [];
+        if ($params instanceof \ArrayObject) {
+            $params = $params->getArrayCopy();
+        } elseif ($params instanceof \stdClass) {
+            $params = (array)$params;
+        }
+        return is_array($params) ? $params : [];
+    }
+
+    private function structuredDate(mixed $entry): ?DateTimeImmutable {
+        if ($entry instanceof DateTimeInterface) {
+            return DateTimeImmutable::createFromInterface($entry);
+        }
+        if (!is_array($entry)) {
+            return null;
+        }
+        $value = $entry[0] ?? null;
+        if ($value instanceof DateTimeInterface) {
+            return DateTimeImmutable::createFromInterface($value);
+        }
+        if (is_array($value)) {
+            $date = $value['date'] ?? null;
+            $tz = $value['timezone'] ?? null;
+            if (is_string($date) && $date !== '') {
+                try {
+                    $zone = is_string($tz) && $tz !== '' ? new \DateTimeZone($tz) : null;
+                    return new DateTimeImmutable($date, $zone ?: null);
+                } catch (\Throwable) {
+                    return null;
+                }
+            }
+        }
+        if (is_string($value) && $value !== '') {
+            try {
+                return new DateTimeImmutable($value);
+            } catch (\Throwable) {
+                return null;
+            }
+        }
+        return null;
+    }
+
+    private function structuredText(mixed $entry): string {
+        if (is_array($entry)) {
+            $value = $entry[0] ?? null;
+            if (is_scalar($value)) {
+                return (string)$value;
+            }
+        }
+        if (is_scalar($entry)) {
+            return (string)$entry;
+        }
+        return '';
     }
 
     public function isDebugEnabled(): bool {

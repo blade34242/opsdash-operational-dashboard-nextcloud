@@ -16,6 +16,7 @@ use OCA\Opsdash\Service\PersistSanitizer;
 use OCA\Opsdash\Service\UserConfigService;
 use OCA\Opsdash\Service\ViteAssetsService;
 use OCP\Calendar\IManager;
+use OCP\ICacheFactory;
 use OCP\IConfig;
 use OCP\IRequest;
 use OCP\IUserSession;
@@ -24,6 +25,7 @@ use Psr\Log\LoggerInterface;
 
 class OverviewControllerTest extends TestCase {
   private OverviewController $controller;
+  private IConfig $config;
 
   protected function setUp(): void {
     parent::setUp();
@@ -32,12 +34,13 @@ class OverviewControllerTest extends TestCase {
     $calendarManager = $this->createMock(IManager::class);
     $logger = $this->createMock(LoggerInterface::class);
     $userSession = $this->createMock(IUserSession::class);
-    $config = $this->createMock(IConfig::class);
+    $this->config = $this->createMock(IConfig::class);
+    $cacheFactory = $this->createMock(ICacheFactory::class);
 
     $viteAssetsService = new ViteAssetsService();
-    $calendarService = new CalendarService($calendarManager, $config, $logger);
+    $calendarService = new CalendarService($calendarManager, $this->config, $logger);
     $sanitizer = new PersistSanitizer();
-    $userConfigService = new UserConfigService($config, $sanitizer, $logger);
+    $userConfigService = new UserConfigService($this->config, $sanitizer, $logger);
     $selection = new OverviewSelectionService();
     $collector = new OverviewEventsCollector($calendarManager, $calendarService, $logger);
     $history = new OverviewHistoryService($calendarService, $collector);
@@ -51,7 +54,7 @@ class OverviewControllerTest extends TestCase {
       $calendarManager,
       $logger,
       $userSession,
-      $config,
+      $this->config,
       $viteAssetsService,
       $calendarService,
       $sanitizer,
@@ -62,7 +65,55 @@ class OverviewControllerTest extends TestCase {
       $aggregation,
       $chartsBuilder,
       $balanceService,
+      $cacheFactory,
     );
+  }
+
+  public function testCacheEnabledHonorsAppConfig(): void {
+    $prevEnv = getenv('OPSDASH_CACHE_ENABLED');
+    putenv('OPSDASH_CACHE_ENABLED');
+
+    try {
+      $this->config
+        ->method('getAppValue')
+        ->with('opsdash', 'cache_enabled', '1')
+        ->willReturn('0');
+
+      $method = new \ReflectionMethod(OverviewController::class, 'readCacheEnabled');
+      $method->setAccessible(true);
+      $this->assertFalse($method->invoke($this->controller));
+    } finally {
+      if ($prevEnv === false) {
+        putenv('OPSDASH_CACHE_ENABLED');
+      } else {
+        putenv('OPSDASH_CACHE_ENABLED=' . $prevEnv);
+      }
+    }
+  }
+
+  public function testCacheKeyChangesWhenConfigChanges(): void {
+    $method = new \ReflectionMethod(OverviewController::class, 'buildLoadCacheKey');
+    $method->setAccessible(true);
+
+    $baseArgs = [
+      'admin',
+      'week',
+      0,
+      ['cal-1'],
+      ['cal-1' => 0],
+      ['cal-1' => 10],
+      ['cal-1' => 40],
+      ['totalHours' => 40],
+      ['enabled' => false],
+      ['enabled' => true],
+    ];
+
+    $keyA = $method->invoke($this->controller, ...$baseArgs);
+    $changed = $baseArgs;
+    $changed[7] = ['totalHours' => 45];
+    $keyB = $method->invoke($this->controller, ...$changed);
+
+    $this->assertNotSame($keyA, $keyB);
   }
 
   public function testWeekOffsetFixtureStructure(): void {

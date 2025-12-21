@@ -90,6 +90,7 @@ function widthLabel(width: string) {
 function heightLabel(height: string) {
   if (height === 's') return 'S'
   if (height === 'l') return 'L'
+  if (height === 'xl') return 'XL'
   return 'M'
 }
 </script>
@@ -168,4 +169,3 @@ function heightLabel(height: string) {
   border-color:color-mix(in oklab, #2563EB, transparent 50%);
 }
 </style>
-

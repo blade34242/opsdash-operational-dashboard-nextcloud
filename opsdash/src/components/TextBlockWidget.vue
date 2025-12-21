@@ -1,5 +1,5 @@
 <template>
-  <div class="text-card" :class="[`text-${size}`, { dense }]">
+  <div class="text-card">
     <h3 v-if="title">{{ title }}</h3>
     <p v-if="body" class="body">{{ body }}</p>
     <template v-if="items.length">
@@ -17,13 +17,8 @@ import { computed } from 'vue'
 const props = defineProps<{
   title?: string
   body?: string
-  textSize?: 'sm' | 'md' | 'lg'
-  dense?: boolean
   items?: Array<{ key: string; label?: string; value?: string }>
 }>()
-
-const size = computed(() => props.textSize ?? 'md')
-const dense = computed(() => props.dense ?? false)
 const title = computed(() => props.title ?? '')
 const body = computed(() => props.body ?? '')
 const items = computed(() => props.items ?? [])
@@ -33,15 +28,15 @@ const items = computed(() => props.items ?? [])
 .text-card{
   background: var(--card, #fff);
   border:1px solid var(--color-border, #d1d5db);
-  border-radius:10px;
-  padding:14px;
+  border-radius:calc(10px * var(--widget-space, 1));
+  padding:var(--widget-pad, 14px);
   color:var(--fg, #0f172a);
-  line-height:1.5;
-  font-size:inherit;
+  line-height:calc(1.4 * var(--widget-density, 1));
+  font-size:var(--widget-font, 14px);
 }
 .text-card h3{
-  margin:0 0 6px 0;
-  font-size:1.1em;
+  margin:0 0 calc(6px * var(--widget-space, 1)) 0;
+  font-size:calc(1.1em * var(--widget-scale, 1));
 }
 .text-card .body{
   margin:0;
@@ -50,11 +45,11 @@ const items = computed(() => props.items ?? [])
 .line{
   display:flex;
   align-items:center;
-  gap:8px;
+  gap:calc(8px * var(--widget-space, 1));
   font-size:inherit;
-  line-height:1.4;
+  line-height:calc(1.3 * var(--widget-density, 1));
 }
-.line + .line{ margin-top:4px; }
+.line + .line{ margin-top:calc(4px * var(--widget-space, 1)); }
 .line .label{
   flex:1;
   color: var(--muted);
@@ -65,11 +60,4 @@ const items = computed(() => props.items ?? [])
   font-weight:600;
   font-size: inherit;
 }
-.text-card.text-sm{ font-size:0.9em; }
-.text-card.text-sm h3{ font-size:1.05em; }
-.text-card.text-md{ font-size:1em; }
-.text-card.text-md h3{ font-size:1.1em; }
-.text-card.text-lg{ font-size:1.15em; }
-.text-card.text-lg h3{ font-size:1.22em; }
-.text-card.dense{ padding:10px; line-height:1.35; }
 </style>

@@ -178,13 +178,14 @@ const coreControls = [
     hint: 'Pick a card fill; leave empty for default.',
   },
   {
-    key: 'textSize',
-    label: 'Text size',
+    key: 'scale',
+    label: 'Scale',
     type: 'select',
     options: [
       { value: 'sm', label: 'Small' },
       { value: 'md', label: 'Normal' },
       { value: 'lg', label: 'Large' },
+      { value: 'xl', label: 'Extra large' },
     ],
   },
   { key: 'dense', label: 'Dense mode', type: 'toggle' },
@@ -240,6 +241,9 @@ function onMulti(key: string, value: any, event: Event) {
   emit('change', key, Array.from(next))
 }
 function valueFor(key: string) {
+  if (key === 'scale') {
+    return local.value.scale ?? local.value.textSize
+  }
   if (!key.includes('.')) return local.value[key]
   const parts = key.split('.')
   let cur: any = local.value

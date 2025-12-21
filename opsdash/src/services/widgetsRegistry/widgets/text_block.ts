@@ -36,8 +36,6 @@ export const textBlockEntry: RegistryEntry = {
     title: buildTitle(resolvePreset(def.options?.preset as TextPresetKey).title ?? 'Text', def.options?.titlePrefix),
     body: resolvePreset(def.options?.preset as TextPresetKey).body ?? def.options?.body ?? '',
     items: collectPresetItems(def.options?.preset as TextPresetKey, def.options || {}, ctx),
-    textSize: def.options?.textSize ?? 'md',
-    dense: !!def.options?.dense,
     cardBg: def.options?.cardBg,
   }),
   dynamicControls: (options: Record<string, any>) => {

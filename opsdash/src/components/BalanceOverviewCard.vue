@@ -476,9 +476,10 @@ function classifyDayOffTone(value: number): 'low' | 'mid' | 'high' {
 .balance-card {
   display: flex;
   flex-direction: column;
-  gap: 8px;
-  padding: 14px;
-  font-size: 13px;
+  gap: var(--widget-gap, 8px);
+  --widget-pad: calc(14px * var(--widget-space, 1));
+  padding: var(--widget-pad, 14px);
+  font-size: var(--widget-font, 13px);
   color: var(--muted);
 }
 .balance-card__header {
@@ -487,17 +488,17 @@ function classifyDayOffTone(value: number): 'low' | 'mid' | 'high' {
   justify-content: space-between;
   font-weight: 600;
   color: var(--fg);
-  font-size: 12px;
+  font-size: calc(12px * var(--widget-scale, 1));
 }
 .balance-card__activity {
   display: flex;
   flex-direction: column;
-  gap: 6px;
-  padding: 6px 0;
+  gap: calc(6px * var(--widget-space, 1));
+  padding: calc(6px * var(--widget-space, 1)) 0;
   border-bottom: 1px solid var(--border, rgba(125, 125, 125, 0.2));
 }
 .activity-hero__title {
-  font-size: 12px;
+  font-size: calc(12px * var(--widget-scale, 1));
   font-weight: 600;
   color: var(--fg);
 }
@@ -506,14 +507,14 @@ function classifyDayOffTone(value: number): 'low' | 'mid' | 'high' {
   color: var(--fg);
 }
 .activity-subline {
-  font-size: 12px;
+  font-size: calc(12px * var(--widget-scale, 1));
   color: var(--muted);
 }
 .activity-meta {
   display: flex;
   flex-wrap: wrap;
-  gap: 8px 12px;
-  font-size: 12px;
+  gap: calc(8px * var(--widget-space, 1)) calc(12px * var(--widget-space, 1));
+  font-size: calc(12px * var(--widget-scale, 1));
   color: var(--muted);
 }
 .activity-meta strong {
@@ -521,37 +522,37 @@ function classifyDayOffTone(value: number): 'low' | 'mid' | 'high' {
   color: var(--fg);
 }
 .activity-meta--extra {
-  font-size: 12px;
+  font-size: calc(12px * var(--widget-scale, 1));
   color: var(--muted);
 }
 .activity-dayoff {
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: calc(6px * var(--widget-space, 1));
 }
 .dayoff-header {
   display: flex;
   align-items: center;
   justify-content: space-between;
   font-weight: 600;
-  font-size: 12px;
+  font-size: calc(12px * var(--widget-scale, 1));
   color: var(--fg);
 }
 .dayoff-meta {
-  font-size: 11px;
+  font-size: calc(11px * var(--widget-scale, 1));
   color: var(--muted);
 }
 .dayoff-heatmap {
   display: grid;
-  gap: 2px;
-  grid-template-columns: repeat(auto-fit, minmax(90px, 1fr));
+  gap: calc(2px * var(--widget-space, 1));
+  grid-template-columns: repeat(auto-fit, minmax(calc(90px * var(--widget-scale, 1)), 1fr));
 }
 .dayoff-tile {
   border: 1px solid var(--color-border, rgba(125, 125, 125, 0.2));
-  border-radius: 6px;
-  padding: 3px;
+  border-radius: calc(6px * var(--widget-space, 1));
+  padding: calc(3px * var(--widget-space, 1));
   display: grid;
-  gap: 1px;
+  gap: calc(1px * var(--widget-space, 1));
   background: var(--color-main-background);
 }
 .dayoff-tile--current {
@@ -569,41 +570,41 @@ function classifyDayOffTone(value: number): 'low' | 'mid' | 'high' {
 .dayoff-tile__label {
   font-weight: 600;
   color: var(--fg);
-  font-size: 11px;
+  font-size: calc(11px * var(--widget-scale, 1));
 }
 .dayoff-tile__value {
-  font-size: 11px;
+  font-size: calc(11px * var(--widget-scale, 1));
   color: var(--fg);
 }
 .dayoff-tile__meta {
-  font-size: 9.5px;
+  font-size: calc(9.5px * var(--widget-scale, 1));
   color: var(--muted);
 }
 .balance-card__warnings {
   margin: 0;
-  padding-left: 16px;
-  font-size: 12px;
+  padding-left: calc(16px * var(--widget-space, 1));
+  font-size: calc(12px * var(--widget-scale, 1));
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: calc(4px * var(--widget-space, 1));
 }
 .balance-card__warnings {
   color: var(--danger, #b91c1c);
 }
 .balance-card__note {
-  font-size: 12px;
+  font-size: calc(12px * var(--widget-scale, 1));
   color: var(--fg);
   background: color-mix(in oklab, var(--brand), transparent 88%);
-  border-radius: 6px;
-  padding: 6px 8px;
+  border-radius: calc(6px * var(--widget-space, 1));
+  padding: calc(6px * var(--widget-space, 1)) calc(8px * var(--widget-space, 1));
   white-space: pre-line;
 }
 .badge {
   display: inline-flex;
   align-items: center;
-  padding: 2px 8px;
+  padding: calc(2px * var(--widget-space, 1)) calc(8px * var(--widget-space, 1));
   border-radius: 999px;
-  font-size: 11px;
+  font-size: calc(11px * var(--widget-scale, 1));
   background: color-mix(in srgb, var(--brand) 12%, white);
   color: var(--brand);
   text-transform: uppercase;
@@ -611,29 +612,29 @@ function classifyDayOffTone(value: number): 'low' | 'mid' | 'high' {
 }
 .balance-card__mix {
   border-top: 1px solid var(--border, rgba(125, 125, 125, 0.2));
-  padding-top: 8px;
+  padding-top: calc(8px * var(--widget-space, 1));
 }
 .mix-header {
   display: flex;
   justify-content: space-between;
   align-items: flex-start;
-  gap: 6px;
-  margin-bottom: 6px;
+  gap: calc(6px * var(--widget-space, 1));
+  margin-bottom: calc(6px * var(--widget-space, 1));
 }
 .mix-title {
-  font-size: 10.5px;
+  font-size: calc(10.5px * var(--widget-scale, 1));
   font-weight: 600;
   color: var(--fg);
 }
 .mix-subtitle {
-  font-size: 9px;
+  font-size: calc(9px * var(--widget-scale, 1));
   color: var(--muted);
 }
 .mix-badge {
-  font-size: 8px;
+  font-size: calc(8px * var(--widget-scale, 1));
   text-transform: uppercase;
   letter-spacing: 0.05em;
-  padding: 2px 8px;
+  padding: calc(2px * var(--widget-space, 1)) calc(8px * var(--widget-space, 1));
   border-radius: 999px;
   background: color-mix(in oklab, var(--brand), transparent 80%);
   color: var(--brand);
@@ -645,20 +646,20 @@ function classifyDayOffTone(value: number): 'low' | 'mid' | 'high' {
   padding: 0;
   display: flex;
   flex-direction: column;
-  gap: 6px;
-  font-size: 11px;
+  gap: calc(6px * var(--widget-space, 1));
+  font-size: calc(11px * var(--widget-scale, 1));
 }
 .mix-row {
   display: grid;
-  grid-template-columns: 52px repeat(auto-fit, minmax(32px, 1fr));
-  gap: 1px;
+  grid-template-columns: calc(52px * var(--widget-scale, 1)) repeat(auto-fit, minmax(calc(32px * var(--widget-scale, 1)), 1fr));
+  gap: calc(1px * var(--widget-space, 1));
   align-items: stretch;
 }
 .mix-label {
-  padding: 2px 4px;
+  padding: calc(2px * var(--widget-space, 1)) calc(4px * var(--widget-space, 1));
   font-weight: 600;
   color: var(--fg);
-  font-size: 9px;
+  font-size: calc(9px * var(--widget-scale, 1));
   text-align: left;
 }
 .mix-columns {
@@ -667,10 +668,10 @@ function classifyDayOffTone(value: number): 'low' | 'mid' | 'high' {
 }
 .mix-column-label {
   text-align: center;
-  font-size: 8px;
+  font-size: calc(8px * var(--widget-scale, 1));
   color: var(--muted);
   text-transform: uppercase;
-  padding: 1px 0;
+  padding: calc(1px * var(--widget-space, 1)) 0;
 }
 .mix-column-label--current {
   color: var(--brand);
@@ -679,10 +680,10 @@ function classifyDayOffTone(value: number): 'low' | 'mid' | 'high' {
   display: contents;
 }
 .mix-cell {
-  border-radius: 4px;
-  padding: 1px 0.25px;
+  border-radius: calc(4px * var(--widget-space, 1));
+  padding: calc(1px * var(--widget-space, 1)) calc(0.25px * var(--widget-space, 1));
   text-align: center;
-  font-size: 9px;
+  font-size: calc(9px * var(--widget-scale, 1));
   font-weight: 700;
   color: var(--fg);
   background: color-mix(in oklab, var(--muted), transparent 85%);

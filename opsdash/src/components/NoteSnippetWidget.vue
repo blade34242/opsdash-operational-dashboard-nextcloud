@@ -31,19 +31,20 @@ const cardStyle = computed(() => ({ background: props.cardBg || undefined }))
 .text-card{
   background: var(--card, #fff);
   border:1px solid var(--color-border, #d1d5db);
-  border-radius:10px;
-  padding:12px;
+  border-radius:calc(10px * var(--widget-space, 1));
+  padding:var(--widget-pad, 12px);
   color:var(--fg, #0f172a);
-  line-height:1.4;
+  line-height:calc(1.4 * var(--widget-density, 1));
+  font-size:var(--widget-font, 14px);
 }
 .text-card h3{
-  margin:0 0 6px 0;
-  font-size:1em;
+  margin:0 0 calc(6px * var(--widget-space, 1)) 0;
+  font-size:calc(1em * var(--widget-scale, 1));
 }
 .text-card .body{
   margin:0;
   white-space:pre-wrap;
-  font-size:0.95em;
+  font-size:calc(0.95em * var(--widget-scale, 1));
 }
 .text-card .body.empty{
   color:var(--muted);

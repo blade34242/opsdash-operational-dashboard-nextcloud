@@ -56,6 +56,15 @@ export function useWidgetLayoutManager(options: {
   }
 
   watch(
+    () => hasInitialLoad.value,
+    (ready) => {
+      if (ready && widgetsDirty.value) {
+        persistWidgets()
+      }
+    },
+  )
+
+  watch(
     () => layoutWidgets.value,
     (next) => {
       try {
@@ -108,7 +117,7 @@ export function useWidgetLayoutManager(options: {
   }
 
   function cycleHeight(id: string) {
-    const order: WidgetHeight[] = ['s', 'm', 'l']
+    const order: WidgetHeight[] = ['s', 'm', 'l', 'xl']
     updateWidget(id, (w) => {
       const idx = order.indexOf(w.layout.height as WidgetHeight)
       const next = order[(idx + 1) % order.length]
@@ -204,6 +213,13 @@ export function useWidgetLayoutManager(options: {
         }
         cursor[parts[parts.length - 1]] = value
         return { ...w, options: next }
+      }
+      if (key === 'scale') {
+        opts.scale = value
+        if ('textSize' in opts) {
+          delete (opts as any).textSize
+        }
+        return { ...w, options: opts }
       }
       opts[key] = value
       return { ...w, options: opts }

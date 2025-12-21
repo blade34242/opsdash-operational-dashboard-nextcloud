@@ -1,5 +1,5 @@
 export type WidgetSize = 'quarter' | 'half' | 'full'
-export type WidgetHeight = 's' | 'm' | 'l'
+export type WidgetHeight = 's' | 'm' | 'l' | 'xl'
 export type DashboardMode = 'quick' | 'standard' | 'pro'
 
 export interface WidgetDefinition {
@@ -30,6 +30,7 @@ export interface WidgetRenderContext {
   balanceConfig?: any
   rangeLabel?: string
   rangeMode?: string
+  offset?: number
   from?: string
   to?: string
   lookbackWeeks?: number
@@ -44,6 +45,8 @@ export interface WidgetRenderContext {
   deckLoading?: boolean
   deckError?: string | null
   deckTicker?: any
+  deckFilter?: any
+  onDeckFilter?: (filter: any) => void
   deckShowBoardBadges?: boolean
   deckCards?: any[]
   deckBoards?: Array<{ id: number; title: string; color?: string }>

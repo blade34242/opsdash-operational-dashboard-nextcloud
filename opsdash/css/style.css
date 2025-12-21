@@ -276,9 +276,10 @@
 #opsdash .card{
   background:var(--card);
   border:1px solid var(--line);
-  border-radius:var(--opsdash-radius);
-  padding:16px;
+  border-radius:calc(var(--opsdash-radius) * var(--widget-space, 1));
+  padding:var(--widget-pad, 16px);
   box-shadow:0 8px 24px rgba(0,0,0,0.08);
+  font-size:var(--widget-font, 14px);
 }
 #opsdash .card.full{
   width:100%;

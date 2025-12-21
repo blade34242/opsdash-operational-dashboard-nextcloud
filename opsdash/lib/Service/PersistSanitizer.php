@@ -382,7 +382,13 @@ final class PersistSanitizer {
         $hiddenBoards = [];
         if (!empty($value['hiddenBoards']) && is_array($value['hiddenBoards'])) {
             foreach ($value['hiddenBoards'] as $id) {
-                $clamped = $this->clampDeckBoardId((int)$id);
+                $validated = filter_var($id, FILTER_VALIDATE_INT, [
+                    'options' => ['min_range' => 1, 'max_range' => self::MAX_DECK_BOARD_ID],
+                ]);
+                if ($validated === false) {
+                    continue;
+                }
+                $clamped = $this->clampDeckBoardId((int)$validated);
                 if ($clamped !== null) {
                     $hiddenBoards[] = $clamped;
                 }
@@ -440,7 +446,8 @@ final class PersistSanitizer {
             $id = substr(trim((string)($item['id'] ?? '')), 0, 64);
             $layout = $item['layout'] ?? [];
             $width = ($layout['width'] ?? '') === 'quarter' || ($layout['width'] ?? '') === 'half' ? $layout['width'] : 'full';
-            $height = ($layout['height'] ?? '') === 's' || ($layout['height'] ?? '') === 'l' ? $layout['height'] : 'm';
+            $heightRaw = (string)($layout['height'] ?? '');
+            $height = ($heightRaw === 's' || $heightRaw === 'l' || $heightRaw === 'xl') ? $heightRaw : 'm';
             $orderRaw = $layout['order'] ?? 0;
             $order = is_numeric($orderRaw) ? (float)$orderRaw : 0.0;
             $options = (isset($item['options']) && is_array($item['options'])) ? $item['options'] : [];
@@ -713,7 +720,22 @@ final class PersistSanitizer {
             }
         }
         if (is_int($value)) {
-            return $value === 1;
+            if ($value === 1) {
+                return true;
+            }
+            if ($value === 0) {
+                return false;
+            }
+            return $default;
+        }
+        if (is_float($value)) {
+            if ($value === 1.0) {
+                return true;
+            }
+            if ($value === 0.0) {
+                return false;
+            }
+            return $default;
         }
         return $default;
     }

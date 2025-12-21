@@ -41,6 +41,7 @@ occ app:enable opsdash
 - 🔐 **Nextcloud-native** – same theme, request token, permissions, Dav colors, and zero external calls.
 - 🗂️ **Deck widgets** – Deck cards widget with per-widget board/filter selection, auto-scroll ticker, counts; optional Deck summary widget.
 - 📨 **Report tab (preview)** – configure weekly/monthly digests, interim reminders, and Deck visibility using Nextcloud notifications + email.
+- 📐 **Widget sizing controls** – per-widget width/height plus Scale/Dense tuning; use these to fit content without scrolling.
 
 ## 🛠 Local Development
 ```bash
@@ -79,6 +80,7 @@ QA_USER=admin php apps/opsdash/tools/seed_deck_boards.php
 QA_USER=qa php apps/opsdash/tools/seed_deck_boards.php
 
 # or from the repo root (executes OCC inside the docker container, default nc31-dev)
+./tools/seed_opsdash_occ.sh         # seeds calendars + Deck (admin/qa/qa2)
 ./tools/seed_deck_occ.sh            # seeds admin + qa
 NEXTCLOUD_CONTAINER=nc-ci ./tools/seed_deck_occ.sh admin qa extrauser
 ```

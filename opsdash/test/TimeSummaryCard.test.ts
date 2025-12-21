@@ -5,6 +5,9 @@ import TimeSummaryCard from '../src/components/TimeSummaryCard.vue'
 
 const baseSummary = {
   rangeLabel: 'Week 10',
+  rangeStart: '2025-03-03',
+  rangeEnd: '2025-03-09',
+  offset: 0,
   totalHours: 12.5,
   avgDay: 2.5,
   avgEvent: 1.25,
@@ -18,6 +21,7 @@ const baseSummary = {
   activeCalendars: 3,
   calendarSummary: 'Cal A 60%, Cal B 40%',
   balanceIndex: 0.78,
+  delta: null,
   topCategory: {
     label: 'Work',
     actualHours: 7.5,
@@ -41,7 +45,7 @@ describe('TimeSummaryCard', () => {
     })
 
     const text = wrapper.text().replace(/\s+/g, ' ')
-    expect(text).toContain('Today')
+    expect(text).toContain('Total today')
     expect(text).toContain('6.50 h')
   })
 

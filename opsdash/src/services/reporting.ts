@@ -111,6 +111,25 @@ export function normalizeDeckSettings(input: any, fallback?: DeckFeatureSettings
   if (!input || typeof input !== 'object') {
     return { ...base }
   }
+  const normalizeBool = (value: unknown, fallbackValue: boolean) => {
+    if (typeof value === 'boolean') return value
+    if (typeof value === 'number') {
+      if (value === 1) return true
+      if (value === 0) return false
+      return fallbackValue
+    }
+    if (typeof value === 'string') {
+      const raw = value.trim().toLowerCase()
+      if (['1', 'true', 'yes', 'on'].includes(raw)) return true
+      if (['0', 'false', 'no', 'off', 'null', ''].includes(raw)) return false
+    }
+    return fallbackValue
+  }
+  const clampBoardId = (value: unknown): number | null => {
+    const id = Number(value)
+    if (!Number.isInteger(id) || id <= 0 || id > 100000) return null
+    return id
+  }
   const allowedFilters: DeckFilterMode[] = [
     'all',
     'mine',
@@ -126,24 +145,24 @@ export function normalizeDeckSettings(input: any, fallback?: DeckFeatureSettings
     : 'all'
   const mineMode: DeckMineMode =
     input.mineMode === 'creator' || input.mineMode === 'both' ? input.mineMode : 'assignee'
-  const solvedIncludesArchived = input.solvedIncludesArchived !== false
+  const solvedIncludesArchived = normalizeBool(input.solvedIncludesArchived, base.solvedIncludesArchived)
   const ticker = {
-    autoScroll: input.ticker?.autoScroll !== false,
+    autoScroll: normalizeBool(input.ticker?.autoScroll, base.ticker.autoScroll),
     intervalSeconds: clampInterval(input.ticker?.intervalSeconds, base.ticker.intervalSeconds),
-    showBoardBadges: input.ticker?.showBoardBadges !== false,
+    showBoardBadges: normalizeBool(input.ticker?.showBoardBadges, base.ticker.showBoardBadges),
   }
   const hiddenBoards = Array.isArray(input.hiddenBoards)
     ? Array.from(
         new Set(
           input.hiddenBoards
-            .map((value: any) => Number(value))
-            .filter((value: number) => Number.isInteger(value) && value > 0),
+            .map((value: any) => clampBoardId(value))
+            .filter((value: number | null): value is number => Number.isInteger(value) && value > 0),
         ),
       )
     : base.hiddenBoards.slice()
   return {
-    enabled: input.enabled !== false,
-    filtersEnabled: input.filtersEnabled !== false,
+    enabled: normalizeBool(input.enabled, base.enabled),
+    filtersEnabled: normalizeBool(input.filtersEnabled, base.filtersEnabled),
     defaultFilter,
     hiddenBoards,
     mineMode,

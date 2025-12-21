@@ -66,5 +66,49 @@ class OverviewBalanceServiceTest extends TestCase {
       array_reduce($warnings, fn ($carry, $w) => $carry || (is_string($w) && str_contains($w, 'Balance index low')), false),
     );
   }
-}
 
+  public function testRelationsRoundToSingleDecimal(): void {
+    $service = new OverviewBalanceService();
+
+    $categoryMeta = [
+      'work' => ['id' => 'work', 'label' => 'Work'],
+      'hobby' => ['id' => 'hobby', 'label' => 'Hobby'],
+    ];
+    $categoryTotals = ['work' => 12.1, 'hobby' => 10.0];
+
+    $res = $service->build(
+      range: 'week',
+      targetsConfig: ['categories' => []],
+      targetsWeek: [],
+      targetsMonth: [],
+      byCalMap: [],
+      idToName: [],
+      categoryMeta: $categoryMeta,
+      categoryTotals: $categoryTotals,
+      totalHours: 22.1,
+      categoryTotalsPrev: $categoryTotals,
+      prevTotal: 22.1,
+      categoryColors: ['work' => '#111111', 'hobby' => '#222222'],
+      balanceConfig: [
+        'index' => ['basis' => 'category'],
+        'categories' => ['work', 'hobby'],
+        'thresholds' => [
+          'warnIndex' => 0.8,
+          'noticeAbove' => 0.05,
+          'warnAbove' => 0.20,
+          'noticeBelow' => 0.05,
+          'warnBelow' => 0.20,
+        ],
+        'relations' => ['displayMode' => 'ratio'],
+      ],
+      perDayByCat: [],
+      from: new DateTimeImmutable('2025-01-01T00:00:00Z'),
+      to: new DateTimeImmutable('2025-01-07T23:59:59Z'),
+      trendHistory: [],
+    );
+
+    $relations = $res['balanceOverview']['relations'] ?? [];
+    $this->assertNotEmpty($relations);
+    $this->assertSame('1.2 : 1', $relations[0]['value']);
+  }
+}

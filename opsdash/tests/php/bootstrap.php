@@ -25,6 +25,8 @@ $interfaceStubs = [
 	\OCP\IUser::class => '/stubs/OCP/IUser.php',
 	\OCP\IUserManager::class => '/stubs/OCP/IUserManager.php',
 	\OCP\IConfig::class => '/stubs/OCP/IConfig.php',
+	\OCP\ICache::class => '/stubs/OCP/ICache.php',
+	\OCP\ICacheFactory::class => '/stubs/OCP/ICacheFactory.php',
 	\Psr\Log\LoggerInterface::class => '/stubs/Psr/Log/LoggerInterface.php',
 ];
 

@@ -13,6 +13,7 @@ use OCP\IRequest;
 use OCP\IUserSession;
 use OCP\IConfig;
 use OCP\Calendar\IManager;
+use OCP\ICacheFactory;
 use Psr\Log\LoggerInterface;
 
 use OCA\Opsdash\Service\ColorPalette;
@@ -51,6 +52,7 @@ final class OverviewController extends Controller {
         private OverviewAggregationService $aggregationService,
         private OverviewChartsBuilder $chartsBuilder,
         private OverviewBalanceService $balanceService,
+        private ICacheFactory $cacheFactory,
     ) {
         parent::__construct($appName, $request);
     }
@@ -294,6 +296,53 @@ final class OverviewController extends Controller {
             $targetsConfig['balance'] = $this->defaultBalanceConfig();
         }
 
+        $reportingConfig = $this->userConfigService->readReportingConfig($this->appName, $uid);
+        $deckSettings = $this->userConfigService->readDeckSettings($this->appName, $uid);
+
+        $cache = null;
+        $cacheKey = null;
+        $cacheTtl = $this->readCacheTtl();
+        $cacheEnabled = $this->readCacheEnabled() && $cacheTtl > 0 && !$dbgFlag && !$save;
+        if ($cacheEnabled && empty($selectedIds) && !$hasSaved) {
+            $cacheEnabled = false;
+        }
+        if ($cacheEnabled) {
+            try {
+                $cache = $this->cacheFactory->createDistributed($this->appName);
+                $cacheKey = $this->buildLoadCacheKey(
+                    $uid,
+                    $range,
+                    $offset,
+                    $selectedIds,
+                    $groupsById,
+                    $targetsWeek,
+                    $targetsMonth,
+                    $targetsConfig,
+                    $reportingConfig,
+                    $deckSettings,
+                );
+                $cached = $cacheKey ? $cache->get($cacheKey) : null;
+                if (is_string($cached) && $cached !== '') {
+                    $cachedPayload = json_decode($cached, true);
+                    if (is_array($cachedPayload) && isset($cachedPayload['payload'])) {
+                        $payload = $cachedPayload['payload'];
+                        if (is_array($payload)) {
+                            $payload['meta']['cacheHit'] = true;
+                            $payload['meta']['cacheStoredAt'] = $cachedPayload['storedAt'] ?? null;
+                            return new DataResponse($payload, Http::STATUS_OK);
+                        }
+                    }
+                }
+            } catch (\Throwable $e) {
+                if ($this->userConfigService->isDebugEnabled()) {
+                    $this->logger->debug('load cache read failed', [
+                        'app' => $this->appName,
+                        'error' => $e->getMessage(),
+                    ]);
+                }
+            }
+        }
+
 	        // --- Aktuelle Periode einlesen/aggregieren ---
 	        // Limits to prevent excessive processing
 	        $maxPerCal = self::MAX_AGG_PER_CAL; // soft cap per calendar
@@ -433,6 +482,44 @@ final class OverviewController extends Controller {
         $prevDaysCount   = count($prevDaysSeen);
         $prevAvgPerDay   = $prevDaysCount   ? ($prevTotal / $prevDaysCount)   : 0;
         $prevAvgPerEvent = $prevEvents      ? ($prevTotal / $prevEvents)      : 0;
+        $prevWeekendShare = 0.0;
+        $prevEveningShare = 0.0;
+        if ($prevEvents > 0) {
+            $prevCollect = $this->eventsCollector->collect(
+                principal: $principal,
+                cals: $cals,
+                includeAll: $includeAll,
+                selectedIds: $selectedIds,
+                from: $pf,
+                to: $pt,
+                maxPerCal: $maxPerCal,
+                maxTotal: $maxTotal,
+                debug: false,
+            );
+            if (!empty($prevCollect['events'])) {
+                $prevAgg = $this->aggregationService->aggregate(
+                    events: $prevCollect['events'],
+                    from: $pf,
+                    to: $pt,
+                    userTz: $userTz,
+                    allDayHours: $allDayHours,
+                    colorsById: $colorsById,
+                    categoryMeta: $categoryMeta,
+                    mapCalToCategory: $mapCalToCategory,
+                );
+                $prevTotalHours = (float)$prevAgg['totalHours'];
+                $prevHod = $prevAgg['hod'];
+                $prevWeekend = array_sum($prevHod['Sat']) + array_sum($prevHod['Sun']);
+                $prevEvening = 0.0;
+                for ($i = 18; $i < 24; $i++) {
+                    foreach ($dowOrder as $d) {
+                        $prevEvening += $prevHod[$d][$i];
+                    }
+                }
+                $prevWeekendShare = $prevTotalHours > 0 ? round(100 * $prevWeekend / $prevTotalHours, 1) : 0.0;
+                $prevEveningShare = $prevTotalHours > 0 ? round(100 * $prevEvening / $prevTotalHours, 1) : 0.0;
+            }
+        }
 
         // Normalize category colors fallback
         foreach ($categoryColors as $catId => $color) {
@@ -536,6 +623,8 @@ final class OverviewController extends Controller {
             'avg_per_day'   => round($avgPerDay  - $prevAvgPerDay, 2),
             'avg_per_event' => round($avgPerEvent- $prevAvgPerEvent, 2),
             'events'        => $eventsCount - $prevEvents,
+            'weekend_share' => round($weekendShare - $prevWeekendShare, 1),
+            'evening_share' => round($eveningShare - $prevEveningShare, 1),
         ];
 
         $onboardingState = $this->userConfigService->readOnboardingState($this->appName, $uid);
@@ -561,7 +650,7 @@ final class OverviewController extends Controller {
             }
         } catch (\Throwable) {}
 
-        return new DataResponse([
+        $payload = [
             'ok'   => true,
             'meta' => [
                 'uid'=>$uid,
@@ -571,6 +660,8 @@ final class OverviewController extends Controller {
                 'to'=>$to->format('Y-m-d'),
                 'truncated'=>$truncated,
                 'limits'=>['maxPerCal'=>$maxPerCal,'maxTotal'=>$maxTotal,'totalProcessed'=>$totalAdded],
+                'cacheHit' => false,
+                'cacheStoredAt' => null,
             ],
             'calendars' => $sidebar,
             'selected'  => $selectedIds,
@@ -579,8 +670,8 @@ final class OverviewController extends Controller {
             'targets'   => ['week'=>$targetsWeek, 'month'=>$targetsMonth],
             'targetsConfig' => $targetsConfig,
             'themePreference' => $this->userConfigService->readThemePreference($this->appName, $uid),
-            'reportingConfig' => $this->userConfigService->readReportingConfig($this->appName, $uid),
-            'deckSettings' => $this->userConfigService->readDeckSettings($this->appName, $uid),
+            'reportingConfig' => $reportingConfig,
+            'deckSettings' => $deckSettings,
             'widgets' => $widgets,
             'onboarding' => $onboardingPayload,
             'calDebug'  => $calDebug,
@@ -632,7 +723,24 @@ final class OverviewController extends Controller {
             'byDay'     => array_values($byDay),
             'longest'   => array_slice($long,0,50),
             'charts'    => $chartsPayload['charts'],
-        ], Http::STATUS_OK);
+        ];
+
+        if ($cacheEnabled && $cacheKey && $cache !== null) {
+            try {
+                $storedAt = time();
+                $payload['meta']['cacheStoredAt'] = $storedAt;
+                $cache->set($cacheKey, json_encode(['payload' => $payload, 'storedAt' => $storedAt]), $cacheTtl);
+            } catch (\Throwable $e) {
+                if ($this->userConfigService->isDebugEnabled()) {
+                    $this->logger->debug('load cache write failed', [
+                        'app' => $this->appName,
+                        'error' => $e->getMessage(),
+                    ]);
+                }
+            }
+        }
+
+        return new DataResponse($payload, Http::STATUS_OK);
     }
 
     #[NoAdminRequired]
@@ -710,6 +818,64 @@ final class OverviewController extends Controller {
         }
         // fallback
         return $c;
+    }
+
+    private function readCacheTtl(): int {
+        $env = getenv('OPSDASH_CACHE_TTL');
+        if ($env !== false && is_numeric($env)) {
+            $ttl = (int)$env;
+            return $ttl < 0 ? 0 : $ttl;
+        }
+        try {
+            $raw = (string)$this->config->getAppValue($this->appName, 'cache_ttl', '60');
+            if (is_numeric($raw)) {
+                $ttl = (int)$raw;
+                return $ttl < 0 ? 0 : $ttl;
+            }
+        } catch (\Throwable) {}
+        return 60;
+    }
+
+    private function readCacheEnabled(): bool {
+        $env = getenv('OPSDASH_CACHE_ENABLED');
+        if ($env !== false) {
+            $filtered = filter_var($env, FILTER_VALIDATE_BOOL, FILTER_NULL_ON_FAILURE);
+            if ($filtered !== null) {
+                return (bool)$filtered;
+            }
+        }
+        try {
+            $raw = (string)$this->config->getAppValue($this->appName, 'cache_enabled', '1');
+            $filtered = filter_var($raw, FILTER_VALIDATE_BOOL, FILTER_NULL_ON_FAILURE);
+            if ($filtered !== null) {
+                return (bool)$filtered;
+            }
+        } catch (\Throwable) {}
+        return true;
+    }
+
+    private function buildLoadCacheKey(
+        string $uid,
+        string $range,
+        int $offset,
+        array $selectedIds,
+        array $groupsById,
+        array $targetsWeek,
+        array $targetsMonth,
+        array $targetsConfig,
+        array $reportingConfig,
+        array $deckSettings,
+    ): string {
+        $selectionHash = hash('sha256', json_encode($selectedIds) ?: '');
+        $configHash = hash('sha256', json_encode([
+            'groups' => $groupsById,
+            'targetsWeek' => $targetsWeek,
+            'targetsMonth' => $targetsMonth,
+            'targetsConfig' => $targetsConfig,
+            'reportingConfig' => $reportingConfig,
+            'deckSettings' => $deckSettings,
+        ]) ?: '');
+        return sprintf('opsdash:load:%s:%s:%d:%s:%s', $uid, $range, $offset, $selectionHash, $configHash);
     }
 
     private function defaultActivityCardConfig(): array {

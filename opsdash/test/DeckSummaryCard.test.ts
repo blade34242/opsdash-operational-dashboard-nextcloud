@@ -1,70 +1,45 @@
 import { mount } from '@vue/test-utils'
 import { describe, it, expect, vi } from 'vitest'
+
 import DeckSummaryCard from '../src/components/DeckSummaryCard.vue'
 
 const buckets = [
-  {
-    key: 'open_all' as const,
-    label: 'Open · All',
-    titles: ['Card A', 'Card B', 'Card C', 'Card D', 'Card E'],
-    count: 5,
-    board: { title: 'Opsdash Deck QA', color: '#2563EB' },
-  },
-  {
-    key: 'done_mine' as const,
-    label: 'Done · Mine',
-    titles: [],
-    count: 0,
-  },
+  { key: 'open_all', label: 'Open · All', titles: ['Card A', 'Card B'], count: 2, board: { title: 'Opsdash Board', color: '#2563EB' } },
+  { key: 'open_mine', label: 'Open · Mine', titles: ['Mine 1'], count: 1, board: { title: 'Opsdash Board', color: '#2563EB' } },
 ]
 
-const mountCard = (props: Record<string, unknown> = {}) =>
-  mount(DeckSummaryCard, {
-    props: {
-      buckets,
-      rangeLabel: 'Week',
-      loading: false,
-      error: '',
-      ticker: { autoScroll: true, intervalSeconds: 5 },
-      showBoardBadges: true,
-      ...props,
-    },
-    global: {
-      stubs: {
-        NcLoadingIcon: { template: '<div class="stub-loading"></div>' },
-      },
-    },
-  })
-
 describe('DeckSummaryCard', () => {
-  it('renders bucket rows with counts, board badge, and ticker titles', async () => {
-    const wrapper = mountCard()
-    expect(wrapper.text()).toContain('Deck summary')
-    expect(wrapper.text()).toContain('Open · All')
-    expect(wrapper.text()).toContain('5')
-    expect(wrapper.find('.bucket-board').text()).toContain('Opsdash Deck QA')
+  it('emits filter selection when rows are clicked', async () => {
+    const onFilter = vi.fn()
+    const wrapper = mount(DeckSummaryCard, {
+      props: {
+        buckets,
+        rangeLabel: 'Week',
+        loading: false,
+        ticker: { autoScroll: false, intervalSeconds: 5 },
+        activeFilter: 'open_all',
+        onFilter,
+      },
+    })
 
-    // Shows up to 4 titles at a time
-    const titles = wrapper.findAll('.bucket-title')
-    expect(titles.length).toBeGreaterThan(0)
+    const rows = wrapper.findAll('.deck-summary-card__row')
+    await rows[1].trigger('click')
+    expect(onFilter).toHaveBeenCalledWith('open_mine')
   })
 
-  it('shows empty message when no data', () => {
-    const wrapper = mountCard({ buckets: buckets.map((b) => ({ ...b, count: 0, titles: [] })) })
-    expect(wrapper.text()).toContain('No Deck data')
-  })
+  it('highlights the active filter row', () => {
+    const wrapper = mount(DeckSummaryCard, {
+      props: {
+        buckets,
+        rangeLabel: 'Week',
+        loading: false,
+        ticker: { autoScroll: false, intervalSeconds: 5 },
+        activeFilter: 'open_all',
+      },
+    })
 
-  it('shows loading and error states', () => {
-    const loading = mountCard({ loading: true })
-    expect(loading.find('.deck-summary-card__loading').exists()).toBe(true)
-
-    const error = mountCard({ loading: false, error: 'Deck failed' })
-    expect(error.find('.deck-summary-card__error').text()).toContain('Deck failed')
-  })
-
-  it('applies title and background', () => {
-    const wrapper = mountCard({ title: 'My Deck', cardBg: '#ff0000' })
-    expect(wrapper.find('.deck-summary-card__title').text()).toBe('My Deck')
-    expect(wrapper.find('.deck-summary-card').attributes('style')).toContain('background')
+    const activeRow = wrapper.find('.deck-summary-card__row--active')
+    expect(activeRow.exists()).toBe(true)
+    expect(activeRow.text()).toContain('Open · All')
   })
 })

@@ -55,12 +55,13 @@ function onSaveClick() {
 .note-card{
   background: var(--card,#fff);
   border:1px solid var(--color-border,#d1d5db);
-  border-radius:10px;
-  padding:12px;
+  border-radius:calc(10px * var(--widget-space, 1));
+  padding:var(--widget-pad, 12px);
   color:var(--fg,#0f172a);
   display:flex;
   flex-direction:column;
-  gap:10px;
+  gap:var(--widget-gap, 10px);
+  font-size:var(--widget-font, 14px);
 }
 .note-header{
   display:flex;
@@ -71,27 +72,29 @@ function onSaveClick() {
   font-weight:600;
 }
 .btn{
-  padding:6px 10px;
-  border-radius:6px;
+  padding:calc(6px * var(--widget-space, 1)) calc(10px * var(--widget-space, 1));
+  border-radius:calc(6px * var(--widget-space, 1));
   border:1px solid var(--color-border,#d1d5db);
   background: var(--card,#fff);
   cursor:pointer;
+  font-size:calc(12px * var(--widget-scale, 1));
 }
 .field{
   display:flex;
   flex-direction:column;
-  gap:4px;
+  gap:calc(4px * var(--widget-space, 1));
 }
 .label{
-  font-size:12px;
+  font-size:calc(12px * var(--widget-scale, 1));
   color:var(--muted);
 }
 .note{
   width:100%;
-  min-height:80px;
+  min-height:calc(80px * var(--widget-scale, 1));
   border:1px solid var(--color-border,#d1d5db);
-  border-radius:6px;
-  padding:8px;
+  border-radius:calc(6px * var(--widget-space, 1));
+  padding:calc(8px * var(--widget-space, 1));
   resize:vertical;
+  font-size:calc(13px * var(--widget-scale, 1));
 }
 </style>

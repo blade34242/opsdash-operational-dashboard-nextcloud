@@ -210,7 +210,7 @@ describe('DashboardLayout grid add flow', () => {
     const wrapper = mount(DashboardLayout, {
       props: {
         widgets: [
-          { id: 'w1', type: 'targets_v2', layout: { width: 'half', height: 'm', order: 10 }, options: { textSize: 'sm' }, version: 1 },
+          { id: 'w1', type: 'targets_v2', layout: { width: 'half', height: 'm', order: 10 }, options: { scale: 'sm' }, version: 1 },
         ],
         widgetTypes: [{ type: 'targets_v2', label: 'Targets' }],
         context: {},
@@ -222,7 +222,7 @@ describe('DashboardLayout grid add flow', () => {
     })
 
     const item = wrapper.find('.layout-item')
-    expect(item.classes()).toContain('text-scale-sm')
+    expect(item.classes()).toContain('scale-sm')
   })
 
   it('shows floating toolbar in editable mode', () => {

@@ -25,19 +25,20 @@ const cardStyle = computed(() => ({ background: props.cardBg || undefined }))
 .notes-section {
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: var(--widget-gap, 8px);
+  font-size: var(--widget-font, 14px);
 }
 .notes-textarea {
   width: 100%;
-  min-height: 120px;
-  padding: 8px 10px;
-  border-radius: 8px;
+  min-height: calc(120px * var(--widget-scale, 1));
+  padding: calc(8px * var(--widget-space, 1)) calc(10px * var(--widget-space, 1));
+  border-radius: calc(8px * var(--widget-space, 1));
   border: 1px solid var(--line);
   background: color-mix(in oklab, var(--card), transparent 5%);
   color: var(--fg);
   resize: vertical;
   box-sizing: border-box;
-  font: 13px/1.4 ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  font: calc(13px * var(--widget-scale, 1))/1.4 ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
 }
 .notes-textarea:focus {
   outline: 2px solid color-mix(in oklab, var(--brand), transparent 60%);
@@ -50,6 +51,6 @@ const cardStyle = computed(() => ({ background: props.cardBg || undefined }))
 .notes-actions {
   display: flex;
   justify-content: flex-end;
-  margin-top: 4px;
+  margin-top: calc(4px * var(--widget-space, 1));
 }
 </style>
