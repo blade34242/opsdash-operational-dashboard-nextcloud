@@ -8,6 +8,7 @@ use OCP\AppFramework\App;
 use OCP\AppFramework\Bootstrap\IBootstrap;
 use OCP\AppFramework\Bootstrap\IRegistrationContext;
 use OCP\AppFramework\Bootstrap\IBootContext;
+use OCP\ICommandManager;
 // (metrics/admin settings removed)
 
 class Application extends App implements IBootstrap {
@@ -16,7 +17,23 @@ class Application extends App implements IBootstrap {
     }
 
     public function register(IRegistrationContext $context): void {
-        $context->registerCommand(ReportCommand::class);
+        if (method_exists($context, 'registerCommand')) {
+            $context->registerCommand(ReportCommand::class);
+            return;
+        }
+        try {
+            if (class_exists('OC') && isset(\OC::$server)) {
+                $server = \OC::$server;
+                if ($server && method_exists($server, 'get')) {
+                    $commands = $server->get(ICommandManager::class);
+                    if ($commands && method_exists($commands, 'registerCommand')) {
+                        $commands->registerCommand(ReportCommand::class);
+                    }
+                }
+            }
+        } catch (\Throwable) {
+            // ignore command bootstrap issues to not break app
+        }
     }
 
     public function boot(IBootContext $context): void {
