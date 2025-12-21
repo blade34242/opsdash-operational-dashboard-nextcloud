@@ -27,24 +27,6 @@ describe('SidebarCalendarsPane', () => {
     balanceLookbackMessage: null,
   } as const
 
-  it('emits select-all when action buttons are clicked', async () => {
-    const wrapper = mount(SidebarCalendarsPane, {
-      props: {
-        ...baseProps,
-        calendars: [],
-        selected: [],
-      },
-    })
-
-    const buttons = wrapper.findAll('button')
-    await buttons[0].trigger('click')
-    await buttons[1].trigger('click')
-
-    const events = wrapper.emitted('select-all') ?? []
-    expect(events[0]).toEqual([true])
-    expect(events[1]).toEqual([false])
-  })
-
   it('emits toggle-calendar when calendar card is clicked', async () => {
     const wrapper = mount(SidebarCalendarsPane, {
       props: {

@@ -5,10 +5,6 @@
     role="tabpanel"
     aria-labelledby="opsdash-sidebar-tab-calendars"
   >
-    <div class="sb-actions">
-      <NcButton type="tertiary" :disabled="isLoading" @click="$emit('select-all', true)">All</NcButton>
-      <NcButton type="tertiary" :disabled="isLoading" @click="$emit('select-all', false)">None</NcButton>
-    </div>
     <div class="sb-actions sb-actions--secondary">
       <NcButton
         type="primary"
@@ -172,7 +168,6 @@ const props = defineProps<{
 }>()
 
 const emit = defineEmits<{
-  (e: 'select-all', value: boolean): void
   (e: 'toggle-calendar', id: string): void
   (e: 'set-category', payload: { id: string; category: string }): void
   (e: 'target-input', payload: { id: string; value: string }): void
