@@ -52,7 +52,7 @@
     </button>
   </div>
 
-  <div class="deck-panel__body">
+  <div class="deck-panel__body" ref="bodyEl">
     <div v-if="loading" class="deck-panel__loading">
       <NcLoadingIcon :size="20" />
       <span>Loading Deck cards…</span>
@@ -160,6 +160,7 @@ const filterOptions = computed<Array<{ value: DeckFilterMode; label: string; min
   ]
 })
 
+const bodyEl = ref<HTMLElement | null>(null)
 const listEl = ref<HTMLElement | null>(null)
 const autoTimer = ref<number | null>(null)
 const activeIndex = ref(0)
@@ -203,7 +204,7 @@ function resetAutoScroll() {
 }
 
 function startAutoScroll() {
-  if (!props.autoScroll || !listEl.value || (props.cards || []).length <= 1) {
+  if (!props.autoScroll || (props.cards || []).length <= 1) {
     return
   }
   resetAutoScroll()
@@ -215,9 +216,11 @@ function startAutoScroll() {
 }
 
 function scrollToIndex(idx: number) {
-  if (!listEl.value) return
+  if (!bodyEl.value || !listEl.value) return
   const target = listEl.value.querySelector(`[data-idx="${idx}"]`) as HTMLElement | null
-  target?.scrollIntoView({ block: 'nearest', behavior: 'smooth' })
+  if (!target) return
+  const top = target.offsetTop - listEl.value.offsetTop
+  bodyEl.value.scrollTo({ top, behavior: 'smooth' })
 }
 
 const formatter = new Intl.DateTimeFormat(undefined, {
