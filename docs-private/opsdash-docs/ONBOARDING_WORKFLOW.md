@@ -19,6 +19,7 @@ needed to guide new users toward a useful initial configuration.
 - ✅ Snapshot reminder + preset backup live on the intro screen; Calendars tab exposes “Re-run onboarding”.
 - ✅ Reporting cadence + alerts are configurable in the preferences step and included in the review summary (`reporting_config` persisted via `/overview/persist`).
 - ✅ Activity day-off heatmap toggle is exposed and persisted (`targets_config_activity.showDayOffTrend`).
+- ✅ Each onboarding step can save its current changes without completing the full wizard.
 
 ## User Stories
 - *As a new user*, I want a quick explanation of what Opsdash does so that I 

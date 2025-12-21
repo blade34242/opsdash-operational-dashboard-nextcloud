@@ -25,6 +25,27 @@ export interface WizardCompletePayload {
   dashboardMode: 'quick' | 'standard' | 'pro'
 }
 
+export interface WizardStepSavePayload {
+  cals?: string[]
+  groups?: Record<string, number>
+  targets_week?: Record<string, number>
+  targets_month?: Record<string, number>
+  targets_config?: TargetsConfig
+  theme_preference?: ThemePreference
+  deck_settings?: DeckFeatureSettings
+  reporting_config?: ReportingConfig
+  targets_config_activity?: Pick<ActivityCardConfig, 'showDayOffTrend'>
+  widgets?: any[]
+  onboarding?: {
+    completed?: boolean
+    version?: number
+    strategy?: StrategyDefinition['id']
+    completed_at?: string
+    dashboardMode?: 'quick' | 'standard' | 'pro'
+  }
+  dashboardMode?: 'quick' | 'standard' | 'pro'
+}
+
 interface OnboardingActionDeps {
   onboardingState: Ref<OnboardingState | null>
   route: (name: 'persist') => string
@@ -39,6 +60,8 @@ interface OnboardingActionDeps {
   setTargetsMonth: (val: Record<string, number>) => void
   setTargetsConfig: (val: TargetsConfig) => void
   setGroupsById: (val: Record<string, number>) => void
+  setDeckSettings?: (val: DeckFeatureSettings) => void
+  setReportingConfig?: (val: ReportingConfig) => void
   setOnboardingState?: (val: OnboardingState) => void
   setDashboardMode?: (mode: 'quick' | 'standard' | 'pro') => void
   setWidgets?: (widgets: any[]) => void
@@ -98,6 +121,62 @@ export function useOnboardingActions(deps: OnboardingActionDeps) {
     }
   }
 
+  async function saveStep(payload: WizardStepSavePayload) {
+    try {
+      isOnboardingSaving.value = true
+      snapshotNotice.value = null
+      if (payload.theme_preference) {
+        deps.setThemePreference(payload.theme_preference, { persist: false })
+      }
+      await deps.postJson(deps.route('persist'), payload as Record<string, unknown>)
+      if (payload.cals) {
+        deps.setSelected(payload.cals)
+      }
+      if (payload.targets_week) {
+        deps.setTargetsWeek(payload.targets_week)
+      }
+      if (payload.targets_month) {
+        deps.setTargetsMonth(payload.targets_month)
+      }
+      if (payload.targets_config) {
+        deps.setTargetsConfig(payload.targets_config)
+      }
+      if (payload.groups) {
+        deps.setGroupsById(payload.groups)
+      }
+      if (payload.deck_settings) {
+        deps.setDeckSettings?.(payload.deck_settings)
+      }
+      if (payload.reporting_config) {
+        deps.setReportingConfig?.(payload.reporting_config)
+      }
+      if (payload.onboarding) {
+        deps.setOnboardingState?.({
+          completed: payload.onboarding.completed ?? false,
+          version: payload.onboarding.version ?? ONBOARDING_VERSION,
+          strategy: payload.onboarding.strategy ?? deps.onboardingState.value?.strategy ?? 'total_only',
+          completed_at: payload.onboarding.completed_at ?? '',
+          dashboardMode: payload.onboarding.dashboardMode ?? deps.onboardingState.value?.dashboardMode,
+          version_required: ONBOARDING_VERSION,
+          resetRequested: false,
+        } as any)
+      }
+      if (payload.dashboardMode) {
+        deps.setDashboardMode?.(payload.dashboardMode)
+      }
+      if (payload.widgets) {
+        deps.setWidgets?.(payload.widgets)
+      }
+      deps.notifySuccess('Step saved')
+    } catch (error) {
+      console.error(error)
+      deps.notifyError('Failed to save step')
+      throw error
+    } finally {
+      isOnboardingSaving.value = false
+    }
+  }
+
   async function skip() {
     try {
       isOnboardingSaving.value = true
@@ -149,9 +228,11 @@ export function useOnboardingActions(deps: OnboardingActionDeps) {
     isSnapshotSaving,
     snapshotNotice,
     complete,
+    saveStep,
     skip,
     saveSnapshot,
   }
 }
 
 export type OnboardingActions = ReturnType<typeof useOnboardingActions>
+export type { WizardStepSavePayload }

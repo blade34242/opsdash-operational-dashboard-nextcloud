@@ -13,6 +13,7 @@ All notable changes to this project are documented here. This file is served loc
 - UI: Summary sidebar tab removed; summary toggles now live per-widget (`time_summary_v2`). Sidebar docs updated.
 - UI: Time Summary widget gained a Today block (total + per-category today hours) and gear-menu defaults (only one menu open at a time).
 - UI: Targets sidebar display toggles (delta, need/day, categories, badges, weekend toggle, include zero days) moved into the Targets widget gear.
+- UI: Onboarding wizard steps now include per-step save controls to persist changes without finishing the full flow.
 - Security: Added shared requesttoken helper for curl scripts; CSRF regression script; `/overview/notes` sanitized; deck settings clamp hidden board IDs/booleans; CI runs curl security suite; DAV probe tolerates 405 with `/overview/load` fallback.
 - Testing: Added deck_settings client Vitest, balanceIndex test fixed; onboarding Playwright flow steps through final tweaks (reporting/deck) and saves presets.
 

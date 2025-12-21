@@ -653,6 +653,95 @@ export function useOnboardingWizard(options: { props: WizardProps; emit: WizardE
     })
   }
 
+  function buildTargetsPayload() {
+    const result = buildStrategyResult(
+      selectedStrategy.value,
+      props.calendars,
+      localSelection.value,
+      categoriesEnabled.value
+        ? { categories: categories.value.map((cat) => ({ ...cat })), assignments: { ...assignments.value } }
+        : undefined,
+    )
+    const config = result.targetsConfig
+    config.allDayHours = clampAllDayHours(allDayHoursInput.value)
+    if (categoriesEnabled.value) {
+      const total = clampTotalHours(categoryTotalHours.value)
+      if (total != null) config.totalHours = total
+    } else if (totalHoursInput.value != null) {
+      const total = clampTotalHours(totalHoursInput.value)
+      if (total != null) config.totalHours = total
+    }
+    return {
+      targetsConfig: config,
+      groups: result.groups,
+      targetsWeek: result.targetsWeek,
+      targetsMonth: result.targetsMonth,
+      selected: [...localSelection.value],
+    }
+  }
+
+  function buildOnboardingDraft() {
+    return {
+      completed: false,
+      version: props.onboardingVersion,
+      strategy: selectedStrategy.value,
+      completed_at: '',
+      dashboardMode: dashboardMode.value,
+    }
+  }
+
+  function buildStepPayload(step: StepId) {
+    const targetsPayload = buildTargetsPayload()
+    const onboardingDraft = buildOnboardingDraft()
+    if (step === 'intro') {
+      return { onboarding: onboardingDraft }
+    }
+    if (step === 'strategy') {
+      return {
+        onboarding: onboardingDraft,
+        targets_config: targetsPayload.targetsConfig,
+        groups: targetsPayload.groups,
+        targets_week: targetsPayload.targetsWeek,
+        targets_month: targetsPayload.targetsMonth,
+      }
+    }
+    if (step === 'dashboard') {
+      return { onboarding: onboardingDraft, dashboardMode: dashboardMode.value }
+    }
+    if (step === 'calendars') {
+      return { cals: targetsPayload.selected }
+    }
+    if (step === 'categories') {
+      return {
+        targets_config: targetsPayload.targetsConfig,
+        groups: targetsPayload.groups,
+        targets_week: targetsPayload.targetsWeek,
+        targets_month: targetsPayload.targetsMonth,
+      }
+    }
+    if (step === 'preferences') {
+      return {
+        targets_config: targetsPayload.targetsConfig,
+        theme_preference: themePreference.value,
+        deck_settings: cloneDeckSettings(deckSettingsDraft.value),
+        reporting_config: { ...reportingDraft.value },
+        targets_config_activity: { ...activityDraft.value },
+      }
+    }
+    return {
+      cals: targetsPayload.selected,
+      targets_config: targetsPayload.targetsConfig,
+      groups: targetsPayload.groups,
+      targets_week: targetsPayload.targetsWeek,
+      targets_month: targetsPayload.targetsMonth,
+      theme_preference: themePreference.value,
+      deck_settings: cloneDeckSettings(deckSettingsDraft.value),
+      reporting_config: { ...reportingDraft.value },
+      targets_config_activity: { ...activityDraft.value },
+      onboarding: onboardingDraft,
+    }
+  }
+
   function toggleCalendar(id: string, input: HTMLInputElement) {
     if (input.checked) {
       if (!localSelection.value.includes(id)) {
@@ -737,5 +826,6 @@ export function useOnboardingWizard(options: { props: WizardProps; emit: WizardE
     emitComplete,
     toggleCalendar,
     resetWizard,
+    buildStepPayload,
   }
 }

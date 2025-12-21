@@ -76,6 +76,7 @@ describe('useOnboardingActions', () => {
       deckSettings: createDefaultDeckSettings(),
       reportingConfig: createDefaultReportingConfig(),
       activityCard: { showDayOffTrend: true },
+      dashboardMode: 'standard',
     })
 
     expect(ctx.postJson).toHaveBeenCalledWith('/persist', expect.objectContaining({

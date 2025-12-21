@@ -143,6 +143,7 @@
 
       <footer class="onboarding-footer">
         <NcButton v-if="canGoBack" type="tertiary" :disabled="saving" @click="prevStep">Back</NcButton>
+        <NcButton type="tertiary" :disabled="saving || nextDisabled" @click="emitSaveStep">Save step</NcButton>
         <NcButton v-if="canGoNext" type="primary" :disabled="nextDisabled || saving" @click="nextStep">Continue</NcButton>
         <NcButton
           v-else
@@ -210,6 +211,7 @@ const emit = defineEmits<{
     activityCard: Pick<ActivityCardConfig, 'showDayOffTrend'>
     dashboardMode: 'quick' | 'standard' | 'pro'
   }): void
+  (e: 'save-step', payload: Record<string, unknown>): void
   (e: 'save-current-config'): void
 }>()
 
@@ -280,7 +282,12 @@ const {
   deckReviewSummary,
   deckVisibleBoards,
   reportingSummary,
+  buildStepPayload,
 } = useOnboardingWizard({ props, emit })
+
+function emitSaveStep() {
+  emit('save-step', buildStepPayload(currentStep.value))
+}
 
 </script>
 

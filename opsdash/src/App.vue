@@ -24,6 +24,7 @@
       @skip="handleWizardSkip"
       @complete="handleWizardComplete"
       @save-current-config="handleWizardSaveSnapshot"
+      @save-step="handleWizardSaveStep"
     />
     <NcAppContent app-name="Operational Dashboard" :show-navigation="navOpen">
       <template #navigation>
@@ -376,7 +377,7 @@ import { useDetailsToggle } from '../composables/useDetailsToggle'
 import { useNotesLabels } from '../composables/useNotesLabels'
 import { useSidebarState } from '../composables/useSidebarState'
 import { useKeyboardShortcuts } from '../composables/useKeyboardShortcuts'
-import { useOnboardingActions } from '../composables/useOnboardingActions'
+import { useOnboardingActions, type WizardStepSavePayload } from '../composables/useOnboardingActions'
 import { useDeckCards } from '../composables/useDeckCards'
 import { useDeckFiltering, sanitizeDeckFilter } from '../composables/useDeckFiltering'
 import { useWidgetLayoutManager } from '../composables/useWidgetLayoutManager'
@@ -695,6 +696,8 @@ const onboardingActions = useOnboardingActions({
   setTargetsMonth: (val) => { targetsMonth.value = { ...val } },
   setTargetsConfig: (val) => { targetsConfig.value = cloneTargetsConfig(val) },
   setGroupsById: (val) => { groupsById.value = { ...val } },
+  setDeckSettings: (val) => { deckSettings.value = { ...val } },
+  setReportingConfig: (val) => { reportingConfig.value = { ...val } },
   setOnboardingState: (val) => { onboarding.value = { ...(onboarding.value || {}), ...val } as any },
   setDashboardMode: (mode) => { dashboardMode.value = mode },
 })
@@ -739,6 +742,13 @@ const handleWizardComplete = async (payload: any) => {
   if (payload?.dashboardMode) {
     applyDashboardPreset(payload.dashboardMode)
   }
+}
+
+const handleWizardSaveStep = async (payload: WizardStepSavePayload) => {
+  if (payload?.dashboardMode) {
+    applyDashboardPreset(payload.dashboardMode)
+  }
+  await onboardingActions.saveStep(payload)
 }
 
 async function performLoad() {

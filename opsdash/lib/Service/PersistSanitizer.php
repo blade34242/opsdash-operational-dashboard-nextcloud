@@ -497,6 +497,10 @@ final class PersistSanitizer {
         if ($completedAt !== '') {
             $result['completed_at'] = substr($completedAt, 0, 32);
         }
+        $dashboardMode = trim((string)($state['dashboardMode'] ?? ''));
+        if ($dashboardMode === 'quick' || $dashboardMode === 'standard' || $dashboardMode === 'pro') {
+            $result['dashboardMode'] = $dashboardMode;
+        }
         return $result;
     }
 
@@ -650,6 +654,7 @@ final class PersistSanitizer {
             'version' => 0,
             'strategy' => '',
             'completed_at' => '',
+            'dashboardMode' => 'standard',
         ];
     }
 

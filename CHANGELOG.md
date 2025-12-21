@@ -22,6 +22,7 @@ All notable changes to this project will be documented in this file.
 ### Added
 - Widget layout persistence now round-trips through `/overview/persist` and `/overview/load`, with sanitisation on the server and normalisation on the client (new `normalizeWidgetLayout`) plus Vitest/PHP coverage.
 - Balance/Activity sidebar controls restored: thresholds, index basis selector, trend lookback, display toggle, and activity card toggles with contextual help.
+- Onboarding wizard steps can now be saved individually without completing the full flow.
 ### Changed
 - Dashboard save queue now records widget edits (add/remove/move/update/reset/preset apply) so layouts survive logouts and device changes.
 - Sidebar layout: Activity/Balance pane removed; projection + trend lookback now live in the Calendars tab alongside per-calendar targets.
