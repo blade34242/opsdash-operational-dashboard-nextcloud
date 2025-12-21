@@ -44,7 +44,7 @@
             <input
               :id="`opt-${control.key}`"
               type="color"
-              :value="valueFor(control.key) ?? '#ffffff'"
+              :value="valueFor(control.key) || '#000000'"
               @input="onText(control.key, $event)"
             />
           </template>
@@ -93,7 +93,7 @@
             <input
               :id="`opt-${control.key}`"
               type="color"
-              :value="valueFor(control.key) ?? '#ffffff'"
+              :value="valueFor(control.key) || '#000000'"
               @input="onText(control.key, $event)"
             />
           </template>
