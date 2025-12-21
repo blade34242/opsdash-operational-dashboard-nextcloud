@@ -13,7 +13,7 @@ needed to guide new users toward a useful initial configuration.
 - Persist onboarding choices via the existing `/persist` endpoint so the flow 
   never repeats unnecessarily.
 
-## Current Status (0.4.8+)
+## Current Status (0.4.9+)
 - ✅ Wizard ships with intro → strategy → calendars → categories → preferences → review sequence.
 - ✅ Theme selector, all-day hours input, total-hours summary, and Deck quick-setup block are live; deck settings are emitted via `deck_settings` so the SPA + server stay in sync.
 - ✅ Snapshot reminder + preset backup live on the intro screen; Config & Setup exposes “Re-run onboarding”.
