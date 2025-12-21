@@ -100,15 +100,23 @@ function cloneWidget(type: string, options: Record<string, any> = {}, layout?: P
 export function createDashboardPreset(mode: DashboardMode): WidgetDefinition[] {
   if (mode === 'quick') {
     return [
-      cloneWidget('time_summary_v2'),
-      cloneWidget('targets_v2'),
-      cloneWidget('activity'),
-      cloneWidget('deck_cards', {
-        filters: ['open_all', 'open_mine'],
-        defaultFilter: 'open_all',
-        autoScroll: false,
-        showCount: false,
-      }),
+      cloneWidget('balance', { scale: 'lg' }, { width: 'full', height: 'xl', order: 5 }),
+      cloneWidget('activity', {}, { width: 'full', height: 'l', order: 10.1 }),
+      cloneWidget('time_summary_v2', {
+        showTotal: true,
+        showAverage: true,
+        showMedian: true,
+        showBusiest: true,
+        showWorkday: true,
+        showWeekend: true,
+        showWeekendShare: true,
+        showCalendarSummary: true,
+        showTopCategory: true,
+        showBalance: true,
+        mode: 'active',
+        scale: 'xl',
+      }, { width: 'full', height: 'xl', order: 12.55 }),
+      cloneWidget('targets', {}, { width: 'full', height: 'xl', order: 15 }),
     ]
   }
   if (mode === 'pro') {
