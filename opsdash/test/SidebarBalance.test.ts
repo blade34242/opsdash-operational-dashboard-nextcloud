@@ -99,36 +99,15 @@ function mountSidebar() {
   })
 }
 
-describe('Sidebar balance controls', () => {
-  it('shows error message for invalid threshold input and keeps config unchanged', async () => {
-    const wrapper = mountSidebar()
-    await wrapper.get('#opsdash-sidebar-tab-activitybalance').trigger('click')
-    const pane = wrapper.get('#opsdash-sidebar-pane-activitybalance')
-    const inputs = pane.findAll('input[type="number"]')
-    const noticeInput = inputs[0]
-
-    await noticeInput.setValue('') // invalid -> error
-    await wrapper.vm.$nextTick()
-
-    expect(pane.text()).toContain('Enter a number')
-    expect(wrapper.emitted('update:targets-config')).toBeUndefined()
-
-    await noticeInput.setValue('0.7')
-    await wrapper.vm.$nextTick()
-
-    const events = wrapper.emitted('update:targets-config') ?? []
-    expect(events.length).toBeGreaterThan(0)
-    const latestConfig = events.at(-1)?.[0]
-    expect(latestConfig?.balance?.thresholds?.noticeAbove).toBe(0.7)
-    expect(pane.text()).not.toContain('Enter a number')
-  })
-
+describe('Sidebar calendar projection + lookback', () => {
   it('clamps lookback weeks and emits warning message', async () => {
     const wrapper = mountSidebar()
-    await wrapper.get('#opsdash-sidebar-tab-activitybalance').trigger('click')
-    const pane = wrapper.get('#opsdash-sidebar-pane-activitybalance')
-    const inputs = pane.findAll('input[type="number"]')
-    const lookbackInput = inputs[5]
+    const pane = wrapper.get('#opsdash-sidebar-pane-calendars')
+    const lookbackField = pane.findAll('label.field').find((label) =>
+      label.text().includes('Trend lookback'),
+    )
+    expect(lookbackField).toBeTruthy()
+    const lookbackInput = lookbackField!.get('input')
 
     await lookbackInput.setValue('-1')
     await wrapper.vm.$nextTick()
@@ -153,10 +132,12 @@ describe('Sidebar balance controls', () => {
 
   it('caps lookback above max and warns the user', async () => {
     const wrapper = mountSidebar()
-    await wrapper.get('#opsdash-sidebar-tab-activitybalance').trigger('click')
-    const pane = wrapper.get('#opsdash-sidebar-pane-activitybalance')
-    const inputs = pane.findAll('input[type="number"]')
-    const lookbackInput = inputs[5]
+    const pane = wrapper.get('#opsdash-sidebar-pane-calendars')
+    const lookbackField = pane.findAll('label.field').find((label) =>
+      label.text().includes('Trend lookback'),
+    )
+    expect(lookbackField).toBeTruthy()
+    const lookbackInput = lookbackField!.get('input')
 
     await lookbackInput.setValue('5')
     await wrapper.vm.$nextTick()
@@ -166,16 +147,19 @@ describe('Sidebar balance controls', () => {
     expect(latestConfig?.balance?.trend?.lookbackWeeks).toBe(4)
   })
 
-  it('updates index basis selection', async () => {
+  it('updates activity projection selection', async () => {
     const wrapper = mountSidebar()
-    await wrapper.get('#opsdash-sidebar-tab-activitybalance').trigger('click')
-    const selects = wrapper.get('#opsdash-sidebar-pane-activitybalance').findAll('select')
-    const basisSelect = selects[1]
+    const pane = wrapper.get('#opsdash-sidebar-pane-calendars')
+    const projectionField = pane.findAll('label.field').find((label) =>
+      label.text().includes('Projection mode'),
+    )
+    expect(projectionField).toBeTruthy()
+    const projectionSelect = projectionField!.get('select')
 
-    await basisSelect.setValue('calendar')
+    await projectionSelect.setValue('calendar')
     await wrapper.vm.$nextTick()
 
     const latestConfig = wrapper.emitted('update:targets-config')?.at(-1)?.[0]
-    expect(latestConfig?.balance?.index?.basis).toBe('calendar')
+    expect(latestConfig?.activityCard?.forecastMode).toBe('calendar')
   })
 })

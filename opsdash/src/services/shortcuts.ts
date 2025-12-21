@@ -33,7 +33,7 @@ export const KEYBOARD_SHORTCUT_GROUPS: ShortcutGroup[] = [
     id: 'targets',
     title: 'Targets',
     items: [
-      { id: 'targets-focus', label: 'Open Config & Setup', combo: ['Alt', 'T'], description: 'Jump to preset + theme controls' },
+      { id: 'targets-focus', label: 'Open Theme', combo: ['Alt', 'T'], description: 'Jump to theme controls' },
     ],
   },
   {

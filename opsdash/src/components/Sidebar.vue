@@ -48,18 +48,6 @@
     </div>
     <div class="sb-tabs sb-tabs--secondary" role="tablist" aria-label="Detail settings">
       <button
-        id="opsdash-sidebar-tab-activitybalance"
-        type="button"
-        class="sb-tab"
-        :class="{ active: activeTab === 'activitybalance' }"
-        role="tab"
-        :aria-selected="activeTab === 'activitybalance'"
-        aria-controls="opsdash-sidebar-pane-activitybalance"
-        @click="activeTab = 'activitybalance'"
-      >
-        Activity &amp; Balance
-      </button>
-      <button
         id="opsdash-sidebar-tab-profiles"
         type="button"
         class="sb-tab"
@@ -85,7 +73,7 @@
         aria-controls="opsdash-sidebar-pane-config"
         @click="activeTab = 'config'"
       >
-        Config & Setup
+        Theme
       </button>
       <button
         id="opsdash-sidebar-tab-report"
@@ -112,10 +100,19 @@
       :calendar-target-messages="calendarTargetMessages"
       :calendar-category-id="calendarCategoryId"
       :get-target="getTarget"
+      :activity-forecast-mode="activitySettings.forecastMode"
+      :activity-forecast-options="activityForecastOptions"
+      :balance-lookback="balanceSettings.trend.lookbackWeeks"
+      :balance-lookback-message="balanceLookbackMessage"
+      :index-disabled="balanceIndexDisabled"
       @select-all="emitSelectAll"
       @toggle-calendar="emitToggleCalendar"
       @set-category="handleCalendarCategory"
       @target-input="handleCalendarTargetInput"
+      @set-activity-forecast="setActivityForecastMode"
+      @set-lookback="setBalanceLookback"
+      @rerun-onboarding="() => emit('rerun-onboarding')"
+      @open-shortcuts="(el) => emit('open-shortcuts', el)"
     />
 
     <SidebarConfigPane
@@ -133,9 +130,7 @@
       @delete="(name: string) => emit('delete-preset', name)"
       @refresh="() => emit('refresh-presets')"
       @clear-warnings="() => emit('clear-preset-warnings')"
-      @rerun-onboarding="() => emit('rerun-onboarding')"
       @set-theme-preference="(value: 'auto' | 'light' | 'dark') => emit('set-theme-preference', value)"
-      @open-shortcuts="(el) => emit('open-shortcuts', el)"
     />
 
     <SidebarProfilesPane
@@ -161,32 +156,6 @@
       @save-reporting="(value) => emit('save-reporting', value)"
     />
 
-    <SidebarBalancePane
-      v-else-if="activeTab === 'activitybalance'"
-      id="opsdash-sidebar-pane-activitybalance"
-      class="sb-pane"
-      role="tabpanel"
-      aria-labelledby="opsdash-sidebar-tab-activitybalance"
-      :activity-settings="activitySettings"
-      :activity-toggles="activityToggles"
-      :activity-forecast-mode="activitySettings.forecastMode"
-      :activity-forecast-options="activityForecastOptions"
-      :balance-settings="balanceSettings"
-      :balance-threshold-messages="balanceThresholdMessages"
-      :balance-lookback-message="balanceLookbackMessage"
-      :help-activity="helpState.balanceActivity"
-      :help-thresholds="helpState.balanceThresholds"
-      :help-trend="helpState.balanceTrend"
-      :help-display="helpState.balanceDisplay"
-      :index-disabled="balanceIndexDisabled"
-      @toggle-help="toggleBalanceHelp"
-      @set-activity-forecast="setActivityForecastMode"
-      @set-lookback="setBalanceLookback"
-      @set-activity-toggle="setActivityToggle"
-      @set-threshold="(payload) => setBalanceThreshold(payload.key, payload.value)"
-      @set-index-basis="setBalanceIndexBasis"
-      @set-ui-toggle="setBalanceUi"
-    />
   </NcAppNavigation>
 </template>
 
@@ -204,7 +173,6 @@ import {
 } from '../services/targets'
 import type { ReportingConfig, DeckFeatureSettings } from '../services/reporting'
 import SidebarCalendarsPane from './sidebar/SidebarCalendarsPane.vue'
-import SidebarBalancePane from './sidebar/SidebarBalancePane.vue'
 import SidebarConfigPane from './sidebar/SidebarConfigPane.vue'
 import SidebarProfilesPane from './sidebar/SidebarProfilesPane.vue'
 import SidebarReportPane from './sidebar/SidebarReportPane.vue'
@@ -263,7 +231,7 @@ const emit = defineEmits([
   'save-deck-settings',
 ])
 
-type SidebarTab = 'calendars'|'activitybalance'|'config'|'profiles'|'report'
+type SidebarTab = 'calendars'|'config'|'profiles'|'report'
 
 const activeTab = ref<SidebarTab>('calendars')
 watch(() => props.dashboardMode, (mode) => {
@@ -303,12 +271,6 @@ const activitySettings = computed<ActivityCardConfig>(() => {
   return { ...createDefaultActivityCardConfig(), ...(targets.value?.activityCard ?? {}) }
 })
 
-const activityToggles: Array<[keyof ActivityCardConfig, string]> = [
-  ['showWeekendShare', 'Weekend share'],
-  ['showDayOffTrend', 'Days off trend'],
-  ['showHint', 'Show helper text'],
-]
-
 const activityForecastOptions: Array<{ value: ActivityCardConfig['forecastMode']; label: string; description: string }> = [
   { value: 'off', label: 'Do not project future days', description: 'Keep charts empty until events occur.' },
   { value: 'total', label: 'Distribute remaining total target', description: 'Split leftover total target hours evenly across future days using current calendar mix.' },
@@ -331,19 +293,11 @@ const balanceSettings = computed<BalanceConfig>(() => {
   }
 })
 
-const helpState = reactive({
-  balanceActivity: false,
-  balanceThresholds: false,
-  balanceTrend: false,
-  balanceDisplay: false,
-})
-
 const calendarTargetMessages = reactive<Record<string, InputMessage | null>>({})
 const categoryTargetMessages = reactive<Record<string, InputMessage | null>>({})
 const totalTargetMessage = ref<InputMessage | null>(null)
 const allDayHoursMessage = ref<InputMessage | null>(null)
 const paceThresholdMessages = reactive<{ onTrack: InputMessage | null; atRisk: InputMessage | null }>({ onTrack: null, atRisk: null })
-const balanceThresholdMessages = reactive<Record<string, InputMessage | null>>({})
 const forecastMomentumMessage = ref<InputMessage | null>(null)
 const forecastPaddingMessage = ref<InputMessage | null>(null)
 const balanceLookbackMessage = ref<InputMessage | null>(null)
@@ -448,18 +402,6 @@ function setActivityForecastMode(mode: ActivityCardConfig['forecastMode']) {
   })
 }
 
-function toggleBalanceHelp(target: 'thresholds' | 'trend' | 'display' | 'activity') {
-  if (target === 'trend') {
-    helpState.balanceTrend = !helpState.balanceTrend
-  } else if (target === 'display') {
-    helpState.balanceDisplay = !helpState.balanceDisplay
-  } else if (target === 'thresholds') {
-    helpState.balanceThresholds = !helpState.balanceThresholds
-  } else if (target === 'activity') {
-    helpState.balanceActivity = !helpState.balanceActivity
-  }
-}
-
 function onCalendarTargetInput(id: string, value: string){
   applyNumericUpdate(
     value,
@@ -535,17 +477,6 @@ function setThreshold(which: 'onTrack'|'atRisk', value: string){
   )
 }
 
-function setBalanceThreshold(which: 'noticeAbove' | 'noticeBelow' | 'warnAbove' | 'warnBelow' | 'warnIndex', value: string){
-  applyNumericUpdate(
-    value,
-    { min: 0, max: 1, step: 0.01, decimals: 2 },
-    (message) => { balanceThresholdMessages[which] = message },
-    (num) => updateConfig(cfg => {
-      cfg.balance.thresholds[which] = Number(num.toFixed(2))
-    }),
-  )
-}
-
 function setBalanceLookback(value: string){
   applyNumericUpdate(
     value,
@@ -554,31 +485,6 @@ function setBalanceLookback(value: string){
     (num) => updateConfig(cfg => { cfg.balance.trend.lookbackWeeks = num }),
   )
 }
-
-function setBalanceIndexBasis(value: string) {
-  const allowed: BalanceConfig['index']['basis'][] = ['off', 'category', 'calendar', 'both']
-  const basis = allowed.includes(value as any) ? (value as BalanceConfig['index']['basis']) : 'category'
-  updateConfig((cfg) => {
-    cfg.balance.index.basis = basis
-  })
-}
-
-function setBalanceUi(payload: { key: keyof BalanceConfig['ui']; value: boolean }) {
-  updateConfig((cfg) => {
-    cfg.balance.ui[payload.key] = payload.value
-  })
-}
-
-function setActivityToggle(payload: { key: keyof ActivityCardConfig; value: boolean }) {
-  updateConfig((cfg) => {
-    if (!cfg.activityCard) {
-      cfg.activityCard = createDefaultActivityCardConfig()
-    }
-    cfg.activityCard[payload.key] = payload.value
-  })
-}
-
-// showNotes toggle removed from UI; keep placeholder to avoid runtime errors where invoked
 
 function setForecastMethod(value: string){
   const method = value === 'momentum' ? 'momentum' : 'linear'

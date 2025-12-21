@@ -5,9 +5,9 @@
     role="tabpanel"
     aria-labelledby="opsdash-sidebar-tab-config"
   >
-    <div class="sb-title">Configuration &amp; Setup</div>
+    <div class="sb-title">Theme</div>
     <p class="sb-description">
-      Adjust theme preferences and re-run onboarding. Profile management lives under the Profiles tab.
+      Pick how Opsdash follows Nextcloud themes. Profile management lives under the Profiles tab.
     </p>
 
     <div class="theme-section">
@@ -58,31 +58,11 @@
       </div>
     </div>
 
-    <div class="setup-actions">
-      <NcButton
-        type="primary"
-        size="small"
-        class="rerun-btn"
-        title="Open the onboarding setup again"
-        @click="emit('rerun-onboarding')"
-      >
-        Re-run onboarding
-      </NcButton>
-      <NcButton
-        type="tertiary"
-        size="small"
-        class="shortcuts-btn"
-        @click="onOpenShortcuts"
-      >
-        Keyboard shortcuts
-      </NcButton>
-    </div>
   </div>
 </template>
 
 <script setup lang="ts">
 import { computed, toRefs } from 'vue'
-import { NcButton } from '@nextcloud/vue'
 
 const props = defineProps<{
   themePreference: 'auto' | 'light' | 'dark'
@@ -93,9 +73,7 @@ const props = defineProps<{
 const { themePreference, effectiveTheme, systemTheme } = toRefs(props)
 
 const emit = defineEmits<{
-  (e: 'rerun-onboarding'): void
   (e: 'set-theme-preference', value: 'auto' | 'light' | 'dark'): void
-  (e: 'open-shortcuts', trigger?: HTMLElement | null): void
 }>()
 
 const systemThemeLabel = computed(() => systemTheme.value === 'dark' ? 'dark' : 'light')
@@ -105,10 +83,6 @@ function onThemeSelect(value: 'auto' | 'light' | 'dark') {
   emit('set-theme-preference', value)
 }
 
-function onOpenShortcuts(event: MouseEvent) {
-  const target = event.currentTarget as HTMLElement | null
-  emit('open-shortcuts', target ?? undefined)
-}
 </script>
 
 <style scoped>
@@ -120,16 +94,6 @@ function onOpenShortcuts(event: MouseEvent) {
   font-size: 12px;
   color: var(--text-color-tertiary);
   margin: 0 0 10px;
-}
-.setup-actions {
-  display: flex;
-  justify-content: flex-start;
-  flex-wrap: wrap;
-  gap: 6px;
-  margin-bottom: 12px;
-}
-.rerun-btn {
-  font-size: 12px;
 }
 .theme-section {
   border: 1px solid color-mix(in oklab, var(--line), transparent 30%);
