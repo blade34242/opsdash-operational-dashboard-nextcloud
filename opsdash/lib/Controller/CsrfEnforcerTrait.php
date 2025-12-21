@@ -45,9 +45,6 @@ trait CsrfEnforcerTrait {
                 return true;
             }
             $manager = \OC::$server->getCsrfTokenManager();
-            if (method_exists($manager, 'isTokenValid')) {
-                return (bool)$manager->isTokenValid($token);
-            }
             if (method_exists($manager, 'checkToken')) {
                 return (bool)$manager->checkToken($token);
             }
