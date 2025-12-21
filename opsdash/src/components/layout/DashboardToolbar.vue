@@ -11,6 +11,45 @@
           <button type="button" class="ghost" title="Move later" @click="$emit('move', 'down')">→</button>
           <button type="button" class="ghost" title="Cycle width" @click="$emit('cycle-width')">{{ widthLabel(selectedItem.layout.width) }}</button>
           <button type="button" class="ghost" title="Cycle height" @click="$emit('cycle-height')">{{ heightLabel(selectedItem.layout.height) }}</button>
+          <div class="toolbar-quick">
+            <label class="toolbar-field">
+              <span>Title</span>
+              <input
+                type="text"
+                :value="optionValue('titlePrefix') || ''"
+                placeholder="Prefix"
+                @input="$emit('edit-options', selectedItem.id, 'titlePrefix', ($event.target as HTMLInputElement).value)"
+              />
+            </label>
+            <label class="toolbar-field">
+              <span>Card</span>
+              <input
+                type="color"
+                :value="optionValue('cardBg') || '#ffffff'"
+                @input="$emit('edit-options', selectedItem.id, 'cardBg', ($event.target as HTMLInputElement).value)"
+              />
+            </label>
+            <label class="toolbar-field">
+              <span>Scale</span>
+              <select
+                :value="optionValue('scale') || 'md'"
+                @change="$emit('edit-options', selectedItem.id, 'scale', ($event.target as HTMLSelectElement).value)"
+              >
+                <option value="sm">Small</option>
+                <option value="md">Normal</option>
+                <option value="lg">Large</option>
+                <option value="xl">Extra large</option>
+              </select>
+            </label>
+            <label class="toolbar-field toolbar-field--toggle">
+              <input
+                type="checkbox"
+                :checked="!!optionValue('dense')"
+                @change="$emit('edit-options', selectedItem.id, 'dense', ($event.target as HTMLInputElement).checked)"
+              />
+              <span>Dense</span>
+            </label>
+          </div>
           <WidgetOptionsMenu
             v-if="selectedItem && isConfigurable(selectedItem.type)"
             :entry="registryEntry(selectedItem.type)"
@@ -72,6 +111,10 @@ const selectedItemTitle = computed(() => {
   const registry = props.selectedItem ? widgetsRegistry[props.selectedItem.type] : null
   return registry?.label || props.selectedItem?.type || 'Widget'
 })
+
+function optionValue(key: string) {
+  return props.selectedItem?.options?.[key]
+}
 
 function registryEntry(type: string) {
   return widgetsRegistry[type]
@@ -152,6 +195,43 @@ function heightLabel(height: string) {
   gap:6px;
   flex-wrap:wrap;
   align-items:center;
+}
+.toolbar-quick{
+  display:flex;
+  gap:6px;
+  flex-wrap:wrap;
+  align-items:center;
+}
+.toolbar-field{
+  display:flex;
+  align-items:center;
+  gap:6px;
+  font-size:11px;
+  color:#e5e7eb;
+}
+.toolbar-field span{
+  opacity:0.75;
+}
+.toolbar-field input[type="text"],
+.toolbar-field select{
+  border-radius:6px;
+  border:1px solid color-mix(in oklab, #4b5563, transparent 35%);
+  background:color-mix(in oklab, #0f172a, #111827 70%);
+  color:#e2e8f0;
+  padding:2px 6px;
+  font-size:11px;
+  min-width:84px;
+}
+.toolbar-field input[type="color"]{
+  width:26px;
+  height:22px;
+  padding:0;
+  border:1px solid color-mix(in oklab, #4b5563, transparent 35%);
+  border-radius:6px;
+  background:transparent;
+}
+.toolbar-field--toggle{
+  gap:4px;
 }
 .widget-toolbar .ghost{
   padding:4px 6px;
