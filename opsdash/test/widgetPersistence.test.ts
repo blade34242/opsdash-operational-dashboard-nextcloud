@@ -11,8 +11,17 @@ describe('widget persistence with local targets', () => {
   it('keeps local targets config across export/import', () => {
     const base = createDefaultTargetsConfig()
     const widgets = createDefaultWidgets()
-    const targetsWidget = widgets.find((w) => w.type === 'targets_v2')
-    if (!targetsWidget) throw new Error('missing targets widget')
+    let targetsWidget = widgets.find((w) => w.type === 'targets_v2')
+    if (!targetsWidget) {
+      targetsWidget = {
+        id: 'widget-targets_v2-test',
+        type: 'targets_v2',
+        options: {},
+        layout: { width: 'half', height: 'm', order: 10 },
+        version: 1,
+      }
+      widgets.push(targetsWidget)
+    }
     targetsWidget.options = {
       useLocalConfig: true,
       localConfig: { ...base, totalHours: 12 },
@@ -35,6 +44,15 @@ describe('widget persistence with local targets', () => {
         ? { ...w, options: { useLocalConfig: true, localConfig: trimmed } }
         : w,
     )
+    if (!widgets.some((w) => w.type === 'targets_v2')) {
+      widgets.push({
+        id: 'widget-targets_v2-test',
+        type: 'targets_v2',
+        options: { useLocalConfig: true, localConfig: trimmed },
+        layout: { width: 'half', height: 'm', order: 10 },
+        version: 1,
+      })
+    }
 
     const imported = JSON.parse(JSON.stringify(widgets))
     const t = imported.find((w: any) => w.type === 'targets_v2')

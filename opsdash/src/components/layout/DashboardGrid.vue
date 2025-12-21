@@ -128,7 +128,7 @@ function scaleClass(options?: { scale?: string; textSize?: string }) {
 
 function widgetVars(options?: { scale?: string; textSize?: string; dense?: boolean }) {
   const size = options?.scale || options?.textSize || 'md'
-  const scale = size === 'sm' ? 0.92 : size === 'lg' ? 1.12 : size === 'xl' ? 1.24 : 1
+  const scale = size === 'sm' ? 0.85 : size === 'lg' ? 1.2 : size === 'xl' ? 1.4 : 1
   const density = options?.dense ? 0.72 : 1
   const space = scale * density
   return {
@@ -295,10 +295,10 @@ function onDragEnd() {
 .is-dragging{
   opacity:0.6;
 }
-.scale-sm{ --widget-scale:0.92; }
+.scale-sm{ --widget-scale:0.85; }
 .scale-md{ --widget-scale:1; }
-.scale-lg{ --widget-scale:1.12; }
-.scale-xl{ --widget-scale:1.24; }
+.scale-lg{ --widget-scale:1.2; }
+.scale-xl{ --widget-scale:1.4; }
 @media (max-width: 1024px){
   .w-quarter{ grid-column: span 2; }
   .w-half{ grid-column: span 2; }

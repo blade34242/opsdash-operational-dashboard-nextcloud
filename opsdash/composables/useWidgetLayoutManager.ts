@@ -31,16 +31,7 @@ export function useWidgetLayoutManager(options: {
   } = options
 
   function loadWidgetLayout(): WidgetDefinition[] {
-    try {
-      if (typeof localStorage === 'undefined') return createDefaultWidgets()
-      const raw = localStorage.getItem(storageKey)
-      if (!raw) return createDefaultWidgets()
-      const parsed = JSON.parse(raw)
-      return normalizeWidgetLayout(parsed, createDefaultWidgets()).filter((w) => Boolean(widgetsRegistry[w.type]))
-    } catch (err) {
-      console.warn('[opsdash] widget layout load failed', err)
-      return createDefaultWidgets()
-    }
+    return createDefaultWidgets()
   }
 
   const layoutWidgets = ref<WidgetDefinition[]>(loadWidgetLayout())
@@ -64,18 +55,7 @@ export function useWidgetLayoutManager(options: {
     },
   )
 
-  watch(
-    () => layoutWidgets.value,
-    (next) => {
-      try {
-        if (typeof localStorage === 'undefined') return
-        localStorage.setItem(storageKey, JSON.stringify(next))
-      } catch (err) {
-        console.warn('[opsdash] widget layout save failed', err)
-      }
-    },
-    { deep: true },
-  )
+  void storageKey
 
   const widgets = computed<WidgetDefinition[]>(() => {
     const defs = layoutWidgets.value

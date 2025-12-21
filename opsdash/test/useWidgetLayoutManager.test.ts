@@ -1,13 +1,9 @@
-import { describe, it, expect, beforeEach, vi } from 'vitest'
+import { describe, it, expect, vi } from 'vitest'
 import { nextTick, ref } from 'vue'
 
 import { useWidgetLayoutManager } from '../composables/useWidgetLayoutManager'
 
 describe('useWidgetLayoutManager', () => {
-  beforeEach(() => {
-    localStorage.clear()
-  })
-
   it('persists dirty widgets after initial load completes', async () => {
     const queueSave = vi.fn()
     const hasInitialLoad = ref(false)
