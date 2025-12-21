@@ -45,6 +45,7 @@ export function normalizeWidgetLayout(raw: any, fallback: WidgetDefinition[]): W
   raw.forEach((item: any, idx: number) => {
     const type = String(item?.type ?? '')
     if (!type) return
+    const entry = widgetsRegistry[type]
     const id = String(item?.id ?? '') || `widget-${type}-${idx + 1}`
     const layout = item?.layout ?? {}
     const width: WidgetSize =
@@ -52,7 +53,11 @@ export function normalizeWidgetLayout(raw: any, fallback: WidgetDefinition[]): W
     const height: WidgetHeight =
       layout.height === 's' || layout.height === 'l' || layout.height === 'xl' ? layout.height : 'm'
     const order = Number(layout.order ?? 0)
-    const options = item?.options && typeof item.options === 'object' ? { ...item.options } : {}
+    const baseOptions = entry?.defaultOptions || {}
+    const options = {
+      ...baseOptions,
+      ...(item?.options && typeof item.options === 'object' ? item.options : {}),
+    }
     if (options.scale == null && options.textSize != null) {
       options.scale = options.textSize
       delete options.textSize
@@ -82,10 +87,11 @@ export function mapWidgetToComponent(def: WidgetDefinition, ctx: WidgetRenderCon
 function cloneWidget(type: string, options: Record<string, any> = {}, layout?: Partial<WidgetDefinition['layout']>): WidgetDefinition {
   const entry = widgetsRegistry[type]
   const defaultLayout = entry?.defaultLayout ?? { width: 'half', height: 's', order: 50 }
+  const defaultOptions = entry?.defaultOptions || {}
   return {
     id: `widget-${type}-${Math.random().toString(36).slice(2, 8)}`,
     type,
-    options,
+    options: { ...defaultOptions, ...(options || {}) },
     layout: { ...defaultLayout, ...(layout || {}) },
     version: 1,
   }

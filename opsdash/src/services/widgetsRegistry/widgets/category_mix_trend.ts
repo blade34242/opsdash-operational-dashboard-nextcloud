@@ -14,6 +14,15 @@ export const categoryMixTrendEntry: RegistryEntry = {
   defaultLayout: { width: 'half', height: 'm', order: 47 },
   label: 'Category mix trend',
   baseTitle,
+  defaultOptions: {
+    lookbackWeeks: 4,
+    density: 'normal',
+    labelMode: 'period',
+    colorMode: 'hybrid',
+    squareCells: false,
+    showHeader: true,
+    showBadge: true,
+  },
   configurable: true,
   controls: [
     { key: 'lookbackWeeks', label: 'Lookback (weeks)', type: 'number', min: 1, max: 4, step: 1 },
