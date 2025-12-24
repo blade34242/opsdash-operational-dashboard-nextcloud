@@ -44,6 +44,8 @@
             <option value="done_mine">Done · Mine</option>
             <option value="archived_all">Archived · All</option>
             <option value="archived_mine">Archived · Mine</option>
+            <option value="due_all">Due · All</option>
+            <option value="due_mine">Due · Mine</option>
           </select>
         </label>
 

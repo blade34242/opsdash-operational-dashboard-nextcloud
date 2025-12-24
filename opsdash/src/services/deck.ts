@@ -129,9 +129,12 @@ export async function fetchDeckCardsInRange(request: DeckRangeRequest): Promise<
   for (const board of boards) {
     if (board.id == null) continue
     let stacksPayload: any
+    const stackParams = includeArchived
+      ? { details: 1, archived: 1, includeArchived: 1 }
+      : { details: 1 }
     try {
       stacksPayload = await requestJson(
-        buildDeckUrl(`/apps/deck/api/v1/boards/${board.id}/stacks`, { details: 1 }),
+        buildDeckUrl(`/apps/deck/api/v1/boards/${board.id}/stacks`, stackParams),
       )
     } catch (error) {
       if (isDeckUnavailable(error)) {
@@ -139,20 +142,38 @@ export async function fetchDeckCardsInRange(request: DeckRangeRequest): Promise<
       }
       if (error instanceof DeckHttpError && error.status === 400) {
         // Older Deck versions do not support ?details=1; retry without it.
-        stacksPayload = await requestJson(buildDeckUrl(`/apps/deck/api/v1/boards/${board.id}/stacks`))
+        const fallbackParams = includeArchived ? { archived: 1, includeArchived: 1 } : undefined
+        stacksPayload = await requestJson(
+          buildDeckUrl(`/apps/deck/api/v1/boards/${board.id}/stacks`, fallbackParams),
+        )
       } else {
         throw error
       }
     }
     const stacks = normalizeStacks(stacksPayload)
-    for (const stack of stacks) {
+    let archivedStacks: DeckApiStack[] = []
+    if (includeArchived) {
+      try {
+        const archivedPayload = await requestJson(
+          buildDeckUrl(`/apps/deck/api/v1/boards/${board.id}/stacks/archived`),
+        )
+        archivedStacks = normalizeStacks(archivedPayload)
+      } catch (error) {
+        // Older Deck versions may not expose archived stacks; ignore when unavailable.
+      }
+    }
+    const stackSources = [
+      ...stacks.map((stack) => ({ stack, forceArchived: false })),
+      ...archivedStacks.map((stack) => ({ stack, forceArchived: true })),
+    ]
+    for (const { stack, forceArchived } of stackSources) {
       if (stack.cards == null || stack.id == null) continue
       const stackTitle = stack.title || `Stack ${stack.id}`
       for (const rawCard of stack.cards) {
         const normalized = normalizeCard(rawCard, boardMeta.get(board.id), {
           stackId: stack.id,
           stackTitle,
-        })
+        }, { forceArchived })
         if (!normalized) continue
         const hasDate = normalized.dueTs != null || normalized.doneTs != null
         if (!hasDate) {
@@ -232,6 +253,7 @@ function normalizeCard(
   card: DeckApiCard,
   board?: DeckBoardMeta,
   stack?: { stackId: number; stackTitle: string },
+  opts?: { forceArchived?: boolean },
 ): DeckCardSummary | null {
   if (!card || typeof card !== 'object' || card.id == null || !stack) {
     return null
@@ -243,7 +265,8 @@ function normalizeCard(
   if (boardId == null) {
     return null
   }
-  const status: DeckCardStatus = card.archived ? 'archived' : doneTs != null ? 'done' : 'active'
+  const isArchived = Boolean(card.archived) || Boolean(opts?.forceArchived)
+  const status: DeckCardStatus = isArchived ? 'archived' : doneTs != null ? 'done' : 'active'
   const boardTitle = board?.title || `Board ${boardId}`
 
   return {
@@ -259,7 +282,7 @@ function normalizeCard(
     dueTs: dueTs ?? undefined,
     done: doneTs != null ? new Date(doneTs).toISOString() : undefined,
     doneTs: doneTs ?? undefined,
-    archived: Boolean(card.archived),
+    archived: isArchived,
     status,
     created: createdTs != null ? new Date(createdTs).toISOString() : undefined,
     createdTs: createdTs ?? undefined,

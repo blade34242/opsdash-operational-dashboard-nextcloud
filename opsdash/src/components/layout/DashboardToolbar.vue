@@ -155,8 +155,8 @@ function heightLabel(height: string) {
   z-index:2147480000;
   display:flex;
   align-items:flex-end;
-  justify-content:center;
-  padding:0 16px 12px;
+  justify-content:stretch;
+  padding:0 16px 12px calc(16px + var(--opsdash-nav-offset, 0px));
   background: none;
 }
 .widget-toolbar{
@@ -164,27 +164,26 @@ function heightLabel(height: string) {
   position:relative;
   margin-top:0;
   padding:7px 9px;
-  border:1px solid rgba(156,163,175,0.85);
-  background:#111827;
-  border:1px solid color-mix(in oklab, var(--color-border,#9ca3af), transparent 10%);
-  background:color-mix(in oklab, #1f2937, #111827 70%);
+  border:1px solid rgba(59,130,246,0.55);
+  background:#0b1222;
+  border:1px solid color-mix(in oklab, var(--color-primary,#2563eb), transparent 20%);
+  background:linear-gradient(180deg, rgba(15,23,42,0.98) 0%, rgba(2,6,23,0.98) 100%);
   border-radius:8px;
   display:flex;
   align-items:center;
   justify-content:space-between;
   gap:6px;
-  box-shadow:0 6px 14px rgba(0,0,0,0.16);
-  max-width:760px;
-  width: min(760px, calc(100% - 220px));
+  box-shadow:0 8px 20px rgba(15,23,42,0.55), 0 0 0 1px rgba(59,130,246,0.18);
+  max-width:none;
+  width:100%;
   opacity:1;
   z-index:2147480001;
   backdrop-filter: blur(6px);
   transition: background 140ms ease, box-shadow 140ms ease, transform 140ms ease;
 }
 .widget-toolbar:hover{
-  background:#0f172a;
-  background:color-mix(in oklab, #111827, #1f2937 30%);
-  box-shadow:0 8px 18px rgba(0,0,0,0.18);
+  background:linear-gradient(180deg, rgba(30,41,59,0.98) 0%, rgba(15,23,42,0.98) 100%);
+  box-shadow:0 10px 24px rgba(15,23,42,0.6), 0 0 0 1px rgba(59,130,246,0.25);
 }
 .toolbar-title{
   font-weight:600;

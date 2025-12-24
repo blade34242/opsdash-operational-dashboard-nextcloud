@@ -12,6 +12,8 @@ type DeckCard = {
   assignees?: Array<{ uid?: string }>
   createdBy?: string
   doneBy?: string
+  match?: 'due' | 'completed' | string
+  dueTs?: number | null
 }
 
 export function sanitizeDeckFilter(value: DeckFilterMode | string | undefined): DeckFilterMode {
@@ -24,6 +26,8 @@ export function sanitizeDeckFilter(value: DeckFilterMode | string | undefined): 
     'done_mine',
     'archived_all',
     'archived_mine',
+    'due_all',
+    'due_mine',
   ]
   return allowed.includes(value as DeckFilterMode) ? (value as DeckFilterMode) : 'all'
 }
@@ -37,6 +41,10 @@ function deckStatusMatches(card: DeckCard, status: 'open' | 'done' | 'archived',
     return includeArchivedInDone && cardStatus === 'archived'
   }
   return false
+}
+
+function deckDueMatches(card: DeckCard) {
+  return card.dueTs != null || card.match === 'due'
 }
 
 export function useDeckFiltering(options: {
@@ -93,12 +101,48 @@ export function useDeckFiltering(options: {
     if (filter === 'mine') {
       return cards.filter((card) => mineMatch(card))
     }
+    if (filter.startsWith('due_')) {
+      const mineOnly = filter.endsWith('_mine')
+      return cards.filter((card) => {
+        const dueOk = deckDueMatches(card)
+        const mineOk = mineOnly ? mineMatch(card) : true
+        return dueOk && mineOk
+      })
+    }
     const [statusKey, scope] = filter.split('_') as ['open' | 'done' | 'archived', 'all' | 'mine']
     return cards.filter((card) => {
       const statusOk = deckStatusMatches(card, statusKey, includeArchivedInDone)
       const mineOk = scope === 'all' ? true : mineMatch(card)
       return statusOk && mineOk
     })
+  })
+
+  const deckFilterOptions = computed(() => {
+    const mineMatch = deckMineMatcher.value
+    const includeArchivedInDone = deckSettings.value.solvedIncludesArchived !== false
+    const cards = deckVisibleCards.value
+    const defs: Array<{
+      value: DeckFilterMode
+      label: string
+      mine: boolean
+      matches: (card: DeckCard) => boolean
+    }> = [
+      { value: 'all', label: 'All cards', mine: false, matches: () => true },
+      { value: 'open_all', label: 'Open · All', mine: false, matches: (card) => deckStatusMatches(card, 'open', includeArchivedInDone) },
+      { value: 'open_mine', label: 'Open · Mine', mine: true, matches: (card) => deckStatusMatches(card, 'open', includeArchivedInDone) && mineMatch(card) },
+      { value: 'done_all', label: 'Done · All', mine: false, matches: (card) => deckStatusMatches(card, 'done', includeArchivedInDone) },
+      { value: 'done_mine', label: 'Done · Mine', mine: true, matches: (card) => deckStatusMatches(card, 'done', includeArchivedInDone) && mineMatch(card) },
+      { value: 'archived_all', label: 'Archived · All', mine: false, matches: (card) => deckStatusMatches(card, 'archived', includeArchivedInDone) },
+      { value: 'archived_mine', label: 'Archived · Mine', mine: true, matches: (card) => deckStatusMatches(card, 'archived', includeArchivedInDone) && mineMatch(card) },
+      { value: 'due_all', label: 'Due · All', mine: false, matches: (card) => deckDueMatches(card) },
+      { value: 'due_mine', label: 'Due · Mine', mine: true, matches: (card) => deckDueMatches(card) && mineMatch(card) },
+    ]
+    return defs.map((def) => ({
+      value: def.value,
+      label: def.label,
+      mine: def.mine,
+      count: cards.filter(def.matches).length,
+    }))
   })
 
   const deckSummaryBuckets = computed(() => {
@@ -181,6 +225,6 @@ export function useDeckFiltering(options: {
     deckTickerConfig,
     deckCanFilterMine,
     deckUrl,
+    deckFilterOptions,
   }
 }
-

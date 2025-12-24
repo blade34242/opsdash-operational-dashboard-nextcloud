@@ -21,6 +21,9 @@ describe('deck service', () => {
       if (target.includes('/apps/deck/api/v1/boards?')) {
         return createResponse(deckFixture.ocs)
       }
+      if (target.includes('/apps/deck/api/v1/boards/10/stacks/archived')) {
+        return createResponse([])
+      }
       if (target.includes('/apps/deck/api/v1/boards/10/stacks')) {
         return createResponse(deckFixture.stacks['10'])
       }

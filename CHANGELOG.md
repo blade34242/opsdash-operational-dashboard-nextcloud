@@ -18,7 +18,7 @@ All notable changes to this project will be documented in this file.
 - Sidebar hides Profiles/Report tabs when the Quick dashboard preset is active; default widgets now come from the Standard preset.
 - Widget toolbar includes “Reset preset” to restore the current dashboard mode’s layout.
 
-## [0.4.9] - Unreleased
+## [0.5.1] - Unreleased
 ### Added
 - Widget layout persistence now round-trips through `/overview/persist` and `/overview/load`, with sanitisation on the server and normalisation on the client (new `normalizeWidgetLayout`) plus Vitest/PHP coverage.
 - Balance/Activity sidebar controls restored: thresholds, index basis selector, trend lookback, display toggle, and activity card toggles with contextual help.
@@ -32,7 +32,7 @@ All notable changes to this project will be documented in this file.
 - Deck cards widget now scrolls inside its card (no main page scroll) so long lists stay contained.
 ### Fixed
 - Widget layout no longer falls back to defaults after clearing cookies; server-saved layout is applied on reload.
-- Balance tests re-enabled and passing under 0.4.9 with corrected DOM structure and emits.
+- Balance tests re-enabled and passing under 0.5.1 with corrected DOM structure and emits.
 
 ## [0.4.7] - Unreleased
 ### Added

@@ -48,7 +48,8 @@
       :disabled="option.mine && !allowMine"
       @click="$emit('update:filter', option.value)"
     >
-      {{ option.label }}
+      <span>{{ option.label }}</span>
+      <span v-if="typeof option.count === 'number'" class="deck-filter-count">{{ option.count }}</span>
     </button>
   </div>
 
@@ -157,6 +158,8 @@ const filterOptions = computed<Array<{ value: DeckFilterMode; label: string; min
     { value: 'done_mine', label: 'Done · Mine', mine: true },
     { value: 'archived_all', label: 'Archived · All', mine: false },
     { value: 'archived_mine', label: 'Archived · Mine', mine: true },
+    { value: 'due_all', label: 'Due · All', mine: false },
+    { value: 'due_mine', label: 'Due · Mine', mine: true },
   ]
 })
 
@@ -329,10 +332,17 @@ function statusLabel(status: DeckCardSummary['status']) {
   padding: calc(3px * var(--widget-space, 1)) calc(14px * var(--widget-space, 1));
   font-size: calc(13px * var(--widget-scale, 1));
   cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: calc(6px * var(--widget-space, 1));
 }
 .deck-filter-btn.active {
   border-color: var(--color-primary);
   color: var(--color-primary);
+}
+.deck-filter-count {
+  font-size: calc(11px * var(--widget-scale, 1));
+  opacity: 0.7;
 }
 .deck-filter-btn:disabled {
   opacity: 0.5;

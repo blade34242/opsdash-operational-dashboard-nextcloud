@@ -183,6 +183,8 @@ export function createDashboardPreset(mode: DashboardMode): WidgetDefinition[] {
           'done_mine',
           'archived_all',
           'archived_mine',
+          'due_all',
+          'due_mine',
           'created_today_all',
           'created_today_mine',
         ],

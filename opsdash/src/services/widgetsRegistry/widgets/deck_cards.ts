@@ -22,6 +22,7 @@ export const deckCardsEntry: RegistryEntry = {
     autoScroll: true,
     intervalSeconds: 5,
     showCount: true,
+    customFilters: [],
     filters: [
       'open_all',
       'open_mine',
@@ -29,6 +30,8 @@ export const deckCardsEntry: RegistryEntry = {
       'done_mine',
       'archived_all',
       'archived_mine',
+      'due_all',
+      'due_mine',
       'created_today_all',
       'created_today_mine',
     ],
@@ -49,6 +52,7 @@ export const deckCardsEntry: RegistryEntry = {
     { key: 'autoScroll', label: 'Auto-scroll list', type: 'toggle' },
     { key: 'intervalSeconds', label: 'Scroll every (s)', type: 'number', min: 3, max: 10, step: 1 },
     { key: 'showCount', label: 'Show count pill', type: 'toggle' },
+    { key: 'customFilters', label: 'Custom filters', type: 'filterbuilder' },
   ],
   dynamicControls: (options, ctx) => {
     const filters = parseFilters(options.filters ?? options.defaultOptions?.filters)
@@ -66,6 +70,8 @@ export const deckCardsEntry: RegistryEntry = {
       { value: 'done_mine', label: prettyFilterLabel('done_mine') },
       { value: 'archived_all', label: prettyFilterLabel('archived_all') },
       { value: 'archived_mine', label: prettyFilterLabel('archived_mine') },
+      { value: 'due_all', label: prettyFilterLabel('due_all') },
+      { value: 'due_mine', label: prettyFilterLabel('due_mine') },
       { value: 'created_today_all', label: prettyFilterLabel('created_today_all') },
       { value: 'created_today_mine', label: prettyFilterLabel('created_today_mine') },
     ]
@@ -84,6 +90,7 @@ export const deckCardsEntry: RegistryEntry = {
       ? def.options.boardIds
       : parseBoardIds(def.options?.boardIds)
     const defaultFilter = filters.includes(def.options?.defaultFilter) ? def.options?.defaultFilter : (filters[0] || 'all')
+    const customFilters = normalizeCustomFilters(def.options?.customFilters)
     return {
       cards: ctx.deckCards || [],
       rangeLabel: ctx.deckRangeLabel || ctx.rangeLabel || '',
@@ -104,6 +111,54 @@ export const deckCardsEntry: RegistryEntry = {
       autoScroll: def.options?.autoScroll !== false,
       intervalSeconds: def.options?.intervalSeconds ?? 5,
       showCount: def.options?.showCount !== false,
+      customFilters,
     }
   },
+}
+
+type CustomDeckFilter = {
+  id: string
+  label: string
+  labelIds?: string[]
+  labels?: string[]
+  assignees?: string[]
+}
+
+function normalizeCustomFilters(input: any): CustomDeckFilter[] {
+  let raw: any[] = []
+  if (Array.isArray(input)) {
+    raw = input
+  } else if (typeof input === 'string' && input.trim() !== '') {
+    try {
+      const parsed = JSON.parse(input)
+      if (Array.isArray(parsed)) raw = parsed
+    } catch {
+      raw = []
+    }
+  }
+  return raw
+    .map((item) => {
+      if (!item || typeof item !== 'object') return null
+      const label = String(item.label || item.name || '').trim()
+      if (!label) return null
+      const id = slugify(String(item.id || label))
+      const labelIds = Array.isArray(item.labelIds)
+        ? item.labelIds.map((v) => String(v).trim()).filter(Boolean)
+        : []
+      const labels = Array.isArray(item.labels)
+        ? item.labels.map((v) => String(v).trim()).filter(Boolean)
+        : []
+      const assignees = Array.isArray(item.assignees)
+        ? item.assignees.map((v) => String(v).trim()).filter(Boolean)
+        : []
+      return { id, label, labelIds, labels, assignees }
+    })
+    .filter(Boolean) as CustomDeckFilter[]
+}
+
+function slugify(value: string): string {
+  return value
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/(^-|-$)/g, '')
 }

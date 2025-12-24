@@ -100,6 +100,20 @@ describe('DeckCardsPanel', () => {
     expect(wrapper.emitted().refresh).toBeTruthy()
   })
 
+  it('renders filter counts when provided', () => {
+    const wrapper = mountPanel({
+      filtersEnabled: true,
+      filterOptions: [
+        { value: 'open_all', label: 'Open · All', mine: false, count: 2 },
+        { value: 'done_all', label: 'Done · All', mine: false, count: 1 },
+      ],
+    })
+    const counts = wrapper.findAll('.deck-filter-count')
+    expect(counts.length).toBe(2)
+    expect(counts[0].text()).toBe('2')
+    expect(counts[1].text()).toBe('1')
+  })
+
   it('renders error message when provided', () => {
     const wrapper = mountPanel({ error: 'Deck unavailable', cards: [] })
     expect(wrapper.find('.deck-panel__error').text()).toContain('Deck unavailable')

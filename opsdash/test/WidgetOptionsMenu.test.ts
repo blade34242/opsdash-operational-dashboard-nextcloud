@@ -1,5 +1,6 @@
 import { mount } from '@vue/test-utils'
 import { describe, it, expect } from 'vitest'
+import { nextTick } from 'vue'
 import WidgetOptionsMenu from '../src/components/layout/WidgetOptionsMenu.vue'
 
 describe('WidgetOptionsMenu', () => {
@@ -33,5 +34,59 @@ describe('WidgetOptionsMenu', () => {
     const scaleSelect = wrapper.find('#opt-scale')
     const scaleOptions = scaleSelect.findAll('option').map((opt) => opt.text())
     expect(scaleOptions).toContain('Extra large')
+  })
+
+  it('builds custom filters with the filter builder control', async () => {
+    const wrapper = mount(WidgetOptionsMenu, {
+      props: {
+        entry: {
+          controls: [{ key: 'customFilters', label: 'Custom filters', type: 'filterbuilder' }],
+        },
+        options: {},
+        open: true,
+      },
+    })
+
+    const addButton = wrapper.findAll('button').find((btn) => btn.text().includes('Add filter'))
+    expect(addButton).toBeTruthy()
+    await addButton!.trigger('click')
+    await nextTick()
+
+    const addEmission = wrapper.emitted('change')?.at(-1)
+    expect(addEmission).toBeTruthy()
+    await wrapper.setProps({ options: { customFilters: addEmission?.[1] } })
+    await nextTick()
+
+    const labelInput = wrapper.find('input.filter-builder__label')
+    const tagInput = wrapper.findAll('input.filter-builder__input')[0]
+    const assigneeInput = wrapper.findAll('input.filter-builder__input')[1]
+
+    await labelInput.setValue('Urgent')
+    await nextTick()
+    let lastEmission = wrapper.emitted('change')?.at(-1)
+    await wrapper.setProps({ options: { customFilters: lastEmission?.[1] } })
+    await nextTick()
+
+    await tagInput.setValue('Ops, QA')
+    await nextTick()
+    lastEmission = wrapper.emitted('change')?.at(-1)
+    await wrapper.setProps({ options: { customFilters: lastEmission?.[1] } })
+    await nextTick()
+
+    await assigneeInput.setValue('me, qa')
+    await nextTick()
+    lastEmission = wrapper.emitted('change')?.at(-1)
+
+    const emissions = wrapper.emitted('change') ?? []
+    const last = emissions.at(-1)
+    expect(last).toBeTruthy()
+    expect(last![0]).toBe('customFilters')
+    expect(last![1]).toEqual([
+      {
+        label: 'Urgent',
+        labels: ['Ops', 'QA'],
+        assignees: ['me', 'qa'],
+      },
+    ])
   })
 })

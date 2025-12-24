@@ -134,6 +134,39 @@
               @input="onText(control.key, $event)"
             />
           </template>
+          <template v-else-if="control.type === 'filterbuilder'">
+            <div class="filter-builder">
+              <div
+                v-for="(row, idx) in filterBuilderValue(control.key)"
+                :key="`${control.key}-row-${idx}`"
+                class="filter-builder__row"
+              >
+                <input
+                  type="text"
+                  class="filter-builder__label"
+                  :value="row.label"
+                  placeholder="Filter label"
+                  @input="onFilterRow(control.key, idx, 'label', $event)"
+                />
+                <input
+                  type="text"
+                  class="filter-builder__input"
+                  :value="row.labels"
+                  placeholder="Tags (comma separated)"
+                  @input="onFilterRow(control.key, idx, 'labels', $event)"
+                />
+                <input
+                  type="text"
+                  class="filter-builder__input"
+                  :value="row.assignees"
+                  placeholder="Assigned (comma separated)"
+                  @input="onFilterRow(control.key, idx, 'assignees', $event)"
+                />
+                <button type="button" class="ghost sm" @click="removeFilterRow(control.key, idx)">✕</button>
+              </div>
+              <button type="button" class="ghost sm" @click="addFilterRow(control.key)">+ Add filter</button>
+            </div>
+          </template>
         </div>
       </div>
       <div v-if="showAdvanced" class="opt-row opt-row--footer">
@@ -273,6 +306,69 @@ function addPalette(key: string) {
 }
 
 const defaultPalette = ['#2563EB', '#F97316', '#10B981', '#A855F7', '#EC4899']
+
+type FilterBuilderRow = {
+  label: string
+  labels: string
+  assignees: string
+}
+
+function filterBuilderValue(key: string): FilterBuilderRow[] {
+  const raw = valueFor(key)
+  if (Array.isArray(raw)) {
+    return raw.map((row) => ({
+      label: String(row?.label || ''),
+      labels: Array.isArray(row?.labels) ? row.labels.join(', ') : String(row?.labels || ''),
+      assignees: Array.isArray(row?.assignees) ? row.assignees.join(', ') : String(row?.assignees || ''),
+    }))
+  }
+  if (typeof raw === 'string' && raw.trim()) {
+    try {
+      const parsed = JSON.parse(raw)
+      if (Array.isArray(parsed)) {
+        return parsed.map((row) => ({
+          label: String(row?.label || ''),
+          labels: Array.isArray(row?.labels) ? row.labels.join(', ') : String(row?.labels || ''),
+          assignees: Array.isArray(row?.assignees) ? row.assignees.join(', ') : String(row?.assignees || ''),
+        }))
+      }
+    } catch {
+      return []
+    }
+  }
+  return []
+}
+
+function addFilterRow(key: string) {
+  const next = [...filterBuilderValue(key), { label: '', labels: '', assignees: '' }]
+  emit('change', key, serializeFilterRows(next))
+}
+
+function removeFilterRow(key: string, idx: number) {
+  const next = filterBuilderValue(key).filter((_, i) => i !== idx)
+  emit('change', key, serializeFilterRows(next))
+}
+
+function onFilterRow(key: string, idx: number, field: keyof FilterBuilderRow, event: Event) {
+  const value = (event.target as HTMLInputElement).value
+  const next = filterBuilderValue(key).map((row, i) => (i === idx ? { ...row, [field]: value } : row))
+  emit('change', key, serializeFilterRows(next))
+}
+
+function serializeFilterRows(rows: FilterBuilderRow[]) {
+  return rows.map((row) => ({
+    label: row.label.trim(),
+    labels: splitFilterValue(row.labels),
+    assignees: splitFilterValue(row.assignees),
+  }))
+}
+
+function splitFilterValue(value: string) {
+  return value
+    .split(',')
+    .map((entry) => entry.trim())
+    .filter(Boolean)
+}
 </script>
 
 <style scoped>
@@ -386,5 +482,26 @@ const defaultPalette = ['#2563EB', '#F97316', '#10B981', '#A855F7', '#EC4899']
   align-items:center;
   gap:6px;
   font-size:13px;
+}
+.filter-builder{
+  display:flex;
+  flex-direction:column;
+  gap:8px;
+  width:100%;
+}
+.filter-builder__row{
+  display:grid;
+  grid-template-columns: minmax(120px, 1fr) minmax(140px, 1fr) minmax(140px, 1fr) auto;
+  gap:6px;
+  align-items:center;
+}
+.filter-builder__label,
+.filter-builder__input{
+  background:#0f172a;
+  border:1px solid color-mix(in oklab, #4b5563, transparent 30%);
+  color:#e5e7eb;
+  border-radius:6px;
+  padding:4px 6px;
+  font-size:12px;
 }
 </style>

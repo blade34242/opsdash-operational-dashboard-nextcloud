@@ -301,6 +301,7 @@
                 :filter="deckFilter"
                 :can-filter-mine="deckCanFilterMine"
                 :filters-enabled="deckSettings.filtersEnabled && deckSettings.enabled"
+                :filter-options="deckFilterOptions"
                 @refresh="refreshDeck(true)"
                 @update:filter="(value) => (deckFilter = value)"
               />
@@ -355,7 +356,7 @@ function notifyError(msg: string){
   else { console.error('ERROR:', msg); alert(msg) }
 }
 
-import { ref, watch, computed } from 'vue'
+import { ref, watch, computed, onBeforeUnmount } from 'vue'
 import { useNotes } from '../composables/useNotes'
 import { useDashboard, type OnboardingState } from '../composables/useDashboard'
 import { useDashboardPersistence } from '../composables/useDashboardPersistence'
@@ -416,6 +417,21 @@ function ensureSidebarVisible() {
     toggleNav()
   }
 }
+
+watch(
+  () => navOpen.value,
+  (next) => {
+    if (typeof document === 'undefined') return
+    const offset = next ? 'var(--app-navigation-width, 300px)' : '0px'
+    document.body.style.setProperty('--opsdash-nav-offset', offset)
+  },
+  { immediate: true },
+)
+
+onBeforeUnmount(() => {
+  if (typeof document === 'undefined') return
+  document.body.style.removeProperty('--opsdash-nav-offset')
+})
 
 const pane = ref<'cal'|'day'|'top'|'heat'|'deck'>('cal')
 const range = ref<'week'|'month'>('week')
@@ -571,6 +587,7 @@ const {
   deckTickerConfig,
   deckCanFilterMine,
   deckUrl,
+  deckFilterOptions,
 } = useDeckFiltering({
   deckSettings,
   deckCards,
