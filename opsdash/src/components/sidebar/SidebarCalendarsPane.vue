@@ -15,14 +15,34 @@
       >
         Re-run onboarding
       </NcButton>
-      <NcButton
-        type="tertiary"
-        size="small"
-        class="shortcuts-btn"
-        @click="onOpenShortcuts"
-      >
-        Keyboard shortcuts
-      </NcButton>
+      <div class="shortcuts-wrap">
+        <NcButton
+          type="tertiary"
+          size="small"
+          class="shortcuts-btn"
+          @click="onOpenShortcuts"
+        >
+          Keyboard shortcuts
+        </NcButton>
+        <div v-if="shortcutsOpen" class="shortcuts-pop" role="dialog" aria-label="Keyboard shortcuts">
+          <div class="shortcuts-pop__header">
+            <span>Keyboard shortcuts</span>
+            <button type="button" class="ghost sm" @click="shortcutsOpen = false">✕</button>
+          </div>
+          <div class="shortcuts-pop__body">
+            <div v-for="group in shortcutGroups" :key="group.id" class="shortcuts-pop__group">
+              <div class="shortcuts-pop__title">{{ group.title }}</div>
+              <ul>
+                <li v-for="item in group.items" :key="item.id">
+                  <span class="label">{{ item.label }}</span>
+                  <span class="combo">{{ item.combo.join(' + ') }}</span>
+                  <span v-if="item.description" class="desc">{{ item.description }}</span>
+                </li>
+              </ul>
+            </div>
+          </div>
+        </div>
+      </div>
     </div>
     <div class="sb-context">
       <div class="sb-title">Per‑Calendar Settings</div>
@@ -145,8 +165,9 @@
 
 <script setup lang="ts">
 import { NcButton } from '@nextcloud/vue'
-import { computed, toRefs } from 'vue'
+import { computed, ref, toRefs } from 'vue'
 import type { ActivityForecastMode } from '../../services/targets'
+import { KEYBOARD_SHORTCUT_GROUPS } from '../../services/shortcuts'
 
 type InputMessage = { text: string; tone: 'error' | 'warning' }
 type ForecastOption = { value: ActivityForecastMode; label: string; description?: string }
@@ -200,9 +221,11 @@ const activityForecastDescription = computed(() => {
   return selectedOption?.description ?? ''
 })
 
+const shortcutsOpen = ref(false)
+const shortcutGroups = KEYBOARD_SHORTCUT_GROUPS
+
 function onOpenShortcuts(event: MouseEvent) {
-  const target = event.currentTarget as HTMLElement | null
-  emit('open-shortcuts', target ?? undefined)
+  shortcutsOpen.value = !shortcutsOpen.value
 }
 </script>
 
@@ -212,6 +235,76 @@ function onOpenShortcuts(event: MouseEvent) {
   display: flex;
   flex-direction: column;
   gap: 6px;
+}
+.shortcuts-wrap{
+  position:relative;
+}
+.shortcuts-pop{
+  position:absolute;
+  top:calc(100% + 6px);
+  right:0;
+  width:320px;
+  max-height:360px;
+  overflow:auto;
+  background:color-mix(in oklab, #111827, #1f2937 60%);
+  border:1px solid color-mix(in oklab, #4b5563, transparent 20%);
+  border-radius:10px;
+  box-shadow:0 16px 28px rgba(0,0,0,0.25);
+  padding:10px;
+  z-index:40;
+}
+.shortcuts-pop__header{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  font-size:12px;
+  font-weight:700;
+  text-transform:uppercase;
+  letter-spacing:0.04em;
+  color:#cbd5f5;
+  margin-bottom:8px;
+}
+.shortcuts-pop__body{
+  display:flex;
+  flex-direction:column;
+  gap:10px;
+}
+.shortcuts-pop__title{
+  font-size:11px;
+  font-weight:700;
+  color:#9ca3af;
+  text-transform:uppercase;
+  letter-spacing:0.04em;
+  margin-bottom:4px;
+}
+.shortcuts-pop__group ul{
+  list-style:none;
+  padding:0;
+  margin:0;
+  display:flex;
+  flex-direction:column;
+  gap:6px;
+}
+.shortcuts-pop__group li{
+  display:grid;
+  grid-template-columns: 1fr auto;
+  gap:6px 10px;
+  align-items:center;
+  color:#e5e7eb;
+  font-size:12px;
+}
+.shortcuts-pop__group .combo{
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size:11px;
+  background:rgba(15, 23, 42, 0.8);
+  border-radius:6px;
+  padding:2px 6px;
+  color:#f8fafc;
+}
+.shortcuts-pop__group .desc{
+  grid-column: 1 / -1;
+  color:#94a3b8;
+  font-size:11px;
 }
 .forecast-block select {
   width: 100%;

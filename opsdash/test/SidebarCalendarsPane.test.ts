@@ -73,4 +73,21 @@ describe('SidebarCalendarsPane', () => {
 
     expect(wrapper.emitted('target-input')).toEqual([[{ id: 'cal-1', value: '3' }]])
   })
+
+  it('toggles the shortcuts popover on button click', async () => {
+    const wrapper = mount(SidebarCalendarsPane, {
+      props: {
+        ...baseProps,
+        calendars: [],
+        selected: [],
+        getTarget: () => 0,
+      },
+    })
+
+    const buttons = wrapper.findAll('button')
+    await buttons[1].trigger('click')
+    expect(wrapper.find('.shortcuts-pop').exists()).toBe(true)
+    await buttons[1].trigger('click')
+    expect(wrapper.find('.shortcuts-pop').exists()).toBe(false)
+  })
 })

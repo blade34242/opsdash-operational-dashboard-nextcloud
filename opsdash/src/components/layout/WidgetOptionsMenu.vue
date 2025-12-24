@@ -136,6 +136,9 @@
           </template>
           <template v-else-if="control.type === 'filterbuilder'">
             <div class="filter-builder">
+              <div class="filter-builder__hint">
+                Tags and assigned can be used independently—leave one empty to ignore it. Use commas. Special assignees: <code>me</code>, <code>unassigned</code>.
+              </div>
               <div
                 v-for="(row, idx) in filterBuilderValue(control.key)"
                 :key="`${control.key}-row-${idx}`"
@@ -385,21 +388,21 @@ function splitFilterValue(value: string) {
   border-radius:8px;
   box-shadow:0 10px 22px rgba(0,0,0,0.22);
   padding:8px;
-  min-width:200px;
+  width:33vw;
   z-index:30;
-  max-height:320px;
-  overflow:auto;
+  overflow-x:hidden;
 }
 .opt-row{
-  display:flex;
+  display:grid;
+  grid-template-columns: minmax(120px, 1fr) minmax(140px, 1fr);
   align-items:center;
-  justify-content:space-between;
-  gap:8px;
+  gap:10px;
   margin-bottom:6px;
 }
 .opt-row:last-child{ margin-bottom:0; }
 .opt-row--footer{
-  justify-content:flex-end;
+  grid-template-columns: 1fr;
+  justify-items:end;
 }
 .link-btn{
   border:none;
@@ -427,7 +430,7 @@ function splitFilterValue(value: string) {
 .opt-row input[type=\"number\"],
 .opt-row select,
 .opt-row input[type=\"text\"]{
-  width:100px;
+  width:100%;
   background:#0f172a;
   border:1px solid color-mix(in oklab, #4b5563, transparent 30%);
   color:#e5e7eb;
@@ -435,7 +438,7 @@ function splitFilterValue(value: string) {
   padding:4px 6px;
 }
 .opt-row textarea{
-  width:160px;
+  width:100%;
   background:#0f172a;
   border:1px solid color-mix(in oklab, #4b5563, transparent 30%);
   color:#e5e7eb;
@@ -476,6 +479,7 @@ function splitFilterValue(value: string) {
 .multi{
   display:grid;
   gap:6px;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
 }
 .multi__item{
   display:flex;
@@ -494,6 +498,19 @@ function splitFilterValue(value: string) {
   grid-template-columns: minmax(120px, 1fr) minmax(140px, 1fr) minmax(140px, 1fr) auto;
   gap:6px;
   align-items:center;
+}
+.filter-builder__hint{
+  font-size:11px;
+  color:#9ca3af;
+  line-height:1.35;
+}
+.filter-builder__hint code{
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size:10px;
+  color:#e5e7eb;
+  background:rgba(15, 23, 42, 0.8);
+  padding:1px 4px;
+  border-radius:4px;
 }
 .filter-builder__label,
 .filter-builder__input{

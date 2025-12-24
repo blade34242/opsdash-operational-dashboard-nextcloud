@@ -14,6 +14,8 @@
     :auto-scroll="props.autoScroll !== false"
     :interval-seconds="props.intervalSeconds"
     :show-count="props.showCount !== false"
+    :title="props.title"
+    :card-bg="props.cardBg"
     @refresh="$emit('refresh')"
     @update:filter="onFilter"
   />
@@ -45,6 +47,8 @@ const props = defineProps<{
   autoScroll?: boolean
   intervalSeconds?: number
   showCount?: boolean
+  title?: string
+  cardBg?: string | null
   customFilters?: Array<{
     id: string
     label: string

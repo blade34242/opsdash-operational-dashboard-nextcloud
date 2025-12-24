@@ -4,7 +4,7 @@ const DeckCardsWidget = defineAsyncComponent(() =>
   import('../../../components/DeckCardsWidget.vue').then((m) => m.default),
 )
 
-import { parseBoardIds, parseFilters, prettyFilterLabel } from '../helpers'
+import { buildTitle, parseBoardIds, parseFilters, prettyFilterLabel } from '../helpers'
 import type { RegistryEntry } from '../types'
 
 const baseTitle = 'Deck cards'
@@ -92,6 +92,8 @@ export const deckCardsEntry: RegistryEntry = {
     const defaultFilter = filters.includes(def.options?.defaultFilter) ? def.options?.defaultFilter : (filters[0] || 'all')
     const customFilters = normalizeCustomFilters(def.options?.customFilters)
     return {
+      title: buildTitle(baseTitle, def.options?.titlePrefix),
+      cardBg: def.options?.cardBg,
       cards: ctx.deckCards || [],
       rangeLabel: ctx.deckRangeLabel || ctx.rangeLabel || '',
       from: ctx.from,
