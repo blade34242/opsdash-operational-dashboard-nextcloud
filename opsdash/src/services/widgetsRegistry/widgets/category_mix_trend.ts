@@ -70,7 +70,7 @@ export const categoryMixTrendEntry: RegistryEntry = {
     rangeLabel: ctx.rangeLabel,
     from: ctx.from,
     to: ctx.to,
-    lookbackWeeks: def.options?.lookbackWeeks ?? ctx.lookbackWeeks,
+    lookbackWeeks: def.options?.lookbackWeeks ?? 4,
     showBadge: def.options?.showBadge ?? true,
     showHeader: def.options?.showHeader !== false,
     density: def.options?.density,

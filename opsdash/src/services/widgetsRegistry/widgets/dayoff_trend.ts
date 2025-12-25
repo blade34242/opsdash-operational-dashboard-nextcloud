@@ -15,6 +15,11 @@ export const dayOffTrendEntry: RegistryEntry = {
   label: 'Days off trend',
   baseTitle,
   configurable: true,
+  defaultOptions: {
+    lookback: 4,
+    unit: 'wk',
+    showBadges: true,
+  },
   controls: [
     { key: 'lookback', label: 'Lookback (periods)', type: 'number', min: 1, max: 12, step: 1 },
     {
@@ -32,8 +37,8 @@ export const dayOffTrendEntry: RegistryEntry = {
   ],
   buildProps: (def, ctx) => ({
     trend: ctx.activityDayOffTrend,
-    unit: def.options?.unit ?? ctx.activityTrendUnit,
-    lookback: def.options?.lookback ?? ctx.activityDayOffLookback,
+    unit: def.options?.unit ?? 'wk',
+    lookback: def.options?.lookback ?? 4,
     showHeader: def.options?.showHeader !== false,
     showBadges: def.options?.showBadges !== false,
     title: buildTitle(baseTitle, def.options?.titlePrefix),

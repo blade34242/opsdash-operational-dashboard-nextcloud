@@ -64,6 +64,16 @@ export interface WidgetRenderContext {
   onUpdateNotes?: (val: string) => void
   isLayoutEditing?: boolean
   onUpdateWidgetOptions?: (id: string, key: string, value: any) => void
+  charts?: any
+  calendarChartData?: any
+  categoryChartsById?: Record<string, { pie: any | null; stacked: any | null }>
+  calendarGroups?: any[]
+  calendarCategoryMap?: Record<string, string>
+  categoryColorMap?: Record<string, string>
+  colorsById?: Record<string, string>
+  colorsByName?: Record<string, string>
+  currentTargets?: Record<string, number>
+  calendarTodayHours?: Record<string, number>
 }
 
 export type WidgetRenderer = (def: WidgetDefinition, ctx: WidgetRenderContext) => any

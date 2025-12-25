@@ -1,5 +1,5 @@
 <template>
-  <!-- Stacked bars: hours per day stacked by calendar; legacy single-series fallback supported -->
+  <!-- Stacked bars: hours per day stacked by calendar -->
   <canvas ref="cv" class="chart" />
   </template>
 
@@ -7,7 +7,7 @@
 import { onMounted, ref, watch } from 'vue'
 import { ctxFor } from '../services/charts'
 
-const props = defineProps<{ stacked?: any, legacy?: any, colorsById: Record<string,string> }>()
+const props = defineProps<{ stacked?: any, colorsById: Record<string,string>, showLabels?: boolean }>()
 const cv = ref<HTMLCanvasElement|null>(null)
 
 function drawOutlinedText(ctx: CanvasRenderingContext2D, text: string, x: number, y: number, options?: { align?: CanvasTextAlign; baseline?: CanvasTextBaseline; font?: string }) {
@@ -136,7 +136,7 @@ function draw(){
         if (h>0.5) {
           ctx.fillStyle = col
           ctx.fillRect(x, y, bw, h)
-          if (h>14 && bw>22 && v>0.01) {
+          if (props.showLabels !== false && h>14 && bw>22 && v>0.01) {
             const label = formatHours(v)
             ctx.fillStyle = textColorFor(col, fg)
             ctx.font = '11px ui-sans-serif,system-ui'
@@ -178,7 +178,7 @@ function draw(){
         : colActual>0.01
           ? `${formatHours(colActual)}h`
           : ''
-      if (labelValue) {
+      if (props.showLabels !== false && labelValue) {
         drawOutlinedText(ctx, labelValue, x + bw/2, Math.max(pad + 4, yForecast - 2), {
           align: 'center',
           baseline: 'bottom',
@@ -189,68 +189,24 @@ function draw(){
     const totalLabel = sumForecast>0.01
       ? `~${formatHours(sumActual + sumForecast)}h expected`
       : `${formatHours(sumActual)}h total`
-    drawOutlinedText(ctx, totalLabel, x1 - 4, pad + 4, {
-      align: 'right',
-      baseline: 'top',
-      font: '12px ui-sans-serif,system-ui',
-    })
-    return
-  }
-  const legacy:any = props.legacy
-  if (!legacy) return
-  let data=legacy.data||[], labelsL=legacy.labels||[]
-  // Reorder to start with Monday if labels represent a 7-day week
-  const r2 = reorderToMonday(labelsL, [{ id:'__legacy__', data }])
-  labelsL = r2.labels
-  data = (r2.series?.[0]?.data) || data
-  const max=Math.max(1,...data.map((v:any)=>Math.max(0,v)))
-  const n=(data.length||1), g=8, bw=Math.max(6,(x1-x0-g*(n+1))/n), scale=(y0-pad)/max
-  ctx.fillStyle='#93c5fd'
-  data.forEach((v:any,i:number)=>{
-    const h=Math.max(0,v*scale), x=x0+g+i*(bw+g), y=y0-h; ctx.fillRect(x,y,bw,h)
-    if (h>14 && bw>22 && v>0.01) {
-      const label = String((Math.round(v*100)/100).toFixed(1))
-      ctx.fillStyle = textColorFor('#93c5fd', fg)
-      ctx.font = '11px ui-sans-serif,system-ui'
-      const tw = ctx.measureText(label).width
-      ctx.fillText(label, x + bw/2 - tw/2, y + h/2 + 4)
-    }
-    ctx.fillStyle=fg; ctx.font='12px ui-sans-serif,system-ui'
-    const t=weekday(String(labelsL[i]||''))
-    if (bw>26){ const tw=ctx.measureText(t).width; ctx.fillText(t, x+bw/2-tw/2, y0+14) }
-    if (v>0.01) {
-      const labelT = `${(Math.round(v*100)/100).toFixed(1)}h`
-      drawOutlinedText(ctx, labelT, x + bw/2, Math.max(pad + 4, y - 2), {
-        align: 'center',
-        baseline: 'bottom',
-        font: '11px ui-sans-serif,system-ui',
+    if (props.showLabels !== false) {
+      drawOutlinedText(ctx, totalLabel, x1 - 4, pad + 4, {
+        align: 'right',
+        baseline: 'top',
+        font: '12px ui-sans-serif,system-ui',
       })
     }
-  })
-  const legacyTotal = data.reduce((sum:number, v:any)=> sum + Math.max(0, Number(v)||0), 0)
-  const legacyLabel = `${(Math.round(legacyTotal*100)/100).toFixed(1)}h total`
-  drawOutlinedText(ctx, legacyLabel, x1 - 4, pad + 4, {
-    align: 'right',
-    baseline: 'top',
-    font: '12px ui-sans-serif,system-ui',
-  })
+    return
+  }
+  return
 }
 
 onMounted(()=>{ draw(); window.addEventListener('resize', draw) })
 watch(()=>props.stacked, ()=> draw(), { deep:true })
-watch(()=>props.legacy, ()=> draw(), { deep:true })
 watch(()=>props.colorsById, ()=> draw(), { deep:true })
+watch(()=>props.showLabels, ()=> draw())
 
 // Convert a YYYY-MM-DD label to German weekday short name; otherwise keep as-is
-function weekday(s: string): string {
-  const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(s)
-  if (!m) return s
-  const d = new Date(`${m[1]}-${m[2]}-${m[3]}T00:00:00`)
-  // German abbreviations: So, Mo, Di, Mi, Do, Fr, Sa
-  const names = ['So','Mo','Di','Mi','Do','Fr','Sa']
-  return names[d.getDay()] || s
-}
-
 // If labels represent 7 dates, reorder so Monday comes first; reorder series.data accordingly
 function reorderToMonday(labels: string[], series: any[]): { labels: string[]; series: any[] } {
   if (!Array.isArray(labels) || labels.length !== 7) return { labels, series }
@@ -280,6 +236,15 @@ function reorderToMonday(labels: string[], series: any[]): { labels: string[]; s
     return next
   })
   return { labels: labelsR, series: seriesR }
+}
+
+// Convert a YYYY-MM-DD label to German weekday short name; otherwise keep as-is
+function weekday(s: string): string {
+  const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(s)
+  if (!m) return s
+  const d = new Date(`${m[1]}-${m[2]}-${m[3]}T00:00:00`)
+  const names = ['So','Mo','Di','Mi','Do','Fr','Sa']
+  return names[d.getDay()] || s
 }
 
 function parseDate(s:string): Date | null {

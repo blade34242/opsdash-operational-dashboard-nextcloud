@@ -53,61 +53,6 @@
         Use <strong>Category</strong> to group calendars and <strong>Target (h)</strong> to define weekly/monthly goals—the values convert automatically when you switch ranges.
       </p>
     </div>
-    <div class="sb-context">
-      <div class="sb-title">Projection &amp; Trend</div>
-      <p class="sb-description">
-        Control the activity projection and the lookback window for balance trends.
-      </p>
-    </div>
-    <div class="target-section">
-      <div class="forecast-block">
-        <div class="section-title">Chart projection</div>
-        <div class="section-hint">
-          <span class="hint-title">Projection</span>
-          <span class="hint-body">Bar forecast for future days (week/month) based on your targets.</span>
-        </div>
-        <label class="field">
-          <span class="label">Projection mode</span>
-          <select
-            :value="activityForecastMode"
-            @change="emit('set-activity-forecast', ($event.target as HTMLSelectElement).value)"
-          >
-            <option
-              v-for="option in activityForecastOptions"
-              :key="option.value"
-              :value="option.value"
-            >
-              {{ option.label }}
-            </option>
-          </select>
-        </label>
-        <div v-if="activityForecastDescription" class="section-hint compact">
-          <span class="hint-title">Details</span>
-          <span class="hint-body">{{ activityForecastDescription }}</span>
-        </div>
-      </div>
-      <div class="field-grid">
-        <label class="field">
-          <span class="label">Trend lookback (weeks/months)</span>
-          <input
-            type="number"
-            min="1"
-            max="4"
-            step="1"
-            :disabled="indexDisabled"
-            :value="balanceLookback"
-            :aria-invalid="!!balanceLookbackMessage"
-            @input="emit('set-lookback', ($event.target as HTMLInputElement).value)"
-          />
-          <div
-            v-if="balanceLookbackMessage"
-            :class="['input-message', balanceLookbackMessage?.tone]"
-          >
-            {{ balanceLookbackMessage?.text }}
-          </div>
-        </label>
-      </div>
-    </div>
     <div class="sb-list">
       <div v-for="c in calendars" :key="c.id" class="cal-card">
         <div
@@ -165,13 +110,10 @@
 
 <script setup lang="ts">
 import { NcButton } from '@nextcloud/vue'
-import { computed, ref, toRefs } from 'vue'
-import type { ActivityForecastMode } from '../../services/targets'
+import { ref, toRefs } from 'vue'
 import { KEYBOARD_SHORTCUT_GROUPS } from '../../services/shortcuts'
 
 type InputMessage = { text: string; tone: 'error' | 'warning' }
-type ForecastOption = { value: ActivityForecastMode; label: string; description?: string }
-
 const props = defineProps<{
   calendars: Array<any>
   selected: string[]
@@ -181,19 +123,12 @@ const props = defineProps<{
   calendarTargetMessages: Record<string, InputMessage | null>
   calendarCategoryId: (id: string) => string
   getTarget: (id: string) => number | string
-  activityForecastMode: ActivityForecastMode
-  activityForecastOptions: ForecastOption[]
-  balanceLookback: number
-  balanceLookbackMessage: InputMessage | null
-  indexDisabled?: boolean
 }>()
 
 const emit = defineEmits<{
   (e: 'toggle-calendar', id: string): void
   (e: 'set-category', payload: { id: string; category: string }): void
   (e: 'target-input', payload: { id: string; value: string }): void
-  (e: 'set-activity-forecast', mode: ActivityForecastMode): void
-  (e: 'set-lookback', value: string): void
   (e: 'rerun-onboarding'): void
   (e: 'open-shortcuts', trigger?: HTMLElement | null): void
 }>()
@@ -207,19 +142,9 @@ const {
   isLoading,
   categoryOptions,
   calendarTargetMessages,
-  activityForecastMode,
-  activityForecastOptions,
-  balanceLookback,
-  balanceLookbackMessage,
-  indexDisabled,
 } = toRefs(props)
 const calendarCategoryId = (id: string) => props.calendarCategoryId(id)
 const getTarget = (id: string) => props.getTarget(id)
-
-const activityForecastDescription = computed(() => {
-  const selectedOption = activityForecastOptions.value?.find((opt) => opt.value === activityForecastMode.value)
-  return selectedOption?.description ?? ''
-})
 
 const shortcutsOpen = ref(false)
 const shortcutGroups = KEYBOARD_SHORTCUT_GROUPS
@@ -230,12 +155,6 @@ function onOpenShortcuts(event: MouseEvent) {
 </script>
 
 <style scoped>
-.forecast-block {
-  margin-top: 10px;
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-}
 .shortcuts-box{
   margin:8px 0 12px;
   background:color-mix(in oklab, #111827, #1f2937 60%);

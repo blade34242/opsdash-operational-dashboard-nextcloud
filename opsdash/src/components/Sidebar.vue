@@ -100,17 +100,10 @@
       :calendar-target-messages="calendarTargetMessages"
       :calendar-category-id="calendarCategoryId"
       :get-target="getTarget"
-      :activity-forecast-mode="activitySettings.forecastMode"
-      :activity-forecast-options="activityForecastOptions"
-      :balance-lookback="balanceSettings.trend.lookbackWeeks"
-      :balance-lookback-message="balanceLookbackMessage"
-      :index-disabled="balanceIndexDisabled"
       @select-all="emitSelectAll"
       @toggle-calendar="emitToggleCalendar"
       @set-category="handleCalendarCategory"
       @target-input="handleCalendarTargetInput"
-      @set-activity-forecast="setActivityForecastMode"
-      @set-lookback="setBalanceLookback"
       @rerun-onboarding="() => emit('rerun-onboarding')"
       @open-shortcuts="(el) => emit('open-shortcuts', el)"
     />
@@ -162,15 +155,7 @@
 <script setup lang="ts">
 import { computed, ref, reactive, watch } from 'vue'
 import { NcAppNavigation, NcButton, NcCheckboxRadioSwitch } from '@nextcloud/vue'
-import {
-  normalizeTargetsConfig,
-  createDefaultActivityCardConfig,
-  createDefaultBalanceConfig,
-  type ActivityCardConfig,
-  type BalanceConfig,
-  type TargetsConfig,
-  type TargetsMode,
-} from '../services/targets'
+import { normalizeTargetsConfig, type TargetsConfig, type TargetsMode } from '../services/targets'
 import type { ReportingConfig, DeckFeatureSettings } from '../services/reporting'
 import SidebarCalendarsPane from './sidebar/SidebarCalendarsPane.vue'
 import SidebarConfigPane from './sidebar/SidebarConfigPane.vue'
@@ -267,31 +252,6 @@ function updateConfig(mutator: (cfg: TargetsConfig)=>void){
 }
 
 const canAddCategory = computed(() => nextGroupId() !== null)
-const activitySettings = computed<ActivityCardConfig>(() => {
-  return { ...createDefaultActivityCardConfig(), ...(targets.value?.activityCard ?? {}) }
-})
-
-const activityForecastOptions: Array<{ value: ActivityCardConfig['forecastMode']; label: string; description: string }> = [
-  { value: 'off', label: 'Do not project future days', description: 'Keep charts empty until events occur.' },
-  { value: 'total', label: 'Distribute remaining total target', description: 'Split leftover total target hours evenly across future days using current calendar mix.' },
-  { value: 'calendar', label: 'Respect calendar targets', description: 'Use per-calendar targets for the current range and spread remaining hours across future days.' },
-  { value: 'category', label: 'Respect category targets', description: 'Allocate remaining category targets across future days according to current mappings.' },
-]
-
-const balanceSettings = computed<BalanceConfig>(() => {
-  const base = createDefaultBalanceConfig()
-  const cfg = targets.value?.balance ?? base
-  return {
-    ...base,
-    ...cfg,
-    index: { ...base.index, ...(cfg.index ?? {}) },
-    thresholds: { ...base.thresholds, ...(cfg.thresholds ?? {}) },
-    relations: { ...base.relations, ...(cfg.relations ?? {}) },
-    trend: { ...base.trend, ...(cfg.trend ?? {}) },
-    dayparts: { ...base.dayparts, ...(cfg.dayparts ?? {}) },
-    ui: { ...base.ui, ...(cfg.ui ?? {}) },
-  }
-})
 
 const calendarTargetMessages = reactive<Record<string, InputMessage | null>>({})
 const categoryTargetMessages = reactive<Record<string, InputMessage | null>>({})
@@ -300,8 +260,6 @@ const allDayHoursMessage = ref<InputMessage | null>(null)
 const paceThresholdMessages = reactive<{ onTrack: InputMessage | null; atRisk: InputMessage | null }>({ onTrack: null, atRisk: null })
 const forecastMomentumMessage = ref<InputMessage | null>(null)
 const forecastPaddingMessage = ref<InputMessage | null>(null)
-const balanceLookbackMessage = ref<InputMessage | null>(null)
-const balanceIndexDisabled = computed(() => balanceSettings.value.index.basis === 'off')
 
 function nextGroupId(): number | null {
   const used = new Set<number>()
@@ -390,17 +348,6 @@ function handleSummaryOption(payload: { key: keyof TargetsConfig['timeSummary'];
   setSummaryOption(payload.key, payload.value)
 }
 
-function setActivityForecastMode(mode: ActivityCardConfig['forecastMode']) {
-  if (mode !== 'off' && mode !== 'total' && mode !== 'calendar' && mode !== 'category') {
-    return
-  }
-  updateConfig(cfg => {
-    if (!cfg.activityCard) {
-      cfg.activityCard = createDefaultActivityCardConfig()
-    }
-    cfg.activityCard.forecastMode = mode
-  })
-}
 
 function onCalendarTargetInput(id: string, value: string){
   applyNumericUpdate(
@@ -477,14 +424,6 @@ function setThreshold(which: 'onTrack'|'atRisk', value: string){
   )
 }
 
-function setBalanceLookback(value: string){
-  applyNumericUpdate(
-    value,
-    { min: 1, max: 4, step: 1, decimals: 0 },
-    (message) => { balanceLookbackMessage.value = message },
-    (num) => updateConfig(cfg => { cfg.balance.trend.lookbackWeeks = num }),
-  )
-}
 
 function setForecastMethod(value: string){
   const method = value === 'momentum' ? 'momentum' : 'linear'

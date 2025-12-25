@@ -21,14 +21,14 @@ All notable changes to this project will be documented in this file.
 ## [0.5.1] - Unreleased
 ### Added
 - Widget layout persistence now round-trips through `/overview/persist` and `/overview/load`, with sanitisation on the server and normalisation on the client (new `normalizeWidgetLayout`) plus Vitest/PHP coverage.
-- Balance/Activity sidebar controls restored: thresholds, index basis selector, trend lookback, display toggle, and activity card toggles with contextual help.
+- Balance/Activity controls restored: thresholds, index basis selector, display toggles, and activity card toggles with contextual help.
 - Onboarding wizard steps can now be saved individually without completing the full flow.
 - Deck cards widget: title prefix + card background controls now apply consistently (tab + widget).
 - Deck cards filters show per-filter counts; custom filters can be built via tags + assignees (no JSON).
 - Sidebar keyboard shortcuts button opens a compact popover list.
 ### Changed
 - Dashboard save queue now records widget edits (add/remove/move/update/reset/preset apply) so layouts survive logouts and device changes.
-- Sidebar layout: Activity/Balance pane removed; projection + trend lookback now live in the Calendars tab alongside per-calendar targets.
+- Projection + trend lookback controls now live inside chart widgets (per-widget), and the sidebar no longer owns them.
 - Sidebar naming: “Config & Setup” is now “Theme”, and rerun onboarding + keyboard shortcuts moved to Calendars.
 - Removed sidebar All/None calendar shortcuts to keep selection explicit.
 - Widget layout and sidebar state no longer persist via localStorage (server persistence only).

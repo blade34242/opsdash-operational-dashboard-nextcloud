@@ -4,7 +4,7 @@ All notable changes to this project are documented here. This file is served loc
 
 ## [Unreleased]
 - Pending changes.
-- UI: Sidebar removed Activity/Balance pane; projection + trend lookback now live under Calendars.
+- UI: Projection + trend lookback controls moved into chart widgets (per-widget); sidebar no longer owns them.
 - UI: “Config & Setup” renamed to Theme; rerun onboarding + keyboard shortcuts moved into Calendars; All/None calendar buttons removed.
 - Config: Sidebar and widget layout no longer persist via localStorage; server persistence only.
 - Backend: extracted `/overview/persist` + `/overview/notes` into `PersistController` and `NotesController` (URLs unchanged); `OverviewController` focuses on `/overview/load` (+ index/ping).
@@ -69,7 +69,7 @@ All notable changes to this project are documented here. This file is served loc
 
 ## [0.4.3] - 2025-10-30 (NC 30–31 line)
 - UI: Config & Setup now includes a “Theme & appearance” toggle (Auto / Force light / Force dark) that switches the Opsdash palette instantly while keeping chart colours intact; the preference is stored locally for returning sessions.
-- UI: Polished sidebar panes — Balance tab references the 4-week trend lookback and can pin the current note, calendar pane gained All/None controls with clearer copy, notes pane explains the workflow with a Balance-card toggle, targets pane drops legacy presets and adds Nextcloud-aligned category colour pickers, and pane headings are bold + underlined for scanability.
+- UI: Polished sidebar panes — Balance tab can pin the current note, notes pane explains the workflow with a Balance-card toggle, targets pane drops legacy presets and adds Nextcloud-aligned category colour pickers, and pane headings are bold + underlined for scanability.
 - Onboarding: reminder to back up existing presets, category colour picker, theme/all-day/total target preferences step, and payload now honours custom colours + all-day hours directly in the generated targets config.
 - Refactor: split the sidebar into dedicated pane components (calendars, targets, summary, activity, balance, notes) to keep the parent shell lean.
 - Refactor: extracted shared composables (`useCategories`, `useCharts`, `useSummaries`, `useBalance`) and a reusable validation helper so panes share mutations.
@@ -80,7 +80,7 @@ All notable changes to this project are documented here. This file is served loc
 - Fix: restored all-day event detection when using the structured calendar query, matching ICS behaviour, and introduced a configurable “all-day hours per day” target setting that feeds both aggregation and the dashboard UI.
 - UI: Added a “Presets” tab to the sidebar to save/load entire configurations (calendars, groups, targets) by name; includes server-side validation with warnings for missing calendars.
 - Fix: Week/Month toggle now swaps the entire targets stack (summary card, categories, charts) to month metrics, converting weekly definitions on the fly when no explicit monthly targets are stored.
-- UI: Stacked bar charts now layer forecasted hours for future days with a slim, dashed overlay instead of a full-width tint; projection behaviour is configurable (“Bar chart projection” in the Activity & Schedule tab).
+- UI: Stacked bar charts now layer forecasted hours for future days with a slim, dashed overlay instead of a full-width tint; projection behaviour is configurable per chart widget.
 - Targets: Introduced `activityCard.forecastMode` (`off` | `total` | `calendar` | `category`) so chart forecasts can respect remaining total hours, per-calendar goals, or per-category targets.
 - Tests: Added Vitest coverage for the chart projection logic to ensure each mode distributes hours as expected.
 - Docs: Configuration and API references updated with the new projection control and payload field.

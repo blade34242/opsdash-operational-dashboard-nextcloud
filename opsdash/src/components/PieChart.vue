@@ -7,7 +7,7 @@
 import { onMounted, ref, watch } from 'vue'
 import { ctxFor, tint, invert } from '../services/charts'
 
-const props = defineProps<{ data?: any, colorsById: Record<string,string>, colorsByName?: Record<string,string> }>()
+const props = defineProps<{ data?: any, colorsById: Record<string,string>, colorsByName?: Record<string,string>, showLabels?: boolean }>()
 const cv = ref<HTMLCanvasElement|null>(null)
 
 function draw(){
@@ -36,19 +36,21 @@ function draw(){
     if (false) chosen = invert(chosen)
     if (false) chosen = tint(chosen)
     ctx.beginPath();ctx.moveTo(cx,cy);ctx.arc(cx,cy,r,ang,a2);ctx.closePath();ctx.fillStyle=chosen;ctx.fill();ctx.stroke();
-    const mid=(ang+a2)/2,lx=cx+Math.cos(mid)*(r+12),ly=cy+Math.sin(mid)*(r+12);
-    ctx.save()
-    ctx.font='12px ui-sans-serif,system-ui'
-    ctx.fillStyle='#ffffff'
-    ctx.strokeStyle='rgba(0,0,0,0.55)'
-    ctx.lineWidth=3
-    ctx.textAlign='center'
-    ctx.textBaseline='middle'
-    const perc = Math.max(0, Number(v)||0) / total * 100;
-    const txt=`${labels?.[i]?labels[i]+' ':''}${Number(v).toFixed(2)}h · ${perc.toFixed(1)}%`
-    ctx.strokeText(txt,lx,ly)
-    ctx.fillText(txt,lx,ly)
-    ctx.restore()
+    if (props.showLabels !== false) {
+      const mid=(ang+a2)/2,lx=cx+Math.cos(mid)*(r+12),ly=cy+Math.sin(mid)*(r+12);
+      ctx.save()
+      ctx.font='12px ui-sans-serif,system-ui'
+      ctx.fillStyle='#ffffff'
+      ctx.strokeStyle='rgba(0,0,0,0.55)'
+      ctx.lineWidth=3
+      ctx.textAlign='center'
+      ctx.textBaseline='middle'
+      const perc = Math.max(0, Number(v)||0) / total * 100;
+      const txt=`${labels?.[i]?labels[i]+' ':''}${Number(v).toFixed(2)}h · ${perc.toFixed(1)}%`
+      ctx.strokeText(txt,lx,ly)
+      ctx.fillText(txt,lx,ly)
+      ctx.restore()
+    }
     ang=a2
   })
 }
@@ -56,4 +58,5 @@ function draw(){
 onMounted(()=>{ draw(); window.addEventListener('resize', draw) })
 watch(()=>props.data, ()=> draw(), { deep:true })
 watch(()=>props.colorsById, ()=> draw(), { deep:true })
+watch(()=>props.showLabels, ()=> draw())
 </script>

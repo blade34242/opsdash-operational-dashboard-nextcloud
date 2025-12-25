@@ -51,7 +51,7 @@ Guiding principles:
 - `composables/useCategories.ts`, `useCharts.ts`, `useSummaries.ts`, `useBalance.ts`: share mapping, chart shaping, summary math, and balance transformations across panes and cards.
 - `src/components/sidebar/validation.ts`: shared numeric validation helper used by pane mutations and tests.
 - `src/components/TimeSummaryCard.vue` / `TimeTargetsCard.vue`: summary cards rendered in the main panel.
-- `src/components/By*` + chart components: tables and charts rendered inside the tab panels.
+- Chart and table views are now widget-first; tab panels no longer host chart blocks directly.
 - `src/services/targets.ts`: shared calculator for total/category progress, pace, and forecasts.
 - `src/services/widgetsRegistry/`: per-widget registry entries; widget components are loaded lazily via `defineAsyncComponent()` for smaller diffs and future code-splitting.
 

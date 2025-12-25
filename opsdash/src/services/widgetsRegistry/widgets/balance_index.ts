@@ -84,12 +84,15 @@ export const balanceIndexEntry: RegistryEntry = {
   ],
   buildProps: (def, ctx) => {
     const cfg = ctx.balanceConfig ? JSON.parse(JSON.stringify(ctx.balanceConfig)) : createDefaultBalanceConfig()
+    const defaults = createDefaultBalanceConfig()
     const showBadge = def.options?.showBadge !== false
     const showTrend = def.options?.showTrend !== false
     const showMessages = def.options?.showMessages ?? cfg.ui?.showMessages ?? true
     const density = (def.options?.messageDensity as string) || 'normal'
     const messageLimit = density === 'few' ? 1 : density === 'many' ? Infinity : 3
-    const lookbackWeeks = Number.isFinite(def.options?.lookbackWeeks) ? Number(def.options?.lookbackWeeks) : cfg.trend?.lookbackWeeks ?? 4
+    const lookbackWeeks = Number.isFinite(def.options?.lookbackWeeks)
+      ? Number(def.options?.lookbackWeeks)
+      : defaults.trend?.lookbackWeeks ?? 4
     const thresholds = {
       noticeAbove: numberOr(cfg?.thresholds?.noticeAbove, def.options?.noticeAbove),
       noticeBelow: numberOr(cfg?.thresholds?.noticeBelow, def.options?.noticeBelow),
@@ -106,7 +109,7 @@ export const balanceIndexEntry: RegistryEntry = {
       : undefined
     const effectiveLookback = Number.isFinite(loopbackCount)
       ? Number(loopbackCount)
-      : ((Number.isFinite(lookbackWeeks) ? Number(lookbackWeeks) : cfg.trend?.lookbackWeeks ?? 4) + 1)
+      : ((Number.isFinite(lookbackWeeks) ? Number(lookbackWeeks) : defaults.trend?.lookbackWeeks ?? 4) + 1)
     return {
       overview: ctx.balanceOverview,
       targetsCategories: ctx.targetsConfig?.categories || [],

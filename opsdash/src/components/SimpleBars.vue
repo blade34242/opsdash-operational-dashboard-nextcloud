@@ -1,0 +1,79 @@
+<template>
+  <canvas ref="cv" class="chart" />
+</template>
+
+<script setup lang="ts">
+import { onMounted, ref, watch } from 'vue'
+import { ctxFor } from '../services/charts'
+
+const props = defineProps<{
+  data?: { labels?: string[]; data?: number[] }
+  showLabels?: boolean
+}>()
+
+const cv = ref<HTMLCanvasElement | null>(null)
+
+function formatHours(value: number): string {
+  const normalized = Math.max(0, Number(value) || 0)
+  return (Math.round(normalized * 10) / 10).toFixed(1)
+}
+
+function draw() {
+  const cvEl = cv.value
+  if (!cvEl || !props.data) return
+  const ctx = ctxFor(cvEl)
+  if (!ctx) return
+  const W = cvEl.clientWidth
+  const H = cvEl.clientHeight
+  const pad = 28
+  const x0 = pad * 1.4
+  const y0 = H - pad
+  const x1 = W - pad
+  const line = getComputedStyle(document.documentElement).getPropertyValue('--line').trim() || '#e5e7eb'
+  const fg = getComputedStyle(document.documentElement).getPropertyValue('--fg').trim() || '#0f172a'
+  ctx.clearRect(0, 0, W, H)
+  ctx.strokeStyle = line
+  ctx.lineWidth = 1
+  ctx.beginPath()
+  ctx.moveTo(x0, y0)
+  ctx.lineTo(x1, y0)
+  ctx.moveTo(x0, y0)
+  ctx.lineTo(x0, pad)
+  ctx.stroke()
+
+  const labels = (props.data.labels || []).map((label) => String(label ?? ''))
+  const data = (props.data.data || []).map((val) => Math.max(0, Number(val) || 0))
+  if (!labels.length || !data.length) return
+  const max = Math.max(1, ...data)
+  const n = labels.length
+  const gap = 8
+  const bw = Math.max(6, (x1 - x0 - gap * (n + 1)) / n)
+  const scale = (y0 - pad) / max
+  ctx.fillStyle = '#93c5fd'
+  labels.forEach((label, i) => {
+    const val = data[i] ?? 0
+    const h = Math.max(0, val * scale)
+    const x = x0 + gap + i * (bw + gap)
+    const y = y0 - h
+    ctx.fillRect(x, y, bw, h)
+    ctx.fillStyle = fg
+    ctx.font = '12px ui-sans-serif,system-ui'
+    if (bw > 26) {
+      const tw = ctx.measureText(label).width
+      ctx.fillText(label, x + bw / 2 - tw / 2, y0 + 14)
+    }
+    if (props.showLabels !== false && h > 14 && bw > 22 && val > 0.01) {
+      const labelVal = `${formatHours(val)}h`
+      const tw = ctx.measureText(labelVal).width
+      ctx.fillText(labelVal, x + bw / 2 - tw / 2, y + h / 2 + 4)
+    }
+  })
+}
+
+onMounted(() => {
+  draw()
+  window.addEventListener('resize', draw)
+})
+watch(() => props.data, () => draw(), { deep: true })
+watch(() => props.showLabels, () => draw())
+</script>

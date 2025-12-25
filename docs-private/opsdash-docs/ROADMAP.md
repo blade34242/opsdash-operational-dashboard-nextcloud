@@ -55,7 +55,7 @@ Single source of truth for the Opsdash backlog: high-level roadmap, target syste
 
 - ~~Finish carving~~ `App.vue` ~~(range toolbar, export/import helpers) + dedicated theme bootstrap module.~~ ✅ `useRangeToolbar`, `useKeyboardShortcuts`, theme bootloader now own modules (0.4.6).
 - ⏳ Merge Activity & Schedule data into Balance top card and move descriptive copy into Summary card. Start by reusing ActivityScheduleCard data in BalanceOverviewCard props.
-- ⏳ Add a dedicated “Charts” sidebar tab for chart config; relocate projection controls there.
+- ✅ Projection + trend controls live per chart widget (no dedicated sidebar tab required).
 - ⏳ Improve floating header/toolbar when sidebar collapsed; repro jumpiness with scroll tests.
 - 🔄 Extend Vitest/Playwright per Testing Guide Phase 2 (coverage gaps noted above). Added deck_settings client test; onboarding Playwright flow exercises final tweaks (reporting/deck).
 - ⏳ Explore “By Calendar Events” drill-down UX (no code yet).

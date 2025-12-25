@@ -99,67 +99,12 @@ function mountSidebar() {
   })
 }
 
-describe('Sidebar calendar projection + lookback', () => {
-  it('clamps lookback weeks and emits warning message', async () => {
+describe('Sidebar calendar pane', () => {
+  it('no longer exposes projection or trend lookback controls', () => {
     const wrapper = mountSidebar()
     const pane = wrapper.get('#opsdash-sidebar-pane-calendars')
-    const lookbackField = pane.findAll('label.field').find((label) =>
-      label.text().includes('Trend lookback'),
-    )
-    expect(lookbackField).toBeTruthy()
-    const lookbackInput = lookbackField!.get('input')
-
-    await lookbackInput.setValue('-1')
-    await wrapper.vm.$nextTick()
-
-    expect(pane.text()).toContain('Adjusted to allowed value')
-    const events = wrapper.emitted('update:targets-config') ?? []
-    const latestConfig = events.at(-1)?.[0]
-    expect(latestConfig?.balance?.trend?.lookbackWeeks).toBe(1)
-
-    await lookbackInput.setValue('1')
-    await wrapper.vm.$nextTick()
-
-    const middleConfig = wrapper.emitted('update:targets-config')?.at(-1)?.[0]
-    expect(middleConfig?.balance?.trend?.lookbackWeeks).toBe(1)
-
-    await lookbackInput.setValue('4')
-    await wrapper.vm.$nextTick()
-
-    const updatedConfig = wrapper.emitted('update:targets-config')?.at(-1)?.[0]
-    expect(updatedConfig?.balance?.trend?.lookbackWeeks).toBe(4)
-  })
-
-  it('caps lookback above max and warns the user', async () => {
-    const wrapper = mountSidebar()
-    const pane = wrapper.get('#opsdash-sidebar-pane-calendars')
-    const lookbackField = pane.findAll('label.field').find((label) =>
-      label.text().includes('Trend lookback'),
-    )
-    expect(lookbackField).toBeTruthy()
-    const lookbackInput = lookbackField!.get('input')
-
-    await lookbackInput.setValue('5')
-    await wrapper.vm.$nextTick()
-
-    expect(pane.text()).toContain('Adjusted to allowed value')
-    const latestConfig = wrapper.emitted('update:targets-config')?.at(-1)?.[0]
-    expect(latestConfig?.balance?.trend?.lookbackWeeks).toBe(4)
-  })
-
-  it('updates activity projection selection', async () => {
-    const wrapper = mountSidebar()
-    const pane = wrapper.get('#opsdash-sidebar-pane-calendars')
-    const projectionField = pane.findAll('label.field').find((label) =>
-      label.text().includes('Projection mode'),
-    )
-    expect(projectionField).toBeTruthy()
-    const projectionSelect = projectionField!.get('select')
-
-    await projectionSelect.setValue('calendar')
-    await wrapper.vm.$nextTick()
-
-    const latestConfig = wrapper.emitted('update:targets-config')?.at(-1)?.[0]
-    expect(latestConfig?.activityCard?.forecastMode).toBe('calendar')
+    const labels = pane.findAll('label.field').map((label) => label.text())
+    expect(labels.some((label) => label.includes('Projection mode'))).toBe(false)
+    expect(labels.some((label) => label.includes('Trend lookback'))).toBe(false)
   })
 })

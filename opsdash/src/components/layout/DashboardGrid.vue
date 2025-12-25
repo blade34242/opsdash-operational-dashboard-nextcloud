@@ -284,9 +284,9 @@ function onDragEnd() {
 .w-half{ grid-column: span 2; }
 .w-full{ grid-column: span 4; }
 .h-s{ grid-row-end: span 4; }
-.h-m{ grid-row-end: span 7; }
-.h-l{ grid-row-end: span 11; }
-.h-xl{ grid-row-end: span 18; }
+.h-m{ grid-row-end: span 8; }
+.h-l{ grid-row-end: span 13; }
+.h-xl{ grid-row-end: span 22; }
 .is-editable{
   outline:1px dashed rgba(107,114,128,0.5);
   border-radius:10px;

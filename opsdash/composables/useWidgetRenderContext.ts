@@ -48,6 +48,16 @@ interface WidgetRenderContextDeps {
   saveNotes: () => Promise<void>
   isLayoutEditing: ValueRef<boolean>
   updateWidgetOptions: (id: string, key: string, value: any) => void
+  charts: ValueRef<any>
+  calendarChartData: ValueRef<any>
+  categoryChartsById: ValueRef<Record<string, { pie: any | null; stacked: any | null }>>
+  calendarGroups: ValueRef<any[]>
+  calendarCategoryMap: ValueRef<Record<string, string>>
+  categoryColorMap: ValueRef<Record<string, string>>
+  colorsById: ValueRef<Record<string, string>>
+  colorsByName: ValueRef<Record<string, string>>
+  currentTargets: ValueRef<Record<string, number>>
+  calendarTodayHours: ValueRef<Record<string, number>>
 }
 
 function buildDeckBoards(cards: any[]): DeckBoard[] {
@@ -117,6 +127,16 @@ export function useWidgetRenderContext(deps: WidgetRenderContextDeps): {
     onUpdateWidgetOptions: (id: string, key: string, value: any) => {
       deps.updateWidgetOptions(id, key, value)
     },
+    charts: deps.charts.value,
+    calendarChartData: deps.calendarChartData.value,
+    categoryChartsById: deps.categoryChartsById.value,
+    calendarGroups: deps.calendarGroups.value,
+    calendarCategoryMap: deps.calendarCategoryMap.value,
+    categoryColorMap: deps.categoryColorMap.value,
+    colorsById: deps.colorsById.value,
+    colorsByName: deps.colorsByName.value,
+    currentTargets: deps.currentTargets.value,
+    calendarTodayHours: deps.calendarTodayHours.value,
   }))
 
   return { widgetContext }

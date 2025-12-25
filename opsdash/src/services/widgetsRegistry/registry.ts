@@ -6,6 +6,12 @@ import { activityEntry } from './widgets/activity'
 import { balanceEntry } from './widgets/balance'
 import { balanceIndexEntry } from './widgets/balance_index'
 import { categoryMixTrendEntry } from './widgets/category_mix_trend'
+import { chartDowEntry } from './widgets/chart_dow'
+import { chartHodEntry } from './widgets/chart_hod'
+import { chartPerDayEntry } from './widgets/chart_per_day'
+import { chartPieEntry } from './widgets/chart_pie'
+import { chartStackedEntry } from './widgets/chart_stacked'
+import { calendarTableEntry } from './widgets/calendar_table'
 import { dayOffTrendEntry } from './widgets/dayoff_trend'
 import { deckEntry } from './widgets/deck'
 import { deckCardsEntry } from './widgets/deck_cards'
@@ -28,6 +34,12 @@ export const widgetsRegistry: Record<string, RegistryEntry> = {
   activity: activityEntry,
   dayoff_trend: dayOffTrendEntry,
   category_mix_trend: categoryMixTrendEntry,
+  chart_pie: chartPieEntry,
+  chart_stacked: chartStackedEntry,
+  chart_per_day: chartPerDayEntry,
+  chart_dow: chartDowEntry,
+  chart_hod: chartHodEntry,
+  calendar_table: calendarTableEntry,
   deck: deckEntry,
   deck_cards: deckCardsEntry,
   notes: notesEntry,
@@ -169,6 +181,12 @@ export function createDashboardPreset(mode: DashboardMode): WidgetDefinition[] {
         showHeader: true,
         showBadge: true,
       }, { width: 'full', height: 'l', order: 55 }),
+      cloneWidget('calendar_table', {}, { width: 'full', height: 'l', order: 56 }),
+      cloneWidget('chart_pie', { scope: 'calendar', showLegend: true, showLabels: true }, { width: 'half', height: 'm', order: 57 }),
+      cloneWidget('chart_stacked', { scope: 'calendar', showLegend: true, showLabels: false }, { width: 'full', height: 'l', order: 58 }),
+      cloneWidget('chart_per_day', { scope: 'calendar', showLabels: false }, { width: 'half', height: 'm', order: 59 }),
+      cloneWidget('chart_dow', { scope: 'calendar', showLabels: true }, { width: 'half', height: 'm', order: 59.5 }),
+      cloneWidget('chart_hod', { showHint: false }, { width: 'full', height: 'l', order: 59.8 }),
       cloneWidget('deck_cards', {
         allowMine: true,
         includeArchived: true,
@@ -247,5 +265,11 @@ export function createDashboardPreset(mode: DashboardMode): WidgetDefinition[] {
       showHeader: true,
       showBadge: true,
     }, { width: 'full', height: 'l', order: 50 }),
+    cloneWidget('calendar_table', {}, { width: 'full', height: 'l', order: 55 }),
+    cloneWidget('chart_pie', { scope: 'calendar', showLegend: true, showLabels: true }, { width: 'half', height: 'm', order: 56 }),
+    cloneWidget('chart_stacked', { scope: 'calendar', showLegend: true, showLabels: false }, { width: 'full', height: 'l', order: 57 }),
+    cloneWidget('chart_per_day', { scope: 'calendar', showLabels: false }, { width: 'half', height: 'm', order: 58 }),
+    cloneWidget('chart_dow', { scope: 'calendar', showLabels: true }, { width: 'half', height: 'm', order: 58.5 }),
+    cloneWidget('chart_hod', { showHint: false }, { width: 'full', height: 'l', order: 59 }),
   ]
 }

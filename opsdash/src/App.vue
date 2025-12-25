@@ -213,7 +213,6 @@
               <a href="#" :class="{active: pane==='cal'}" @click.prevent="pane='cal'">By Calendar</a>
               <a href="#" :class="{active: pane==='day'}" @click.prevent="pane='day'">By Day</a>
               <a href="#" :class="{active: pane==='top'}" @click.prevent="pane='top'">Longest Tasks</a>
-              <a href="#" :class="{active: pane==='heat'}" @click.prevent="pane='heat'">Heatmap</a>
               <a
                 v-if="deckSettings.enabled"
                 href="#"
@@ -234,43 +233,6 @@
                   :groups="calendarGroups"
                   :today-hours="calendarTodayHours"
                 />
-                <div class="chart-section" v-if="targetsConfig.ui.showCalendarCharts && (calendarChartData.pie || calendarChartData.stacked)">
-                  <h3 class="section-title">Calendars (all)</h3>
-                  <div class="grid2 mt-12">
-                    <div class="card chart-card">
-                      <div class="chart-card__title">Distribution by calendar</div>
-                      <PieChart :data="calendarChartData.pie" :colors-by-id="colorsById" :colors-by-name="colorsByName" />
-                    </div>
-                    <div class="card chart-card">
-                      <div class="chart-card__title">Hours per day</div>
-                      <StackedBars :stacked="calendarChartData.stacked" :legacy="charts.perDay" :colors-by-id="colorsById" />
-                    </div>
-                  </div>
-                </div>
-                <div class="chart-section" v-if="targetsConfig.ui.showCategoryCharts && calendarGroups.length">
-                  <h3 class="section-title">Categories</h3>
-                  <template v-for="group in calendarGroups" :key="'cat-charts-' + group.id">
-                    <div
-                      v-if="categoryChartsById[group.id]?.pie || categoryChartsById[group.id]?.stacked"
-                      class="category-chart-block"
-                    >
-                      <div class="category-chart-header">
-                        <span class="dot" :style="{ background: categoryColorMap[group.id] || 'var(--brand)' }"></span>
-                        <span class="name">{{ group.label }}</span>
-                      </div>
-                      <div class="grid2 mt-8">
-                        <div class="card chart-card">
-                          <div class="chart-card__title">Calendar share</div>
-                          <PieChart :data="categoryChartsById[group.id]?.pie" :colors-by-id="colorsById" :colors-by-name="colorsByName" />
-                        </div>
-                        <div class="card chart-card">
-                          <div class="chart-card__title">Hours per day</div>
-                          <StackedBars :stacked="categoryChartsById[group.id]?.stacked" :legacy="null" :colors-by-id="colorsById" />
-                        </div>
-                      </div>
-                    </div>
-                  </template>
-                </div>
               </template>
             </div>
 
@@ -285,14 +247,6 @@
               <NcEmptyContent v-if="longest.length===0" name="No data" description="Try changing the range or calendars" />
               <template v-else>
                 <TopEventsTable :rows="longest" :n2="n2" :details-index="detailsIndex" @toggle="toggleDetails" />
-              </template>
-            </div>
-
-            <div class="card full tab-panel" v-show="pane==='heat'">
-              <NcEmptyContent v-if="!charts.hod || !charts.hod.matrix || charts.hod.matrix.length===0" name="No data" description="Try changing the range or calendars" />
-              <template v-else>
-                <HeatmapCanvas :hod="charts.hod" />
-                <div class="hint">24×7 Heatmap: cumulated hours by weekday (rows) and hour (columns).</div>
               </template>
             </div>
 
@@ -335,9 +289,6 @@
 
 <script setup lang="ts">
 import { NcAppContent, NcEmptyContent, NcLoadingIcon } from '@nextcloud/vue'
-import PieChart from './components/PieChart.vue'
-import StackedBars from './components/StackedBars.vue'
-import HeatmapCanvas from './components/HeatmapCanvas.vue'
 import ByCalendarTable from './components/ByCalendarTable.vue'
 import ByDayTable from './components/ByDayTable.vue'
 import TopEventsTable from './components/TopEventsTable.vue'
@@ -439,7 +390,7 @@ onBeforeUnmount(() => {
   document.body.style.removeProperty('--opsdash-nav-offset')
 })
 
-const pane = ref<'cal'|'day'|'top'|'heat'|'deck'>('cal')
+const pane = ref<'cal'|'day'|'top'|'deck'>('cal')
 const range = ref<'week'|'month'>('week')
 const offset = ref<number>(0)
 
@@ -1089,6 +1040,16 @@ const { widgetContext } = useWidgetRenderContext({
   saveNotes,
   isLayoutEditing,
   updateWidgetOptions,
+  charts,
+  calendarChartData,
+  categoryChartsById,
+  calendarGroups,
+  calendarCategoryMap,
+  categoryColorMap,
+  colorsById,
+  colorsByName,
+  currentTargets,
+  calendarTodayHours,
 })
 
 const dashboardModeLabel = computed(() => {

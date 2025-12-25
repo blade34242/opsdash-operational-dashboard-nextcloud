@@ -119,7 +119,7 @@ All sidebar state can be represented as a single JSON envelope:
 | `useCategoryMapping` | Enable category mapping. |
 | `index.method` | `'simple_range'` (default) or `'shannon_evenness'`. |
 | `relations.displayMode` | `'ratio'` or `'factor'`. |
-| `trend.lookbackWeeks` | Integer 1–12. |
+| `trend.lookbackWeeks` | Integer 1–12 (legacy default; chart widgets now store lookback per widget). |
 | `dayparts.enabled` | Toggle day-part analysis. |
 | `ui.roundPercent` | Integer 0–3 (decimal places). |
 | `ui.roundRatio` | Integer 0–3. |
@@ -141,7 +141,7 @@ These thresholds influence both the Balance card and the `warning`/`insight` tex
 
 | Field | Description |
 | ----- | ----------- |
-| `forecastMode` | `'off' \| 'total' \| 'calendar' \| 'category'`. |
+| `forecastMode` | Legacy chart projection mode; widget-level projection controls now live inside each chart widget. |
 | `showWeekendShare` | Include weekend badge. |
 | `showEveningShare` | Evening share metric. |
 | `showEarliestLatest` | Earliest/latest start times. |
@@ -187,8 +187,6 @@ Already covered by top-level keys:
 - `targets_week` / `targets_month`: per-calendar targets.
 
 Calendars also exposes:
-- `targets_config.activityCard.forecastMode` (projection mode for charts).
-- `targets_config.balance.trend.lookbackWeeks` (trend lookback window).
 - “Re-run onboarding” + “Keyboard shortcuts” actions (no persistence). Keyboard shortcuts open a quick popover list; `?` still opens the full overlay.
 
 ---

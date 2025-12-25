@@ -1,0 +1,354 @@
+import { createDefaultTargetsConfig, type ActivityForecastMode, type TargetsConfig } from '../../targets'
+
+type PieData = { ids: string[]; labels: string[]; data: number[]; colors?: string[] }
+type StackedData = { labels: string[]; series: Array<{ id: string; name?: string; label?: string; color?: string; data?: number[]; forecast?: number[] }> }
+
+export function parseIdList(input: any): string[] {
+  if (Array.isArray(input)) {
+    return input.map((val) => String(val ?? '').trim()).filter(Boolean)
+  }
+  if (typeof input === 'string') {
+    return input.split(',').map((val) => val.trim()).filter(Boolean)
+  }
+  return []
+}
+
+export function filterPieByIds(pie: PieData | null | undefined, allow: Set<string>): PieData | null {
+  if (!pie || !Array.isArray(pie.data)) return null
+  if (!allow.size) return pie
+  const ids = pie.ids || []
+  const labels = pie.labels || []
+  const data = pie.data || []
+  const colors = pie.colors || []
+  const idx = ids.map((id, i) => (allow.has(String(id)) ? i : -1)).filter((i) => i >= 0)
+  if (!idx.length) return null
+  return {
+    ids: idx.map((i) => String(ids[i] ?? '')),
+    labels: idx.map((i) => String(labels[i] ?? '')),
+    data: idx.map((i) => Number(data[i] ?? 0)),
+    colors: idx.map((i) => colors[i]),
+  }
+}
+
+export function filterStackedByIds(stacked: StackedData | null | undefined, allow: Set<string>): StackedData | null {
+  if (!stacked || !Array.isArray(stacked.series)) return null
+  if (!allow.size) return stacked
+  const series = stacked.series.filter((row) => allow.has(String(row?.id ?? '')))
+  if (!series.length) return null
+  return { labels: stacked.labels || [], series }
+}
+
+export function aggregateStackedByCategory(
+  stacked: StackedData | null | undefined,
+  calendarCategoryMap: Record<string, string>,
+  categoryFilter: Set<string>,
+  categoryColorMap: Record<string, string>,
+): StackedData | null {
+  if (!stacked || !Array.isArray(stacked.series)) return null
+  const labels = stacked.labels || []
+  const map = new Map<string, number[]>()
+  stacked.series.forEach((row) => {
+    const calId = String(row?.id ?? '')
+    const catId = String(calendarCategoryMap?.[calId] ?? '')
+    if (!catId) return
+    if (categoryFilter.size && !categoryFilter.has(catId)) return
+    if (!map.has(catId)) {
+      map.set(catId, Array.from({ length: labels.length }, () => 0))
+    }
+    const target = map.get(catId)
+    const data = Array.isArray(row?.data) ? row.data : []
+    if (!target) return
+    labels.forEach((_, idx) => {
+      target[idx] += Math.max(0, Number(data[idx] ?? 0))
+    })
+  })
+  if (!map.size) return null
+  const series = Array.from(map.entries()).map(([catId, data]) => ({
+    id: catId,
+    name: catId,
+    label: catId,
+    color: categoryColorMap?.[catId],
+    data,
+  }))
+  return { labels, series }
+}
+
+export function buildPerDayFromStacked(stacked: StackedData | null | undefined): { labels: string[]; data: number[] } | null {
+  if (!stacked || !Array.isArray(stacked.series)) return null
+  const labels = stacked.labels || []
+  const data = labels.map((_, idx) =>
+    stacked.series.reduce((sum, row) => sum + Math.max(0, Number(row?.data?.[idx] ?? 0)), 0),
+  )
+  return { labels, data }
+}
+
+export function buildDowFromPerDay(perDay: { labels: string[]; data: number[] } | null): { labels: string[]; data: number[] } | null {
+  if (!perDay) return null
+  const order = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']
+  const buckets = new Map<string, number>()
+  order.forEach((day) => buckets.set(day, 0))
+  perDay.labels.forEach((label, idx) => {
+    const day = dayOfWeek(label)
+    if (!day) return
+    buckets.set(day, (buckets.get(day) || 0) + Math.max(0, Number(perDay.data[idx] ?? 0)))
+  })
+  return { labels: order, data: order.map((day) => buckets.get(day) || 0) }
+}
+
+export function buildCategoryPie(
+  groups: Array<{ id: string; label?: string; summary?: { actualHours?: number }; color?: string }>,
+  categoryFilter: Set<string>,
+  categoryColorMap: Record<string, string>,
+): PieData | null {
+  if (!Array.isArray(groups) || !groups.length) return null
+  const filtered = groups.filter((group) => {
+    if (!group || !group.id) return false
+    if (!categoryFilter.size) return true
+    return categoryFilter.has(String(group.id))
+  })
+  if (!filtered.length) return null
+  return {
+    ids: filtered.map((group) => String(group.id)),
+    labels: filtered.map((group) => String(group.label ?? group.id)),
+    data: filtered.map((group) => Math.max(0, Number(group.summary?.actualHours ?? 0))),
+    colors: filtered.map((group) => group.color || categoryColorMap?.[String(group.id)]),
+  }
+}
+
+export function buildStackedWithForecast(input: {
+  perDaySeries: any
+  forecastMode?: ActivityForecastMode
+  targetsConfig?: TargetsConfig | null
+  currentTargets?: Record<string, number> | null
+  calendarCategoryMap?: Record<string, string> | null
+}): StackedData | null {
+  const raw = input.perDaySeries
+  if (!raw || !Array.isArray(raw.labels) || !Array.isArray(raw.series)) {
+    return null
+  }
+
+  const labels: string[] = raw.labels.map((label: any) => String(label ?? ''))
+  const series = raw.series.map((entry: any) => {
+    const id = String(entry?.id ?? '')
+    return {
+      ...entry,
+      id,
+      name: String(entry?.name ?? entry?.label ?? id),
+      color: String(entry?.color ?? ''),
+      data: labels.map((_, idx) => {
+        const rawVal = Number(entry?.data?.[idx] ?? 0)
+        return Number.isFinite(rawVal) ? Math.max(0, rawVal) : 0
+      }),
+    }
+  })
+
+  const mode = normalizeMode(input.forecastMode)
+  const todayKey = formatDateKey(new Date())
+  const isFuture = labels.map((label) => DATE_KEY_RX.test(label) && label > todayKey)
+  const futureIndices: number[] = []
+  isFuture.forEach((flag, idx) => {
+    if (flag) futureIndices.push(idx)
+  })
+
+  if (!futureIndices.length || mode === 'off') {
+    return { labels, series }
+  }
+
+  const cfg = input.targetsConfig ?? createDefaultTargetsConfig()
+  const targetsMap = sanitizeTargetsMap(input.currentTargets)
+  const categoryAssignments = input.calendarCategoryMap ?? {}
+  const futureDays = futureIndices.length
+
+  const actualByCalendar = new Map<string, number>()
+  series.forEach((row) => {
+    let sum = 0
+    row.data.forEach((value: number, idx: number) => {
+      if (!isFuture[idx]) {
+        sum += Math.max(0, value)
+      }
+    })
+    actualByCalendar.set(row.id, sum)
+  })
+  const actualTotal = Array.from(actualByCalendar.values()).reduce((sum, value) => sum + value, 0)
+
+  const forecastByCalendar = new Map<string, number[]>()
+  series.forEach((row) => {
+    forecastByCalendar.set(row.id, makeZeroArray(labels.length))
+  })
+
+  if (mode === 'total') {
+    const targetTotal = Math.max(0, Number(cfg.totalHours ?? 0))
+    const remaining = Math.max(0, targetTotal - actualTotal)
+    if (remaining > 0.0001) {
+      const perDay = remaining / futureDays
+      const ids = series.map((row) => row.id)
+      const weights = computeWeights(ids, actualByCalendar, targetsMap)
+      ids.forEach((id) => {
+        const weight = weights[id] ?? 0
+        if (weight <= 0) return
+        const arr = forecastByCalendar.get(id)
+        if (!arr) return
+        futureIndices.forEach((idx) => {
+          arr[idx] = roundHours(perDay * weight)
+        })
+      })
+    }
+  } else if (mode === 'calendar') {
+    series.forEach((row) => {
+      const target = targetsMap[row.id] ?? 0
+      if (target <= 0) return
+      const actual = Math.max(0, actualByCalendar.get(row.id) ?? 0)
+      const remaining = Math.max(0, target - actual)
+      if (remaining <= 0.0001) return
+      const perDay = remaining / futureDays
+      const arr = forecastByCalendar.get(row.id)
+      if (!arr) return
+      futureIndices.forEach((idx) => {
+        arr[idx] = roundHours(perDay)
+      })
+    })
+  } else if (mode === 'category') {
+    const processed = new Set<string>()
+    const categories = Array.isArray(cfg.categories) ? cfg.categories : []
+    const categoryTargets = new Map<string, number>()
+    categories.forEach((cat: any) => {
+      categoryTargets.set(String(cat.id), Math.max(0, Number(cat.targetHours ?? 0)))
+    })
+    const calendarsByCategory = new Map<string, string[]>()
+    series.forEach((row) => {
+      const catIdRaw = categoryAssignments?.[row.id]
+      const catId = catIdRaw ? String(catIdRaw) : UNCATEGORIZED_ID
+      if (!calendarsByCategory.has(catId)) {
+        calendarsByCategory.set(catId, [])
+      }
+      calendarsByCategory.get(catId)!.push(row.id)
+    })
+    calendarsByCategory.forEach((calIds, catId) => {
+      if (!calIds.length) return
+      const target = categoryTargets.get(catId) ?? 0
+      if (target <= 0) return
+      const actual = calIds.reduce((sum, id) => sum + Math.max(0, actualByCalendar.get(id) ?? 0), 0)
+      const remaining = Math.max(0, target - actual)
+      if (remaining <= 0.0001) return
+      const perDay = remaining / futureDays
+      const targetSubset: Record<string, number> = {}
+      calIds.forEach((id) => {
+        targetSubset[id] = targetsMap[id] ?? 0
+      })
+      const weights = computeWeights(calIds, actualByCalendar, targetSubset)
+      calIds.forEach((id) => {
+        const weight = weights[id] ?? 0
+        if (weight <= 0) return
+        const arr = forecastByCalendar.get(id)
+        if (!arr) return
+        futureIndices.forEach((idx) => {
+          arr[idx] = roundHours(perDay * weight)
+        })
+        processed.add(id)
+      })
+    })
+    series.forEach((row) => {
+      if (processed.has(row.id)) return
+      const target = targetsMap[row.id] ?? 0
+      if (target <= 0) return
+      const actual = Math.max(0, actualByCalendar.get(row.id) ?? 0)
+      const remaining = Math.max(0, target - actual)
+      if (remaining <= 0.0001) return
+      const perDay = remaining / futureDays
+      const arr = forecastByCalendar.get(row.id)
+      if (!arr) return
+      futureIndices.forEach((idx) => {
+        arr[idx] = roundHours(perDay)
+      })
+    })
+  }
+
+  series.forEach((row) => {
+    const arr = forecastByCalendar.get(row.id)
+    if (!arr) return
+    if (arr.some((value) => value > 0.0001)) {
+      row.forecast = arr
+    }
+  })
+
+  return { labels, series }
+}
+
+function dayOfWeek(label: string): string | null {
+  const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(String(label))
+  if (!m) return null
+  const d = new Date(`${m[1]}-${m[2]}-${m[3]}T00:00:00`)
+  if (Number.isNaN(d.getTime())) return null
+  const names = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat']
+  const name = names[d.getDay()]
+  if (!name) return null
+  if (name === 'Sun') return 'Sun'
+  return name
+}
+
+const DATE_KEY_RX = /^\d{4}-\d{2}-\d{2}$/
+const UNCATEGORIZED_ID = '__uncategorized__'
+
+function normalizeMode(mode: ActivityForecastMode | undefined): ActivityForecastMode {
+  if (mode === 'off' || mode === 'calendar' || mode === 'category') {
+    return mode
+  }
+  return 'total'
+}
+
+function formatDateKey(date: Date): string {
+  const year = date.getFullYear()
+  const month = `${date.getMonth() + 1}`.padStart(2, '0')
+  const day = `${date.getDate()}`.padStart(2, '0')
+  return `${year}-${month}-${day}`
+}
+
+function makeZeroArray(length: number): number[] {
+  return Array.from({ length }, () => 0)
+}
+
+function roundHours(value: number): number {
+  const rounded = Math.round(value * 100) / 100
+  return Number.isFinite(rounded) ? rounded : 0
+}
+
+function sanitizeTargetsMap(map: Record<string, number> | null | undefined): Record<string, number> {
+  const result: Record<string, number> = {}
+  if (!map) return result
+  Object.entries(map).forEach(([key, val]) => {
+    const num = Number(val)
+    if (Number.isFinite(num) && num > 0) {
+      result[String(key)] = num
+    }
+  })
+  return result
+}
+
+function computeWeights(
+  ids: string[],
+  actualByCalendar: Map<string, number>,
+  targetMap: Record<string, number>,
+): Record<string, number> {
+  const weights: Record<string, number> = {}
+  const actualSum = ids.reduce((sum, id) => sum + Math.max(0, actualByCalendar.get(id) ?? 0), 0)
+  if (actualSum > 0.0001) {
+    ids.forEach((id) => {
+      const value = Math.max(0, actualByCalendar.get(id) ?? 0)
+      weights[id] = value / actualSum
+    })
+    return weights
+  }
+  const targetSum = ids.reduce((sum, id) => sum + Math.max(0, targetMap?.[id] ?? 0), 0)
+  if (targetSum > 0.0001) {
+    ids.forEach((id) => {
+      const value = Math.max(0, targetMap?.[id] ?? 0)
+      weights[id] = value / targetSum
+    })
+    return weights
+  }
+  const equalShare = ids.length ? 1 / ids.length : 0
+  ids.forEach((id) => {
+    weights[id] = equalShare
+  })
+  return weights
+}
