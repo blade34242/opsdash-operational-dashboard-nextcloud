@@ -1,6 +1,6 @@
 <template>
   <div class="text-card" :style="cardStyle">
-    <h3>{{ titleText }}</h3>
+    <h3 v-if="showHeader">{{ titleText }}</h3>
     <p class="body" v-if="snippet">{{ snippet }}</p>
     <p class="body empty" v-else>—</p>
   </div>
@@ -14,6 +14,7 @@ const props = defineProps<{
   notesPrev?: string
   title?: string
   cardBg?: string | null
+  showHeader?: boolean
 }>()
 
 const snippet = computed(() => {
@@ -25,6 +26,7 @@ const snippet = computed(() => {
 
 const titleText = computed(() => props.title || 'Note')
 const cardStyle = computed(() => ({ background: props.cardBg || undefined }))
+const showHeader = computed(() => props.showHeader !== false)
 </script>
 
 <style scoped>

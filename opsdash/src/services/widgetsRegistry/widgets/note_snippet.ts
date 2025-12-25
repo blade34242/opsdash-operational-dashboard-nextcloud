@@ -20,6 +20,7 @@ export const noteSnippetEntry: RegistryEntry = {
     notesCurr: ctx.notesCurr ?? '',
     notesPrev: ctx.notesPrev ?? '',
     title: buildTitle(baseTitle, def.options?.titlePrefix),
+    showHeader: def.options?.showHeader !== false,
     cardBg: def.options?.cardBg,
   }),
 }

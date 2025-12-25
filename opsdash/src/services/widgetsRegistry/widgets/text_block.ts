@@ -37,6 +37,7 @@ export const textBlockEntry: RegistryEntry = {
     body: resolvePreset(def.options?.preset as TextPresetKey).body ?? def.options?.body ?? '',
     items: collectPresetItems(def.options?.preset as TextPresetKey, def.options || {}, ctx),
     cardBg: def.options?.cardBg,
+    showHeader: def.options?.showHeader !== false,
   }),
   dynamicControls: (options: Record<string, any>) => {
     if (options?.preset !== 'activity') return []

@@ -1,7 +1,7 @@
 <template>
   <div class="note-card" :style="cardStyle">
     <div class="note-header">
-      <div class="title">{{ title }}</div>
+      <div v-if="showHeader" class="title">{{ title }}</div>
       <button class="btn" type="button" :disabled="saving" @click="onSaveClick">Save</button>
     </div>
     <label class="field">
@@ -21,6 +21,7 @@
 </template>
 
 <script setup lang="ts">
+import { computed } from 'vue'
 const props = defineProps<{
   previous?: string
   modelValue?: string
@@ -29,6 +30,7 @@ const props = defineProps<{
   saving?: boolean
   title?: string
   cardBg?: string | null
+  showHeader?: boolean
 }>()
 
 const emit = defineEmits<{
@@ -37,6 +39,7 @@ const emit = defineEmits<{
 }>()
 
 const title = props.title || 'Notes'
+const showHeader = computed(() => props.showHeader !== false)
 const prevLabel = props.prevLabel || 'Previous'
 const currLabel = props.currLabel || 'Current'
 const cardStyle = {

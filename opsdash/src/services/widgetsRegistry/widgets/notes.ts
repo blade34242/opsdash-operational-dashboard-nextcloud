@@ -34,6 +34,7 @@ export const notesEntry: RegistryEntry = {
     showPrev: def.options?.showPrev !== false,
     showLabels: def.options?.showLabels !== false,
     title: buildTitle(baseTitle, def.options?.titlePrefix),
+    showHeader: def.options?.showHeader !== false,
     cardBg: def.options?.cardBg,
   }),
 }

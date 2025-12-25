@@ -21,6 +21,7 @@ export const noteEditorEntry: RegistryEntry = {
   ],
   buildProps: (def, ctx) => ({
     title: buildTitle(baseTitle, def.options?.titlePrefix),
+    showHeader: def.options?.showHeader !== false,
     cardBg: def.options?.cardBg,
     prevLabel: def.options?.prevLabel || (ctx.notesLabelPrev ?? 'Previous'),
     currLabel: def.options?.currLabel || (ctx.notesLabelCurr ?? 'Current'),

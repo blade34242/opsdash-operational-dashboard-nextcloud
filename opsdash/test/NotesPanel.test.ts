@@ -43,4 +43,21 @@ describe('NotesPanel', () => {
     await wrapper.find('button').trigger('click')
     expect(wrapper.emitted('save')).toBeTruthy()
   })
+
+  it('hides the header when showHeader is false', () => {
+    const wrapper = mount(NotesPanel, {
+      props: {
+        previous: '',
+        modelValue: '',
+        prevLabel: 'Prev',
+        currLabel: 'Curr',
+        prevTitle: '',
+        currTitle: '',
+        saving: false,
+        title: 'Notes',
+        showHeader: false,
+      },
+    })
+    expect(wrapper.find('.notes-header').exists()).toBe(false)
+  })
 })

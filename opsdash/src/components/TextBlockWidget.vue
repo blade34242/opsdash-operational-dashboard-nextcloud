@@ -1,6 +1,6 @@
 <template>
   <div class="text-card">
-    <h3 v-if="title">{{ title }}</h3>
+    <h3 v-if="showHeader && title">{{ title }}</h3>
     <p v-if="body" class="body">{{ body }}</p>
     <template v-if="items.length">
       <div v-for="item in items" :key="item.key" class="line">
@@ -18,10 +18,12 @@ const props = defineProps<{
   title?: string
   body?: string
   items?: Array<{ key: string; label?: string; value?: string }>
+  showHeader?: boolean
 }>()
 const title = computed(() => props.title ?? '')
 const body = computed(() => props.body ?? '')
 const items = computed(() => props.items ?? [])
+const showHeader = computed(() => props.showHeader !== false)
 </script>
 
 <style scoped>

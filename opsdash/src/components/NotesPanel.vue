@@ -1,5 +1,6 @@
 <template>
   <div class="notes-section" :style="cardStyle">
+    <div v-if="showHeader" class="notes-header">{{ titleText }}</div>
     <div class="hint" :title="prevTitle">{{ prevLabel }}</div>
     <textarea :value="previous" readonly rows="5" class="notes-textarea" :aria-label="t('Previous notes')"></textarea>
     <div class="hint" :title="currTitle">{{ currLabel }}</div>
@@ -15,10 +16,23 @@
 import { computed } from 'vue'
 import { NcButton } from '@nextcloud/vue'
 import { t } from '../services/i18n'
-const props = defineProps<{ previous: string; modelValue: string; prevLabel: string; currLabel: string; prevTitle: string; currTitle: string; saving: boolean; cardBg?: string | null }>()
+const props = defineProps<{
+  previous: string
+  modelValue: string
+  prevLabel: string
+  currLabel: string
+  prevTitle: string
+  currTitle: string
+  saving: boolean
+  title?: string
+  cardBg?: string | null
+  showHeader?: boolean
+}>()
 defineEmits(['update:modelValue','save'])
 
 const cardStyle = computed(() => ({ background: props.cardBg || undefined }))
+const titleText = computed(() => props.title || 'Notes')
+const showHeader = computed(() => props.showHeader !== false)
 </script>
 
 <style scoped>
@@ -27,6 +41,10 @@ const cardStyle = computed(() => ({ background: props.cardBg || undefined }))
   flex-direction: column;
   gap: var(--widget-gap, 8px);
   font-size: var(--widget-font, 14px);
+}
+.notes-header{
+  font-weight:600;
+  font-size:calc(1em * var(--widget-scale, 1));
 }
 .notes-textarea {
   width: 100%;
