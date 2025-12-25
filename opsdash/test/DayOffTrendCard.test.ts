@@ -19,4 +19,16 @@ describe('DayOffTrendCard', () => {
     expect((tiles[0].element as HTMLElement).style.background).toContain('rgb(0, 0, 0)')
     expect((tiles[0].element as HTMLElement).style.color).toContain('rgb(255, 255, 255)')
   })
+
+  it('hides the header when showHeader is false', () => {
+    const wrapper = mount(DayOffTrendCard, {
+      props: {
+        trend: [
+          { offset: 0, label: 'This week', from: '', to: '', totalDays: 7, daysOff: 1, daysWorked: 6 },
+        ],
+        showHeader: false,
+      },
+    })
+    expect(wrapper.find('.dayoff-card__header').exists()).toBe(false)
+  })
 })

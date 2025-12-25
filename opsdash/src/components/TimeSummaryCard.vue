@@ -1,6 +1,6 @@
 <template>
   <div class="card time-summary compact" :style="cardStyle">
-    <div class="time-summary-firstline">
+    <div class="time-summary-firstline" v-if="showHeader">
       <em>{{ titleText }} · {{ rangeHeading }}</em>
     </div>
     <div class="today-highlight" v-if="todayTotal !== null">
@@ -163,6 +163,7 @@ const props = defineProps<{
   rangeStart?: string
   rangeEnd?: string
   offset?: number
+  showHeader?: boolean
 }>()
 
 const summaryConfig = computed<SummaryConfig>(() => Object.assign({}, defaultConfig, props.config ?? {}))
@@ -189,6 +190,7 @@ const todayTotal = computed(() => {
 
 const titleText = computed(() => props.title || 'Time Summary')
 const cardStyle = computed(() => ({ background: props.cardBg || undefined }))
+const showHeader = computed(() => props.showHeader !== false)
 const rangeHeading = computed(() => {
   const base = props.summary.rangeLabel || (props.rangeMode === 'month' ? 'Month' : 'Week')
   const span = rangeSpanLabel.value

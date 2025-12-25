@@ -1,6 +1,6 @@
 <template>
   <div class="card activity-card" :style="cardStyle">
-    <div class="activity-card__header">
+    <div class="activity-card__header" v-if="showHeader">
       <span>{{ titleText }} ({{ rangeLabel }})</span>
       <span v-if="summary.rangeLabel" class="pill">{{ summary.rangeLabel }}</span>
     </div>
@@ -94,6 +94,7 @@ const props = defineProps<{
   dayOffTrend?: DayOffTrendEntry[]
   trendUnit?: string
   dayOffLookback?: number
+  showHeader?: boolean
   title?: string
   cardBg?: string | null
 }>()
@@ -101,6 +102,7 @@ const props = defineProps<{
 const settings = computed<ActivityCardConfig>(() => Object.assign({}, defaultConfig, props.config ?? {}))
 const titleText = computed(() => props.title || 'Activity & Schedule')
 const cardStyle = computed(() => ({ background: props.cardBg || undefined }))
+const showHeader = computed(() => props.showHeader !== false)
 
 const heroLine = computed(() => {
   const parts: string[] = []

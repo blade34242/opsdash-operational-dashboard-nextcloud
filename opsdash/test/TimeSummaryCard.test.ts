@@ -54,6 +54,7 @@ describe('TimeSummaryCard', () => {
       props: {
         summary: baseSummary,
         mode: 'active',
+        showHeader: true,
       },
     })
 
@@ -100,5 +101,16 @@ describe('TimeSummaryCard', () => {
     expect(wrapper.find('.summary-badge').exists()).toBe(false)
     expect(text).not.toContain('Balance')
     expect(text).not.toContain('Busiest')
+  })
+
+  it('hides the header when showHeader is false', () => {
+    const wrapper = mount(TimeSummaryCard, {
+      props: {
+        summary: baseSummary,
+        mode: 'active',
+        showHeader: false,
+      },
+    })
+    expect(wrapper.find('.time-summary-firstline').exists()).toBe(false)
   })
 })

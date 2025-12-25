@@ -1,6 +1,6 @@
 <template>
   <div class="card deck-summary-card" :style="cardStyle">
-    <div class="deck-summary-card__header">
+    <div class="deck-summary-card__header" v-if="showHeader">
       <div>
         <div class="deck-summary-card__title">{{ titleText }}</div>
         <div class="deck-summary-card__subtitle">Showing {{ rangeLabel.toLowerCase() }} selection</div>
@@ -87,6 +87,7 @@ const props = defineProps<{
   onFilter?: (key: DeckFilterMode) => void
   title?: string
   cardBg?: string | null
+  showHeader?: boolean
 }>()
 
 const tick = ref(0)
@@ -96,6 +97,7 @@ let timer: ReturnType<typeof setInterval> | null = null
 const hasAnyData = computed(() => props.buckets.some((bucket) => bucket.count > 0))
 const titleText = computed(() => props.title || 'Deck summary')
 const cardStyle = computed(() => ({ background: props.cardBg || undefined }))
+const showHeader = computed(() => props.showHeader !== false)
 const activeFilter = computed(() => props.activeFilter)
 const canFilter = computed(() => typeof props.onFilter === 'function')
 

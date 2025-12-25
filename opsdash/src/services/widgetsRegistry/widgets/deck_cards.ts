@@ -113,6 +113,7 @@ export const deckCardsEntry: RegistryEntry = {
       autoScroll: def.options?.autoScroll !== false,
       intervalSeconds: def.options?.intervalSeconds ?? 5,
       showCount: def.options?.showCount !== false,
+      showHeader: def.options?.showHeader !== false,
       customFilters,
     }
   },

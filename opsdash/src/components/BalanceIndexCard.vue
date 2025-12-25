@@ -1,7 +1,7 @@
 <template>
   <div class="balance-card" :style="cardStyle">
     <div class="header" :class="{ compact: isCompact }">
-      <div class="title-row">
+      <div class="title-row" v-if="showHeader">
         <span class="title">{{ titleText }}</span>
       </div>
       <div class="index" :class="{ centered: isCompact }" v-if="overview">
@@ -86,11 +86,13 @@ const props = defineProps<{
   }
   title?: string
   cardBg?: string | null
+  showHeader?: boolean
   targetsCategories?: Array<{ id: string; targetHours: number }>
   trendColor?: string
 }>()
 
 const titleText = computed(() => props.title || 'Balance Index')
+const showHeader = computed(() => props.showHeader !== false)
 const trendPoints = computed(() => {
   const listRaw = Array.isArray(props.overview?.trend?.history)
     ? props.overview.trend.history

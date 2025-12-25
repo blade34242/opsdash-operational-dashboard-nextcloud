@@ -80,4 +80,15 @@ describe('ActivityScheduleCard', () => {
     expect(tiles[1].classes()).toContain('dayoff-tile--mid') // 3/7 ≈ 0.42
     expect(tiles[2].classes()).toContain('dayoff-tile--high') // 3/4 = 0.75
   })
+
+  it('hides the header when showHeader is false', () => {
+    const wrapper = mount(ActivityScheduleCard, {
+      props: {
+        summary: baseSummary,
+        rangeLabel: 'Week 45',
+        showHeader: false,
+      },
+    })
+    expect(wrapper.find('.activity-card__header').exists()).toBe(false)
+  })
 })

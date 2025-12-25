@@ -44,6 +44,7 @@ const mountPanel = (overrides: Record<string, unknown> = {}) => {
       lastFetchedAt: '2025-03-10T12:00:00Z',
       filter: 'all',
       canFilterMine: true,
+      showHeader: true,
       ...overrides,
     },
     global: {
@@ -134,5 +135,10 @@ describe('DeckCardsPanel', () => {
   it('falls back to range label when last fetched is missing/invalid', () => {
     const wrapper = mountPanel({ lastFetchedAt: 'not-a-date' })
     expect(wrapper.text()).toContain('Showing week selection')
+  })
+
+  it('hides the header when showHeader is false', () => {
+    const wrapper = mountPanel({ showHeader: false })
+    expect(wrapper.find('.deck-panel__header').exists()).toBe(false)
   })
 })

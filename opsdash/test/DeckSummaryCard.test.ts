@@ -42,4 +42,17 @@ describe('DeckSummaryCard', () => {
     expect(activeRow.exists()).toBe(true)
     expect(activeRow.text()).toContain('Open · All')
   })
+
+  it('hides the header when showHeader is false', () => {
+    const wrapper = mount(DeckSummaryCard, {
+      props: {
+        buckets,
+        rangeLabel: 'Week',
+        loading: false,
+        ticker: { autoScroll: false, intervalSeconds: 5 },
+        showHeader: false,
+      },
+    })
+    expect(wrapper.find('.deck-summary-card__header').exists()).toBe(false)
+  })
 })

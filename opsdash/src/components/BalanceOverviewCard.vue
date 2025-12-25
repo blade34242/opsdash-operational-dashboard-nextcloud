@@ -1,6 +1,6 @@
 <template>
   <div class="card balance-card" :style="cardStyle">
-    <div class="balance-card__header">
+    <div class="balance-card__header" v-if="showHeader">
       <span>{{ titleText }} ({{ rangeLabel }})</span>
     </div>
     <div v-if="activitySummary" class="balance-card__activity">
@@ -172,6 +172,7 @@ const props = defineProps<{
   }>
   activityTrendUnit?: 'wk' | 'mo'
   activityDayOffLookback?: number
+  showHeader?: boolean
   title?: string
   cardBg?: string | null
 }>()
@@ -183,6 +184,7 @@ const settingsActivity = computed<ActivityCardConfig>(() =>
 )
 const titleText = computed(() => props.title || 'Activity & Balance')
 const cardStyle = computed(() => ({ background: props.cardBg || undefined }))
+const showHeader = computed(() => props.showHeader !== false)
 
 const activityHeroLine = computed(() => {
   if (!props.activitySummary) return ''

@@ -121,4 +121,38 @@ describe('TimeTargetsCard', () => {
 
     expect(wrapper.findAll('.targets-categories .category')).toHaveLength(0)
   })
+
+  it('hides the header when showHeader is false', () => {
+    const summary = {
+      total: {
+        id: 'total',
+        label: 'Total',
+        actualHours: 0,
+        targetHours: 10,
+        percent: 0,
+        deltaHours: -10,
+        remainingHours: 10,
+        needPerDay: 1,
+        daysLeft: 5,
+        calendarPercent: 0,
+        gap: 0,
+        status: 'behind',
+        statusLabel: 'Behind',
+        includeWeekend: true,
+        paceMode: 'days_only',
+      },
+      categories: [],
+      forecast: { text: '', linear: 0, momentum: 0, primaryMethod: 'linear' as const },
+    }
+
+    const wrapper = mount(TimeTargetsCard, {
+      props: {
+        summary,
+        config: createDefaultTargetsConfig(),
+        showHeader: false,
+      },
+    })
+
+    expect(wrapper.find('.targets-header').exists()).toBe(false)
+  })
 })

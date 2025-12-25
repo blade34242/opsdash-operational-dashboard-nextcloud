@@ -114,6 +114,7 @@ export const balanceIndexEntry: RegistryEntry = {
       showBadge,
       showTrend,
       showMessages,
+      showHeader: def.options?.showHeader !== false,
       showConfig: def.options?.showConfig !== false,
       messageLimit,
       lookbackWeeks: effectiveLookback,

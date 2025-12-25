@@ -1,6 +1,6 @@
 <template>
   <div class="deck-panel" :style="cardStyle">
-  <div class="deck-panel__header">
+  <div class="deck-panel__header" v-if="showHeader">
     <div class="deck-panel__heading">
       <div class="deck-panel__title">{{ titleLabel }}</div>
       <div class="deck-panel__subtitle" v-if="lastFetchedLabel">
@@ -138,6 +138,7 @@ const props = defineProps<{
   showCount?: boolean
   title?: string
   cardBg?: string | null
+  showHeader?: boolean
 }>()
 
 defineEmits<{
@@ -148,6 +149,7 @@ defineEmits<{
 const activeFilter = computed(() => props.filter ?? 'all')
 const titleLabel = computed(() => props.title || 'Deck cards')
 const cardStyle = computed(() => ({ background: props.cardBg || undefined }))
+const showHeader = computed(() => props.showHeader !== false)
 const filtersEnabledFlag = computed(() => props.filtersEnabled !== false && filterOptions.value.length > 1)
 const allowMine = computed(() => filtersEnabledFlag.value && props.canFilterMine !== false && props.allowMineOverride !== false)
 const filterOptions = computed<Array<{ value: DeckFilterMode; label: string; mine: boolean }>>(() => {

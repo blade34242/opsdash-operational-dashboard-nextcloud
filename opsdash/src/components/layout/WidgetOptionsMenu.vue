@@ -427,7 +427,7 @@ function splitFilterValue(value: string) {
   text-decoration:underline;
 }
 .opt-row label{
-  font-size:16px;
+  font-size:17px;
   color:#e5e7eb;
 }
 .opt-row input[type=\"number\"],
@@ -439,11 +439,13 @@ function splitFilterValue(value: string) {
   color:#e5e7eb;
   border-radius:6px;
   padding:6px 8px;
-  font-size:14px;
+  font-size:15px;
 }
 .opt-row input[type=\"checkbox\"]{
-  width:9px;
-  height:9px;
+  width:12px;
+  height:12px;
+  transform:scale(0.85);
+  transform-origin:center;
   align-self:center;
 }
 .opt-row textarea{
@@ -465,7 +467,7 @@ function splitFilterValue(value: string) {
   margin-bottom:0;
 }
 .opt-section__title{
-  font-size:14px;
+  font-size:15px;
   text-transform:uppercase;
   letter-spacing:0.04em;
   color:#9ca3af;
@@ -494,7 +496,13 @@ function splitFilterValue(value: string) {
   display:flex;
   align-items:center;
   gap:6px;
-  font-size:15px;
+  font-size:16px;
+}
+.multi__item input[type=\"checkbox\"]{
+  width:12px;
+  height:12px;
+  transform:scale(0.85);
+  transform-origin:center;
 }
 .multi__item span{
   color:#e5e7eb;
@@ -512,7 +520,7 @@ function splitFilterValue(value: string) {
   align-items:center;
 }
 .filter-builder__hint{
-  font-size:11px;
+  font-size:12px;
   color:#9ca3af;
   line-height:1.35;
 }
@@ -531,6 +539,6 @@ function splitFilterValue(value: string) {
   color:#e5e7eb;
   border-radius:6px;
   padding:4px 6px;
-  font-size:12px;
+  font-size:13px;
 }
 </style>

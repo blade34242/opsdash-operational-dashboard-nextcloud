@@ -1,6 +1,6 @@
 <template>
   <div class="card targets-card" :style="cardStyle">
-    <div class="targets-header">
+    <div class="targets-header" v-if="showHeader">
       <strong>{{ title || 'Targets' }}</strong>
       <span class="hint" v-if="total.targetHours > 0">{{ total.percent.toFixed(0) }}%</span>
     </div>
@@ -99,6 +99,7 @@ const props = withDefaults(defineProps<{
   groups?: CategoryGroup[]
   showPace?: boolean
   showForecast?: boolean
+  showHeader?: boolean
   title?: string
   cardBg?: string | null
 }>(), {
@@ -109,6 +110,7 @@ const props = withDefaults(defineProps<{
 })
 
 const total = computed<TargetsProgress>(() => props.summary?.total ?? fallbackProgress('total', 'Total'))
+const showHeader = computed(() => props.showHeader !== false)
 const categoryGroups = computed<CategoryGroup[]>(() => {
   if (Array.isArray(props.groups) && props.groups.length) {
     return props.groups.map(group => ({

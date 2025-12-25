@@ -1,6 +1,6 @@
 <template>
   <div class="card dayoff-card" :style="cardStyle">
-    <div class="dayoff-card__header">
+    <div class="dayoff-card__header" v-if="showHeader">
       <span>{{ titleText }}</span>
       <span v-if="lookbackLabel" class="pill">{{ lookbackLabel }}</span>
     </div>
@@ -50,6 +50,7 @@ const props = defineProps<{
   cardBg?: string | null
   toneLowColor?: string | null
   toneHighColor?: string | null
+  showHeader?: boolean
 }>()
 
 const historyCount = computed(() => {
@@ -123,6 +124,7 @@ const lookbackLabel = computed(() => {
 
 const titleText = computed(() => props.title || 'Days off trend')
 const cardStyle = computed(() => ({ background: props.cardBg || undefined }))
+const showHeader = computed(() => props.showHeader !== false)
 
 const toneStyles = computed(() => {
   const low = normalizeColor(props.toneLowColor) || '#dc2626'

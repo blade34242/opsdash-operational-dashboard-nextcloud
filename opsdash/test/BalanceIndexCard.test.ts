@@ -18,6 +18,7 @@ describe('BalanceIndexCard', () => {
         showTrend: true,
         showMessages: true,
         showConfig: true,
+        showHeader: true,
         indexBasis: 'category',
         thresholds: { noticeAbove: 0.15, noticeBelow: 0.1, warnAbove: 0.3, warnBelow: 0.25, warnIndex: 0.6 },
         title: 'My Balance',
@@ -43,6 +44,16 @@ describe('BalanceIndexCard', () => {
     })
     expect(wrapper.find('.trend').exists()).toBe(false)
     expect(wrapper.find('.messages').exists()).toBe(false)
+  })
+
+  it('hides the title when showHeader is false', () => {
+    const wrapper = mount(BalanceIndexCard, {
+      props: {
+        overview,
+        showHeader: false,
+      },
+    })
+    expect(wrapper.find('.title-row').exists()).toBe(false)
   })
 
   it('renders trend index values using targets and lookback', () => {

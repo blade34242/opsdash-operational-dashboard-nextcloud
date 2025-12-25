@@ -16,6 +16,7 @@
     :show-count="props.showCount !== false"
     :title="props.title"
     :card-bg="props.cardBg"
+    :show-header="props.showHeader !== false"
     @refresh="$emit('refresh')"
     @update:filter="onFilter"
   />
@@ -47,6 +48,7 @@ const props = defineProps<{
   autoScroll?: boolean
   intervalSeconds?: number
   showCount?: boolean
+  showHeader?: boolean
   title?: string
   cardBg?: string | null
   customFilters?: Array<{

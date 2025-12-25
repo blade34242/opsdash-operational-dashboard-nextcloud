@@ -167,6 +167,11 @@ describe('BalanceOverviewCard', () => {
     expect(rowValues(wrapper)).toEqual(['30%', '35%', '40%', '45%', '50%'])
   })
 
+  it('hides the header when showHeader is false', () => {
+    const wrapper = mountCard({ showHeader: false })
+    expect(wrapper.find('.balance-card__header').exists()).toBe(false)
+  })
+
   it('uses month labels when range mode is month', () => {
     const wrapper = mountCard({
       rangeMode: 'month',
