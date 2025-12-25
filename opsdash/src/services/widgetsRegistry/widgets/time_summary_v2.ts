@@ -69,6 +69,7 @@ export const timeSummaryV2Entry: RegistryEntry = {
       rangeStart: ctx.from,
       rangeEnd: ctx.to,
       offset: ctx.offset,
+      showHeader: def.options?.showHeader !== false,
     }
   },
 }

@@ -541,4 +541,14 @@ function splitFilterValue(value: string) {
   padding:4px 6px;
   font-size:13px;
 }
+
+@media (max-width: 720px){
+  .filter-builder__row{
+    grid-template-columns: 1fr;
+    align-items:stretch;
+  }
+  .filter-builder__row .ghost{
+    justify-self:end;
+  }
+}
 </style>

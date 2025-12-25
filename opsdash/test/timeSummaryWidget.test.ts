@@ -29,6 +29,7 @@ describe('time_summary_v2 widget', () => {
     expect(props.config.showBalance).toBe(false)
     expect(props.summary.totalHours).toBe(10)
     expect(props.todayGroups?.[0]?.todayHours).toBe(2)
+    expect(props.showHeader).toBe(true)
   })
 
   it('falls back to activeDayMode from context and does not mutate base config', () => {
@@ -47,5 +48,20 @@ describe('time_summary_v2 widget', () => {
     expect(props.todayGroups?.length).toBe(1)
     expect(baseCfg.timeSummary.showTotal).toBe(true)
     expect(baseCfg.timeSummary.showWeekend).toBe(true)
+    expect(props.showHeader).toBe(true)
+  })
+
+  it('passes showHeader when explicitly disabled', () => {
+    const entry = widgetsRegistry.time_summary_v2
+    const baseCfg = createDefaultTargetsConfig()
+    const def: any = { options: { showHeader: false } }
+    const ctx: any = {
+      summary: { rangeLabel: 'Week', totalHours: 10 },
+      activeDayMode: 'active',
+      targetsConfig: baseCfg,
+    }
+
+    const props = entry.buildProps(def, ctx) as any
+    expect(props.showHeader).toBe(false)
   })
 })
