@@ -119,6 +119,8 @@ export const deckCardsEntry: RegistryEntry = {
       showCount: def.options?.showCount !== false,
       showHeader: def.options?.showHeader !== false,
       customFilters,
+      editable: ctx.isLayoutEditing === true,
+      onUpdateFilters: (values: any) => ctx.onUpdateWidgetOptions?.(def.id, 'filters', values),
     }
   },
 }

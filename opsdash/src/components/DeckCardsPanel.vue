@@ -43,10 +43,18 @@
       :key="option.value"
       type="button"
       class="deck-filter-btn"
-      :class="{ active: activeFilter === option.value }"
+      :class="{
+        active: activeFilter === option.value,
+        'is-draggable': props.editable && orderableFilters.includes(option.value),
+      }"
       :aria-pressed="activeFilter === option.value"
       :disabled="option.mine && !allowMine"
+      :draggable="props.editable && orderableFilters.includes(option.value)"
       @click="$emit('update:filter', option.value)"
+      @dragstart="onDragStart(option.value, $event)"
+      @dragover.prevent="onDragOver(option.value)"
+      @drop.prevent="onDrop(option.value)"
+      @dragend="onDragEnd"
     >
       <span>{{ option.label }}</span>
       <span v-if="typeof option.count === 'number'" class="deck-filter-count">{{ option.count }}</span>
@@ -132,6 +140,8 @@ const props = defineProps<{
   canFilterMine?: boolean
   filtersEnabled?: boolean
   filterOptions?: Array<{ value: DeckFilterMode; label: string; mine?: boolean }>
+  orderableValues?: DeckFilterMode[]
+  editable?: boolean
   allowMineOverride?: boolean
   autoScroll?: boolean
   intervalSeconds?: number
@@ -141,9 +151,10 @@ const props = defineProps<{
   showHeader?: boolean
 }>()
 
-defineEmits<{
+const emit = defineEmits<{
   refresh: []
   'update:filter': [DeckFilterMode]
+  'reorder:filters': [DeckFilterMode[]]
 }>()
 
 const activeFilter = computed(() => props.filter ?? 'all')
@@ -170,6 +181,13 @@ const filterOptions = computed<Array<{ value: DeckFilterMode; label: string; min
     { value: 'due_today_mine', label: 'Due today · Mine', mine: true },
   ]
 })
+const orderableFilters = computed(() => {
+  if (props.orderableValues && props.orderableValues.length) {
+    return props.orderableValues
+  }
+  return filterOptions.value.map((opt) => opt.value).filter((value) => !String(value).startsWith('custom_'))
+})
+const dragValue = ref<DeckFilterMode | null>(null)
 
 const bodyEl = ref<HTMLElement | null>(null)
 const listEl = ref<HTMLElement | null>(null)
@@ -206,6 +224,50 @@ onMounted(() => {
 onBeforeUnmount(() => {
   resetAutoScroll()
 })
+
+function onDragStart(value: DeckFilterMode, event: DragEvent) {
+  if (!props.editable || !orderableFilters.value.includes(value)) return
+  dragValue.value = value
+  if (event.dataTransfer) {
+    event.dataTransfer.effectAllowed = 'move'
+    event.dataTransfer.setData('text/plain', String(value))
+  }
+}
+
+function onDragOver(value: DeckFilterMode) {
+  if (!props.editable || !dragValue.value) return
+  if (!orderableFilters.value.includes(value)) return
+}
+
+function onDrop(targetValue: DeckFilterMode) {
+  if (!props.editable || !dragValue.value) return
+  if (!orderableFilters.value.includes(targetValue)) return
+  const current = orderableFilters.value.slice()
+  const fromIdx = current.indexOf(dragValue.value)
+  const toIdx = current.indexOf(targetValue)
+  if (fromIdx < 0 || toIdx < 0 || fromIdx === toIdx) {
+    dragValue.value = null
+    return
+  }
+  current.splice(fromIdx, 1)
+  current.splice(toIdx, 0, dragValue.value)
+  dragValue.value = null
+  if (current.length) {
+    const customTail = filterOptions.value
+      .map((opt) => opt.value)
+      .filter((value) => String(value).startsWith('custom_'))
+    const next = [...current, ...customTail]
+    if (props.orderableValues && props.orderableValues.length) {
+      emit('reorder:filters', current)
+    } else {
+      emit('reorder:filters', next)
+    }
+  }
+}
+
+function onDragEnd() {
+  dragValue.value = null
+}
 
 function resetAutoScroll() {
   if (autoTimer.value) {
@@ -343,6 +405,12 @@ function statusLabel(status: DeckCardSummary['status']) {
   display: inline-flex;
   align-items: center;
   gap: calc(6px * var(--widget-space, 1));
+}
+.deck-filter-btn.is-draggable {
+  cursor: grab;
+}
+.deck-filter-btn.is-draggable:active {
+  cursor: grabbing;
 }
 .deck-filter-btn.active {
   border-color: var(--color-primary);

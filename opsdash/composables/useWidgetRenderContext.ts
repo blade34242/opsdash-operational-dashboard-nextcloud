@@ -46,6 +46,8 @@ interface WidgetRenderContextDeps {
   notesLabelCurrTitle: ValueRef<string>
   isSavingNote: ValueRef<boolean>
   saveNotes: () => Promise<void>
+  isLayoutEditing: ValueRef<boolean>
+  updateWidgetOptions: (id: string, key: string, value: any) => void
 }
 
 function buildDeckBoards(cards: any[]): DeckBoard[] {
@@ -110,6 +112,10 @@ export function useWidgetRenderContext(deps: WidgetRenderContextDeps): {
     onSaveNote: () => deps.saveNotes(),
     onUpdateNotes: (val: string) => {
       deps.notesCurrDraft.value = val
+    },
+    isLayoutEditing: deps.isLayoutEditing.value,
+    onUpdateWidgetOptions: (id: string, key: string, value: any) => {
+      deps.updateWidgetOptions(id, key, value)
     },
   }))
 

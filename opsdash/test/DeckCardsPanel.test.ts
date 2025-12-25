@@ -141,4 +141,26 @@ describe('DeckCardsPanel', () => {
     const wrapper = mountPanel({ showHeader: false })
     expect(wrapper.find('.deck-panel__header').exists()).toBe(false)
   })
+
+  it('emits reorder event when filters are dragged in edit mode', async () => {
+    const wrapper = mountPanel({
+      filtersEnabled: true,
+      editable: true,
+      orderableValues: ['open_all', 'done_all', 'archived_all'],
+      filterOptions: [
+        { value: 'open_all', label: 'Open · All', mine: false },
+        { value: 'done_all', label: 'Done · All', mine: false },
+        { value: 'archived_all', label: 'Archived · All', mine: false },
+      ],
+    })
+
+    const buttons = wrapper.findAll('button.deck-filter-btn')
+    const dataTransfer = { effectAllowed: '', setData: vi.fn() }
+    await buttons[0].trigger('dragstart', { dataTransfer })
+    await buttons[2].trigger('drop')
+
+    const emissions = wrapper.emitted('reorder:filters') ?? []
+    expect(emissions.length).toBe(1)
+    expect(emissions[0]).toEqual([['done_all', 'archived_all', 'open_all']])
+  })
 })

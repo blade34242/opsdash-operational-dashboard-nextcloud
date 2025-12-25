@@ -1087,6 +1087,8 @@ const { widgetContext } = useWidgetRenderContext({
   notesLabelCurrTitle,
   isSavingNote,
   saveNotes,
+  isLayoutEditing,
+  updateWidgetOptions,
 })
 
 const dashboardModeLabel = computed(() => {

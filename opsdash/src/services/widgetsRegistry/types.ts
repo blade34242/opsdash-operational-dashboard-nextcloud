@@ -62,6 +62,8 @@ export interface WidgetRenderContext {
   isSavingNote?: boolean
   onSaveNote?: () => void
   onUpdateNotes?: (val: string) => void
+  isLayoutEditing?: boolean
+  onUpdateWidgetOptions?: (id: string, key: string, value: any) => void
 }
 
 export type WidgetRenderer = (def: WidgetDefinition, ctx: WidgetRenderContext) => any

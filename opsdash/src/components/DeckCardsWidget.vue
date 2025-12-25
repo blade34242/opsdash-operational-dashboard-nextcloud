@@ -17,8 +17,11 @@
     :title="props.title"
     :card-bg="props.cardBg"
     :show-header="props.showHeader !== false"
+    :editable="props.editable === true"
+    :orderable-values="filterOrder"
     @refresh="$emit('refresh')"
     @update:filter="onFilter"
+    @reorder:filters="onReorderFilters"
   />
 </template>
 
@@ -58,6 +61,8 @@ const props = defineProps<{
     labels?: string[]
     assignees?: string[]
   }>
+  editable?: boolean
+  onUpdateFilters?: (filters: DeckFilterMode[]) => void
 }>()
 
 defineEmits<{
@@ -107,8 +112,15 @@ const filterCounts = computed(() => {
   return counts
 })
 
+const localFilters = ref<DeckFilterMode[] | null>(null)
+
+const filterOrder = computed(() => {
+  if (localFilters.value) return localFilters.value
+  return (props.filters && props.filters.length ? props.filters : defaultFilters).filter(Boolean) as DeckFilterMode[]
+})
+
 const filterOptionDefs = computed(() => {
-  const opts = (props.filters && props.filters.length ? props.filters : defaultFilters).filter(Boolean) as DeckFilterMode[]
+  const opts = filterOrder.value
   const labels: Record<DeckFilterMode, string> = {
     all: 'All cards',
     mine: 'Mine (any status)',
@@ -179,6 +191,15 @@ function sanitizeDefaultFilter(): DeckFilterMode {
 
 function onFilter(value: DeckFilterMode) {
   activeFilter.value = value
+}
+
+function onReorderFilters(nextOrder: DeckFilterMode[]) {
+  if (!nextOrder.length) return
+  localFilters.value = [...nextOrder]
+  props.onUpdateFilters?.(nextOrder)
+  if (!nextOrder.includes(activeFilter.value)) {
+    activeFilter.value = nextOrder[0]
+  }
 }
 
 function buildMineMatcher(uid: string, mode: DeckMineMode) {
