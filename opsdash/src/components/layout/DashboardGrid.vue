@@ -128,7 +128,7 @@ function scaleClass(options?: { scale?: string; textSize?: string }) {
 
 function widgetVars(options?: { scale?: string; textSize?: string; dense?: boolean }) {
   const size = options?.scale || options?.textSize || 'md'
-  const scale = size === 'sm' ? 0.85 : size === 'lg' ? 1.2 : size === 'xl' ? 1.4 : 1
+  const scale = size === 'sm' ? 0.85 : size === 'lg' ? 1.35 : size === 'xl' ? 1.6 : 1.1
   const density = options?.dense ? 0.72 : 1
   const space = scale * density
   const titleSize = 14 * scale
