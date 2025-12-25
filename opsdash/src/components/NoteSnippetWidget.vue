@@ -41,7 +41,7 @@ const showHeader = computed(() => props.showHeader !== false)
 }
 .text-card h3{
   margin:0 0 calc(6px * var(--widget-space, 1)) 0;
-  font-size:calc(1em * var(--widget-scale, 1));
+  font-size:var(--widget-title-size, calc(14px * var(--widget-scale, 1)));
 }
 .text-card .body{
   margin:0;

@@ -248,7 +248,7 @@ function colorMix(hex: string, factor = 0.5, darker = false): string {
 <style scoped>
 .targets-card{ display:flex; flex-direction:column; gap:var(--widget-gap, 8px); font-size:var(--widget-font, 14px) }
 .targets-header{ display:flex; justify-content:space-between; align-items:center }
-.targets-header strong{ font-size:calc(14px * var(--widget-scale, 1)) }
+.targets-header strong{ font-size:var(--widget-title-size, calc(14px * var(--widget-scale, 1))) }
 .targets-main{ display:flex; flex-direction:column; gap:calc(4px * var(--widget-space, 1)); font-size:calc(13px * var(--widget-scale, 1)) }
 .targets-main .line{ display:flex; flex-wrap:wrap; gap:calc(6px * var(--widget-space, 1)) }
 .targets-main .line.forecast{ flex-direction:column; gap:calc(2px * var(--widget-space, 1)) }

@@ -444,7 +444,7 @@ function shareDeltaLabel(current: number | null | undefined, delta: number | nul
   align-items: center;
   justify-content: space-between;
   gap: var(--widget-gap, 8px);
-  font-size: calc(12px * var(--widget-scale, 1));
+  font-size: var(--widget-title-size, calc(14px * var(--widget-scale, 1)));
   color: var(--fg);
   font-weight: 600;
 }

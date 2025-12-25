@@ -442,6 +442,7 @@ function clamp(v: number, min: number, max: number) {
 .mix-title{
   font-weight:700;
   color:var(--fg);
+  font-size:var(--widget-title-size, calc(14px * var(--widget-scale, 1)));
 }
 .mix-subtitle{
   font-size:calc(12px * var(--widget-scale, 1));

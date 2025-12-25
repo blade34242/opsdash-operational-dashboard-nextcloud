@@ -20,6 +20,9 @@ All notable changes to this project are documented here. This file is served loc
 - UI: Deck cards widget respects title prefix and card background settings.
 - UI: Sidebar keyboard shortcuts button opens a compact popover list.
 - UI: Widget options menu widened and aligned into two columns; layout toolbar tightened to reduce height.
+- UI: Deck custom filter builder stacks on small screens so inputs remain usable.
+- Fix: Show title toggle now applies across all widgets, including notes/text widgets.
+- Fix: Notes editor title prefix now updates live from the widget toolbar.
 
 ## [0.4.6] - Unreleased
 - Feat: Onboarding wizard “Final tweaks” step now covers Deck boards, reporting cadence/reminders, and the Activity day-off heatmap toggle, and the review summary reflects those choices.

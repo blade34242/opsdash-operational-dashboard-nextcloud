@@ -323,7 +323,7 @@ function computedPeriodTag(idx: number) {
 }
 .title{
   font-weight:600;
-  font-size:calc(1em * 1.02);
+  font-size: var(--widget-title-size, calc(14px * var(--widget-scale, 1)));
 }
 .index{
   text-align:right;

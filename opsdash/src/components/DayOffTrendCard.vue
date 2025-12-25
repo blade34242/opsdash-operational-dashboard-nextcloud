@@ -218,7 +218,7 @@ function clamp(v: number, min: number, max: number) {
   justify-content:space-between;
   font-weight:600;
   color:var(--fg);
-  font-size:calc(12px * var(--widget-scale, 1));
+  font-size: var(--widget-title-size, calc(14px * var(--widget-scale, 1)));
 }
 .dayoff-heatmap{
   display:grid;

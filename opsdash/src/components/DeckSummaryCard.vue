@@ -180,7 +180,7 @@ onBeforeUnmount(() => {
 }
 .deck-summary-card__title {
   font-weight: 700;
-  font-size: calc(16px * var(--widget-scale, 1));
+  font-size: var(--widget-title-size, calc(14px * var(--widget-scale, 1)));
 }
 .deck-summary-card__subtitle {
   color: var(--color-text-maxcontrast);

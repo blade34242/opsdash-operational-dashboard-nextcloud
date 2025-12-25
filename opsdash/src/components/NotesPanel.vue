@@ -44,7 +44,7 @@ const showHeader = computed(() => props.showHeader !== false)
 }
 .notes-header{
   font-weight:600;
-  font-size:calc(1em * var(--widget-scale, 1));
+  font-size:var(--widget-title-size, calc(14px * var(--widget-scale, 1)));
 }
 .notes-textarea {
   width: 100%;

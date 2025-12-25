@@ -289,7 +289,7 @@ function classifyDayOffTone(value: number): 'low' | 'mid' | 'high' {
   align-items: center;
   font-weight: 600;
   color: var(--fg);
-  font-size: calc(12px * var(--widget-scale, 1));
+  font-size: var(--widget-title-size, calc(14px * var(--widget-scale, 1)));
 }
 .activity-card__hero {
   font-weight: 600;

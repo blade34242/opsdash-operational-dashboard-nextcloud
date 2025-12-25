@@ -490,7 +490,7 @@ function classifyDayOffTone(value: number): 'low' | 'mid' | 'high' {
   justify-content: space-between;
   font-weight: 600;
   color: var(--fg);
-  font-size: calc(12px * var(--widget-scale, 1));
+  font-size: var(--widget-title-size, calc(14px * var(--widget-scale, 1)));
 }
 .balance-card__activity {
   display: flex;
@@ -500,7 +500,7 @@ function classifyDayOffTone(value: number): 'low' | 'mid' | 'high' {
   border-bottom: 1px solid var(--border, rgba(125, 125, 125, 0.2));
 }
 .activity-hero__title {
-  font-size: calc(12px * var(--widget-scale, 1));
+  font-size: var(--widget-title-size, calc(14px * var(--widget-scale, 1)));
   font-weight: 600;
   color: var(--fg);
 }
@@ -624,7 +624,7 @@ function classifyDayOffTone(value: number): 'low' | 'mid' | 'high' {
   margin-bottom: calc(6px * var(--widget-space, 1));
 }
 .mix-title {
-  font-size: calc(10.5px * var(--widget-scale, 1));
+  font-size: var(--widget-title-size, calc(14px * var(--widget-scale, 1)));
   font-weight: 600;
   color: var(--fg);
 }

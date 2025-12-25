@@ -277,7 +277,7 @@ function statusLabel(status: DeckCardSummary['status']) {
   justify-content: space-between;
 }
 .deck-panel__title {
-  font-size: calc(16px * var(--widget-scale, 1));
+  font-size: var(--widget-title-size, calc(14px * var(--widget-scale, 1)));
   font-weight: 600;
 }
 .deck-panel__subtitle {

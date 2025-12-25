@@ -73,6 +73,7 @@ function onSaveClick() {
 }
 .title{
   font-weight:600;
+  font-size:var(--widget-title-size, calc(14px * var(--widget-scale, 1)));
 }
 .btn{
   padding:calc(6px * var(--widget-space, 1)) calc(10px * var(--widget-space, 1));
