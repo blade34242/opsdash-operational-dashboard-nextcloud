@@ -54,11 +54,8 @@ describe('useKeyboardShortcuts', () => {
     shortcuts.unbindShortcuts()
   })
 
-  it('handles notes + config shortcuts and widget options', () => {
+  it('handles config shortcuts and widget options', () => {
     const { shortcuts, deps } = setup()
-
-    document.dispatchEvent(new KeyboardEvent('keydown', { key: 'N', altKey: true, bubbles: true }))
-    expect(deps.openNotesPanel).toHaveBeenCalledTimes(1)
 
     document.dispatchEvent(new KeyboardEvent('keydown', { key: 'T', altKey: true, bubbles: true }))
     expect(deps.openConfigPanel).toHaveBeenCalledTimes(1)

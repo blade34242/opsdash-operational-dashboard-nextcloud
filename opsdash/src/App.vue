@@ -186,6 +186,7 @@
 
             <div class="cards">
               <DashboardLayout
+                ref="layoutRef"
                 :widgets="widgets"
                 :context="widgetContext"
                 :editable="isLayoutEditing"
@@ -809,21 +810,13 @@ const {
   goNext,
   toggleRange: toggleRangeCollapsed,
   saveNotes: () => saveNotes(),
-  openNotesPanel: () => focusSidebarTab('notes'),
   openConfigPanel: () => focusSidebarTab('config'),
   toggleEditLayout: () => {
     isLayoutEditing.value = !isLayoutEditing.value
   },
   openWidgetOptions: () => {
     if (!isLayoutEditing.value) return
-    if (!openOptionsId.value && widgets.value.length) {
-      selectedWidgetId.value = widgets.value[0].id
-      openOptionsId.value = widgets.value[0].id
-      return
-    }
-    if (selectedWidgetId.value) {
-      openOptionsId.value = selectedWidgetId.value
-    }
+    layoutRef.value?.openOptionsForSelected?.()
   },
   ensureSidebarVisible,
   onOpen: ({ source }) => trackTelemetry('shortcuts_opened', { source }),
@@ -831,8 +824,7 @@ const {
 
 const activeDayMode = ref<'active'|'all'>('active')
 const rangeLabel = computed(()=> range.value === 'month' ? 'Month' : 'Week')
-const openOptionsId = ref<string | null>(null)
-const selectedWidgetId = ref<string | null>(null)
+const layoutRef = ref<InstanceType<typeof DashboardLayout> | null>(null)
 
 const targetsConfigForRange = computed(() => {
   const base = cloneTargetsConfig(targetsConfig.value)

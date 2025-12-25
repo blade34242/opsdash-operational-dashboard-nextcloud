@@ -16,6 +16,10 @@ All notable changes to this project are documented here. This file is served loc
 - UI: Onboarding wizard steps now include per-step save controls to persist changes without finishing the full flow.
 - Security: Added shared requesttoken helper for curl scripts; CSRF regression script; `/overview/notes` sanitized; deck settings clamp hidden board IDs/booleans; CI runs curl security suite; DAV probe tolerates 405 with `/overview/load` fallback.
 - Testing: Added deck_settings client Vitest, balanceIndex test fixed; onboarding Playwright flow steps through final tweaks (reporting/deck) and saves presets.
+- UI: Deck cards filters now show counts; custom filters built with tags + assignees from the widget options menu (no JSON).
+- UI: Deck cards widget respects title prefix and card background settings.
+- UI: Sidebar keyboard shortcuts button opens a compact popover list.
+- UI: Widget options menu widened and aligned into two columns; layout toolbar tightened to reduce height.
 
 ## [0.4.6] - Unreleased
 - Feat: Onboarding wizard “Final tweaks” step now covers Deck boards, reporting cadence/reminders, and the Activity day-off heatmap toggle, and the review summary reflects those choices.

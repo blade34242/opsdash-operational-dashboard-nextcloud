@@ -16,7 +16,6 @@ export const activityEntry: RegistryEntry = {
   baseTitle,
   configurable: true,
   controls: [
-    { key: 'showHeader', label: 'Show header', type: 'toggle' },
     { key: 'showBadges', label: 'Show badges', type: 'toggle' },
     { key: 'showTrends', label: 'Show trend tiles', type: 'toggle' },
     { key: 'showMeta', label: 'Show meta rows', type: 'toggle' },

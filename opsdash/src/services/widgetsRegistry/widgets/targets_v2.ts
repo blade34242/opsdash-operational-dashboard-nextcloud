@@ -23,7 +23,6 @@ export const targetsV2Entry: RegistryEntry = {
     localConfig: null,
   },
   controls: [
-    { key: 'showHeader', label: 'Show header', type: 'toggle' },
     { key: 'showLegend', label: 'Show legend', type: 'toggle' },
     { key: 'showDelta', label: 'Show delta', type: 'toggle' },
     { key: 'showForecast', label: 'Show forecast', type: 'toggle' },

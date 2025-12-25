@@ -86,8 +86,8 @@ describe('SidebarCalendarsPane', () => {
 
     const buttons = wrapper.findAll('button')
     await buttons[1].trigger('click')
-    expect(wrapper.find('.shortcuts-pop').exists()).toBe(true)
+    expect(wrapper.find('.shortcuts-box').exists()).toBe(true)
     await buttons[1].trigger('click')
-    expect(wrapper.find('.shortcuts-pop').exists()).toBe(false)
+    expect(wrapper.find('.shortcuts-box').exists()).toBe(false)
   })
 })

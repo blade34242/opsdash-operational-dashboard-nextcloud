@@ -16,7 +16,6 @@ export const deckEntry: RegistryEntry = {
   baseTitle,
   configurable: true,
   controls: [
-    { key: 'showHeader', label: 'Show header', type: 'toggle' },
     { key: 'showBadges', label: 'Show board badges', type: 'toggle' },
     { key: 'showTicker', label: 'Show ticker', type: 'toggle' },
     { key: 'showEmpty', label: 'Show empty states', type: 'toggle' },

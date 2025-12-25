@@ -62,6 +62,8 @@ Explore how Opsdash can surface Deck board activity (cards, due dates, assignees
   - Empty state text nudges QA to rerun seeding if deck payloads disappear.
   - Styling keeps parity with existing cards (chips, badges, dark-mode friendly palette).
   - All vs My cards filter buttons use the cached payload and the viewer’s UID to slice by assignees; the UI disables “My cards” when we can’t resolve the user.
+  - Filter buttons show per-filter counts and support due/created-today buckets for quick triage.
+  - Custom filter builder in widget settings lets users combine tags + assignees (optional fields) without JSON.
 - Vitest coverage added for `DeckCardsPanel` (status badges, filters, loading/error/empty paths, range label fallback) so UI regressions are caught without relying solely on Playwright.
 - `App.vue` gained a “Deck” tab (pane `'deck'`) and wires the composable’s state into the panel.
 - Config: Sidebar now exposes a “Report” tab where users can toggle Deck visibility, enable/disable filters, pick default filter mode, and configure weekly/monthly report cadences.

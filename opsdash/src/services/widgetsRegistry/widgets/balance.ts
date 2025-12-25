@@ -16,7 +16,6 @@ export const balanceEntry: RegistryEntry = {
   baseTitle,
   configurable: true,
   controls: [
-    { key: 'showHeader', label: 'Show header', type: 'toggle' },
     { key: 'showTrend', label: 'Show trend history', type: 'toggle' },
     { key: 'showRelations', label: 'Show relations', type: 'toggle' },
     { key: 'showWarnings', label: 'Show warnings', type: 'toggle' },

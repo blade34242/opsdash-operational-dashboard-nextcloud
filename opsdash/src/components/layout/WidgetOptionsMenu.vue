@@ -207,6 +207,7 @@ const local = ref<Record<string, any>>({})
 
 const coreControls = [
   { key: 'titlePrefix', label: 'Title prefix', type: 'text' },
+  { key: 'showHeader', label: 'Show title', type: 'toggle' },
   {
     key: 'cardBg',
     label: 'Card background',
@@ -390,6 +391,8 @@ function splitFilterValue(value: string) {
   padding:8px;
   width:33vw;
   z-index:30;
+  max-height:360px;
+  overflow:auto;
   overflow-x:hidden;
 }
 .opt-row{
@@ -424,7 +427,7 @@ function splitFilterValue(value: string) {
   text-decoration:underline;
 }
 .opt-row label{
-  font-size:12px;
+  font-size:16px;
   color:#e5e7eb;
 }
 .opt-row input[type=\"number\"],
@@ -435,7 +438,13 @@ function splitFilterValue(value: string) {
   border:1px solid color-mix(in oklab, #4b5563, transparent 30%);
   color:#e5e7eb;
   border-radius:6px;
-  padding:4px 6px;
+  padding:6px 8px;
+  font-size:14px;
+}
+.opt-row input[type=\"checkbox\"]{
+  width:9px;
+  height:9px;
+  align-self:center;
 }
 .opt-row textarea{
   width:100%;
@@ -443,24 +452,24 @@ function splitFilterValue(value: string) {
   border:1px solid color-mix(in oklab, #4b5563, transparent 30%);
   color:#e5e7eb;
   border-radius:6px;
-  padding:6px;
+  padding:7px;
 }
 .opt-section{
   margin-bottom:10px;
-  border-bottom:1px solid color-mix(in oklab, #4b5563, transparent 25%);
-  padding-bottom:6px;
+  padding:8px;
+  border-radius:8px;
+  border:1px solid color-mix(in oklab, #4b5563, transparent 30%);
+  background:color-mix(in oklab, #0f172a, #111827 75%);
 }
 .opt-section:last-child{
-  border-bottom:none;
-  padding-bottom:0;
   margin-bottom:0;
 }
 .opt-section__title{
-  font-size:11px;
+  font-size:14px;
   text-transform:uppercase;
   letter-spacing:0.04em;
   color:#9ca3af;
-  margin-bottom:6px;
+  margin-bottom:8px;
   font-weight:700;
 }
 .colorlist{
@@ -485,7 +494,10 @@ function splitFilterValue(value: string) {
   display:flex;
   align-items:center;
   gap:6px;
-  font-size:13px;
+  font-size:15px;
+}
+.multi__item span{
+  color:#e5e7eb;
 }
 .filter-builder{
   display:flex;

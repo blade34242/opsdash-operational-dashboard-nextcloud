@@ -60,7 +60,6 @@ export const categoryMixTrendEntry: RegistryEntry = {
     },
     { key: 'shareLowColor', label: 'Share low', type: 'color' },
     { key: 'shareHighColor', label: 'Share high', type: 'color' },
-    { key: 'showHeader', label: 'Show header', type: 'toggle' },
     { key: 'showBadge', label: 'Show badge', type: 'toggle' },
     { key: 'toneLowColor', label: 'Low color', type: 'color' },
     { key: 'toneHighColor', label: 'High color', type: 'color' },

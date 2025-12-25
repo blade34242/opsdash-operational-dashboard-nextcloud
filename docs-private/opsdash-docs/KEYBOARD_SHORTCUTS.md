@@ -6,8 +6,8 @@ once we introduce them (range navigation, notes editor, etc.). The overlay will
 be triggered from the sidebar and via a shortcut (`?`).
 
 ## Requirements
-- Accessible from Sidebar (“Keyboard shortcuts” link/button).
-- Overlay shows grouped shortcuts (Navigation, Targets, Notes, Misc).
+- Accessible from Sidebar (“Keyboard shortcuts” link/button) as a quick popover list.
+- Overlay shows grouped shortcuts (Navigation, Targets, Notes, Misc) when opened via `?`.
 - Supports keyboard-only operation (open, navigate, close).
 - Closes with `Esc` and restores focus to the originating element.
 - Respects light/dark theming tokens.
@@ -37,8 +37,8 @@ be triggered from the sidebar and via a shortcut (`?`).
 ```
 
 ## Interaction Flow
-1. User clicks “Keyboard shortcuts” in sidebar (or presses `?`).
-2. Modal overlay appears; focus moves to the first shortcut line.
+1. User clicks “Keyboard shortcuts” in sidebar to open the compact popover list.
+2. Press `?` to open the full modal overlay; focus moves to the first shortcut line.
 3. User navigates with arrow keys / Tab.
 4. Press `Esc` or click “Close” to dismiss; focus returns to the trigger.
 
@@ -60,7 +60,6 @@ be triggered from the sidebar and via a shortcut (`?`).
 | Navigation | Previous period | `Alt` + `←` |
 | Navigation | Next period | `Alt` + `→` |
 | Navigation | Toggle week/month | `Alt` + `Shift` + `R` |
-| Notes | Open Notes pane | `Alt` + `N` |
 | Notes | Save note | `Ctrl / ⌘` + `S` |
 | Targets | Open Theme | `Alt` + `T` |
 | Misc | Keyboard overlay | `?` |

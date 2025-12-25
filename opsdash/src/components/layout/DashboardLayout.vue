@@ -183,6 +183,19 @@ function openOnboardingTargets(step?: string) {
   closeAdvancedTargets()
   emit('open:onboarding', step)
 }
+
+function openOptionsForSelected() {
+  if (!selectedId.value && ordered.value.length) {
+    selectedId.value = ordered.value[0].id
+  }
+  if (selectedId.value) {
+    openOptionsId.value = selectedId.value
+  }
+}
+
+defineExpose({
+  openOptionsForSelected,
+})
 </script>
 
 <style scoped>
@@ -194,4 +207,3 @@ function openOnboardingTargets(step?: string) {
   overflow:visible;
 }
 </style>
-

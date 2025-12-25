@@ -16,7 +16,6 @@ export const timeSummaryEntry: RegistryEntry = {
   baseTitle,
   configurable: true,
   controls: [
-    { key: 'showHeader', label: 'Show header', type: 'toggle' },
     { key: 'showTopCategory', label: 'Show top category', type: 'toggle' },
     { key: 'showWorkdayStats', label: 'Show workday stats', type: 'toggle' },
     { key: 'showWeekendStats', label: 'Show weekend stats', type: 'toggle' },

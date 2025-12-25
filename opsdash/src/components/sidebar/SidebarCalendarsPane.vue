@@ -24,23 +24,23 @@
         >
           Keyboard shortcuts
         </NcButton>
-        <div v-if="shortcutsOpen" class="shortcuts-pop" role="dialog" aria-label="Keyboard shortcuts">
-          <div class="shortcuts-pop__header">
-            <span>Keyboard shortcuts</span>
-            <button type="button" class="ghost sm" @click="shortcutsOpen = false">✕</button>
-          </div>
-          <div class="shortcuts-pop__body">
-            <div v-for="group in shortcutGroups" :key="group.id" class="shortcuts-pop__group">
-              <div class="shortcuts-pop__title">{{ group.title }}</div>
-              <ul>
-                <li v-for="item in group.items" :key="item.id">
-                  <span class="label">{{ item.label }}</span>
-                  <span class="combo">{{ item.combo.join(' + ') }}</span>
-                  <span v-if="item.description" class="desc">{{ item.description }}</span>
-                </li>
-              </ul>
-            </div>
-          </div>
+      </div>
+    </div>
+    <div v-if="shortcutsOpen" class="shortcuts-box" role="region" aria-label="Keyboard shortcuts">
+      <div class="shortcuts-box__header">
+        <span>Keyboard shortcuts</span>
+        <button type="button" class="ghost sm" @click="shortcutsOpen = false">✕</button>
+      </div>
+      <div class="shortcuts-box__body">
+        <div v-for="group in shortcutGroups" :key="group.id" class="shortcuts-box__group">
+          <div class="shortcuts-box__title">{{ group.title }}</div>
+          <ul>
+            <li v-for="item in group.items" :key="item.id">
+              <span class="label">{{ item.label }}</span>
+              <span class="combo">{{ item.combo.join(' + ') }}</span>
+              <span v-if="item.description" class="desc">{{ item.description }}</span>
+            </li>
+          </ul>
         </div>
       </div>
     </div>
@@ -236,24 +236,15 @@ function onOpenShortcuts(event: MouseEvent) {
   flex-direction: column;
   gap: 6px;
 }
-.shortcuts-wrap{
-  position:relative;
-}
-.shortcuts-pop{
-  position:absolute;
-  top:calc(100% + 6px);
-  right:0;
-  width:320px;
-  max-height:360px;
-  overflow:auto;
+.shortcuts-box{
+  margin:8px 0 12px;
   background:color-mix(in oklab, #111827, #1f2937 60%);
   border:1px solid color-mix(in oklab, #4b5563, transparent 20%);
   border-radius:10px;
-  box-shadow:0 16px 28px rgba(0,0,0,0.25);
+  box-shadow:0 10px 18px rgba(0,0,0,0.18);
   padding:10px;
-  z-index:40;
 }
-.shortcuts-pop__header{
+.shortcuts-box__header{
   display:flex;
   align-items:center;
   justify-content:space-between;
@@ -264,12 +255,12 @@ function onOpenShortcuts(event: MouseEvent) {
   color:#cbd5f5;
   margin-bottom:8px;
 }
-.shortcuts-pop__body{
+.shortcuts-box__body{
   display:flex;
   flex-direction:column;
   gap:10px;
 }
-.shortcuts-pop__title{
+.shortcuts-box__title{
   font-size:11px;
   font-weight:700;
   color:#9ca3af;
@@ -277,7 +268,7 @@ function onOpenShortcuts(event: MouseEvent) {
   letter-spacing:0.04em;
   margin-bottom:4px;
 }
-.shortcuts-pop__group ul{
+.shortcuts-box__group ul{
   list-style:none;
   padding:0;
   margin:0;
@@ -285,7 +276,7 @@ function onOpenShortcuts(event: MouseEvent) {
   flex-direction:column;
   gap:6px;
 }
-.shortcuts-pop__group li{
+.shortcuts-box__group li{
   display:grid;
   grid-template-columns: 1fr auto;
   gap:6px 10px;
@@ -293,7 +284,7 @@ function onOpenShortcuts(event: MouseEvent) {
   color:#e5e7eb;
   font-size:12px;
 }
-.shortcuts-pop__group .combo{
+.shortcuts-box__group .combo{
   font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
   font-size:11px;
   background:rgba(15, 23, 42, 0.8);
@@ -301,7 +292,7 @@ function onOpenShortcuts(event: MouseEvent) {
   padding:2px 6px;
   color:#f8fafc;
 }
-.shortcuts-pop__group .desc{
+.shortcuts-box__group .desc{
   grid-column: 1 / -1;
   color:#94a3b8;
   font-size:11px;

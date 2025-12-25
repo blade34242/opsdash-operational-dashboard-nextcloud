@@ -26,7 +26,6 @@ export const dayOffTrendEntry: RegistryEntry = {
         { value: 'mo', label: 'Months' },
       ],
     },
-    { key: 'showHeader', label: 'Show header', type: 'toggle' },
     { key: 'showBadges', label: 'Show badges', type: 'toggle' },
     { key: 'toneLowColor', label: 'Low color', type: 'color' },
     { key: 'toneHighColor', label: 'High color', type: 'color' },

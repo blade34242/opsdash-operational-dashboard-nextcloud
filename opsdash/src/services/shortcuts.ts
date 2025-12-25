@@ -25,7 +25,6 @@ export const KEYBOARD_SHORTCUT_GROUPS: ShortcutGroup[] = [
     id: 'notes',
     title: 'Notes',
     items: [
-      { id: 'notes-toggle', label: 'Open Notes pane', combo: ['Alt', 'N'], description: 'Show the Notes tab in the sidebar' },
       { id: 'notes-save', label: 'Save note', combo: ['Ctrl / ⌘', 'S'], description: 'Persist the current note draft' },
     ],
   },

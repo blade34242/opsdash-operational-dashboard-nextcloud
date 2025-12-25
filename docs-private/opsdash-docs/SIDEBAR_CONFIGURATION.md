@@ -189,7 +189,7 @@ Already covered by top-level keys:
 Calendars also exposes:
 - `targets_config.activityCard.forecastMode` (projection mode for charts).
 - `targets_config.balance.trend.lookbackWeeks` (trend lookback window).
-- “Re-run onboarding” + “Keyboard shortcuts” actions (no persistence).
+- “Re-run onboarding” + “Keyboard shortcuts” actions (no persistence). Keyboard shortcuts open a quick popover list; `?` still opens the full overlay.
 
 ---
 

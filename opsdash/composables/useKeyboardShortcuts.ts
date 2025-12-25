@@ -98,14 +98,6 @@ export function useKeyboardShortcuts(deps: KeyboardShortcutDeps) {
         handleNavigation(deps.toggleRange, event)
         return
       }
-      if (key === 'N' || key === 'n') {
-        if (deps.openNotesPanel) {
-          event.preventDefault()
-          ensureSidebarVisible()
-          deps.openNotesPanel()
-        }
-        return
-      }
       if (key === 'T' || key === 't') {
         if (deps.openConfigPanel) {
           event.preventDefault()
