@@ -38,7 +38,7 @@ const emit = defineEmits<{
   (e: 'save'): void
 }>()
 
-const title = props.title || 'Notes'
+const title = computed(() => props.title || 'Notes')
 const showHeader = computed(() => props.showHeader !== false)
 const prevLabel = props.prevLabel || 'Previous'
 const currLabel = props.currLabel || 'Current'
