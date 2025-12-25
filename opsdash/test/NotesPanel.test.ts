@@ -60,4 +60,24 @@ describe('NotesPanel', () => {
     })
     expect(wrapper.find('.notes-header').exists()).toBe(false)
   })
+
+  it('renders a history selector when history entries exist', () => {
+    const wrapper = mount(NotesPanel, {
+      props: {
+        previous: 'Fallback',
+        modelValue: '',
+        prevLabel: 'Last week',
+        currLabel: 'This week',
+        prevTitle: '',
+        currTitle: '',
+        saving: false,
+        history: [
+          { id: 'offset-1', label: 'Week of 2025-12-01', title: 'Notes for week starting 2025-12-01', content: 'Older note' },
+        ],
+      },
+    })
+
+    expect(wrapper.find('select').exists()).toBe(true)
+    expect(wrapper.find('textarea').element.value).toBe('Older note')
+  })
 })

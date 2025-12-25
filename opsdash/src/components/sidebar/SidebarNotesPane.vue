@@ -11,6 +11,7 @@
     </p>
     <NotesPanel
       :previous="previous"
+      :history="history"
       :model-value="modelValue"
       :prev-label="prevLabel"
       :curr-label="currLabel"
@@ -29,6 +30,7 @@ import { t } from '../../services/i18n'
 
 const props = defineProps<{
   previous: string
+  history?: Array<{ id: string; label: string; title: string; content: string }>
   modelValue: string
   prevLabel: string
   currLabel: string
@@ -44,6 +46,7 @@ const emit = defineEmits<{
 
 const {
   previous,
+  history,
   modelValue,
   prevLabel,
   currLabel,

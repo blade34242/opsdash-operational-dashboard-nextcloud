@@ -74,6 +74,8 @@ const defaultFilters: DeckFilterMode[] = [
   'archived_mine',
   'due_all',
   'due_mine',
+  'due_today_all',
+  'due_today_mine',
   'created_today_all',
   'created_today_mine',
 ]
@@ -118,6 +120,8 @@ const filterOptionDefs = computed(() => {
     archived_mine: 'Archived · Mine',
     due_all: 'Due · All',
     due_mine: 'Due · Mine',
+    due_today_all: 'Due today · All',
+    due_today_mine: 'Due today · Mine',
     created_today_all: 'Created today · All',
     created_today_mine: 'Created today · Mine',
     created_range_all: 'Created this range · All',
@@ -234,6 +238,15 @@ function isDueInRange(card: DeckCardSummary, from?: string, to?: string) {
   return dueTs != null && dueTs >= fromTs && dueTs <= toTs
 }
 
+function isDueToday(card: DeckCardSummary) {
+  const dueTs = card.dueTs ?? null
+  if (dueTs == null) return false
+  const now = new Date()
+  const start = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime()
+  const end = start + 24 * 60 * 60 * 1000
+  return dueTs >= start && dueTs < end
+}
+
 function filterCardsForMode(mode: DeckFilterMode, cleaned: DeckCardSummary[], allowArchived: boolean) {
   const mineMatch = buildMineMatcher(props.uid || '', props.mineMode || 'assignee')
   const includeArchivedInDone = allowArchived
@@ -250,6 +263,12 @@ function filterCardsForMode(mode: DeckFilterMode, cleaned: DeckCardSummary[], al
     return cleaned.filter((card) => {
       const mineOk = mode.endsWith('_mine') ? mineMatch(card) : true
       return mineOk && isCreatedInRange(card, props.from, props.to)
+    })
+  }
+  if (mode.startsWith('due_today')) {
+    return cleaned.filter((card) => {
+      const mineOk = mode.endsWith('_mine') ? mineMatch(card) : true
+      return mineOk && isDueToday(card)
     })
   }
   if (mode.startsWith('due_')) {

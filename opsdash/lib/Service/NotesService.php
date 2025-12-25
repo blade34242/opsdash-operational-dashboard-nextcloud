@@ -25,6 +25,20 @@ class NotesService {
 
         $current = (string)$this->config->getUserValue($uid, self::APP_NAME, $keyCurrent, '');
         $previous = (string)$this->config->getUserValue($uid, self::APP_NAME, $keyPrevious, '');
+        $history = [];
+        for ($i = 1; $i <= 4; $i++) {
+            [$fromHistory] = $this->calendarService->rangeBounds($range, $offset - $i);
+            $keyHistory = $this->calendarService->notesKey($range, $fromHistory);
+            $content = (string)$this->config->getUserValue($uid, self::APP_NAME, $keyHistory, '');
+            if (trim($content) === '') {
+                continue;
+            }
+            $history[] = [
+                'offset' => $i,
+                'from' => $fromHistory->format('Y-m-d'),
+                'content' => $content,
+            ];
+        }
 
         return [
             'period' => [
@@ -35,6 +49,7 @@ class NotesService {
             'notes' => [
                 'current' => $current,
                 'previous' => $previous,
+                'history' => $history,
             ],
         ];
     }

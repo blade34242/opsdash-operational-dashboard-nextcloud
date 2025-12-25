@@ -185,7 +185,12 @@
             </div>
 
             <div class="cards">
+              <div v-if="!hasInitialLoad" class="cards-loading">
+                <NcLoadingIcon :size="22" />
+                <div class="cards-loading__label">Loading your layout…</div>
+              </div>
               <DashboardLayout
+                v-else
                 ref="layoutRef"
                 :widgets="widgets"
                 :context="widgetContext"
@@ -468,7 +473,7 @@ const notes = useNotes({
   notifySuccess,
   notifyError,
 })
-const { notesPrev, notesCurrDraft, isSavingNote, fetchNotes, saveNotes } = notes
+const { notesPrev, notesCurrDraft, notesHistory, isSavingNote, fetchNotes, saveNotes } = notes
 
 // Widget layout storage must be declared before downstream composables consume it
 const hasInitialLoad = ref(false)
@@ -1075,6 +1080,7 @@ const { widgetContext } = useWidgetRenderContext({
   uid,
   notesPrev,
   notesCurrDraft,
+  notesHistory,
   notesLabelPrev,
   notesLabelCurr,
   notesLabelPrevTitle,

@@ -159,6 +159,8 @@ export function parseFilters(input: any): string[] {
     'archived_mine',
     'due_all',
     'due_mine',
+    'due_today_all',
+    'due_today_mine',
     'created_today_all',
     'created_today_mine',
   ]
@@ -176,6 +178,8 @@ export function prettyFilterLabel(key: string): string {
     case 'archived_mine': return 'Archived · Mine'
     case 'due_all': return 'Due · All'
     case 'due_mine': return 'Due · Mine'
+    case 'due_today_all': return 'Due today · All'
+    case 'due_today_mine': return 'Due today · Mine'
     case 'created_today_all': return 'Created today · All'
     case 'created_today_mine': return 'Created today · Mine'
     case 'created_range_all': return 'Created this range · All'

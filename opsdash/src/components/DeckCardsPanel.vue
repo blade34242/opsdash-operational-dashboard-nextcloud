@@ -166,6 +166,8 @@ const filterOptions = computed<Array<{ value: DeckFilterMode; label: string; min
     { value: 'archived_mine', label: 'Archived · Mine', mine: true },
     { value: 'due_all', label: 'Due · All', mine: false },
     { value: 'due_mine', label: 'Due · Mine', mine: true },
+    { value: 'due_today_all', label: 'Due today · All', mine: false },
+    { value: 'due_today_mine', label: 'Due today · Mine', mine: true },
   ]
 })
 

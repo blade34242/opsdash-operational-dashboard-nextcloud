@@ -46,6 +46,8 @@
             <option value="archived_mine">Archived · Mine</option>
             <option value="due_all">Due · All</option>
             <option value="due_mine">Due · Mine</option>
+            <option value="due_today_all">Due today · All</option>
+            <option value="due_today_mine">Due today · Mine</option>
           </select>
         </label>
 

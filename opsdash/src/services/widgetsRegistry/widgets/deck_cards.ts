@@ -32,6 +32,8 @@ export const deckCardsEntry: RegistryEntry = {
       'archived_mine',
       'due_all',
       'due_mine',
+      'due_today_all',
+      'due_today_mine',
       'created_today_all',
       'created_today_mine',
     ],
@@ -72,6 +74,8 @@ export const deckCardsEntry: RegistryEntry = {
       { value: 'archived_mine', label: prettyFilterLabel('archived_mine') },
       { value: 'due_all', label: prettyFilterLabel('due_all') },
       { value: 'due_mine', label: prettyFilterLabel('due_mine') },
+      { value: 'due_today_all', label: prettyFilterLabel('due_today_all') },
+      { value: 'due_today_mine', label: prettyFilterLabel('due_today_mine') },
       { value: 'created_today_all', label: prettyFilterLabel('created_today_all') },
       { value: 'created_today_mine', label: prettyFilterLabel('created_today_mine') },
     ]

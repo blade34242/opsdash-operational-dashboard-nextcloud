@@ -273,6 +273,20 @@
   display:block;
   margin:10px 0;
 }
+#opsdash .cards-loading{
+  display:flex;
+  align-items:center;
+  gap:10px;
+  padding:16px;
+  border:1px dashed var(--line);
+  border-radius:12px;
+  color:var(--muted);
+  background:color-mix(in oklab, var(--card), transparent 35%);
+}
+#opsdash .cards-loading__label{
+  font-weight:600;
+  font-size:13px;
+}
 #opsdash .card{
   background:var(--card);
   border:1px solid var(--line);

@@ -24,6 +24,8 @@ export type DeckFilterMode =
   | 'archived_mine'
   | 'due_all'
   | 'due_mine'
+  | 'due_today_all'
+  | 'due_today_mine'
   | `custom_${string}`
   | 'created_today_all'
   | 'created_today_mine'
@@ -144,6 +146,8 @@ export function normalizeDeckSettings(input: any, fallback?: DeckFeatureSettings
     'archived_mine',
     'due_all',
     'due_mine',
+    'due_today_all',
+    'due_today_mine',
   ]
   const defaultFilter: DeckFilterMode = allowedFilters.includes(input.defaultFilter)
     ? (input.defaultFilter as DeckFilterMode)

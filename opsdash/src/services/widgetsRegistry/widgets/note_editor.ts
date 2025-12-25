@@ -26,6 +26,7 @@ export const noteEditorEntry: RegistryEntry = {
     prevLabel: def.options?.prevLabel || (ctx.notesLabelPrev ?? 'Previous'),
     currLabel: def.options?.currLabel || (ctx.notesLabelCurr ?? 'Current'),
     previous: ctx.notesPrev ?? '',
+    history: ctx.notesHistory ?? [],
     modelValue: ctx.notesCurr ?? '',
     saving: ctx.isSavingNote ?? false,
     onSave: ctx.onSaveNote,

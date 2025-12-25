@@ -28,6 +28,8 @@ describe('useNotes', () => {
     await notes.fetchNotes()
     expect(notes.notesPrev.value).toBe(notesFixture.notes.previous)
     expect(notes.notesCurrDraft.value).toBe(notesFixture.notes.current)
+    expect(notes.notesHistory.value.length).toBe(2)
+    expect(notes.notesHistory.value[0].content).toBe('Closed out Q3 targets')
 
     notes.notesCurrDraft.value = 'Updated'
     await notes.saveNotes()

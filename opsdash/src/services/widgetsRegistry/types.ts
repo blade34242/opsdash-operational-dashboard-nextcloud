@@ -54,6 +54,7 @@ export interface WidgetRenderContext {
   deckUrl?: string
   notesPrev?: string
   notesCurr?: string
+  notesHistory?: Array<{ id: string; label: string; title: string; content: string }>
   notesLabelPrev?: string
   notesLabelCurr?: string
   notesLabelPrevTitle?: string

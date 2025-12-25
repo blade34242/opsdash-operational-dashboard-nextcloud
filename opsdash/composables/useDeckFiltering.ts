@@ -28,6 +28,8 @@ export function sanitizeDeckFilter(value: DeckFilterMode | string | undefined): 
     'archived_mine',
     'due_all',
     'due_mine',
+    'due_today_all',
+    'due_today_mine',
   ]
   return allowed.includes(value as DeckFilterMode) ? (value as DeckFilterMode) : 'all'
 }
@@ -45,6 +47,14 @@ function deckStatusMatches(card: DeckCard, status: 'open' | 'done' | 'archived',
 
 function deckDueMatches(card: DeckCard) {
   return card.dueTs != null || card.match === 'due'
+}
+
+function deckDueToday(card: DeckCard) {
+  if (card.dueTs == null) return false
+  const now = new Date()
+  const start = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime()
+  const end = start + 24 * 60 * 60 * 1000
+  return card.dueTs >= start && card.dueTs < end
 }
 
 export function useDeckFiltering(options: {
@@ -101,6 +111,14 @@ export function useDeckFiltering(options: {
     if (filter === 'mine') {
       return cards.filter((card) => mineMatch(card))
     }
+    if (filter.startsWith('due_today')) {
+      const mineOnly = filter.endsWith('_mine')
+      return cards.filter((card) => {
+        const dueOk = deckDueToday(card)
+        const mineOk = mineOnly ? mineMatch(card) : true
+        return dueOk && mineOk
+      })
+    }
     if (filter.startsWith('due_')) {
       const mineOnly = filter.endsWith('_mine')
       return cards.filter((card) => {
@@ -136,6 +154,8 @@ export function useDeckFiltering(options: {
       { value: 'archived_mine', label: 'Archived · Mine', mine: true, matches: (card) => deckStatusMatches(card, 'archived', includeArchivedInDone) && mineMatch(card) },
       { value: 'due_all', label: 'Due · All', mine: false, matches: (card) => deckDueMatches(card) },
       { value: 'due_mine', label: 'Due · Mine', mine: true, matches: (card) => deckDueMatches(card) && mineMatch(card) },
+      { value: 'due_today_all', label: 'Due today · All', mine: false, matches: (card) => deckDueToday(card) },
+      { value: 'due_today_mine', label: 'Due today · Mine', mine: true, matches: (card) => deckDueToday(card) && mineMatch(card) },
     ]
     return defs.map((def) => ({
       value: def.value,

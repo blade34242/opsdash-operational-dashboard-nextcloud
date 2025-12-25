@@ -39,6 +39,7 @@ interface WidgetRenderContextDeps {
   uid: ValueRef<string>
   notesPrev: ValueRef<string>
   notesCurrDraft: ValueRef<string>
+  notesHistory: ValueRef<Array<{ id: string; label: string; title: string; content: string }>>
   notesLabelPrev: ValueRef<string>
   notesLabelCurr: ValueRef<string>
   notesLabelPrevTitle: ValueRef<string>
@@ -100,6 +101,7 @@ export function useWidgetRenderContext(deps: WidgetRenderContextDeps): {
     uid: deps.uid.value,
     notesPrev: deps.notesPrev.value,
     notesCurr: deps.notesCurrDraft.value,
+    notesHistory: deps.notesHistory.value,
     notesLabelPrev: deps.notesLabelPrev.value,
     notesLabelCurr: deps.notesLabelCurr.value,
     notesLabelPrevTitle: deps.notesLabelPrevTitle.value,
