@@ -1,6 +1,6 @@
 import { computed, ref, watch, type Ref } from 'vue'
 
-import type { WidgetDefinition, WidgetHeight, WidgetSize } from '../src/services/widgetsRegistry'
+import type { WidgetDefinition, WidgetHeight, WidgetSize, WidgetTab, WidgetTabsState } from '../src/services/widgetsRegistry'
 
 export type WidgetRegistryEntry = {
   label?: string
@@ -10,8 +10,8 @@ export type WidgetRegistryEntry = {
 export function useWidgetLayoutManager(options: {
   storageKey: string
   widgetsRegistry: Record<string, WidgetRegistryEntry>
-  createDefaultWidgets: () => WidgetDefinition[]
-  normalizeWidgetLayout: (input: any, defaults: WidgetDefinition[]) => WidgetDefinition[]
+  createDefaultTabs: () => WidgetTabsState
+  normalizeWidgetTabs: (input: any, fallback: WidgetTabsState) => WidgetTabsState
   createDashboardPreset: (mode: 'quick' | 'standard' | 'pro') => WidgetDefinition[]
   dashboardMode: Ref<'quick' | 'standard' | 'pro'>
   deckEnabled: Ref<boolean>
@@ -21,8 +21,8 @@ export function useWidgetLayoutManager(options: {
   const {
     storageKey,
     widgetsRegistry,
-    createDefaultWidgets,
-    normalizeWidgetLayout,
+    createDefaultTabs,
+    normalizeWidgetTabs,
     createDashboardPreset,
     dashboardMode,
     deckEnabled,
@@ -30,11 +30,13 @@ export function useWidgetLayoutManager(options: {
     queueSaveRef,
   } = options
 
-  function loadWidgetLayout(): WidgetDefinition[] {
-    return createDefaultWidgets()
+  function loadWidgetTabs(): WidgetTabsState {
+    return createDefaultTabs()
   }
 
-  const layoutWidgets = ref<WidgetDefinition[]>(loadWidgetLayout())
+  const layoutTabs = ref<WidgetTab[]>(loadWidgetTabs().tabs)
+  const defaultTabId = ref(loadWidgetTabs().defaultTabId)
+  const activeTabId = ref(defaultTabId.value)
   const widgetsDirty = ref(false)
   const isLayoutEditing = ref(false)
   const newWidgetType = ref('')
@@ -57,8 +59,26 @@ export function useWidgetLayoutManager(options: {
 
   void storageKey
 
+  const activeTab = computed(() => {
+    return layoutTabs.value.find((tab) => tab.id === activeTabId.value) || layoutTabs.value[0]
+  })
+
+  function setActiveTab(id: string) {
+    if (layoutTabs.value.some((tab) => tab.id === id)) {
+      activeTabId.value = id
+    }
+  }
+
+  function setDefaultTab(id: string) {
+    if (!layoutTabs.value.some((tab) => tab.id === id)) return
+    defaultTabId.value = id
+    activeTabId.value = id
+    widgetsDirty.value = true
+    persistWidgets()
+  }
+
   const widgets = computed<WidgetDefinition[]>(() => {
-    const defs = layoutWidgets.value
+    const defs = activeTab.value?.widgets || []
     if (!deckEnabled.value) {
       return defs.filter((w) => w.type !== 'deck')
     }
@@ -74,14 +94,26 @@ export function useWidgetLayoutManager(options: {
 
   function applyDashboardPreset(mode: 'quick' | 'standard' | 'pro') {
     dashboardMode.value = mode
-    layoutWidgets.value = createDashboardPreset(mode)
+    const tabId = activeTab.value?.id || 'tab-1'
+    const nextTabs = layoutTabs.value.map((tab) =>
+      tab.id === tabId ? { ...tab, widgets: createDashboardPreset(mode) } : tab,
+    )
+    layoutTabs.value = nextTabs
     widgetsDirty.value = true
     persistWidgets()
   }
 
+  function updateTabWidgets(tabId: string, updater: (widgets: WidgetDefinition[]) => WidgetDefinition[]) {
+    layoutTabs.value = layoutTabs.value.map((tab) =>
+      tab.id === tabId ? { ...tab, widgets: updater([...tab.widgets]) } : tab,
+    )
+  }
+
   function updateWidget(id: string, updater: (w: WidgetDefinition) => WidgetDefinition) {
-    layoutWidgets.value = layoutWidgets.value.map((w) =>
-      w.id === id ? updater({ ...w, layout: { ...w.layout } }) : w,
+    const tabId = activeTab.value?.id
+    if (!tabId) return
+    updateTabWidgets(tabId, (items) =>
+      items.map((w) => (w.id === id ? updater({ ...w, layout: { ...w.layout } }) : w)),
     )
     widgetsDirty.value = true
     persistWidgets()
@@ -106,7 +138,7 @@ export function useWidgetLayoutManager(options: {
   }
 
   function moveWidget(id: string, dir: 'up' | 'down') {
-    const ordered = [...layoutWidgets.value].sort((a, b) => (a.layout.order || 0) - (b.layout.order || 0))
+    const ordered = [...widgets.value].sort((a, b) => (a.layout.order || 0) - (b.layout.order || 0))
     const idx = ordered.findIndex((w) => w.id === id)
     if (idx < 0) return
     const targetIdx = dir === 'up' ? idx - 1 : idx + 1
@@ -114,13 +146,17 @@ export function useWidgetLayoutManager(options: {
     const currentOrder = ordered[idx].layout.order
     ordered[idx].layout.order = ordered[targetIdx].layout.order
     ordered[targetIdx].layout.order = currentOrder
-    layoutWidgets.value = ordered
+    const tabId = activeTab.value?.id
+    if (!tabId) return
+    updateTabWidgets(tabId, () => ordered)
     widgetsDirty.value = true
     persistWidgets()
   }
 
   function removeWidget(id: string) {
-    layoutWidgets.value = layoutWidgets.value.filter((w) => w.id !== id)
+    const tabId = activeTab.value?.id
+    if (!tabId) return
+    updateTabWidgets(tabId, (items) => items.filter((w) => w.id !== id))
     widgetsDirty.value = true
     persistWidgets()
   }
@@ -128,7 +164,7 @@ export function useWidgetLayoutManager(options: {
   function addWidget(type: string) {
     const entry = widgetsRegistry[type]
     if (!entry) return
-    const maxOrder = layoutWidgets.value.reduce((acc, w) => Math.max(acc, w.layout.order || 0), 0)
+    const maxOrder = widgets.value.reduce((acc, w) => Math.max(acc, w.layout.order || 0), 0)
     const def: WidgetDefinition = {
       id: `widget-${type}-${Date.now()}`,
       type,
@@ -136,7 +172,9 @@ export function useWidgetLayoutManager(options: {
       layout: { ...entry.defaultLayout, order: maxOrder + 10 },
       version: 1,
     }
-    layoutWidgets.value = [...layoutWidgets.value, def]
+    const tabId = activeTab.value?.id
+    if (!tabId) return
+    updateTabWidgets(tabId, (items) => [...items, def])
     newWidgetType.value = ''
     widgetsDirty.value = true
     persistWidgets()
@@ -145,10 +183,10 @@ export function useWidgetLayoutManager(options: {
   function addWidgetAt(type: string, orderHint?: number) {
     const entry = widgetsRegistry[type]
     if (!entry) return
-    const maxOrder = layoutWidgets.value.reduce((acc, w) => Math.max(acc, w.layout.order || 0), 0)
+    const maxOrder = widgets.value.reduce((acc, w) => Math.max(acc, w.layout.order || 0), 0)
     let order = Number.isFinite(orderHint) ? Number(orderHint) : maxOrder + 10
     if (!Number.isFinite(order)) order = maxOrder + 10
-    while (layoutWidgets.value.some((w) => w.layout.order === order)) {
+    while (widgets.value.some((w) => w.layout.order === order)) {
       order += 0.1
     }
     const def: WidgetDefinition = {
@@ -158,7 +196,9 @@ export function useWidgetLayoutManager(options: {
       layout: { ...entry.defaultLayout, order },
       version: 1,
     }
-    layoutWidgets.value = [...layoutWidgets.value, def]
+    const tabId = activeTab.value?.id
+    if (!tabId) return
+    updateTabWidgets(tabId, (items) => [...items, def])
     widgetsDirty.value = true
     persistWidgets()
   }
@@ -166,56 +206,113 @@ export function useWidgetLayoutManager(options: {
   function reorderWidget(id: string, orderHint?: number | null) {
     if (!Number.isFinite(orderHint ?? NaN)) return
     const nextOrder = Number(orderHint)
-    const items = layoutWidgets.value.map((w) =>
+    const items = widgets.value.map((w) =>
       w.id === id ? { ...w, layout: { ...w.layout, order: nextOrder } } : { ...w },
     )
     items.sort((a, b) => (a.layout.order || 0) - (b.layout.order || 0))
-    layoutWidgets.value = items.map((w, idx) => ({
-      ...w,
-      layout: { ...w.layout, order: (idx + 1) * 10 },
-    }))
+    const tabId = activeTab.value?.id
+    if (!tabId) return
+    updateTabWidgets(tabId, () =>
+      items.map((w, idx) => ({
+        ...w,
+        layout: { ...w.layout, order: (idx + 1) * 10 },
+      })),
+    )
     widgetsDirty.value = true
     persistWidgets()
   }
 
   function updateWidgetOptions(id: string, key: string, value: any) {
-    layoutWidgets.value = layoutWidgets.value.map((w) => {
-      if (w.id !== id) return w
-      const opts = { ...(w.options || {}) }
-      if (key.includes('.')) {
-        const parts = key.split('.')
-        const next = { ...opts }
-        let cursor: any = next
-        for (let i = 0; i < parts.length - 1; i += 1) {
-          const p = parts[i]
-          cursor[p] = { ...(cursor[p] || {}) }
-          cursor = cursor[p]
+    const tabId = activeTab.value?.id
+    if (!tabId) return
+    updateTabWidgets(tabId, (items) =>
+      items.map((w) => {
+        if (w.id !== id) return w
+        const opts = { ...(w.options || {}) }
+        if (key.includes('.')) {
+          const parts = key.split('.')
+          const next = { ...opts }
+          let cursor: any = next
+          for (let i = 0; i < parts.length - 1; i += 1) {
+            const p = parts[i]
+            cursor[p] = { ...(cursor[p] || {}) }
+            cursor = cursor[p]
+          }
+          cursor[parts[parts.length - 1]] = value
+          return { ...w, options: next }
         }
-        cursor[parts[parts.length - 1]] = value
-        return { ...w, options: next }
-      }
-      if (key === 'scale') {
-        opts.scale = value
-        if ('textSize' in opts) {
-          delete (opts as any).textSize
+        if (key === 'scale') {
+          opts.scale = value
+          if ('textSize' in opts) {
+            delete (opts as any).textSize
+          }
+          return { ...w, options: opts }
         }
+        opts[key] = value
         return { ...w, options: opts }
-      }
-      opts[key] = value
-      return { ...w, options: opts }
-    })
+      }),
+    )
     widgetsDirty.value = true
     persistWidgets()
   }
 
   function resetWidgets() {
-    layoutWidgets.value = createDashboardPreset(dashboardMode.value)
+    const tabId = activeTab.value?.id
+    if (!tabId) return
+    updateTabWidgets(tabId, () => createDashboardPreset(dashboardMode.value))
     widgetsDirty.value = true
     persistWidgets()
   }
 
+  function addTab(label?: string) {
+    const nextId = `tab-${Date.now().toString(36)}`
+    const baseLabel = String(label ?? '').trim() || `Tab ${layoutTabs.value.length + 1}`
+    const tab: WidgetTab = {
+      id: nextId,
+      label: baseLabel.slice(0, 48),
+      widgets: createDashboardPreset(dashboardMode.value),
+    }
+    layoutTabs.value = [...layoutTabs.value, tab]
+    activeTabId.value = tab.id
+    widgetsDirty.value = true
+    persistWidgets()
+  }
+
+  function renameTab(id: string, label: string) {
+    const nextLabel = String(label || '').trim().slice(0, 48)
+    if (!nextLabel) return
+    layoutTabs.value = layoutTabs.value.map((tab) =>
+      tab.id === id ? { ...tab, label: nextLabel } : tab,
+    )
+    widgetsDirty.value = true
+    persistWidgets()
+  }
+
+  function removeTab(id: string) {
+    if (layoutTabs.value.length <= 1) return
+    layoutTabs.value = layoutTabs.value.filter((tab) => tab.id !== id)
+    if (defaultTabId.value === id) {
+      defaultTabId.value = layoutTabs.value[0]?.id || ''
+    }
+    if (activeTabId.value === id) {
+      activeTabId.value = layoutTabs.value[0]?.id || ''
+    }
+    widgetsDirty.value = true
+    persistWidgets()
+  }
+
+  function setTabsFromPayload(payload: any) {
+    const fallback = createDefaultTabs()
+    const normalized = normalizeWidgetTabs(payload, fallback)
+    layoutTabs.value = normalized.tabs
+    defaultTabId.value = normalized.defaultTabId
+    activeTabId.value = normalized.defaultTabId
+  }
+
   return {
-    layoutWidgets,
+    layoutTabs,
+    defaultTabId,
+    activeTabId,
     widgetsDirty,
     isLayoutEditing,
     newWidgetType,
@@ -233,5 +330,12 @@ export function useWidgetLayoutManager(options: {
     reorderWidget,
     updateWidgetOptions,
     resetWidgets,
+    activeTab,
+    setActiveTab,
+    setDefaultTab,
+    addTab,
+    renameTab,
+    removeTab,
+    setTabsFromPayload,
   }
 }

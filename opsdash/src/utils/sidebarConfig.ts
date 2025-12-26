@@ -66,9 +66,14 @@ export function sanitiseSidebarPayload(raw: unknown): SanitiseResult {
     ignored.push('onboarding')
     delete cleaned.onboarding
   }
-  if ('widgets' in cleaned && !Array.isArray(cleaned.widgets)) {
-    ignored.push('widgets')
-    delete cleaned.widgets
+  if ('widgets' in cleaned) {
+    const val = cleaned.widgets as any
+    const okArray = Array.isArray(val)
+    const okTabs = val && typeof val === 'object' && Array.isArray(val.tabs)
+    if (!okArray && !okTabs) {
+      ignored.push('widgets')
+      delete cleaned.widgets
+    }
   }
 
   return { cleaned, ignored }

@@ -20,6 +20,24 @@ All sidebar state can be represented as a single JSON envelope:
     "targets_month": { "cal-1": 48 },
     "targets_config": { ... see sections below ... },
     "theme_preference": "auto",
+    "widgets": {
+      "defaultTabId": "tab-1",
+      "tabs": [
+        {
+          "id": "tab-1",
+          "label": "Overview",
+          "widgets": [
+            {
+              "id": "widget-balance-1700000000000",
+              "type": "balance_index",
+              "layout": { "width": "half", "height": "m", "order": 10 },
+              "options": {},
+              "version": 1
+            }
+          ]
+        }
+      ]
+    },
     "onboarding": {
       "completed": true,
       "version": 4,
@@ -50,6 +68,7 @@ All sidebar state can be represented as a single JSON envelope:
 | `targets_month` | `Record<string, number>` | Monthly goal per calendar | Hours, floats allowed. |
 | `targets_config` | `TargetsConfig` object | All targets/balance/activity/summary UI + numeric settings | See sections 3–6. |
 | `theme_preference` | `'auto' | 'light' | 'dark'` | Theme tab toggle | Empty / unknown ⇒ falls back to `auto`. |
+| `widgets` | `WidgetTabsState` | Dashboard layout tabs + widget layouts | Stored via `/overview/persist`; each tab holds its own widget list. |
 | `onboarding` | `OnboardingState` | Wizard completion state | Optional. `onboarding_reset` in payload clears it. |
 | `deck_settings` | `DeckFeatureSettings` | Deck tab visibility, filters, hidden boards, mine-mode, solved/archived toggle, ticker prefs | Enabled flag doubles as Deck tab toggle. |
 | `reporting_config` | `ReportingConfig` | Recap cadence (week/month/both), interim reminders, alerting | Shared between Sidebar → Report tab and onboarding final tweaks. |
@@ -197,7 +216,38 @@ No sidebar or widget state is persisted in localStorage. Theme preference is boo
 
 ---
 
-## 11. Maintenance checklist
+## 11. Widget layout tabs (`widgets`)
+
+The dashboard layout is stored as a list of tabs, each with its own widget list:
+
+```json
+{
+  "defaultTabId": "tab-1",
+  "tabs": [
+    {
+      "id": "tab-1",
+      "label": "Overview",
+      "widgets": [
+        {
+          "id": "widget-targets-1700000000000",
+          "type": "targets",
+          "layout": { "width": "half", "height": "l", "order": 10 },
+          "options": { "showBadges": true },
+          "version": 1
+        }
+      ]
+    }
+  ]
+}
+```
+
+- `defaultTabId` determines which tab is selected after reload.
+- Tabs are editable in **Edit layout** mode: rename, set default, add, and remove.
+- Widgets inside a tab behave exactly like the single-layout era; legacy arrays are still accepted and are normalized into a single “Overview” tab.
+
+---
+
+## 12. Maintenance checklist
 
 - Updating /adding a toggle ➜ edit this document **and** the importer whitelist.
 - Removing a feature ➜ drop the key from the whitelist so imported configs report it as ignored.

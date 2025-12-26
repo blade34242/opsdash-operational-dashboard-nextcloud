@@ -165,22 +165,64 @@
             </div>
 
             <div class="cards-toolbar">
-              <button type="button" class="ghost-btn" @click="isLayoutEditing = !isLayoutEditing">
-                {{ isLayoutEditing ? 'Done editing' : 'Edit layout' }}
-              </button>
-              <div v-if="isLayoutEditing" class="cards-toolbar__add">
-                <select v-model="newWidgetType">
-                  <option value="" disabled>Select widget…</option>
-                  <option v-for="entry in availableWidgetTypes" :key="entry.type" :value="entry.type">
-                    {{ entry.label }}
-                  </option>
-                </select>
-                <button type="button" class="ghost-btn" :disabled="!newWidgetType" @click="addWidget(newWidgetType)">
-                  Add
+              <div class="cards-toolbar__tabs">
+                <button
+                  v-for="tab in layoutTabs"
+                  :key="tab.id"
+                  type="button"
+                  class="tab-btn"
+                  :class="{ active: tab.id === activeTabId, default: tab.id === defaultTabId }"
+                  @click="setActiveTab(tab.id)"
+                >
+                  <span class="tab-label">{{ tab.label }}</span>
+                  <span v-if="tab.id === defaultTabId" class="tab-default">Default</span>
                 </button>
-                <button type="button" class="ghost-btn" @click="resetWidgets">
-                  Reset
+                <button
+                  v-if="isLayoutEditing"
+                  type="button"
+                  class="ghost-btn ghost-btn--tight"
+                  @click="addTab()"
+                >
+                  + Tab
                 </button>
+              </div>
+              <div class="cards-toolbar__actions">
+                <button type="button" class="ghost-btn" @click="isLayoutEditing = !isLayoutEditing">
+                  {{ isLayoutEditing ? 'Done editing' : 'Edit layout' }}
+                </button>
+                <div v-if="isLayoutEditing" class="cards-toolbar__add">
+                  <label class="tab-edit">
+                    <span>Tab name</span>
+                    <input
+                      v-model="tabLabelDraft"
+                      @blur="commitTabLabel"
+                      @keydown.enter.prevent="commitTabLabel"
+                    />
+                  </label>
+                  <button type="button" class="ghost-btn" @click="setDefaultTab(activeTabId)">
+                    Set default
+                  </button>
+                  <button
+                    type="button"
+                    class="ghost-btn"
+                    :disabled="layoutTabs.length <= 1"
+                    @click="removeTab(activeTabId)"
+                  >
+                    Remove tab
+                  </button>
+                  <select v-model="newWidgetType">
+                    <option value="" disabled>Select widget…</option>
+                    <option v-for="entry in availableWidgetTypes" :key="entry.type" :value="entry.type">
+                      {{ entry.label }}
+                    </option>
+                  </select>
+                  <button type="button" class="ghost-btn" :disabled="!newWidgetType" @click="addWidget(newWidgetType)">
+                    Add
+                  </button>
+                  <button type="button" class="ghost-btn" @click="resetWidgets">
+                    Reset
+                  </button>
+                </div>
               </div>
             </div>
 
@@ -209,64 +251,6 @@
               />
             </div>
 
-            <div class="tabs">
-              <a href="#" :class="{active: pane==='cal'}" @click.prevent="pane='cal'">By Calendar</a>
-              <a href="#" :class="{active: pane==='day'}" @click.prevent="pane='day'">By Day</a>
-              <a href="#" :class="{active: pane==='top'}" @click.prevent="pane='top'">Longest Tasks</a>
-              <a
-                v-if="deckSettings.enabled"
-                href="#"
-                :class="{active: pane==='deck'}"
-                @click.prevent="pane='deck'"
-              >
-                Deck
-              </a>
-            </div>
-
-            <div class="card full tab-panel" v-show="pane==='cal'">
-              <NcEmptyContent v-if="byCal.length===0" name="No data" description="Try changing the range or calendars" />
-              <template v-else>
-                <ByCalendarTable
-                  :rows="byCal"
-                  :n2="n2"
-                  :targets="currentTargets"
-                  :groups="calendarGroups"
-                  :today-hours="calendarTodayHours"
-                />
-              </template>
-            </div>
-
-            <div class="card full tab-panel" v-show="pane==='day'">
-              <NcEmptyContent v-if="byDay.length===0" name="No data" description="Try changing the range or calendars" />
-              <template v-else>
-                <ByDayTable :rows="byDay" :n2="n2" :link="calendarDayLink" />
-              </template>
-            </div>
-
-            <div class="card full tab-panel" v-show="pane==='top'">
-              <NcEmptyContent v-if="longest.length===0" name="No data" description="Try changing the range or calendars" />
-              <template v-else>
-                <TopEventsTable :rows="longest" :n2="n2" :details-index="detailsIndex" @toggle="toggleDetails" />
-              </template>
-            </div>
-
-            <div v-if="deckSettings.enabled" class="card full tab-panel" v-show="pane==='deck'">
-              <DeckCardsPanel
-                :cards="deckFilteredCards"
-                :loading="deckLoading"
-                :range-label="rangeLabel"
-                :last-fetched-at="deckLastFetchedAt"
-                :deck-url="deckUrl"
-                :error="deckError"
-                :filter="deckFilter"
-                :can-filter-mine="deckCanFilterMine"
-                :filters-enabled="deckSettings.filtersEnabled && deckSettings.enabled"
-                :filter-options="deckFilterOptions"
-                @refresh="refreshDeck(true)"
-                @update:filter="(value) => (deckFilter = value)"
-              />
-            </div>
-
             <div class="hint footer">
               <template v-if="appVersion">
                 Operational Dashboard • v{{ appVersion }} • Built by Blade34242 @ Gellert Innovation
@@ -288,19 +272,15 @@
 </template>
 
 <script setup lang="ts">
-import { NcAppContent, NcEmptyContent, NcLoadingIcon } from '@nextcloud/vue'
-import ByCalendarTable from './components/ByCalendarTable.vue'
-import ByDayTable from './components/ByDayTable.vue'
-import TopEventsTable from './components/TopEventsTable.vue'
+import { NcAppContent, NcLoadingIcon } from '@nextcloud/vue'
 import Sidebar from './components/Sidebar.vue'
 import OnboardingWizard from './components/OnboardingWizard.vue'
 import KeyboardShortcutsModal from './components/KeyboardShortcutsModal.vue'
-import DeckCardsPanel from './components/DeckCardsPanel.vue'
 import DashboardLayout from './components/layout/DashboardLayout.vue'
 import { buildTargetsSummary, normalizeTargetsConfig, createEmptyTargetsSummary, createDefaultActivityCardConfig, createDefaultBalanceConfig, cloneTargetsConfig, convertWeekToMonth, type ActivityCardConfig, type BalanceConfig, type TargetsConfig } from './services/targets'
 import { normalizeReportingConfig, normalizeDeckSettings, type DeckFilterMode } from './services/reporting'
 import { ONBOARDING_VERSION } from './services/onboarding'
-import { createDefaultWidgets, createDashboardPreset, normalizeWidgetLayout, widgetsRegistry, type WidgetDefinition, type WidgetHeight, type WidgetSize } from './services/widgetsRegistry'
+import { createDashboardPreset, createDefaultWidgetTabs, normalizeWidgetTabs, widgetsRegistry } from './services/widgetsRegistry'
 // Lightweight notifications without @nextcloud/dialogs
 function notifySuccess(msg: string){
   const w:any = window as any
@@ -390,7 +370,6 @@ onBeforeUnmount(() => {
   document.body.style.removeProperty('--opsdash-nav-offset')
 })
 
-const pane = ref<'cal'|'day'|'top'|'deck'>('cal')
 const range = ref<'week'|'month'>('week')
 const offset = ref<number>(0)
 
@@ -433,12 +412,21 @@ const widgetsQueueSaveRef = ref<null | ((silent?: boolean) => void)>(null)
 const deckEnabledForWidgets = ref(true)
 
 const {
-  layoutWidgets,
+  layoutTabs,
+  defaultTabId,
+  activeTabId,
   widgetsDirty,
   isLayoutEditing,
   newWidgetType,
   widgets,
   availableWidgetTypes,
+  activeTab,
+  setActiveTab,
+  setDefaultTab,
+  addTab,
+  renameTab,
+  removeTab,
+  setTabsFromPayload,
   applyDashboardPreset,
   updateWidget,
   cycleWidth,
@@ -453,14 +441,48 @@ const {
 } = useWidgetLayoutManager({
   storageKey: 'opsdash.widgets.v1',
   widgetsRegistry,
-  createDefaultWidgets,
-  normalizeWidgetLayout,
+  createDefaultTabs: () => createDefaultWidgetTabs(dashboardMode.value),
+  normalizeWidgetTabs,
   createDashboardPreset,
   dashboardMode,
   deckEnabled: deckEnabledForWidgets,
   hasInitialLoad,
   queueSaveRef: widgetsQueueSaveRef,
 })
+
+const widgetTabsState = computed(() => ({
+  tabs: layoutTabs.value,
+  defaultTabId: defaultTabId.value,
+}))
+
+const widgetTabsRef = computed({
+  get: () => widgetTabsState.value,
+  set: (value) => {
+    if (!value) return
+    setTabsFromPayload(value)
+  },
+})
+
+const tabLabelDraft = ref('')
+watch(
+  () => activeTabId.value,
+  () => {
+    tabLabelDraft.value = activeTab.value?.label || ''
+  },
+  { immediate: true },
+)
+
+function commitTabLabel() {
+  const label = tabLabelDraft.value.trim()
+  if (!activeTab.value) return
+  if (!label) {
+    tabLabelDraft.value = activeTab.value.label
+    return
+  }
+  if (label !== activeTab.value.label) {
+    renameTab(activeTab.value.id, label)
+  }
+}
 
 const {
   calendars,
@@ -498,7 +520,7 @@ const {
   fetchNotes,
   isDebug: isDbg,
   fetchDavColors,
-  widgets: layoutWidgets,
+  widgetTabs: widgetTabsRef,
 })
 
 function handleReportingConfigSave(value: any) {
@@ -517,9 +539,6 @@ watch(
   () => deckSettings.value.enabled,
   (enabled) => {
     deckEnabledForWidgets.value = enabled
-    if (!enabled && pane.value === 'deck') {
-      pane.value = 'cal'
-    }
   },
   { immediate: true },
 )
@@ -582,7 +601,7 @@ const { exportSidebarConfig, importSidebarConfig } = useConfigExportImport({
   targetsConfig,
   themePreference,
   onboardingState,
-  widgets: layoutWidgets,
+  widgetTabs: widgetTabsRef,
   setThemePreference,
   postJson,
   route: (name) => route(name),
@@ -605,7 +624,7 @@ const { queueSave, isSaving: reportingSaving } = useDashboardPersistence({
   themePreference,
   reportingConfig,
   deckSettings,
-  widgets: layoutWidgets,
+  widgetTabs: widgetTabsRef,
 })
 
 widgetsQueueSaveRef.value = queueSave
@@ -674,6 +693,7 @@ const onboardingActions = useOnboardingActions({
   setReportingConfig: (val) => { reportingConfig.value = { ...val } },
   setOnboardingState: (val) => { onboarding.value = { ...(onboarding.value || {}), ...val } as any },
   setDashboardMode: (mode) => { dashboardMode.value = mode },
+  setWidgetTabs: (val) => { setTabsFromPayload(val) },
 })
 
 const {

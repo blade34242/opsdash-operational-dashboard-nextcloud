@@ -4,6 +4,8 @@ All notable changes to this project are documented here. This file is served loc
 
 ## [Unreleased]
 - Pending changes.
+- UI: dashboard now supports multiple layout tabs (rename, set default, add/remove); only the active tab renders.
+- Config: widget layout payload now persists as `{ tabs, defaultTabId }` and legacy arrays normalize into a single tab.
 - UI: Projection + trend lookback controls moved into chart widgets (per-widget); sidebar no longer owns them.
 - UI: “Config & Setup” renamed to Theme; rerun onboarding + keyboard shortcuts moved into Calendars; All/None calendar buttons removed.
 - Config: Sidebar and widget layout no longer persist via localStorage; server persistence only.

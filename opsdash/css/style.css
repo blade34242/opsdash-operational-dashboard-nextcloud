@@ -1107,6 +1107,58 @@
   width:100%;
   flex-wrap:wrap;
 }
+#opsdash .cards-toolbar__tabs{
+  display:flex;
+  gap:8px;
+  align-items:center;
+  flex-wrap:wrap;
+}
+#opsdash .cards-toolbar__actions{
+  display:flex;
+  align-items:center;
+  gap:8px;
+  flex-wrap:wrap;
+}
+#opsdash .tab-btn{
+  display:inline-flex;
+  align-items:center;
+  gap:6px;
+  border:1px solid var(--color-border, #d1d5db);
+  background:color-mix(in srgb, var(--card) 94%, #ffffff 6%);
+  padding:6px 10px;
+  border-radius:999px;
+  font-weight:600;
+  cursor:pointer;
+}
+#opsdash .tab-btn.active{
+  background:color-mix(in srgb, var(--brand) 16%, var(--card) 84%);
+  border-color:color-mix(in srgb, var(--brand) 40%, var(--color-border, #d1d5db) 60%);
+}
+#opsdash .tab-btn.default{
+  box-shadow:0 0 0 2px color-mix(in srgb, var(--brand) 28%, transparent 72%) inset;
+}
+#opsdash .tab-btn .tab-default{
+  font-size:11px;
+  font-weight:700;
+  letter-spacing:0.02em;
+  text-transform:uppercase;
+  color:color-mix(in srgb, var(--brand) 80%, #0f172a 20%);
+}
+#opsdash .tab-edit{
+  display:flex;
+  align-items:center;
+  gap:6px;
+}
+#opsdash .tab-edit span{
+  font-size:12px;
+  font-weight:600;
+}
+#opsdash .tab-edit input{
+  min-width:160px;
+  border:1px solid var(--color-border, #d1d5db);
+  border-radius:8px;
+  padding:6px 8px;
+}
 #opsdash .cards-toolbar select{
   min-width:160px;
 }
@@ -1114,6 +1166,9 @@
   display:flex;
   gap:6px;
   align-items:center;
+}
+#opsdash .ghost-btn--tight{
+  padding:5px 8px;
 }
 #opsdash .ghost-btn{
   border:1px solid var(--color-border, #d1d5db);

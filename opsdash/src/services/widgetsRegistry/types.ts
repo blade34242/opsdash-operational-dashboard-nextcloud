@@ -16,6 +16,17 @@ export interface WidgetDefinition {
   version: number
 }
 
+export type WidgetTab = {
+  id: string
+  label: string
+  widgets: WidgetDefinition[]
+}
+
+export type WidgetTabsState = {
+  tabs: WidgetTab[]
+  defaultTabId: string
+}
+
 export interface WidgetRenderContext {
   summary?: any
   activeDayMode?: 'active' | 'all'

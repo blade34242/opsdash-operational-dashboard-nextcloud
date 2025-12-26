@@ -5,7 +5,7 @@ import {
   normalizeTargetsConfig,
   type TargetsConfig,
 } from '../src/services/targets'
-import type { WidgetDefinition } from '../src/services/widgetsRegistry'
+import type { WidgetTabsState } from '../src/services/widgetsRegistry'
 import type { ThemePreference } from './useThemePreference'
 import {
   normalizeDeckSettings,
@@ -13,7 +13,7 @@ import {
   type DeckFeatureSettings,
   type ReportingConfig,
 } from '../src/services/reporting'
-import { normalizeWidgetLayout, createDefaultWidgets } from '../src/services/widgetsRegistry'
+import { normalizeWidgetTabs, createDefaultWidgetTabs } from '../src/services/widgetsRegistry'
 
 interface DashboardPersistenceDeps {
   route: (name: 'persist') => string
@@ -29,7 +29,7 @@ interface DashboardPersistenceDeps {
   themePreference?: Ref<ThemePreference>
   reportingConfig?: Ref<ReportingConfig>
   deckSettings?: Ref<DeckFeatureSettings>
-  widgets?: Ref<WidgetDefinition[]>
+  widgetTabs?: Ref<WidgetTabsState>
 }
 
 export function useDashboardPersistence(deps: DashboardPersistenceDeps) {
@@ -61,8 +61,8 @@ export function useDashboardPersistence(deps: DashboardPersistenceDeps) {
         if (deps.deckSettings) {
           payload.deck_settings = deps.deckSettings.value
         }
-        if (deps.widgets) {
-          payload.widgets = deps.widgets.value
+        if (deps.widgetTabs) {
+          payload.widgets = deps.widgetTabs.value
         }
         const result = await deps.postJson(deps.route('persist'), payload)
 
@@ -105,12 +105,10 @@ export function useDashboardPersistence(deps: DashboardPersistenceDeps) {
             deps.deckSettings.value = nextDeck
           }
         }
-        if (deps.widgets) {
+        if (deps.widgetTabs) {
           const nextWidgets = result.widgets_read ?? result.widgets_saved ?? result.widgets
-          if (Array.isArray(nextWidgets)) {
-            const fallback = deps.widgets.value && deps.widgets.value.length ? deps.widgets.value : createDefaultWidgets()
-            deps.widgets.value = normalizeWidgetLayout(nextWidgets as any[], fallback)
-          }
+          const fallback = deps.widgetTabs.value || createDefaultWidgetTabs('standard')
+          deps.widgetTabs.value = normalizeWidgetTabs(nextWidgets, fallback)
         }
 
         if (reload && deps.onReload) {

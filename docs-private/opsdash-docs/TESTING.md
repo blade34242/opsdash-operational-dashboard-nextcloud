@@ -22,6 +22,34 @@ Always run `npm run build` once after Vitest to ensure hashed assets match any m
 
 ---
 
+## Feature Test Plans (new additions)
+
+### Dashboard layout tabs (top-of-page)
+- **Unit (Vitest)**:
+  - `useWidgetLayoutManager` should normalize legacy widget arrays into a single “Overview” tab.
+  - Add/remove/rename tab updates `defaultTabId` safely (never empty when tabs exist).
+  - Switching tabs swaps widget lists without mutating other tabs.
+  - `setDefaultTab` sets both `defaultTabId` and `activeTabId` and persists.
+- **Integration (Vitest)**:
+  - `/overview/load` response with `widgets.tabs` initializes the active tab and renders the correct layout.
+  - `/overview/persist` echoes `widgets` payload and the client normalizes any invalid/missing fields.
+  - Export/import round-trip keeps tabs + default tab intact.
+- **Playwright**:
+  - Add new tab, rename it, set default, and refresh → same tab loads.
+  - Add widget to a secondary tab; verify it does **not** render on the primary tab.
+  - Remove a tab and ensure the layout falls back to the remaining tab without errors.
+
+### Widget layout persistence
+- **Unit (Vitest)**: exercise `normalizeWidgetTabs` with mixed inputs (legacy array, tabbed payload, invalid shapes).
+- **PHPUnit**: `PersistController` sanitizes `widgets` payload and preserves allowed layout fields (width/height/order/options).
+
+### UI regression checks
+- **Playwright**:
+  - “Edit layout” toolbar remains visible, tabs render next to it, and “Add widget” still functions.
+  - No console errors when switching tabs or saving layout.
+
+---
+
 ## Seeding & Fixtures (Nextcloud style)
 - One-shot seed (calendars + Deck) against a running NC (e.g., `docker-compose up -d`):
   ```bash

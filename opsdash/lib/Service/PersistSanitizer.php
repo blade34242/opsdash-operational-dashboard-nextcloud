@@ -434,9 +434,54 @@ final class PersistSanitizer {
 
     /**
      * @param mixed $value
-     * @return array<int,array<string,mixed>>
+     * @return array<string,mixed>
      */
     public function sanitizeWidgets($value): array {
+        if (!is_array($value)) return [];
+        if (array_key_exists('tabs', $value)) {
+            $tabsRaw = $value['tabs'];
+            if (!is_array($tabsRaw)) return [];
+            $tabs = [];
+            foreach ($tabsRaw as $idx => $tab) {
+                if (!is_array($tab)) continue;
+                $id = substr(trim((string)($tab['id'] ?? '')), 0, 48);
+                if ($id === '') {
+                    $id = sprintf('tab-%d', count($tabs) + 1);
+                }
+                $labelRaw = trim((string)($tab['label'] ?? ''));
+                $label = $labelRaw !== '' ? substr($labelRaw, 0, 48) : sprintf('Tab %d', count($tabs) + 1);
+                $widgets = $this->sanitizeWidgetList($tab['widgets'] ?? []);
+                $tabs[] = [
+                    'id' => $id,
+                    'label' => $label,
+                    'widgets' => $widgets,
+                ];
+            }
+            if (empty($tabs)) return [];
+            $defaultTabId = trim((string)($value['defaultTabId'] ?? $value['defaultTab'] ?? ''));
+            $found = false;
+            foreach ($tabs as $tab) {
+                if ($tab['id'] === $defaultTabId) {
+                    $found = true;
+                    break;
+                }
+            }
+            if (!$found) {
+                $defaultTabId = $tabs[0]['id'];
+            }
+            return [
+                'tabs' => $tabs,
+                'defaultTabId' => $defaultTabId,
+            ];
+        }
+        return $this->sanitizeWidgetList($value);
+    }
+
+    /**
+     * @param mixed $value
+     * @return array<int,array<string,mixed>>
+     */
+    private function sanitizeWidgetList($value): array {
         if (!is_array($value)) return [];
         $cleaned = [];
         foreach ($value as $idx => $item) {

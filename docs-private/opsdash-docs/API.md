@@ -40,13 +40,19 @@ Base path: `/apps/opsdash`
     dow,
     dowSeries,
     hod
+  },
+  widgets: {
+    defaultTabId: string,
+    tabs: [
+      { id: string, label: string, widgets: Array<{ id, type, layout, options?, version }> }
+    ]
   }
 }
 ```
 
 ## Persist Selection (save)
 - Method: POST `/overview/persist`
-- Body: JSON `{ cals: string[]; groups?: Record<string,number>; targets_week?: Record<string,number>; targets_month?: Record<string,number> }`
+- Body: JSON `{ cals: string[]; groups?: Record<string,number>; targets_week?: Record<string,number>; targets_month?: Record<string,number>; widgets?: WidgetTabsState }`
 - Optional: include `targets_config` (mirrors the structure returned by `/load`, covering `categories`, `pace`, `forecast`, `ui`, `timeSummary`, `activityCard`, `balance`). `activityCard.forecastMode` is now legacy; chart widgets store projection mode per widget. Deprecated balance precision fields (`roundPercent`/`roundRatio`/`showDailyStacks`) are ignored server-side.
 - CSRF: required (`window.oc_requesttoken`)
 - Response: `{ ok, saved, read, groups_saved?, groups_read?, targets_week_saved?, targets_week_read?, targets_month_saved?, targets_month_read?, targets_config_saved?, targets_config_read?, warnings? }` — `targets_config_*` always echo the sanitized `balance.ui` flags so clients don’t need local defaults.

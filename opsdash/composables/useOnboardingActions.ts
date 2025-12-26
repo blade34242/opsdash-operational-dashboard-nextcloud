@@ -35,7 +35,7 @@ export interface WizardStepSavePayload {
   deck_settings?: DeckFeatureSettings
   reporting_config?: ReportingConfig
   targets_config_activity?: Pick<ActivityCardConfig, 'showDayOffTrend'>
-  widgets?: any[]
+  widgets?: any
   onboarding?: {
     completed?: boolean
     version?: number
@@ -64,7 +64,7 @@ interface OnboardingActionDeps {
   setReportingConfig?: (val: ReportingConfig) => void
   setOnboardingState?: (val: OnboardingState) => void
   setDashboardMode?: (mode: 'quick' | 'standard' | 'pro') => void
-  setWidgets?: (widgets: any[]) => void
+  setWidgetTabs?: (widgets: any) => void
 }
 
 export function useOnboardingActions(deps: OnboardingActionDeps) {
@@ -165,7 +165,7 @@ export function useOnboardingActions(deps: OnboardingActionDeps) {
         deps.setDashboardMode?.(payload.dashboardMode)
       }
       if (payload.widgets) {
-        deps.setWidgets?.(payload.widgets)
+        deps.setWidgetTabs?.(payload.widgets)
       }
       deps.notifySuccess('Step saved')
     } catch (error) {

@@ -44,7 +44,7 @@ curl -fsS -u "$USER:$PASS" -X MKCALENDAR \
 # Monday of current week (GNU date)
 MON=$(date -d 'monday this week' +%Y%m%d)
 
-pad2(){ printf "%02d" "$1"; }
+pad2(){ printf "%02d" "${1:-0}"; }
 utc_ts(){
   local s="$1"
   if [[ "$s" =~ ^([0-9]{4})([0-9]{2})([0-9]{2})[[:space:]]+(.*)$ ]]; then
@@ -113,6 +113,8 @@ for i in {0..6}; do
     gap_epoch=$(( end_epoch + GAP_MIN*60 ))
     cur_h=$(date -d "@$gap_epoch" +%H | sed 's/^0*//')
     cur_m=$(date -d "@$gap_epoch" +%M | sed 's/^0*//')
+    if [ -z "${cur_h:-}" ]; then cur_h=0; fi
+    if [ -z "${cur_m:-}" ]; then cur_m=0; fi
   done
 done
 

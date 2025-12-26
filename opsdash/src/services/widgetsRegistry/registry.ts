@@ -1,6 +1,6 @@
 export * from './types'
 
-import type { DashboardMode, RegistryEntry, WidgetDefinition, WidgetHeight, WidgetRenderContext, WidgetSize } from './types'
+import type { DashboardMode, RegistryEntry, WidgetDefinition, WidgetHeight, WidgetRenderContext, WidgetSize, WidgetTab, WidgetTabsState } from './types'
 
 import { activityEntry } from './widgets/activity'
 import { balanceEntry } from './widgets/balance'
@@ -87,6 +87,47 @@ export function normalizeWidgetLayout(raw: any, fallback: WidgetDefinition[]): W
 
 export function createDefaultWidgets(): WidgetDefinition[] {
   return createDashboardPreset('standard')
+}
+
+export function createDefaultWidgetTabs(mode: DashboardMode): WidgetTabsState {
+  const tabs: WidgetTab[] = [
+    {
+      id: 'tab-1',
+      label: 'Overview',
+      widgets: createDashboardPreset(mode),
+    },
+  ]
+  return { tabs, defaultTabId: tabs[0].id }
+}
+
+export function normalizeWidgetTabs(raw: any, fallback: WidgetTabsState): WidgetTabsState {
+  if (Array.isArray(raw)) {
+    const widgets = normalizeWidgetLayout(raw, fallback.tabs[0]?.widgets || createDefaultWidgets())
+    const tabId = fallback.tabs[0]?.id || 'tab-1'
+    return {
+      tabs: [{ id: tabId, label: fallback.tabs[0]?.label || 'Overview', widgets }],
+      defaultTabId: tabId,
+    }
+  }
+  if (!raw || typeof raw !== 'object') return fallback
+
+  const inputTabs = Array.isArray((raw as any).tabs) ? (raw as any).tabs : []
+  const fallbackTabs = fallback.tabs || []
+  const cleanedTabs: WidgetTab[] = inputTabs.map((tab: any, idx: number) => {
+    const id = String(tab?.id ?? '').trim() || `tab-${idx + 1}`
+    const labelRaw = String(tab?.label ?? '').trim()
+    const label = labelRaw ? labelRaw.slice(0, 48) : `Tab ${idx + 1}`
+    const fallbackWidgets = fallbackTabs[idx]?.widgets || fallbackTabs[0]?.widgets || createDefaultWidgets()
+    const widgets = normalizeWidgetLayout(tab?.widgets, fallbackWidgets)
+    return { id, label, widgets }
+  })
+
+  const tabs = cleanedTabs.length ? cleanedTabs : fallbackTabs
+  const defaultTabIdRaw = String((raw as any).defaultTabId ?? (raw as any).defaultTab ?? (raw as any).active ?? '')
+  const defaultTabId = tabs.some((tab) => tab.id === defaultTabIdRaw)
+    ? defaultTabIdRaw
+    : (tabs[0]?.id || 'tab-1')
+  return { tabs, defaultTabId }
 }
 
 export function mapWidgetToComponent(def: WidgetDefinition, ctx: WidgetRenderContext) {

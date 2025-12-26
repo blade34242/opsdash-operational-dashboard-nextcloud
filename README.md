@@ -14,7 +14,7 @@
 ## 💡 Why teams install Opsdash
 - **Know where the week went** – totals, averages, busiest days, workday/weekend split, top categories, longest tasks.
 - **Stay on target** – per-calendar & per-category goals with pacing badges, Δ indicators, and quick forecasting.
-- **Balance at a glance** – stacked bars, category pies, heatmaps, “By Calendar/Day/Top/Heatmap” tabs.
+- **Balance at a glance** – stacked bars, category pies, heatmaps, and configurable chart widgets inside dashboard tabs.
 - **Onboarding & presets** – pick Quick/Standard/Pro dashboard presets in the wizard, snapshot the sidebar, rerun onboarding from the Calendars tab, and keep teammates aligned with shared profiles.
 - **Notes + theming** – week/month notes (editable + read-only history) and per-user theme preferences that load instantly even after clearing cache.
 - **Native & private** – Vue 3 SPA rendered via Nextcloud’s CSP, CSRF, and permissions. No telemetry, no external APIs.
@@ -32,7 +32,7 @@ occ app:enable opsdash
 ```
 
 ## 🚀 Feature Rundown
-- 📅 **Dashboard** – KPIs for week/month, busiest days, averages, weekend share, per-category chips, longest events.
+- 📅 **Dashboard** – KPIs for week/month, busiest days, averages, weekend share, per-category chips, longest events, and multi-tab layouts.
 - 🎯 **Targets & pacing** – per calendar/category goals, pace hints, momentum forecasts, daypart insights, and badges.
 - ⚖️ **Balance** – share cards, stacked bars, relations/ratios, trend lookback, heatmaps, longest sessions, daypart toggles.
 - 🧠 **Notes** – edit “This week/month”, read “Last week/month”, optional display on the Balance card.

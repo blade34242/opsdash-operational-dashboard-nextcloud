@@ -16,8 +16,11 @@ describe('useWidgetLayoutManager', () => {
           defaultLayout: { width: 'half', height: 'm', order: 10 },
         },
       },
-      createDefaultWidgets: () => [],
-      normalizeWidgetLayout: (input, fallback) => (Array.isArray(input) ? input : fallback),
+      createDefaultTabs: () => ({
+        tabs: [{ id: 'tab-1', label: 'Overview', widgets: [] }],
+        defaultTabId: 'tab-1',
+      }),
+      normalizeWidgetTabs: (input, fallback) => (input ? input : fallback),
       createDashboardPreset: () => [],
       dashboardMode: ref('standard'),
       deckEnabled: ref(true),
