@@ -34,8 +34,8 @@ describe('DashboardGrid widget scale vars', () => {
     const smStyle = parseStyle(items[1].attributes('style') || '')
 
     expect(xlStyle['--widget-scale']).toBe('1.6')
-    expect(parseFloat(xlStyle['--widget-title-size'])).toBeCloseTo(22.4, 3)
+    expect(parseFloat(xlStyle['--widget-title-size'])).toBeCloseTo(28.8, 3)
     expect(smStyle['--widget-scale']).toBe('0.85')
-    expect(parseFloat(smStyle['--widget-title-size'])).toBeCloseTo(11.9, 3)
+    expect(parseFloat(smStyle['--widget-title-size'])).toBeCloseTo(15.3, 3)
   })
 })

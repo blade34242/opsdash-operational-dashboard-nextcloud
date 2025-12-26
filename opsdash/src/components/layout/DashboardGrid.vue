@@ -114,7 +114,7 @@ function widgetVars(options?: { scale?: string; textSize?: string; dense?: boole
   const scale = size === 'sm' ? 0.85 : size === 'lg' ? 1.35 : size === 'xl' ? 1.6 : 1.1
   const density = options?.dense ? 0.72 : 1
   const space = scale * density
-  const titleSize = 14 * scale
+  const titleSize = 18 * scale
   return {
     '--widget-scale': String(scale),
     '--widget-space': String(space),
