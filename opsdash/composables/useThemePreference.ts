@@ -20,12 +20,13 @@ function readStoredPreference(): ThemePreference {
 function applyTheme(theme: ThemeMode) {
   if (typeof document === 'undefined') return
   const root = document.getElementById('opsdash')
-  if (!root) return
-  root.classList.remove('opsdash-theme-light', 'opsdash-theme-dark')
+  const targets = [root, document.body].filter(Boolean) as HTMLElement[]
+  if (!targets.length) return
+  targets.forEach((el) => el.classList.remove('opsdash-theme-light', 'opsdash-theme-dark'))
   if (theme === 'dark') {
-    root.classList.add('opsdash-theme-dark')
+    targets.forEach((el) => el.classList.add('opsdash-theme-dark'))
   } else {
-    root.classList.add('opsdash-theme-light')
+    targets.forEach((el) => el.classList.add('opsdash-theme-light'))
   }
 }
 

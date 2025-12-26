@@ -115,7 +115,7 @@ class PersistSanitizerTest extends TestCase {
     $this->assertSame(0.0, $result['balance']['thresholds']['warnAbove']);
     $this->assertSame(0.0, $result['balance']['thresholds']['warnBelow']);
     $this->assertSame(0.3, $result['balance']['thresholds']['warnIndex']);
-    $this->assertSame(12, $result['balance']['trend']['lookbackWeeks']);
+    $this->assertSame(6, $result['balance']['trend']['lookbackWeeks']);
     $this->assertArrayHasKey('showNotes', $result['balance']['ui']);
     $this->assertTrue($result['balance']['ui']['showNotes']);
   }
@@ -171,13 +171,13 @@ class PersistSanitizerTest extends TestCase {
     $resultFour = $this->sanitizer->cleanBalanceConfig(['trend' => ['lookbackWeeks' => 4]], []);
     $this->assertSame(4, $resultFour['trend']['lookbackWeeks']);
 
-    $resultTwelve = $this->sanitizer->cleanBalanceConfig(['trend' => ['lookbackWeeks' => 12]], []);
-    $this->assertSame(12, $resultTwelve['trend']['lookbackWeeks']);
+    $resultSix = $this->sanitizer->cleanBalanceConfig(['trend' => ['lookbackWeeks' => 6]], []);
+    $this->assertSame(6, $resultSix['trend']['lookbackWeeks']);
   }
 
-  public function testBalanceLookbackDefaultsToFour(): void {
+  public function testBalanceLookbackDefaultsToThree(): void {
     $result = $this->sanitizer->cleanTargetsConfig(['balance' => []]);
-    $this->assertSame(4, $result['balance']['trend']['lookbackWeeks']);
+    $this->assertSame(3, $result['balance']['trend']['lookbackWeeks']);
   }
 
   public function testBalanceLookbackClampNegative(): void {

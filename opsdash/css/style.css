@@ -1100,67 +1100,79 @@
 }
 #opsdash .cards-toolbar{
   display:flex;
-  align-items:center;
-  justify-content:space-between;
-  gap:10px;
-  margin-bottom:8px;
+  align-items:flex-end;
+  gap:12px;
+  margin-bottom:10px;
   width:100%;
   flex-wrap:wrap;
 }
 #opsdash .cards-toolbar__tabs{
   display:flex;
-  gap:8px;
   align-items:center;
+  gap:6px;
   flex-wrap:wrap;
+  border-bottom:1px solid color-mix(in oklab, var(--line), transparent 30%);
+  padding-bottom:4px;
 }
-#opsdash .cards-toolbar__actions{
+#opsdash .cards-toolbar__center{
   display:flex;
   align-items:center;
   gap:8px;
+  margin-left:auto;
+  margin-right:auto;
   flex-wrap:wrap;
 }
 #opsdash .tab-btn{
   display:inline-flex;
   align-items:center;
   gap:6px;
-  border:1px solid var(--color-border, #d1d5db);
-  background:color-mix(in srgb, var(--card) 94%, #ffffff 6%);
-  padding:6px 10px;
-  border-radius:999px;
+  border:none;
+  background:transparent;
+  padding:6px 12px;
+  border-radius:10px 10px 0 0;
   font-weight:600;
   cursor:pointer;
+  color:var(--muted);
+  position:relative;
 }
 #opsdash .tab-btn.active{
-  background:color-mix(in srgb, var(--brand) 16%, var(--card) 84%);
-  border-color:color-mix(in srgb, var(--brand) 40%, var(--color-border, #d1d5db) 60%);
+  color:var(--fg);
+  background:color-mix(in oklab, var(--card), var(--soft) 45%);
+}
+#opsdash .tab-btn.active::after{
+  content:'';
+  position:absolute;
+  left:8px;
+  right:8px;
+  bottom:-5px;
+  height:3px;
+  background:var(--brand);
+  border-radius:999px;
 }
 #opsdash .tab-btn.default{
-  box-shadow:0 0 0 2px color-mix(in srgb, var(--brand) 28%, transparent 72%) inset;
+  color:var(--brand);
 }
 #opsdash .tab-btn .tab-default{
-  font-size:11px;
+  font-size:10px;
   font-weight:700;
   letter-spacing:0.02em;
   text-transform:uppercase;
   color:color-mix(in srgb, var(--brand) 80%, #0f172a 20%);
 }
-#opsdash .tab-edit{
-  display:flex;
-  align-items:center;
-  gap:6px;
+#opsdash .tab-btn--add{
+  border:1px dashed color-mix(in oklab, var(--line), transparent 20%);
+  color:var(--muted);
+  background:color-mix(in oklab, var(--card), transparent 40%);
 }
-#opsdash .tab-edit span{
-  font-size:12px;
+#opsdash .tab-input{
+  min-width:120px;
+  border:1px solid var(--line);
+  border-radius:8px;
+  padding:4px 8px;
   font-weight:600;
 }
-#opsdash .tab-edit input{
-  min-width:160px;
-  border:1px solid var(--color-border, #d1d5db);
-  border-radius:8px;
-  padding:6px 8px;
-}
 #opsdash .cards-toolbar select{
-  min-width:160px;
+  min-width:180px;
 }
 #opsdash .cards-toolbar__add{
   display:flex;
@@ -1179,5 +1191,45 @@
 }
 #opsdash .ghost-btn:disabled{
   opacity:0.5;
+  cursor:not-allowed;
+}
+#opsdash .ghost-btn--edit{
+  display:inline-flex;
+  align-items:center;
+  gap:6px;
+  font-weight:700;
+  background:color-mix(in oklab, var(--brand), var(--card) 85%);
+  border-color:color-mix(in oklab, var(--brand), transparent 40%);
+}
+#opsdash .ghost-btn__icon{
+  font-size:12px;
+  opacity:0.9;
+}
+#opsdash .tab-context-menu{
+  position:fixed;
+  background:var(--card);
+  border:1px solid var(--line);
+  border-radius:10px;
+  box-shadow:0 10px 18px rgba(15,23,42,0.18);
+  padding:6px;
+  z-index:2147480002;
+  display:flex;
+  flex-direction:column;
+  gap:4px;
+}
+#opsdash .tab-context-menu button{
+  border:none;
+  background:transparent;
+  padding:6px 10px;
+  text-align:left;
+  font-size:13px;
+  cursor:pointer;
+  border-radius:8px;
+}
+#opsdash .tab-context-menu button:hover{
+  background:color-mix(in oklab, var(--brand), var(--card) 85%);
+}
+#opsdash .tab-context-menu button:disabled{
+  opacity:0.4;
   cursor:not-allowed;
 }

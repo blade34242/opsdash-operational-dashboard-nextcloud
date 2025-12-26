@@ -68,6 +68,9 @@ describe('DashboardLayout advanced targets overlay', () => {
       },
     })
 
+    await wrapper.find('.layout-item').trigger('click')
+    await wrapper.vm.$nextTick()
+
     const menu = wrapper.findComponent(stubMenu)
     expect(menu.exists()).toBe(true)
     menu.vm.$emit('open-advanced')
@@ -114,6 +117,9 @@ describe('DashboardLayout advanced targets overlay', () => {
       },
     })
 
+    await wrapper.find('.layout-item').trigger('click')
+    await wrapper.vm.$nextTick()
+
     const menu = wrapper.findComponent(stubMenu)
     expect(menu.exists()).toBe(true)
     menu.vm.$emit('open-advanced')
@@ -137,7 +143,7 @@ describe('DashboardLayout advanced targets overlay', () => {
 })
 
 describe('DashboardLayout grid add flow', () => {
-  it('opens add menu on grid context click and emits edit:add with order hint', async () => {
+  it('emits select:cell with an order hint on grid context click', async () => {
     const wrapper = mount(DashboardLayout, {
       props: {
         widgets: [
@@ -166,13 +172,8 @@ describe('DashboardLayout grid add flow', () => {
     await wrapper.find('.layout-grid').trigger('contextmenu', { clientX: 800, clientY: 200 })
     await wrapper.vm.$nextTick()
 
-    const buttons = wrapper.findAll('.add-menu .add-btn')
-    expect(buttons.length).toBeGreaterThan(0)
-    await buttons[0].trigger('click')
-
-    const emitted = wrapper.emitted('edit:add') || []
-    expect(emitted[0][0]).toBe('targets_v2')
-    expect(typeof emitted[0][1]).toBe('number')
+    const emitted = wrapper.emitted('select:cell') || []
+    expect(typeof emitted[0][0]).toBe('number')
   })
 
   it('emits reorder on drag/drop', async () => {

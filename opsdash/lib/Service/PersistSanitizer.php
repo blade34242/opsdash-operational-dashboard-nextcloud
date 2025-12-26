@@ -303,8 +303,8 @@ final class PersistSanitizer {
             if ($lookback < 1) {
                 $lookback = 1;
             }
-            if ($lookback > 12) {
-                $lookback = 12;
+            if ($lookback > 6) {
+                $lookback = 6;
             }
             $result['trend']['lookbackWeeks'] = $lookback;
         }
@@ -647,7 +647,7 @@ final class PersistSanitizer {
                 'warnIndex' => 0.60,
             ],
             'relations' => ['displayMode' => 'ratio'],
-            'trend' => ['lookbackWeeks' => 4],
+            'trend' => ['lookbackWeeks' => 3],
             'dayparts' => ['enabled' => false],
             'ui' => [
                 'showNotes' => false,

@@ -562,7 +562,7 @@ final class OverviewController extends Controller {
         }
 
         $balanceConfig = $targetsConfig['balance'];
-        $trendLookback = (int)($balanceConfig['trend']['lookbackWeeks'] ?? 4);
+        $trendLookback = (int)($balanceConfig['trend']['lookbackWeeks'] ?? 3);
         $precomputedDaysWorked = [];
         if (!empty($prevDaysSeen)) {
             $precomputedDaysWorked[1] = count($prevDaysSeen);
@@ -906,7 +906,7 @@ final class OverviewController extends Controller {
                 'warnIndex' => 0.60,
             ],
             'relations' => ['displayMode' => 'ratio'],
-            'trend' => ['lookbackWeeks' => 4],
+            'trend' => ['lookbackWeeks' => 3],
             'dayparts' => ['enabled' => false],
             'ui' => [
                 'showNotes' => false,

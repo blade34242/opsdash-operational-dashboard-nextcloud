@@ -108,7 +108,7 @@ class TargetsService {
                 'warnIndex' => 0.60,
             ],
             'relations' => ['displayMode' => 'ratio'],
-            'trend' => ['lookbackWeeks' => 4],
+            'trend' => ['lookbackWeeks' => 3],
             'dayparts' => ['enabled' => false],
             'ui' => [
                 'showNotes' => false,
@@ -386,7 +386,7 @@ class TargetsService {
         if (isset($cfg['trend']) && is_array($cfg['trend'])) {
             $lookback = $this->sanitizeNumberOrDefault(
                 $cfg['trend']['lookbackWeeks'] ?? null,
-                new NumberConstraints(1.0, 12.0, 1.0, 0),
+                new NumberConstraints(1.0, 6.0, 1.0, 0),
                 (float)$result['trend']['lookbackWeeks'],
                 $prefix . '.trend.lookbackWeeks',
                 $errors,

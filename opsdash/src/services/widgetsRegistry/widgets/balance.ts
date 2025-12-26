@@ -16,19 +16,19 @@ export const balanceEntry: RegistryEntry = {
   baseTitle,
   configurable: true,
   defaultOptions: {
-    lookbackWeeks: 4,
+    lookbackWeeks: 3,
   },
   controls: [
     { key: 'showTrend', label: 'Show trend history', type: 'toggle' },
     { key: 'showRelations', label: 'Show relations', type: 'toggle' },
     { key: 'showWarnings', label: 'Show warnings', type: 'toggle' },
-    { key: 'lookbackWeeks', label: 'Trend lookback (weeks)', type: 'number', min: 1, max: 12, step: 1 },
+    { key: 'lookbackWeeks', label: 'Trend lookback (weeks)', type: 'number', min: 1, max: 6, step: 1 },
   ],
   buildProps: (def, ctx) => ({
     overview: ctx.balanceOverview,
     rangeLabel: ctx.rangeLabel,
     rangeMode: ctx.rangeMode,
-    lookbackWeeks: def.options?.lookbackWeeks ?? 4,
+    lookbackWeeks: def.options?.lookbackWeeks ?? ctx.lookbackWeeks ?? 3,
     config: ctx.balanceConfig ?? { showNotes: false },
     note: ctx.balanceNote,
     activitySummary: ctx.activitySummary,

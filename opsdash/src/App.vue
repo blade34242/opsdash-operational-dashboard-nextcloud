@@ -165,65 +165,80 @@
             </div>
 
             <div class="cards-toolbar">
-              <div class="cards-toolbar__tabs">
+              <div class="cards-toolbar__tabs" role="tablist" aria-label="Dashboard tabs">
                 <button
                   v-for="tab in layoutTabs"
                   :key="tab.id"
                   type="button"
                   class="tab-btn"
                   :class="{ active: tab.id === activeTabId, default: tab.id === defaultTabId }"
-                  @click="setActiveTab(tab.id)"
+                  role="tab"
+                  :aria-selected="tab.id === activeTabId"
+                  @click="handleTabClick(tab.id)"
+                  @contextmenu.prevent="openTabContextMenu($event, tab.id)"
                 >
-                  <span class="tab-label">{{ tab.label }}</span>
-                  <span v-if="tab.id === defaultTabId" class="tab-default">Default</span>
+                  <template v-if="isLayoutEditing && tabEditingId === tab.id">
+                    <input
+                      class="tab-input"
+                      v-model="tabLabelDraft"
+                      @blur="commitTabLabel"
+                      @keydown.enter.prevent="commitTabLabel"
+                      @keydown.esc.prevent="cancelTabLabel"
+                      @click.stop
+                    />
+                  </template>
+                  <template v-else>
+                    <span class="tab-label">{{ tab.label }}</span>
+                    <span v-if="tab.id === defaultTabId" class="tab-default">Default</span>
+                  </template>
                 </button>
                 <button
                   v-if="isLayoutEditing"
                   type="button"
-                  class="ghost-btn ghost-btn--tight"
+                  class="tab-btn tab-btn--add"
                   @click="addTab()"
                 >
                   + Tab
                 </button>
               </div>
-              <div class="cards-toolbar__actions">
-                <button type="button" class="ghost-btn" @click="isLayoutEditing = !isLayoutEditing">
+              <div class="cards-toolbar__center">
+                <button
+                  type="button"
+                  class="ghost-btn ghost-btn--edit"
+                  @click="toggleLayoutEditing"
+                >
+                  <span class="ghost-btn__icon" aria-hidden="true">✎</span>
                   {{ isLayoutEditing ? 'Done editing' : 'Edit layout' }}
                 </button>
                 <div v-if="isLayoutEditing" class="cards-toolbar__add">
-                  <label class="tab-edit">
-                    <span>Tab name</span>
-                    <input
-                      v-model="tabLabelDraft"
-                      @blur="commitTabLabel"
-                      @keydown.enter.prevent="commitTabLabel"
-                    />
-                  </label>
-                  <button type="button" class="ghost-btn" @click="setDefaultTab(activeTabId)">
-                    Set default
-                  </button>
-                  <button
-                    type="button"
-                    class="ghost-btn"
-                    :disabled="layoutTabs.length <= 1"
-                    @click="removeTab(activeTabId)"
-                  >
-                    Remove tab
-                  </button>
-                  <select v-model="newWidgetType">
+                  <select v-model="newWidgetType" @change="handleAddWidget">
                     <option value="" disabled>Select widget…</option>
                     <option v-for="entry in availableWidgetTypes" :key="entry.type" :value="entry.type">
                       {{ entry.label }}
                     </option>
                   </select>
-                  <button type="button" class="ghost-btn" :disabled="!newWidgetType" @click="addWidget(newWidgetType)">
-                    Add
-                  </button>
                   <button type="button" class="ghost-btn" @click="resetWidgets">
                     Reset
                   </button>
                 </div>
               </div>
+            </div>
+            <div
+              v-if="tabContext.open"
+              class="tab-context-menu"
+              :style="{ top: `${tabContext.y}px`, left: `${tabContext.x}px` }"
+              role="menu"
+            >
+              <button type="button" role="menuitem" @click="setDefaultTabFromMenu">Set as default</button>
+              <button type="button" role="menuitem" @click="renameTabFromMenu">Rename</button>
+              <button
+                type="button"
+                role="menuitem"
+                :disabled="layoutTabs.length <= 1"
+                @click="removeTabFromMenu"
+              >
+                Remove
+              </button>
             </div>
 
             <div class="cards">
@@ -248,6 +263,7 @@
                 @edit:reorder="reorderWidget"
                 @open:onboarding="openOnboardingFromLayout"
                 @reset:preset="applyDashboardPreset(dashboardMode.value)"
+                @select:cell="setAddHint"
               />
             </div>
 
@@ -293,7 +309,7 @@ function notifyError(msg: string){
   else { console.error('ERROR:', msg); alert(msg) }
 }
 
-import { ref, watch, computed, onBeforeUnmount } from 'vue'
+import { ref, watch, computed, onBeforeUnmount, onMounted } from 'vue'
 import { useNotes } from '../composables/useNotes'
 import { useDashboard, type OnboardingState } from '../composables/useDashboard'
 import { useDashboardPersistence } from '../composables/useDashboardPersistence'
@@ -433,7 +449,6 @@ const {
   cycleHeight,
   moveWidget,
   removeWidget,
-  addWidget,
   addWidgetAt,
   reorderWidget,
   updateWidgetOptions,
@@ -464,25 +479,153 @@ const widgetTabsRef = computed({
 })
 
 const tabLabelDraft = ref('')
+const tabEditingId = ref<string | null>(null)
+const tabContext = ref<{ open: boolean; x: number; y: number; tabId: string | null }>({
+  open: false,
+  x: 0,
+  y: 0,
+  tabId: null,
+})
+const addOrderHint = ref<number | null>(null)
+
 watch(
   () => activeTabId.value,
   () => {
-    tabLabelDraft.value = activeTab.value?.label || ''
+    if (!tabEditingId.value) {
+      tabLabelDraft.value = activeTab.value?.label || ''
+    }
   },
   { immediate: true },
 )
 
-function commitTabLabel() {
-  const label = tabLabelDraft.value.trim()
-  if (!activeTab.value) return
-  if (!label) {
-    tabLabelDraft.value = activeTab.value.label
+watch(
+  () => isLayoutEditing.value,
+  (next) => {
+    if (!next) {
+      tabEditingId.value = null
+      tabContext.value = { open: false, x: 0, y: 0, tabId: null }
+    }
+  },
+)
+
+function handleTabClick(id: string) {
+  if (!isLayoutEditing.value) {
+    setActiveTab(id)
+    addOrderHint.value = null
     return
   }
-  if (label !== activeTab.value.label) {
-    renameTab(activeTab.value.id, label)
+  if (activeTabId.value !== id) {
+    setActiveTab(id)
+    tabEditingId.value = null
+    addOrderHint.value = null
+    return
+  }
+  tabEditingId.value = id
+  const tab = layoutTabs.value.find((t) => t.id === id)
+  tabLabelDraft.value = tab?.label || ''
+}
+
+function openTabContextMenu(evt: MouseEvent, tabId: string) {
+  if (!isLayoutEditing.value) return
+  tabContext.value = {
+    open: true,
+    x: evt.clientX,
+    y: evt.clientY,
+    tabId,
   }
 }
+
+function closeTabContextMenu() {
+  tabContext.value = { open: false, x: 0, y: 0, tabId: null }
+}
+
+function setDefaultTabFromMenu() {
+  if (!tabContext.value.tabId) return
+  setDefaultTab(tabContext.value.tabId)
+  closeTabContextMenu()
+}
+
+function removeTabFromMenu() {
+  if (!tabContext.value.tabId) return
+  removeTab(tabContext.value.tabId)
+  closeTabContextMenu()
+}
+
+function renameTabFromMenu() {
+  if (!tabContext.value.tabId) return
+  tabEditingId.value = tabContext.value.tabId
+  const tab = layoutTabs.value.find((t) => t.id === tabContext.value.tabId)
+  tabLabelDraft.value = tab?.label || ''
+  closeTabContextMenu()
+}
+
+function commitTabLabel() {
+  if (!tabEditingId.value) return
+  const label = tabLabelDraft.value.trim()
+  const tab = layoutTabs.value.find((t) => t.id === tabEditingId.value)
+  if (!tab) {
+    tabEditingId.value = null
+    return
+  }
+  if (!label) {
+    tabLabelDraft.value = tab.label
+    tabEditingId.value = null
+    return
+  }
+  if (label !== tab.label) {
+    renameTab(tab.id, label)
+  }
+  tabEditingId.value = null
+}
+
+function cancelTabLabel() {
+  if (!tabEditingId.value) return
+  const tab = layoutTabs.value.find((t) => t.id === tabEditingId.value)
+  tabLabelDraft.value = tab?.label || ''
+  tabEditingId.value = null
+}
+
+function setAddHint(orderHint?: number) {
+  addOrderHint.value = Number.isFinite(orderHint ?? NaN) ? Number(orderHint) : null
+}
+
+function handleAddWidget() {
+  if (!newWidgetType.value) return
+  const hint = Number.isFinite(addOrderHint.value ?? NaN) ? addOrderHint.value ?? undefined : undefined
+  addWidgetAt(newWidgetType.value, hint)
+  newWidgetType.value = ''
+  addOrderHint.value = null
+}
+
+function toggleLayoutEditing() {
+  isLayoutEditing.value = !isLayoutEditing.value
+  if (!isLayoutEditing.value) {
+    tabEditingId.value = null
+    tabContext.value = { open: false, x: 0, y: 0, tabId: null }
+    addOrderHint.value = null
+  }
+}
+
+function handleGlobalClick(event: MouseEvent) {
+  if (!tabContext.value.open) return
+  const target = event.target as HTMLElement | null
+  if (!target) return
+  if (target.closest('.tab-context-menu')) return
+  if (target.closest('.tab-btn')) return
+  closeTabContextMenu()
+}
+
+onMounted(() => {
+  if (typeof window !== 'undefined') {
+    window.addEventListener('click', handleGlobalClick)
+  }
+})
+
+onBeforeUnmount(() => {
+  if (typeof window !== 'undefined') {
+    window.removeEventListener('click', handleGlobalClick)
+  }
+})
 
 const {
   calendars,
@@ -874,7 +1017,7 @@ const balanceCardConfig = computed(() => ({
   showNotes: !!balanceConfigFull.value.ui.showNotes,
 }))
 const trendLookbackWeeks = computed(() =>
-  Math.max(1, Math.min(12, balanceConfigFull.value.trend?.lookbackWeeks ?? 1)),
+  Math.max(1, Math.min(6, balanceConfigFull.value.trend?.lookbackWeeks ?? 1)),
 )
 
 const balanceNote = computed(() => {

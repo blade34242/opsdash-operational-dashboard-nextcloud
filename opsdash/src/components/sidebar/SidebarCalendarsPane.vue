@@ -26,6 +26,13 @@
         </NcButton>
       </div>
     </div>
+    <div class="onboarding-jumps">
+      <button type="button" class="ghost sm" @click="$emit('rerun-onboarding', 'dashboard')">Dashboard</button>
+      <button type="button" class="ghost sm" @click="$emit('rerun-onboarding', 'calendars')">Calendars</button>
+      <button type="button" class="ghost sm" @click="$emit('rerun-onboarding', 'categories')">Targets</button>
+      <button type="button" class="ghost sm" @click="$emit('rerun-onboarding', 'preferences')">Preferences</button>
+      <button type="button" class="ghost sm" @click="$emit('rerun-onboarding', 'review')">Review</button>
+    </div>
     <div v-if="shortcutsOpen" class="shortcuts-box" role="region" aria-label="Keyboard shortcuts">
       <div class="shortcuts-box__header">
         <span>Keyboard shortcuts</span>
@@ -45,13 +52,22 @@
       </div>
     </div>
     <div class="sb-context">
-      <div class="sb-title">Per‑Calendar Settings</div>
-      <p class="sb-description">
-        Choose which calendars feed dashboards, then map them to categories so Balance and Targets stay in sync.
-      </p>
-      <p class="sb-description">
-        Use <strong>Category</strong> to group calendars and <strong>Target (h)</strong> to define weekly/monthly goals—the values convert automatically when you switch ranges.
-      </p>
+      <div class="sb-title">Trend lookback (global)</div>
+      <div class="sb-inline">
+        <input
+          type="number"
+          min="1"
+          max="6"
+          step="1"
+          :value="lookbackWeeks"
+          aria-label="Trend lookback weeks"
+          @input="$emit('update-lookback', ($event.target as HTMLInputElement).value)"
+        />
+        <span class="sb-inline__label">weeks / months</span>
+      </div>
+      <div v-if="lookbackMessage" :class="['input-message', lookbackMessage.tone]">
+        {{ lookbackMessage.text }}
+      </div>
     </div>
     <div class="sb-list">
       <div v-for="c in calendars" :key="c.id" class="cal-card">
@@ -123,14 +139,17 @@ const props = defineProps<{
   calendarTargetMessages: Record<string, InputMessage | null>
   calendarCategoryId: (id: string) => string
   getTarget: (id: string) => number | string
+  lookbackWeeks: number
+  lookbackMessage?: InputMessage | null
 }>()
 
 const emit = defineEmits<{
   (e: 'toggle-calendar', id: string): void
   (e: 'set-category', payload: { id: string; category: string }): void
   (e: 'target-input', payload: { id: string; value: string }): void
-  (e: 'rerun-onboarding'): void
+  (e: 'rerun-onboarding', step?: string): void
   (e: 'open-shortcuts', trigger?: HTMLElement | null): void
+  (e: 'update-lookback', value: string): void
 }>()
 
 // Important: keep props reactive in template; avoid plain destructuring
@@ -142,6 +161,8 @@ const {
   isLoading,
   categoryOptions,
   calendarTargetMessages,
+  lookbackWeeks,
+  lookbackMessage,
 } = toRefs(props)
 const calendarCategoryId = (id: string) => props.calendarCategoryId(id)
 const getTarget = (id: string) => props.getTarget(id)
@@ -272,5 +293,23 @@ function onOpenShortcuts(event: MouseEvent) {
   margin-top: 8px;
   flex-wrap: wrap;
   gap: 6px;
+}
+.onboarding-jumps{
+  display:flex;
+  flex-wrap:wrap;
+  gap:6px;
+  margin:6px 0 10px;
+}
+.sb-inline{
+  display:flex;
+  align-items:center;
+  gap:8px;
+}
+.sb-inline input{
+  width:72px;
+}
+.sb-inline__label{
+  font-size:12px;
+  color: var(--muted, #6b7280);
 }
 </style>

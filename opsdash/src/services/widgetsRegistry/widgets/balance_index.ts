@@ -41,7 +41,7 @@ export const balanceIndexEntry: RegistryEntry = {
     { key: 'showConfig', label: 'Show config summary', type: 'toggle' },
     { key: 'showTrend', label: 'Show trend', type: 'toggle' },
     { key: 'showMessages', label: 'Show messages', type: 'toggle' },
-    { key: 'lookbackWeeks', label: 'Trend lookback (weeks)', type: 'number', min: 1, max: 12, step: 1 },
+    { key: 'lookbackWeeks', label: 'Trend lookback (weeks)', type: 'number', min: 1, max: 6, step: 1 },
     {
       key: 'messageDensity',
       label: 'Messages shown',
@@ -92,7 +92,9 @@ export const balanceIndexEntry: RegistryEntry = {
     const messageLimit = density === 'few' ? 1 : density === 'many' ? Infinity : 3
     const lookbackWeeks = Number.isFinite(def.options?.lookbackWeeks)
       ? Number(def.options?.lookbackWeeks)
-      : defaults.trend?.lookbackWeeks ?? 4
+      : Number.isFinite(ctx.lookbackWeeks)
+        ? Number(ctx.lookbackWeeks)
+        : defaults.trend?.lookbackWeeks ?? 3
     const thresholds = {
       noticeAbove: numberOr(cfg?.thresholds?.noticeAbove, def.options?.noticeAbove),
       noticeBelow: numberOr(cfg?.thresholds?.noticeBelow, def.options?.noticeBelow),

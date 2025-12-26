@@ -32,21 +32,10 @@
     </div>
   </div>
 
-  <DashboardAddMenu
-    :open="editable && addMenu.open"
-    :x="addMenu.x"
-    :y="addMenu.y"
-    :row="addMenu.row"
-    :col="addMenu.col"
-    :widget-type-list="widgetTypeList"
-    @close="closeAddMenu"
-    @confirm="confirmAdd"
-  />
 </template>
 
 <script setup lang="ts">
-import { computed, reactive, ref } from 'vue'
-import DashboardAddMenu from './DashboardAddMenu.vue'
+import { computed, ref } from 'vue'
 
 const props = defineProps<{
   ordered: Array<{ id: string; component: any; props: any; layout: any; type: string; options: any }>
@@ -59,18 +48,12 @@ const emit = defineEmits<{
   (e: 'select', id: string): void
   (e: 'add', type: string, orderHint?: number): void
   (e: 'reorder', id: string, orderHint?: number | null): void
+  (e: 'select-cell', orderHint?: number): void
 }>()
 
 const gridEl = ref<HTMLElement | null>(null)
 const draggingId = ref<string | null>(null)
 const dragOrderHint = ref<number | null>(null)
-const addMenu = reactive<{ open: boolean; x: number; y: number; row: number; col: number }>({
-  open: false,
-  x: 0,
-  y: 0,
-  row: 0,
-  col: 0,
-})
 
 const widgetTypeList = computed(() => props.widgetTypeList || [])
 
@@ -172,26 +155,23 @@ function orderForCell(row: number, col: number) {
   return ((rows[0]?.items?.[0]?.layout?.order ?? 0) || 0) - 10
 }
 
-function openAddMenuAt(evt: MouseEvent) {
+function selectCellAt(evt: MouseEvent) {
   if (!props.editable || !widgetTypeList.value.length) return
   const { row, col } = gridPositionFromEvent(evt)
-  addMenu.open = true
-  addMenu.x = evt.clientX
-  addMenu.y = evt.clientY
-  addMenu.row = row
-  addMenu.col = col
+  const orderHint = orderForCell(row, col)
+  emit('select-cell', orderHint)
 }
 
 function onGridClick(evt: MouseEvent) {
   if (!props.editable) return
   if ((evt.target as HTMLElement).closest('.layout-item')) return
-  openAddMenuAt(evt)
+  selectCellAt(evt)
 }
 
 function onGridContext(evt: MouseEvent) {
   if (!props.editable) return
   if ((evt.target as HTMLElement).closest('.layout-item')) return
-  openAddMenuAt(evt)
+  selectCellAt(evt)
 }
 
 function onGridDragOver(evt: DragEvent) {
@@ -209,21 +189,10 @@ function onGridDrop() {
   emit('reorder', id, hint)
 }
 
-function closeAddMenu() {
-  addMenu.open = false
-}
-
-function confirmAdd(type: string) {
-  const orderHint = orderForCell(addMenu.row, addMenu.col)
-  emit('add', type, orderHint)
-  closeAddMenu()
-}
-
 function onDragStart(id: string) {
   if (!props.editable) return
   draggingId.value = id
   dragOrderHint.value = null
-  closeAddMenu()
 }
 
 function onDragEnd() {

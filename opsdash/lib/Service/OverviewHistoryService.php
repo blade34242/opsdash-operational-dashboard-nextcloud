@@ -4,7 +4,7 @@ declare(strict_types=1);
 namespace OCA\Opsdash\Service;
 
 final class OverviewHistoryService {
-    private const MAX_LOOKBACK = 12;
+    private const MAX_LOOKBACK = 6;
 
     public function __construct(
         private CalendarService $calendarService,
@@ -93,7 +93,7 @@ final class OverviewHistoryService {
         int $lookbackWeeks,
         array $precomputedDaysWorked = [],
     ): array {
-        $maxLookback = max(1, min(self::MAX_LOOKBACK, $lookbackWeeks ?: 4));
+        $maxLookback = max(1, min(self::MAX_LOOKBACK, $lookbackWeeks ?: 3));
         $trend = [];
 
         $dayMap = [];

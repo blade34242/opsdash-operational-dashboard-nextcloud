@@ -6,6 +6,7 @@
       :selected-id="selectedId"
       :widget-type-list="widgetTypeList"
       @select="selectItem"
+      @select-cell="selectCell"
       @add="(type, hint) => emit('edit:add', type, hint)"
       @reorder="(id, hint) => emit('edit:reorder', id, hint)"
     />
@@ -66,6 +67,7 @@ const emit = defineEmits<{
   (e: 'edit:reorder', id: string, orderHint?: number | null): void
   (e: 'open:onboarding', step?: string): void
   (e: 'reset:preset'): void
+  (e: 'select:cell', orderHint?: number): void
 }>()
 
 const openOptionsId = ref<string | null>(null)
@@ -91,9 +93,6 @@ const widgetTypeList = computed(() => props.widgetTypes || [])
 watch(
   () => props.editable,
   (next) => {
-    if (next && !selectedId.value && ordered.value.length) {
-      selectedId.value = ordered.value[0].id
-    }
     if (!next) {
       selectedId.value = null
       openOptionsId.value = null
@@ -107,7 +106,7 @@ watch(
   () => ordered.value.map((w) => w.id).join('|'),
   () => {
     if (selectedId.value && !ordered.value.find((w) => w.id === selectedId.value)) {
-      selectedId.value = ordered.value[0]?.id || null
+      selectedId.value = null
     }
   },
 )
@@ -185,12 +184,13 @@ function openOnboardingTargets(step?: string) {
 }
 
 function openOptionsForSelected() {
-  if (!selectedId.value && ordered.value.length) {
-    selectedId.value = ordered.value[0].id
-  }
   if (selectedId.value) {
     openOptionsId.value = selectedId.value
   }
+}
+
+function selectCell(orderHint?: number) {
+  emit('select:cell', orderHint)
 }
 
 defineExpose({

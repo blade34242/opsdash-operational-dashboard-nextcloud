@@ -127,7 +127,7 @@ export function createDefaultBalanceConfig(): BalanceConfig {
       warnIndex: 0.60,
     },
     relations: { displayMode: 'ratio' },
-    trend: { lookbackWeeks: 4 },
+    trend: { lookbackWeeks: 3 },
     dayparts: { enabled: false },
     ui: {
       showNotes: false,
@@ -350,7 +350,7 @@ function normalizeBalanceConfig(input: any, categories: TargetCategoryConfig[], 
       displayMode: input?.relations?.displayMode === 'factor' ? 'factor' : base.relations.displayMode,
     },
     trend: {
-      lookbackWeeks: clampInt(input?.trend?.lookbackWeeks ?? base.trend.lookbackWeeks, 1, 12),
+      lookbackWeeks: clampInt(input?.trend?.lookbackWeeks ?? base.trend.lookbackWeeks, 1, 6),
     },
     dayparts: {
       enabled: !!(input?.dayparts?.enabled ?? base.dayparts.enabled),
