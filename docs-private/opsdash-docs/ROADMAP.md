@@ -37,7 +37,7 @@ Single source of truth for the Opsdash backlog: high-level roadmap, target syste
 ### P0 – Confidence & Maintenance
 
 - ⏳ Trend lookback bug: fix Balance + Activity history so offsets > 1 load/visualise correctly (respect sidebar config + `/overview/load` payloads). Start by adding fixtures for offsets 2–4 and Vitest assertions on lookback charts.
-- ⚠️ Balance UI/config simplification: deprecated knobs removed; still need 1-decimal rounding server-side, default lookback=4 by default, and lean `/overview/persist` payloads. Add PHPUnit for rounding + lookback defaults.
+- ⚠️ Balance UI/config simplification: deprecated knobs removed; still need 1-decimal rounding server-side, default lookback=3 (clamped 1–6), and lean `/overview/persist` payloads. Add PHPUnit for rounding + lookback defaults.
 - ⏳ Expand Vitest around `buildTargetsSummary`, `computePaceInfo`, chart helpers, keyboard shortcuts. Seed small unit fixtures first.
 - ⏳ Ensure `/overview/persist` echoes `balance.ui.*` flags. Add fixture + PHPUnit guard.
 - 🔄 Maintain curl docs for `/overview/persist`, `/overview/notes`, preset flows — docs exist; wire into CI check or add a README cue.
@@ -61,7 +61,7 @@ Single source of truth for the Opsdash backlog: high-level roadmap, target syste
 - ⏳ Explore “By Calendar Events” drill-down UX (no code yet).
 - ⏳ Enhance chart labelling + info badges alignment.
 - ⏳ Category rows: add “Today” mini callouts in Targets chart.
-- ⏳ Balance chart: overlay current slice (e.g., “31% ^+3% Today”) + keep 5 columns; add tests for lookback 3/4/5 clamp.
+- ⏳ Balance chart: overlay current slice (e.g., “31% ^+3% Today”) + keep 5 columns; add tests for lookback 3/4/6 clamp.
 - ⚠️ Create “Deck Summary” top card — shipping as `DeckSummaryCard.vue` but not wired to Deck tab filters; next: sync bucket clicks to filters.
 - ⏳ Improve Deck tab utility (filters/actions/freshness cues) before relying on summary card.
 - ⏳ Show Deck board colours in sidebar Deck tab.
@@ -127,8 +127,8 @@ Single source of truth for the Opsdash backlog: high-level roadmap, target syste
   ```
   This badge is always visible, reuses the same color, and the tooltip provides the full story (hours logged today, remaining target, pace).  
 - Balance chart (main content): Only the current-week/month column gets the treatment. Inside the column cell, place a tiny upper-right overlay such as `31% ^+3% Today` that uses the column color plus a halo/underline accent, but keeps the rest of the column untouched. This badge also persists and its tooltip explains the richer data (actual hours, remaining target, week/month impact). All other columns remain unchanged.
-- **Balance chart column count** – ensure the canned Balance chart keeps five columns (current + four offsets) even when the sidebar shows fewer cards. Display the category name on the left and render five cells per row (current week/month plus four lookback offsets, one per column). Each cell should cap at the configured max lookback (e.g., 4) and highlight the current slice, then fade the older ones. Add Vitest + Playwright tests that run through week/month loads, verify the column count matches the configured lookback, and ensure the first (current) cell gets the special overlay while the offsets just show the standard bars.
-- Testing note: cover lookback values `3` and `4` (valid) plus `5` (invalid) so fixtures confirm the chart respects the max lookback (clamps 5 down to 4) while still drawing the labeled columns.
+- **Balance chart column count** – ensure the canned Balance chart keeps five columns (current + four offsets) even when the sidebar shows fewer cards. Display the category name on the left and render five cells per row (current week/month plus four lookback offsets, one per column). Each cell should cap at the configured max lookback (e.g., 6) and highlight the current slice, then fade the older ones. Add Vitest + Playwright tests that run through week/month loads, verify the column count matches the configured lookback, and ensure the first (current) cell gets the special overlay while the offsets just show the standard bars.
+- Testing note: cover lookback values `3` and `4` (valid) plus `7` (invalid) so fixtures confirm the chart respects the max lookback (clamps 7 down to 6) while still drawing the labeled columns.
 
 ### P2 – Server & Performance
 

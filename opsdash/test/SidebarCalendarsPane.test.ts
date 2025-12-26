@@ -104,4 +104,20 @@ describe('SidebarCalendarsPane', () => {
 
     expect(wrapper.emitted('update-lookback')).toEqual([[ '4' ]])
   })
+
+  it('emits rerun-onboarding with step when jump button clicked', async () => {
+    const wrapper = mount(SidebarCalendarsPane, {
+      props: {
+        ...baseProps,
+        calendars: [],
+        selected: [],
+        getTarget: () => 0,
+      },
+    })
+
+    const btn = wrapper.findAll('button').find((node) => node.text().includes('Targets'))
+    await btn?.trigger('click')
+
+    expect(wrapper.emitted('rerun-onboarding')).toEqual([[ 'categories' ]])
+  })
 })

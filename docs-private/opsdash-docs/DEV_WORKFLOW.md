@@ -51,7 +51,7 @@ The Vue mount pulls its entrypoint from the manifest, so filenames never need ma
 
 ### Targets & Cards
 - Range switch (Week/Month) recalculates totals; monthly targets default to weekly×4 unless explicitly set.
-- Activity card projection mode and balance trend lookback are legacy config fields; chart widgets now store projection + lookback per widget.
+- Global trend lookback is set in the Calendars sidebar (default 3, clamped 1–6); chart widgets can override per widget.
 
 ### Widget Layout & Sizing
 - Widget width/height define the available grid space; content must never render outside this box.

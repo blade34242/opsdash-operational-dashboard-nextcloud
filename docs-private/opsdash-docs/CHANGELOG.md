@@ -6,7 +6,8 @@ All notable changes to this project are documented here. This file is served loc
 - Pending changes.
 - UI: dashboard now supports multiple layout tabs (rename, set default, add/remove); only the active tab renders.
 - Config: widget layout payload now persists as `{ tabs, defaultTabId }` and legacy arrays normalize into a single tab.
-- UI: Projection + trend lookback controls moved into chart widgets (per-widget); sidebar no longer owns them.
+- UI: layout toolbar and tabs rebalanced for dark-theme contrast; controls sit left of the notification area.
+- UI: Global trend lookback lives in the Calendars sidebar (default 3, clamped 1–6) with per-widget overrides for chart widgets.
 - UI: “Config & Setup” renamed to Theme; rerun onboarding + keyboard shortcuts moved into Calendars; All/None calendar buttons removed.
 - Config: Sidebar and widget layout no longer persist via localStorage; server persistence only.
 - Backend: extracted `/overview/persist` + `/overview/notes` into `PersistController` and `NotesController` (URLs unchanged); `OverviewController` focuses on `/overview/load` (+ index/ping).

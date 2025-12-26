@@ -1100,44 +1100,47 @@
 }
 #opsdash .cards-toolbar{
   display:flex;
-  align-items:flex-end;
+  align-items:center;
   gap:12px;
-  margin-bottom:10px;
+  margin-bottom:12px;
   width:100%;
   flex-wrap:wrap;
+  justify-content:flex-start;
 }
 #opsdash .cards-toolbar__tabs{
   display:flex;
   align-items:center;
   gap:6px;
   flex-wrap:wrap;
-  border-bottom:1px solid color-mix(in oklab, var(--line), transparent 30%);
+  border-bottom:2px solid color-mix(in oklab, var(--line), transparent 20%);
   padding-bottom:4px;
 }
 #opsdash .cards-toolbar__center{
   display:flex;
   align-items:center;
   gap:8px;
-  margin-left:auto;
-  margin-right:auto;
+  margin-left:12px;
   flex-wrap:wrap;
 }
 #opsdash .tab-btn{
   display:inline-flex;
   align-items:center;
   gap:6px;
-  border:none;
-  background:transparent;
-  padding:6px 12px;
-  border-radius:10px 10px 0 0;
+  border:1px solid color-mix(in oklab, var(--line), transparent 10%);
+  border-bottom:none;
+  background:color-mix(in oklab, var(--card), var(--soft) 20%);
+  padding:7px 14px 6px;
+  border-radius:12px 12px 0 0;
   font-weight:600;
   cursor:pointer;
   color:var(--muted);
   position:relative;
+  box-shadow:0 1px 0 rgba(15,23,42,0.05);
 }
 #opsdash .tab-btn.active{
   color:var(--fg);
-  background:color-mix(in oklab, var(--card), var(--soft) 45%);
+  background:var(--card);
+  border-color:color-mix(in oklab, var(--brand), var(--line) 60%);
 }
 #opsdash .tab-btn.active::after{
   content:'';
@@ -1163,6 +1166,7 @@
   border:1px dashed color-mix(in oklab, var(--line), transparent 20%);
   color:var(--muted);
   background:color-mix(in oklab, var(--card), transparent 40%);
+  box-shadow:none;
 }
 #opsdash .tab-input{
   min-width:120px;
@@ -1198,12 +1202,24 @@
   align-items:center;
   gap:6px;
   font-weight:700;
-  background:color-mix(in oklab, var(--brand), var(--card) 85%);
-  border-color:color-mix(in oklab, var(--brand), transparent 40%);
+  color:#fff;
+  background:color-mix(in oklab, var(--brand) 70%, #1e293b 30%);
+  border-color:color-mix(in oklab, var(--brand), transparent 20%);
 }
 #opsdash .ghost-btn__icon{
   font-size:12px;
   opacity:0.9;
+}
+#opsdash.opsdash-theme-light .ghost-btn--edit{
+  color:#0f172a;
+  background:color-mix(in oklab, var(--brand) 20%, #ffffff 80%);
+  border-color:color-mix(in oklab, var(--brand), transparent 35%);
+}
+#opsdash.opsdash-theme-dark .ghost-btn--edit{
+  color:#e2e8f0;
+  background:color-mix(in oklab, var(--brand) 45%, #0f172a 55%);
+  border-color:color-mix(in oklab, var(--brand), transparent 20%);
+  box-shadow:0 0 0 1px rgba(96,165,250,0.25);
 }
 #opsdash .tab-context-menu{
   position:fixed;

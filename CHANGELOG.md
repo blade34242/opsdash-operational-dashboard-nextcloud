@@ -19,6 +19,7 @@ All notable changes to this project will be documented in this file.
 - Sidebar hides Profiles/Report tabs when the Quick dashboard preset is active; default widgets now come from the Standard preset.
 - Widget toolbar includes “Reset preset” to restore the current dashboard mode’s layout.
 - Widget layouts now persist as a tabbed payload (`{ tabs, defaultTabId }`), with legacy arrays normalized into a single tab.
+- Layout toolbar is left-aligned and tab visuals are more pronounced for quick scanning (dark theme contrast improved).
 
 ## [0.5.1] - Unreleased
 ### Added
@@ -30,7 +31,7 @@ All notable changes to this project will be documented in this file.
 - Sidebar keyboard shortcuts button opens a compact popover list.
 ### Changed
 - Dashboard save queue now records widget edits (add/remove/move/update/reset/preset apply) so layouts survive logouts and device changes.
-- Projection + trend lookback controls now live inside chart widgets (per-widget), and the sidebar no longer owns them.
+- Trend lookback controls are now global in the Calendars sidebar (default 3, clamped 1–6) with per-widget overrides for chart widgets.
 - Sidebar naming: “Config & Setup” is now “Theme”, and rerun onboarding + keyboard shortcuts moved to Calendars.
 - Removed sidebar All/None calendar shortcuts to keep selection explicit.
 - Widget layout and sidebar state no longer persist via localStorage (server persistence only).
@@ -71,7 +72,7 @@ All notable changes to this project will be documented in this file.
 - Dashboard persistence now relies on server-provided `balance.ui.*` flags (fallback only triggers when an entire block is missing), matching the updated `/overview/persist` response.
 - Playwright multi-user scenario now logs in as the secondary user to persist selection state, eliminating the flaky hard-coded assumption.
 - Deck seeding is no longer exposed as an OCC command during CI packaging; use the PHP helper scripts directly when QA data is required.
-- Balance config trimmed: removed `roundPercent`/`roundRatio`/`showDailyStacks` UI knobs, hardcoded ratio rounding to 1 decimal, unified default lookback to 4, and kept basis/index sanitisation consistent across TS/PHP.
+- Balance config trimmed: removed `roundPercent`/`roundRatio`/`showDailyStacks` UI knobs, hardcoded ratio rounding to 1 decimal, unified default lookback to 3 (clamped 1–6), and kept basis/index sanitisation consistent across TS/PHP.
 - Sidebar Activity & Balance pane copy fully in English with clearer help text and grouped toggles; basis selector hints now explain “Off/Category/Calendar/Both”.
 
 ### Fixed

@@ -41,7 +41,7 @@ occ app:enable opsdash
 - 🔐 **Nextcloud-native** – same theme, request token, permissions, Dav colors, and zero external calls.
 - 🗂️ **Deck widgets** – Deck cards widget with per-widget board/filter selection, auto-scroll ticker, counts; optional Deck summary widget.
 - 📨 **Report tab (preview)** – configure weekly/monthly digests, interim reminders, and Deck visibility using Nextcloud notifications + email.
-- 📐 **Widget sizing controls** – per-widget width/height plus Scale/Dense tuning; use these to fit content without scrolling.
+- 📐 **Widget sizing controls** – per-widget width/height plus Scale/Dense tuning; tabs and layout editing now sit left-aligned for quicker access.
 
 ## 🛠 Local Development
 ```bash
@@ -89,7 +89,7 @@ The helper script now shells into your container and invokes `apps/opsdash/tools
 
 ## 📋 Roadmap Highlights
 - NC 31 releases in `0.4.x` stream; NC 32 (`0.5.x`) lands once CI matrices stabilize.
-- Balance config simplified: server rounds ratios to 1 decimal, precision toggles are gone, and Balance lookback defaults to 4 weeks to keep week/month history aligned.
+- Balance config simplified: server rounds ratios to 1 decimal, precision toggles are gone, and Balance lookback defaults to 3 weeks (clamped 1–6) to keep week/month history aligned.
 - Deck integration spike (see `docs-private/opsdash-docs/DECK_INTEGRATION.md`) and reporting concept for NC App Store metadata.
 - i18n workflow (`npm run i18n:scan` / `npm run i18n:extract`) ready — de/fr/es packs coming.
 

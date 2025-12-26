@@ -95,7 +95,7 @@ needed to guide new users toward a useful initial configuration.
 - Include a UI toggle in Sidebar → Calendars: “Re-run onboarding”. — ✅ wired to `createOnboardingWizardState` so the wizard remounts on every manual reopen (0.4.4, 2025-11).
 - Persist new preferences alongside the existing payload:
   - `theme_preference`
-  - `targets_config.balance.trend.lookbackWeeks` (legacy default; chart widgets now carry per-widget lookback)
+  - `targets_config.balance.trend.lookbackWeeks` (global default; chart widgets can override per widget)
   - `reporting_config` (enabled/schedule/interim/reminders)
   - `deck_settings` (`enabled`, `defaultFilter`, `hiddenBoards`)
   - `targets_config.activityCard.showDayOffTrend`
