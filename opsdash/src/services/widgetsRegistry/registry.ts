@@ -130,11 +130,21 @@ export function normalizeWidgetTabs(raw: any, fallback: WidgetTabsState): Widget
   return { tabs, defaultTabId }
 }
 
+function resolveWidgetLoading(def: WidgetDefinition, ctx: WidgetRenderContext) {
+  const baseLoading = ctx.hasInitialLoad === false || !!ctx.isLoading
+  if (def.type === 'text_block') return false
+  if (def.type === 'deck' || def.type === 'deck_cards') {
+    return baseLoading || !!ctx.deckLoading
+  }
+  return baseLoading
+}
+
 export function mapWidgetToComponent(def: WidgetDefinition, ctx: WidgetRenderContext) {
   const entry = widgetsRegistry[def.type]
   if (!entry) return null
   const props = entry.buildProps(def, ctx) || {}
-  return { component: entry.component, props }
+  const loading = resolveWidgetLoading(def, ctx)
+  return { component: entry.component, props, loading }
 }
 
 function cloneWidget(type: string, options: Record<string, any> = {}, layout?: Partial<WidgetDefinition['layout']>): WidgetDefinition {

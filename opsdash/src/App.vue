@@ -246,12 +246,7 @@
             </div>
 
             <div class="cards">
-              <div v-if="!hasInitialLoad" class="cards-loading">
-                <NcLoadingIcon :size="22" />
-                <div class="cards-loading__label">Loading your layout…</div>
-              </div>
               <DashboardLayout
-                v-else
                 ref="layoutRef"
                 :widgets="widgets"
                 :context="widgetContext"
@@ -1225,6 +1220,8 @@ const { widgetContext } = useWidgetRenderContext({
   notesLabelCurrTitle,
   isSavingNote,
   saveNotes,
+  isLoading,
+  hasInitialLoad,
   isLayoutEditing,
   updateWidgetOptions,
   charts,

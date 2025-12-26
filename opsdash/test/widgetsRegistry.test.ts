@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest'
 
 import { createDefaultTargetsConfig } from '../src/services/targets'
-import { widgetsRegistry } from '../src/services/widgetsRegistry'
+import { mapWidgetToComponent, widgetsRegistry } from '../src/services/widgetsRegistry'
 
 describe('widgetsRegistry text_block presets', () => {
   it('uses preset title/body when provided', () => {
@@ -208,5 +208,26 @@ describe('widgetsRegistry targets_v2', () => {
     const ctx: any = { balanceOverview: { trend: { history: [], delta: [], badge: '' }, categories: [], relations: [], warnings: [], index: 0 } }
     const props = entry.buildProps(def, ctx) as any
     expect(props.title.startsWith('My ')).toBe(true)
+  })
+
+  it('computes loading per widget type', () => {
+    const baseCtx: any = {
+      hasInitialLoad: true,
+      isLoading: false,
+      deckLoading: false,
+      rangeLabel: 'Week',
+      rangeMode: 'week',
+      from: '2024-01-01',
+      to: '2024-01-07',
+      summary: {},
+      targetsConfig: {},
+    }
+    const defText: any = { id: 't1', type: 'text_block', layout: { width: 'half', height: 'm', order: 1 }, options: {}, version: 1 }
+    const defDeck: any = { id: 'd1', type: 'deck_cards', layout: { width: 'half', height: 'm', order: 1 }, options: {}, version: 1 }
+    const defBalance: any = { id: 'b1', type: 'balance', layout: { width: 'half', height: 'm', order: 1 }, options: {}, version: 1 }
+
+    expect(mapWidgetToComponent(defText, { ...baseCtx, isLoading: true })?.loading).toBe(false)
+    expect(mapWidgetToComponent(defDeck, { ...baseCtx, deckLoading: true })?.loading).toBe(true)
+    expect(mapWidgetToComponent(defBalance, { ...baseCtx, isLoading: true })?.loading).toBe(true)
   })
 })

@@ -8,11 +8,11 @@
     @dragover.prevent="onGridDragOver"
     @drop.prevent="onGridDrop"
   >
-    <div
-      v-for="item in ordered"
-      :key="item.id"
-      class="layout-item"
-      :class="[
+  <div
+    v-for="item in ordered"
+    :key="item.id"
+    class="layout-item"
+    :class="[
         widthClass(item.layout.width),
         heightClass(item.layout.height),
         scaleClass(item.options),
@@ -20,14 +20,20 @@
           'is-editable': editable,
           'is-selected': editable && selectedId === item.id,
           'is-dragging': editable && draggingId === item.id,
+          'is-loading': !!item.loading,
         },
       ]"
       :style="widgetVars(item.options)"
       :draggable="editable"
+      :aria-busy="item.loading ? 'true' : 'false'"
       @click.stop="emit('select', item.id)"
       @dragstart="onDragStart(item.id)"
       @dragend="onDragEnd"
     >
+      <div v-if="item.loading" class="widget-loading" aria-live="polite">
+        <span class="widget-loading__spinner" aria-hidden="true" />
+        <span class="widget-loading__label">Loading…</span>
+      </div>
       <component :is="item.component" v-bind="item.props" />
     </div>
   </div>
@@ -38,7 +44,7 @@
 import { computed, ref } from 'vue'
 
 const props = defineProps<{
-  ordered: Array<{ id: string; component: any; props: any; layout: any; type: string; options: any }>
+  ordered: Array<{ id: string; component: any; props: any; layout: any; type: string; options: any; loading?: boolean }>
   editable?: boolean
   selectedId?: string | null
   widgetTypeList?: Array<{ type: string; label: string }>
@@ -211,6 +217,41 @@ function onDragEnd() {
   --grid-row: 24px;
   grid-auto-rows: var(--grid-row);
   grid-auto-flow: row;
+}
+.layout-item{
+  position:relative;
+}
+.layout-item.is-loading > :not(.widget-loading){
+  opacity:0.35;
+  filter:saturate(0.85);
+}
+.widget-loading{
+  position:absolute;
+  inset:0;
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  justify-content:center;
+  gap:6px;
+  background:color-mix(in oklab, var(--card), transparent 20%);
+  border-radius:16px;
+  z-index:2;
+}
+.widget-loading__spinner{
+  width:20px;
+  height:20px;
+  border-radius:50%;
+  border:2px solid color-mix(in oklab, var(--brand), transparent 65%);
+  border-top-color:var(--brand);
+  animation:widget-spin 0.8s linear infinite;
+}
+.widget-loading__label{
+  font-size:12px;
+  font-weight:600;
+  color:var(--muted, #6b7280);
+}
+@keyframes widget-spin{
+  to{ transform:rotate(360deg); }
 }
 .layout-grid.show-guides{
   background-image:
