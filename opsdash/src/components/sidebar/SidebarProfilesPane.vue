@@ -293,6 +293,16 @@ function formatRelative(value?: string | null): string {
   font-size:11px;
   color:var(--color-text-lighter);
 }
+
+:global(#opsdash.opsdash-theme-dark) .preset-item{
+  background:var(--opsdash-surface);
+  border-color:var(--opsdash-border);
+  color:var(--opsdash-text);
+}
+
+:global(#opsdash.opsdash-theme-dark) .preset-info{
+  color:var(--opsdash-muted);
+}
 .preset-actions{
   display:flex;
   gap:6px;

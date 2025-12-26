@@ -1245,13 +1245,127 @@
 }
 #opsdash.opsdash-theme-dark .ghost-btn--edit{
   color:#f8fafc;
-  background:color-mix(in oklab, var(--brand) 65%, #0f172a 35%);
-  border-color:color-mix(in oklab, var(--brand), transparent 10%);
+  background:#1d4ed8;
+  border-color:#1e40af;
   box-shadow:0 0 0 1px rgba(96,165,250,0.35);
 }
 #opsdash.opsdash-theme-dark .ghost-btn--edit .ghost-btn__icon{
   color:#f8fafc;
   opacity:1;
+}
+#opsdash.opsdash-theme-dark{
+  --opsdash-surface: #0b1220;
+  --opsdash-card: #0f172a;
+  --opsdash-border: #1e2a44;
+  --opsdash-accent: #3b82f6;
+  --opsdash-accent-soft: #1d4ed8;
+  --opsdash-text: #e2e8f0;
+  --opsdash-muted: #94a3b8;
+}
+#opsdash.opsdash-theme-dark .cards-toolbar__tabs{
+  border-bottom:1px solid var(--opsdash-border);
+}
+#opsdash.opsdash-theme-dark .tab-btn{
+  background:#0d1526;
+  border-color:var(--opsdash-border);
+  color:var(--opsdash-muted);
+  box-shadow:none;
+}
+#opsdash.opsdash-theme-dark .tab-btn.active{
+  background:#13203a;
+  border-color:color-mix(in oklab, var(--opsdash-accent), transparent 20%);
+  color:var(--opsdash-text);
+}
+#opsdash.opsdash-theme-dark .tab-btn.active::after{
+  background:#60a5fa;
+}
+#opsdash.opsdash-theme-dark .tab-btn--add{
+  background:#0f1a30;
+  border-color:var(--opsdash-border);
+  color:var(--opsdash-muted);
+}
+#opsdash.opsdash-theme-dark .cards-toolbar select{
+  background:#0f1a30;
+  color:var(--opsdash-text);
+  border-color:var(--opsdash-border);
+}
+#opsdash.opsdash-theme-dark .cards-toolbar select:focus{
+  outline:2px solid color-mix(in oklab, var(--opsdash-accent), transparent 40%);
+  outline-offset:1px;
+}
+#opsdash.opsdash-theme-dark .tab-context-menu{
+  background:#0f1a30;
+  border-color:var(--opsdash-border);
+}
+#opsdash.opsdash-theme-dark .tab-context-menu button:hover{
+  background:#162447;
+}
+#opsdash.opsdash-theme-dark .chart-widget__empty,
+#opsdash.opsdash-theme-dark .table-widget__empty,
+#opsdash.opsdash-theme-dark .deck-panel__subtitle,
+#opsdash.opsdash-theme-dark .deck-panel__count,
+#opsdash.opsdash-theme-dark .deck-panel__loading,
+#opsdash.opsdash-theme-dark .deck-panel__error,
+#opsdash.opsdash-theme-dark .deck-summary-card__subtitle,
+#opsdash.opsdash-theme-dark .deck-summary-card__meta,
+#opsdash.opsdash-theme-dark .deck-summary-card__loading,
+#opsdash.opsdash-theme-dark .deck-summary-card__error,
+#opsdash.opsdash-theme-dark .deck-summary-card__empty,
+#opsdash.opsdash-theme-dark .time-summary-row .label,
+#opsdash.opsdash-theme-dark .time-summary-row .hint,
+#opsdash.opsdash-theme-dark .time-summary-activity__line,
+#opsdash.opsdash-theme-dark .time-summary-activity__delta,
+#opsdash.opsdash-theme-dark .time-summary-delta,
+#opsdash.opsdash-theme-dark .activity-card__meta,
+#opsdash.opsdash-theme-dark .activity-card__hint,
+#opsdash.opsdash-theme-dark .dayoff-meta,
+#opsdash.opsdash-theme-dark .dayoff-tile__label,
+#opsdash.opsdash-theme-dark .dayoff-tile__meta,
+#opsdash.opsdash-theme-dark .mix-subtitle,
+#opsdash.opsdash-theme-dark .mix-column-label,
+#opsdash.opsdash-theme-dark .mix-label,
+#opsdash.opsdash-theme-dark .mix-badge,
+#opsdash.opsdash-theme-dark .hint,
+#opsdash.opsdash-theme-dark .empty{
+  color:var(--opsdash-muted);
+}
+#opsdash.opsdash-theme-dark .targets-card .status-on{
+  background:color-mix(in oklab, var(--opsdash-accent), #0b1220 70%);
+  color:#dbeafe;
+}
+#opsdash.opsdash-theme-dark .targets-card .status-risk{
+  background:color-mix(in oklab, #f97316, #0b1220 70%);
+  color:#fdba74;
+}
+#opsdash.opsdash-theme-dark .targets-card .status-behind{
+  background:color-mix(in oklab, #ef4444, #0b1220 70%);
+  color:#fecaca;
+}
+#opsdash.opsdash-theme-dark .targets-card .status-done{
+  background:color-mix(in oklab, #22c55e, #0b1220 70%);
+  color:#bbf7d0;
+}
+#opsdash.opsdash-theme-dark .targets-card .status-none{
+  background:color-mix(in oklab, var(--opsdash-muted), #0b1220 70%);
+  color:var(--opsdash-muted);
+}
+#opsdash.opsdash-theme-dark .notes-textarea{
+  background:#0f1a30;
+  border-color:var(--opsdash-border);
+  color:var(--opsdash-text);
+}
+#opsdash.opsdash-theme-dark .notes-textarea:focus{
+  border-color:#60a5fa;
+  box-shadow:0 0 0 1px #60a5fa;
+}
+#opsdash.opsdash-theme-dark .deck-panel__filters button{
+  background:#0f1a30;
+  border-color:var(--opsdash-border);
+  color:var(--opsdash-text);
+}
+#opsdash.opsdash-theme-dark .deck-panel__filters button[aria-pressed="true"]{
+  background:#1d4ed8;
+  color:#f8fafc;
 }
 #opsdash .tab-context-menu{
   position:fixed;

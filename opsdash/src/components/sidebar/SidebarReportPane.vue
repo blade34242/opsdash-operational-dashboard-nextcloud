@@ -309,4 +309,25 @@ function cloneReporting(value: ReportingConfig): ReportingConfig {
   font-size: 0.85rem;
   color: var(--color-text-lighter);
 }
+
+:global(#opsdash.opsdash-theme-dark) .report-card{
+  background:var(--opsdash-surface);
+  border-color:var(--opsdash-border);
+  color:var(--opsdash-text);
+}
+
+:global(#opsdash.opsdash-theme-dark) .report-card__subtitle,
+:global(#opsdash.opsdash-theme-dark) .report-saving{
+  color:var(--opsdash-muted);
+}
+
+:global(#opsdash.opsdash-theme-dark) .report-save{
+  background:#0f1a30;
+  border-color:var(--opsdash-border);
+  color:var(--opsdash-text);
+}
+
+:global(#opsdash.opsdash-theme-dark) .report-notify{
+  border-color:var(--opsdash-border);
+}
 </style>
