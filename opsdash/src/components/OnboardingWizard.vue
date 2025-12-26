@@ -60,6 +60,8 @@
             :on-total-hours-change="onTotalHoursChange"
             :all-day-hours-input="allDayHoursInput"
             :on-all-day-hours-change="onAllDayHoursChange"
+            :trend-lookback-input="trendLookbackInput"
+            :on-trend-lookback-change="onTrendLookbackChange"
             :deck-settings-draft="deckSettingsDraft"
             :set-deck-enabled="setDeckEnabled"
             :deck-boards="deckBoards"
@@ -192,7 +194,10 @@ const props = defineProps<{
   snapshotSaving?: boolean
   snapshotNotice?: { type: 'success' | 'error'; message: string } | null
   initialDashboardMode?: 'quick' | 'standard' | 'pro'
-  initialTargetsConfig?: { activityCard?: Pick<ActivityCardConfig, 'showDayOffTrend'> } | null
+  initialTargetsConfig?: {
+    activityCard?: Pick<ActivityCardConfig, 'showDayOffTrend'>
+    balanceTrendLookback?: number
+  } | null
 }>()
 
 const emit = defineEmits<{
@@ -241,6 +246,8 @@ const {
   onTotalHoursChange,
   allDayHoursInput,
   onAllDayHoursChange,
+  trendLookbackInput,
+  onTrendLookbackChange,
   deckSettingsDraft,
   setDeckEnabled,
   deckBoards,

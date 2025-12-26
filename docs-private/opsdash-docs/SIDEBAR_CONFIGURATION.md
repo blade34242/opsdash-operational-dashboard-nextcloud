@@ -138,7 +138,6 @@ All sidebar state can be represented as a single JSON envelope:
 | `useCategoryMapping` | Enable category mapping. |
 | `index.method` | `'simple_range'` (default) or `'shannon_evenness'`. |
 | `relations.displayMode` | `'ratio'` or `'factor'`. |
-| `trend.lookbackWeeks` | Integer 1–6 (default 3). Global trend lookback (chart widgets may override). |
 | `dayparts.enabled` | Toggle day-part analysis. |
 | `ui.roundPercent` | Integer 0–3 (decimal places). |
 | `ui.roundRatio` | Integer 0–3. |

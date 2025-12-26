@@ -51,6 +51,10 @@ export function useOnboardingFlow(deps: OnboardingFlowDeps) {
 
   const wizardInitialAllDayHours = computed(() => deps.targetsConfig.value?.allDayHours ?? 8)
   const wizardInitialTotalHours = computed(() => deps.targetsConfig.value?.totalHours ?? 40)
+  const wizardInitialTargetsConfig = computed(() => ({
+    activityCard: deps.targetsConfig.value?.activityCard,
+    balanceTrendLookback: deps.targetsConfig.value?.balance?.trend?.lookbackWeeks ?? 3,
+  }))
   const wizardInitialDeckSettings = computed(() => ({ ...(deps.deckSettings.value || {}) }))
   const wizardInitialReportingConfig = computed(() => ({ ...(deps.reportingConfig.value || {}) }))
   const wizardInitialDashboardMode = computed(() => (deps.onboardingState.value?.dashboardMode as any) || 'standard')
@@ -130,6 +134,7 @@ export function useOnboardingFlow(deps: OnboardingFlowDeps) {
     wizardInitialStrategy,
     wizardInitialAllDayHours,
     wizardInitialTotalHours,
+    wizardInitialTargetsConfig,
     wizardInitialDeckSettings,
     wizardInitialReportingConfig,
     wizardInitialDashboardMode,

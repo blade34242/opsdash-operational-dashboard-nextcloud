@@ -275,7 +275,8 @@ function formatRelative(value?: string | null): string {
   display:flex;
   flex-direction:column;
   gap:6px;
-  background:var(--color-main-background);
+  background:var(--color-background-hover);
+  color:var(--color-main-text);
 }
 .preset-meta{
   display:flex;
@@ -290,7 +291,7 @@ function formatRelative(value?: string | null): string {
   flex-wrap:wrap;
   gap:8px;
   font-size:11px;
-  color:var(--text-color-tertiary);
+  color:var(--color-text-lighter);
 }
 .preset-actions{
   display:flex;

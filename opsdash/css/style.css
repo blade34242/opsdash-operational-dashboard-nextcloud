@@ -269,6 +269,30 @@
   background:color-mix(in oklab, var(--brand), transparent 80%);
   color:var(--brand);
 }
+#opsdash .range-badge{
+  display:inline-flex;
+  align-items:center;
+  gap:8px;
+  padding:6px 12px;
+  border-radius:999px;
+  background:color-mix(in oklab, var(--brand), var(--card) 85%);
+  border:1px solid color-mix(in oklab, var(--brand), transparent 25%);
+  color:var(--fg);
+  font-weight:700;
+  font-size:13px;
+  letter-spacing:0.02em;
+}
+#opsdash .range-badge__mode{
+  text-transform:uppercase;
+  font-size:12px;
+  letter-spacing:0.08em;
+  color:var(--brand);
+}
+#opsdash .range-badge__span{
+  font-weight:600;
+  font-size:12px;
+  color:var(--muted, #6b7280);
+}
 #opsdash .cards{
   display:block;
   margin:10px 0;
@@ -1102,7 +1126,7 @@
   display:flex;
   align-items:center;
   gap:12px;
-  margin-bottom:12px;
+  margin-bottom:6px;
   width:100%;
   flex-wrap:wrap;
   justify-content:flex-start;
@@ -1112,8 +1136,8 @@
   align-items:center;
   gap:6px;
   flex-wrap:wrap;
-  border-bottom:2px solid color-mix(in oklab, var(--line), transparent 20%);
-  padding-bottom:4px;
+  border-bottom:1px solid color-mix(in oklab, var(--line), transparent 10%);
+  padding-bottom:2px;
 }
 #opsdash .cards-toolbar__center{
   display:flex;
@@ -1127,15 +1151,15 @@
   align-items:center;
   gap:6px;
   border:1px solid color-mix(in oklab, var(--line), transparent 10%);
-  border-bottom:none;
-  background:color-mix(in oklab, var(--card), var(--soft) 20%);
-  padding:7px 14px 6px;
-  border-radius:12px 12px 0 0;
+  border-bottom:0;
+  background:color-mix(in oklab, var(--card), var(--soft) 12%);
+  padding:6px 12px 5px;
+  border-radius:6px 6px 0 0;
   font-weight:600;
   cursor:pointer;
   color:var(--muted);
   position:relative;
-  box-shadow:0 1px 0 rgba(15,23,42,0.05);
+  box-shadow:0 1px 0 rgba(15,23,42,0.04);
 }
 #opsdash .tab-btn.active{
   color:var(--fg);
@@ -1145,10 +1169,10 @@
 #opsdash .tab-btn.active::after{
   content:'';
   position:absolute;
-  left:8px;
-  right:8px;
-  bottom:-5px;
-  height:3px;
+  left:6px;
+  right:6px;
+  bottom:-2px;
+  height:2px;
   background:var(--brand);
   border-radius:999px;
 }
@@ -1215,11 +1239,19 @@
   background:color-mix(in oklab, var(--brand) 20%, #ffffff 80%);
   border-color:color-mix(in oklab, var(--brand), transparent 35%);
 }
+#opsdash.opsdash-theme-light .ghost-btn--edit .ghost-btn__icon{
+  color:#0f172a;
+  opacity:1;
+}
 #opsdash.opsdash-theme-dark .ghost-btn--edit{
-  color:#e2e8f0;
-  background:color-mix(in oklab, var(--brand) 45%, #0f172a 55%);
-  border-color:color-mix(in oklab, var(--brand), transparent 20%);
-  box-shadow:0 0 0 1px rgba(96,165,250,0.25);
+  color:#f8fafc;
+  background:color-mix(in oklab, var(--brand) 65%, #0f172a 35%);
+  border-color:color-mix(in oklab, var(--brand), transparent 10%);
+  box-shadow:0 0 0 1px rgba(96,165,250,0.35);
+}
+#opsdash.opsdash-theme-dark .ghost-btn--edit .ghost-btn__icon{
+  color:#f8fafc;
+  opacity:1;
 }
 #opsdash .tab-context-menu{
   position:fixed;

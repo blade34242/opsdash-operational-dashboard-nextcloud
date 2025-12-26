@@ -21,8 +21,6 @@ describe('SidebarCalendarsPane', () => {
     calendarTargetMessages: {},
     calendarCategoryId: () => '',
     getTarget: () => '',
-    lookbackWeeks: 3,
-    lookbackMessage: null,
   } as const
 
   it('emits toggle-calendar when calendar card is clicked', async () => {
@@ -87,22 +85,6 @@ describe('SidebarCalendarsPane', () => {
     expect(wrapper.find('.shortcuts-box').exists()).toBe(true)
     await btn?.trigger('click')
     expect(wrapper.find('.shortcuts-box').exists()).toBe(false)
-  })
-
-  it('emits update-lookback when lookback input changes', async () => {
-    const wrapper = mount(SidebarCalendarsPane, {
-      props: {
-        ...baseProps,
-        calendars: [],
-        selected: [],
-        getTarget: () => 0,
-      },
-    })
-
-    const input = wrapper.get('.sb-inline input')
-    await input.setValue('4')
-
-    expect(wrapper.emitted('update-lookback')).toEqual([[ '4' ]])
   })
 
   it('emits rerun-onboarding with step when jump button clicked', async () => {

@@ -69,4 +69,15 @@ describe('OnboardingWizard', () => {
     await calendarsPill?.trigger('click')
     expect(calendarsPill?.classes()).toContain('active')
   })
+
+  it('shows global trend lookback input in preferences', () => {
+    const wrapper = mountWizard({
+      startStep: 'preferences',
+      initialTargetsConfig: { balanceTrendLookback: 5 },
+    })
+    const inputs = wrapper.findAll('input[type="number"]')
+    const lookbackInput = inputs.find((node) => node.attributes('max') === '6' && node.attributes('min') === '1')
+    expect(lookbackInput).toBeDefined()
+    expect(lookbackInput?.element.value).toBe('5')
+  })
 })

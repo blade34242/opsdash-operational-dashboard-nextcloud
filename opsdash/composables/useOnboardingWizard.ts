@@ -40,7 +40,10 @@ type WizardProps = {
   snapshotSaving?: boolean
   snapshotNotice?: { type: 'success' | 'error'; message: string } | null
   // legacy/optional: was referenced without being typed in the SFC
-  initialTargetsConfig?: { activityCard?: Pick<ActivityCardConfig, 'showDayOffTrend'> } | null
+  initialTargetsConfig?: {
+    activityCard?: Pick<ActivityCardConfig, 'showDayOffTrend'>
+    balanceTrendLookback?: number
+  } | null
 }
 
 type WizardEmit = (event: string, payload?: any) => void
@@ -59,6 +62,7 @@ export function useOnboardingWizard(options: { props: WizardProps; emit: WizardE
   const themePreference = ref<'auto' | 'light' | 'dark'>('auto')
   const allDayHoursInput = ref(8)
   const totalHoursInput = ref<number | null>(null)
+  const trendLookbackInput = ref(3)
   const deckSettingsDraft = ref<DeckFeatureSettings>(cloneDeckSettings(props.initialDeckSettings ?? createDefaultDeckSettings()))
   const reportingDraft = ref<ReportingConfig>({ ...(props.initialReportingConfig ?? createDefaultReportingConfig()) })
   const activityDraft = ref<Pick<ActivityCardConfig, 'showDayOffTrend'>>({
@@ -222,6 +226,7 @@ export function useOnboardingWizard(options: { props: WizardProps; emit: WizardE
     themePreference.value = props.initialThemePreference ?? 'auto'
     allDayHoursInput.value = clampAllDayHours(props.initialAllDayHours ?? 8)
     totalHoursInput.value = clampTotalHours(props.initialTotalHours ?? null)
+    trendLookbackInput.value = clampLookback(props.initialTargetsConfig?.balanceTrendLookback ?? 3)
     deckSettingsDraft.value = cloneDeckSettings(props.initialDeckSettings ?? createDefaultDeckSettings())
     reportingDraft.value = { ...(props.initialReportingConfig ?? createDefaultReportingConfig()) }
     activityDraft.value = {
@@ -482,6 +487,11 @@ export function useOnboardingWizard(options: { props: WizardProps; emit: WizardE
     return Math.round(clamped * 100) / 100
   }
 
+  function clampLookback(value: number): number {
+    if (!Number.isFinite(value)) return 3
+    return Math.max(1, Math.min(6, Math.round(value)))
+  }
+
   function cloneDeckSettings(value: DeckFeatureSettings): DeckFeatureSettings {
     return JSON.parse(JSON.stringify(value))
   }
@@ -549,6 +559,12 @@ export function useOnboardingWizard(options: { props: WizardProps; emit: WizardE
   function onAllDayHoursChange(input: HTMLInputElement) {
     const parsed = Number(input.value)
     allDayHoursInput.value = clampAllDayHours(Number.isFinite(parsed) ? parsed : allDayHoursInput.value)
+  }
+
+  function onTrendLookbackChange(input: HTMLInputElement) {
+    const parsed = Number(input.value)
+    if (!Number.isFinite(parsed)) return
+    trendLookbackInput.value = clampLookback(parsed)
   }
 
   function setReportingEnabled(enabled: boolean) {
@@ -630,6 +646,9 @@ export function useOnboardingWizard(options: { props: WizardProps; emit: WizardE
     )
     const config = result.targetsConfig
     config.allDayHours = clampAllDayHours(allDayHoursInput.value)
+    if (!config.balance) config.balance = { basis: 'events', trend: { lookbackWeeks: trendLookbackInput.value } } as any
+    if (!config.balance.trend) config.balance.trend = { lookbackWeeks: trendLookbackInput.value }
+    config.balance.trend.lookbackWeeks = clampLookback(trendLookbackInput.value)
     if (categoriesEnabled.value) {
       const total = clampTotalHours(categoryTotalHours.value)
       if (total != null) config.totalHours = total
@@ -664,6 +683,9 @@ export function useOnboardingWizard(options: { props: WizardProps; emit: WizardE
     )
     const config = result.targetsConfig
     config.allDayHours = clampAllDayHours(allDayHoursInput.value)
+    if (!config.balance) config.balance = { basis: 'events', trend: { lookbackWeeks: trendLookbackInput.value } } as any
+    if (!config.balance.trend) config.balance.trend = { lookbackWeeks: trendLookbackInput.value }
+    config.balance.trend.lookbackWeeks = clampLookback(trendLookbackInput.value)
     if (categoriesEnabled.value) {
       const total = clampTotalHours(categoryTotalHours.value)
       if (total != null) config.totalHours = total
@@ -763,6 +785,7 @@ export function useOnboardingWizard(options: { props: WizardProps; emit: WizardE
     themePreference,
     allDayHoursInput,
     totalHoursInput,
+    trendLookbackInput,
     deckSettingsDraft,
     reportingDraft,
     activityDraft,
@@ -811,6 +834,7 @@ export function useOnboardingWizard(options: { props: WizardProps; emit: WizardE
     setCategoryPaceMode,
     onTotalHoursChange,
     onAllDayHoursChange,
+    onTrendLookbackChange,
     setReportingEnabled,
     setReportingSchedule,
     setReportingInterim,

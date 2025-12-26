@@ -12,6 +12,7 @@
       :system-theme="systemTheme"
       :initial-all-day-hours="wizardInitialAllDayHours"
       :initial-total-hours="wizardInitialTotalHours"
+      :initial-targets-config="wizardInitialTargetsConfig"
       :initial-deck-settings="wizardInitialDeckSettings"
       :initial-reporting-config="wizardInitialReportingConfig"
       :initial-dashboard-mode="wizardInitialDashboardMode"
@@ -148,7 +149,10 @@
               <div class="title">
                 <img :src="iconSrc" @error="onIconError" class="app-icon" alt="" aria-hidden="true" />
                 <span>Operational Dashboard</span>
-                <span class="chip" v-text="range.toUpperCase()" />
+                <span class="range-badge" aria-label="Active range">
+                  <span class="range-badge__mode" v-text="rangeBadgePrimary" />
+                  <span class="range-badge__span" v-text="rangeBadgeSecondary" />
+                </span>
               </div>
               <div class="hint appbar-meta">
                 <NcLoadingIcon v-if="isLoading" :size="16" />
@@ -852,6 +856,7 @@ const {
   wizardInitialStrategy,
   wizardInitialAllDayHours,
   wizardInitialTotalHours,
+  wizardInitialTargetsConfig,
   wizardInitialDeckSettings,
   wizardInitialReportingConfig,
   wizardInitialDashboardMode,
@@ -944,6 +949,25 @@ const {
 const activeDayMode = ref<'active'|'all'>('active')
 const rangeLabel = computed(()=> range.value === 'month' ? 'Month' : 'Week')
 const layoutRef = ref<InstanceType<typeof DashboardLayout> | null>(null)
+
+function isoWeek(date: Date) {
+  const tmp = new Date(Date.UTC(date.getFullYear(), date.getMonth(), date.getDate()))
+  const day = tmp.getUTCDay() || 7
+  tmp.setUTCDate(tmp.getUTCDate() + 4 - day)
+  const yearStart = new Date(Date.UTC(tmp.getUTCFullYear(), 0, 1))
+  return Math.ceil((((tmp.getTime() - yearStart.getTime()) / 86400000) + 1) / 7)
+}
+
+const rangeBadgePrimary = computed(() => {
+  const date = new Date(from.value)
+  if (!Number.isFinite(date.getTime())) return range.value.toUpperCase()
+  if (range.value === 'month') {
+    return `MONTH ${date.getMonth() + 1}`
+  }
+  return `WEEK ${isoWeek(date)}`
+})
+
+const rangeBadgeSecondary = computed(() => rangeDateLabel.value)
 
 const targetsConfigForRange = computed(() => {
   const base = cloneTargetsConfig(targetsConfig.value)

@@ -67,6 +67,7 @@ needed to guide new users toward a useful initial configuration.
   - Deck quick-setup: show detected Deck boards (if the Deck app is enabled) with checkboxes so users can immediately choose which boards surface in the Deck tab. Defaults: all boards visible; tooltips link to Deck if no boards are found. **Shipped** — see `pref-card--deck` in `OnboardingWizard.vue`.
   - Reporting primer: toggle to enable weekly/monthly digests plus reminder cadence. Surface a short explanation (“Opsdash can send a weekly recap and remind you when targets drift”). **Shipped** — persisted via `reporting_config`.
   - Activity day-off trend toggle: explains the new heatmap on the Activity card so users can opt out before their first load. **Shipped** — persisted via `targets_config_activity.showDayOffTrend`.
+  - Global trend lookback: set how many past weeks/months charts compare against. **Shipped** — persisted via `targets_config.balance.trend.lookbackWeeks`.
   - Balance Index Basis dropdown (new): let users choose whether the index is calculated solely from category shares, solely from calendar totals, or by combining both (default “both”). Each option comes with a short explanation under the control and writes `targets_config.balance.indexBasis` so the dashboard renders the requested mix consistently and the backend can echo the selection on future `/persist` calls.
 6. **Review & Confirm**
    - Summary of choices: strategy, selected calendars, targets seeded, weekend 

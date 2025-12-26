@@ -186,7 +186,8 @@ function cloneReporting(value: ReportingConfig): ReportingConfig {
   border-radius: 12px;
   padding: 1rem;
   margin-bottom: 1rem;
-  background: var(--color-main-background);
+  background: var(--color-background-hover);
+  color: var(--color-main-text);
 }
 .report-card__header {
   display: flex;
@@ -200,7 +201,7 @@ function cloneReporting(value: ReportingConfig): ReportingConfig {
 }
 .report-card__subtitle {
   font-size: 0.85rem;
-  color: var(--color-text-maxcontrast);
+  color: var(--color-text-lighter);
 }
 .report-form {
   display: flex;
@@ -258,7 +259,7 @@ function cloneReporting(value: ReportingConfig): ReportingConfig {
   border-radius: 999px;
   border: 1px solid var(--color-border-maxcontrast);
   padding: 0.35rem 0.9rem;
-  background: var(--color-main-background);
+  background: var(--color-background-hover);
   cursor: pointer;
 }
 .report-save:disabled {
@@ -306,6 +307,6 @@ function cloneReporting(value: ReportingConfig): ReportingConfig {
 }
 .report-saving {
   font-size: 0.85rem;
-  color: var(--color-text-maxcontrast);
+  color: var(--color-text-lighter);
 }
 </style>

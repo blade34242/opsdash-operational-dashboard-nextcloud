@@ -100,15 +100,12 @@
       :calendar-target-messages="calendarTargetMessages"
       :calendar-category-id="calendarCategoryId"
       :get-target="getTarget"
-      :lookback-weeks="targetsConfig.balance?.trend?.lookbackWeeks ?? 3"
-      :lookback-message="lookbackMessage"
       @select-all="emitSelectAll"
       @toggle-calendar="emitToggleCalendar"
       @set-category="handleCalendarCategory"
       @target-input="handleCalendarTargetInput"
       @rerun-onboarding="(step?: string) => emit('rerun-onboarding', step)"
       @open-shortcuts="(el) => emit('open-shortcuts', el)"
-      @update-lookback="handleLookbackInput"
     />
 
     <SidebarConfigPane
@@ -260,7 +257,6 @@ const calendarTargetMessages = reactive<Record<string, InputMessage | null>>({})
 const categoryTargetMessages = reactive<Record<string, InputMessage | null>>({})
 const totalTargetMessage = ref<InputMessage | null>(null)
 const allDayHoursMessage = ref<InputMessage | null>(null)
-const lookbackMessage = ref<InputMessage | null>(null)
 const paceThresholdMessages = reactive<{ onTrack: InputMessage | null; atRisk: InputMessage | null }>({ onTrack: null, atRisk: null })
 const forecastMomentumMessage = ref<InputMessage | null>(null)
 const forecastPaddingMessage = ref<InputMessage | null>(null)
@@ -348,10 +344,6 @@ function handleCalendarTargetInput(payload: { id: string; value: string }) {
   onCalendarTargetInput(payload.id, payload.value)
 }
 
-function handleLookbackInput(value: string) {
-  setTrendLookback(value)
-}
-
 function handleSummaryOption(payload: { key: keyof TargetsConfig['timeSummary']; value: boolean }) {
   setSummaryOption(payload.key, payload.value)
 }
@@ -385,19 +377,6 @@ function setAllDayHours(value: string){
   )
 }
 
-function setTrendLookback(value: string) {
-  applyNumericUpdate(
-    value,
-    { min: 1, max: 6, step: 1, decimals: 0 },
-    (message) => { lookbackMessage.value = message },
-    (num) => updateConfig(cfg => {
-      if (!cfg.balance) cfg.balance = normalizeTargetsConfig(cfg).balance
-      if (!cfg.balance.trend) cfg.balance.trend = { lookbackWeeks: num }
-      cfg.balance.trend.lookbackWeeks = num
-    }),
-    '1–6 periods',
-  )
-}
 
 function setCategoryTarget(id: string, value: string){
   applyNumericUpdate(

@@ -86,6 +86,23 @@
       <p class="pref-hint">Default is 8 h — adjust if your organisation tracks different durations.</p>
     </article>
 
+    <article class="pref-card">
+      <h4>Trend lookback (global)</h4>
+      <p class="pref-desc">Controls how many past periods trend widgets compare against.</p>
+      <label class="field">
+        <span class="label">Lookback (weeks / months)</span>
+        <input
+          type="number"
+          :value="trendLookbackInput"
+          min="1"
+          max="6"
+          step="1"
+          @input="onTrendLookbackChange($event.target as HTMLInputElement)"
+        />
+      </label>
+      <p class="pref-hint">Applies to both week and month views.</p>
+    </article>
+
     <article class="pref-card pref-card--deck">
       <h4>Deck cards</h4>
       <p class="pref-desc">Bring Deck boards into Opsdash. Cards remain read-only so you can focus on status.</p>
@@ -194,6 +211,8 @@ defineProps<{
   onTotalHoursChange: (el: HTMLInputElement) => void
   allDayHoursInput: number
   onAllDayHoursChange: (el: HTMLInputElement) => void
+  trendLookbackInput: number
+  onTrendLookbackChange: (el: HTMLInputElement) => void
   deckSettingsDraft: DeckFeatureSettings
   setDeckEnabled: (enabled: boolean) => void
   deckBoards: Array<{ id: number; title: string }>
@@ -210,4 +229,3 @@ defineProps<{
   setActivityDayOff: (enabled: boolean) => void
 }>()
 </script>
-
