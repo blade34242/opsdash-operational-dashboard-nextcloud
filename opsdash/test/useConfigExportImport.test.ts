@@ -3,6 +3,7 @@ import { ref } from 'vue'
 
 import { useConfigExportImport } from '../composables/useConfigExportImport'
 import { createDefaultTargetsConfig } from '../src/services/targets'
+import { createDefaultWidgetTabs } from '../src/services/widgetsRegistry'
 import presetFixture from './fixtures/preset-export.json'
 import onboardingFixture from './fixtures/onboarding-export.json'
 
@@ -14,6 +15,7 @@ function setup(overrides: Record<string, any> = {}) {
   const targetsConfig = ref(createDefaultTargetsConfig())
   const themePreference = ref<'auto' | 'light' | 'dark'>('auto')
   const onboardingState = ref<any>(null)
+  const widgetTabs = overrides.widgetTabs ?? ref(createDefaultWidgetTabs('standard'))
 
   const setThemePreference = vi.fn()
   const postJson = vi.fn().mockResolvedValue({})
@@ -31,6 +33,7 @@ function setup(overrides: Record<string, any> = {}) {
     targetsConfig,
     themePreference,
     onboardingState,
+    widgetTabs,
     setThemePreference,
     postJson,
     route,
@@ -55,6 +58,7 @@ function setup(overrides: Record<string, any> = {}) {
     notifySuccess,
     notifyError,
     createDownload,
+    widgetTabs,
     ...helpers,
   }
 }
@@ -94,5 +98,21 @@ describe('useConfigExportImport', () => {
     expect(ctx.selected.value).toEqual(presetFixture.payload.cals)
     expect(ctx.targetsWeek.value).toEqual(presetFixture.payload.targets_week)
     expect(ctx.notifySuccess).toHaveBeenCalled()
+  })
+
+  it('normalizes widget layouts when importing legacy payloads', async () => {
+    const widgetTabs = ref(createDefaultWidgetTabs('standard'))
+    const ctx = setup({ widgetTabs })
+    const legacyPayload = {
+      cals: ['personal'],
+      widgets: [
+        { type: 'note_editor', layout: { width: 'half', height: 'm', order: 1 }, options: {} },
+      ],
+    }
+
+    await ctx.applyConfigSource(legacyPayload)
+
+    expect(ctx.widgetTabs.value.tabs).toHaveLength(1)
+    expect(ctx.widgetTabs.value.tabs[0].widgets[0].type).toBe('note_editor')
   })
 })
