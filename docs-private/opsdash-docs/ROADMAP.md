@@ -60,6 +60,9 @@ Single source of truth for the Opsdash backlog: high-level roadmap, target syste
 - 🔄 Extend Vitest/Playwright per Testing Guide Phase 2 (coverage gaps noted above). Added deck_settings client test; onboarding Playwright flow exercises final tweaks (reporting/deck).
 - ⏳ Explore “By Calendar Events” drill-down UX (no code yet).
 - ⏳ Enhance chart labelling + info badges alignment.
+- ⏳ Improve UI polish for new chart widgets (layout, spacing, contrast, compact scale behavior).
+- ⏳ Use user date format, week start, and timezone from Nextcloud preferences; apply consistently across the app.
+- ⏳ I18n sweep: ensure all UI strings use Nextcloud translations (t/n), remove hardcoded labels.
 - ⏳ Category rows: add “Today” mini callouts in Targets chart.
 - ⏳ Balance chart: overlay current slice (e.g., “31% ^+3% Today”) + keep 5 columns; add tests for lookback 3/4/6 clamp.
 - ⚠️ Create “Deck Summary” top card — shipping as `DeckSummaryCard.vue` but not wired to Deck tab filters; next: sync bucket clicks to filters.
@@ -132,7 +135,7 @@ Single source of truth for the Opsdash backlog: high-level roadmap, target syste
 
 ### P2 – Server & Performance
 
-- ⏳ Implement response caching for `/overview/load` per `CACHING_STRATEGY.md` (Option 1) using `ICacheFactory` + PHPUnit/Playwright coverage.
+- ⚠️ Caching review needed: tighten `/overview/load` cache key (sort selections, reduce config hash), add calendar change tokens (CTag/sync-token) to avoid stale data, and document cache hit/age. See `CACHING_REVIEW.md`.
 - ⏳ Normalize heatmap bucketing to user timezone (Known Issues).
 - ⚠️ Profile aggregation & split large PHP services (controller still heavy).
 - ⏳ Upgrade seeding scripts to more realistic schedules (expand variety).
