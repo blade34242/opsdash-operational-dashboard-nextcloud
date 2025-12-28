@@ -70,18 +70,30 @@ function mountSidebar() {
   })
 }
 
-describe('Sidebar onboarding links', () => {
-  it('emits rerun onboarding when clicking the main button', async () => {
+describe('Sidebar rangebar', () => {
+  it('emits refresh and navigation events', async () => {
     const wrapper = mountSidebar()
-    await wrapper.get('button.rerun-btn').trigger('click')
-    expect(wrapper.emitted('rerun-onboarding')).toEqual([[]])
+    await wrapper.get('button.sidebar-action-btn').trigger('click')
+    expect(wrapper.emitted('load')).toEqual([[]])
+
+    const navButtons = wrapper.findAll('button.nav-btn')
+    await navButtons[0].trigger('click')
+    await navButtons[1].trigger('click')
+
+    expect(wrapper.emitted('update:offset')).toEqual([[ -1 ], [ 1 ]])
   })
 
-  it('emits rerun onboarding with a step', async () => {
+  it('emits range changes', async () => {
     const wrapper = mountSidebar()
-    const calendars = wrapper.findAll('button.link').find((btn) => btn.text() === 'Calendars')
-    expect(calendars).toBeTruthy()
-    await calendars!.trigger('click')
-    expect(wrapper.emitted('rerun-onboarding')).toEqual([[ 'calendars' ]])
+    const monthToggle = wrapper.findAll('label').find((label) => label.text() === 'Month')
+    expect(monthToggle).toBeTruthy()
+    await monthToggle!.trigger('click')
+    expect(wrapper.emitted('update:range')).toEqual([[ 'month' ]])
+  })
+
+  it('emits toggle nav', async () => {
+    const wrapper = mountSidebar()
+    await wrapper.get('button.sidebar-toggle-btn').trigger('click')
+    expect(wrapper.emitted('toggle-nav')).toEqual([[]])
   })
 })

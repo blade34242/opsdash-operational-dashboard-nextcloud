@@ -58,4 +58,28 @@ describe('sidebar config sanitiser', () => {
     expect(cleaned.onboarding).toBeUndefined()
     expect(ignored).toEqual(['theme_preference', 'onboarding'])
   })
+
+  it('flags non-object payloads', () => {
+    const { cleaned, ignored } = sanitiseSidebarPayload('oops')
+    expect(cleaned).toEqual({})
+    expect(ignored).toEqual(['<invalid-payload>'])
+  })
+
+  it('rejects invalid widgets payloads', () => {
+    const { cleaned, ignored } = sanitiseSidebarPayload({
+      widgets: 'bad',
+      cals: ['cal-1'],
+    })
+    expect(cleaned.widgets).toBeUndefined()
+    expect(cleaned.cals).toEqual(['cal-1'])
+    expect(ignored).toContain('widgets')
+  })
+
+  it('accepts tabbed widgets shape', () => {
+    const { cleaned, ignored } = sanitiseSidebarPayload({
+      widgets: { tabs: [{ id: 't1', label: 'Overview', widgets: [] }] },
+    })
+    expect(ignored).toEqual([])
+    expect(cleaned.widgets).toBeTruthy()
+  })
 })

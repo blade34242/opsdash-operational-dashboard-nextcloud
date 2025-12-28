@@ -255,40 +255,4 @@ function heightLabel(height: string) {
   background:color-mix(in oklab, #2563EB, #111827 85%);
   border-color:color-mix(in oklab, #2563EB, transparent 50%);
 }
-:global(body.opsdash-theme-light) .widget-toolbar{
-  border:1px solid color-mix(in oklab, #2563eb, transparent 65%);
-  background:linear-gradient(180deg, #ffffff 0%, #f8fafc 100%);
-  box-shadow:0 10px 20px rgba(15,23,42,0.08), 0 0 0 1px rgba(59,130,246,0.12);
-}
-:global(body.opsdash-theme-light) .widget-toolbar:hover{
-  background:linear-gradient(180deg, #ffffff 0%, #eef2ff 100%);
-  box-shadow:0 12px 24px rgba(15,23,42,0.12), 0 0 0 1px rgba(59,130,246,0.18);
-}
-:global(body.opsdash-theme-light) .toolbar-title{
-  color:#0f172a;
-}
-:global(body.opsdash-theme-light) .toolbar-field{
-  color:#0f172a;
-}
-:global(body.opsdash-theme-light) .toolbar-field span{
-  opacity:0.7;
-}
-:global(body.opsdash-theme-light) .toolbar-field input[type="text"],
-:global(body.opsdash-theme-light) .toolbar-field select{
-  background:#ffffff;
-  color:#0f172a;
-  border-color:#d1d5db;
-}
-:global(body.opsdash-theme-light) .toolbar-field input[type="color"]{
-  border-color:#d1d5db;
-}
-:global(body.opsdash-theme-light) .widget-toolbar .ghost{
-  background:#ffffff;
-  border-color:#d1d5db;
-  color:#0f172a;
-}
-:global(body.opsdash-theme-light) .widget-toolbar .ghost:hover{
-  background:#eff6ff;
-  border-color:#60a5fa;
-}
 </style>

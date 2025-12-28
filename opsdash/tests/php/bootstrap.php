@@ -17,6 +17,12 @@ if (file_exists($composerAutoload)) {
 if (!class_exists(\OCP\AppFramework\Controller::class)) {
 	require __DIR__ . '/stubs/OCP/AppFramework/Controller.php';
 }
+if (!class_exists(\OCP\AppFramework\Http::class)) {
+	require __DIR__ . '/stubs/OCP/AppFramework/Http.php';
+}
+if (!class_exists(\OCP\AppFramework\Http\DataResponse::class)) {
+	require __DIR__ . '/stubs/OCP/AppFramework/Http/DataResponse.php';
+}
 
 $interfaceStubs = [
 	\OCP\IRequest::class => '/stubs/OCP/IRequest.php',

@@ -21,7 +21,7 @@ All notable changes to this project will be documented in this file.
 - Widget layouts now persist as a tabbed payload (`{ tabs, defaultTabId }`), with legacy arrays normalized into a single tab.
 - Layout toolbar is left-aligned and tab visuals are more pronounced for quick scanning (dark theme contrast improved).
 
-## [0.5.1] - Unreleased
+## [0.5.2] - Unreleased
 ### Added
 - Widget layout persistence now round-trips through `/overview/persist` and `/overview/load`, with sanitisation on the server and normalisation on the client (new `normalizeWidgetLayout`) plus Vitest/PHP coverage.
 - Balance/Activity controls restored: thresholds, index basis selector, display toggles, and activity card toggles with contextual help.
@@ -41,7 +41,7 @@ All notable changes to this project will be documented in this file.
 - Deck custom filter builder stacks on small screens so the inputs stay usable.
 ### Fixed
 - Widget layout no longer falls back to defaults after clearing cookies; server-saved layout is applied on reload.
-- Balance tests re-enabled and passing under 0.5.1 with corrected DOM structure and emits.
+- Balance tests re-enabled and passing under 0.5.2 with corrected DOM structure and emits.
 - Show title toggle now works across all widget types, including notes/text widgets.
 - Notes editor title prefix now updates live from the toolbar.
 

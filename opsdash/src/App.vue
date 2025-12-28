@@ -13,6 +13,7 @@
       :initial-all-day-hours="wizardInitialAllDayHours"
       :initial-total-hours="wizardInitialTotalHours"
       :initial-targets-config="wizardInitialTargetsConfig"
+      :initial-targets-week="targetsWeek"
       :initial-deck-settings="wizardInitialDeckSettings"
       :initial-reporting-config="wizardInitialReportingConfig"
       :initial-dashboard-mode="wizardInitialDashboardMode"
@@ -30,19 +31,12 @@
     <NcAppContent app-name="Operational Dashboard" :show-navigation="navOpen">
       <template #navigation>
         <Sidebar
-          ref="sidebarRef"
           id="opsdash-sidebar"
-          :calendars="calendars"
-          :selected="selected"
-          :groups-by-id="groupsById"
           :is-loading="isLoading"
           :range="range"
           :offset="offset"
           :from="from"
           :to="to"
-          :targets-week="targetsWeek"
-          :targets-month="targetsMonth"
-          :targets-config="targetsConfig"
           :nav-toggle-label="navToggleLabel"
           :nav-toggle-icon="navToggleIcon"
           :presets="presets"
@@ -50,21 +44,10 @@
           :preset-saving="presetSaving"
           :preset-applying="presetApplying"
           :preset-warnings="presetWarnings"
-          :theme-preference="themePreference"
-          :effective-theme="effectiveTheme"
-          :system-theme="systemTheme"
-          :reporting-config="reportingConfig"
-          :deck-settings="deckSettings"
-          :reporting-saving="reportingSaving"
           :dashboard-mode="dashboardMode"
           @load="performLoad"
           @update:range="(v)=>{ range=v as any; offset=0; performLoad() }"
           @update:offset="(v)=>{ offset=v as number; performLoad() }"
-          @select-all="(v:boolean)=> selectAll(v)"
-          @toggle-calendar="(id:string)=> toggleCalendar(id)"
-          @set-group="(p:{id:string;n:any})=> setGroup(p.id, p.n)"
-          @set-target="(p:{id:string;h:any})=> setTarget(p.id, p.h)"
-          @update:targets-config="updateTargetsConfig"
           @toggle-nav="toggleNav"
           @save-preset="savePreset"
           @load-preset="loadPreset"
@@ -72,12 +55,8 @@
           @refresh-presets="refreshPresets"
           @clear-preset-warnings="clearPresetWarnings"
           @rerun-onboarding="openWizardFromSidebar"
-          @set-theme-preference="setThemePreference"
           @export-config="exportSidebarConfig"
           @import-config="importSidebarConfig"
-          @open-shortcuts="handleOpenShortcuts"
-          @save-reporting="handleReportingConfigSave"
-          @save-deck-settings="handleDeckSettingsSave"
         />
       </template>
 
@@ -95,7 +74,7 @@
               aria-label="Collapsed range controls"
             >
               <button
-                class="range-toolbar__btn"
+                class="range-toolbar__btn range-toolbar__btn--icon"
                 type="button"
                 @click="toggleNav"
                 :aria-expanded="navOpen"
@@ -105,16 +84,7 @@
                 {{ navToggleIcon }}
               </button>
               <button
-                class="range-toolbar__btn"
-                type="button"
-                :disabled="isLoading"
-                @click="loadCurrent"
-              >
-                Refresh
-              </button>
-              <div class="range-toolbar__divider" aria-hidden="true" />
-              <button
-                class="range-toolbar__btn"
+                class="range-toolbar__btn range-toolbar__btn--pill"
                 type="button"
                 :disabled="isLoading"
                 @click="toggleRangeCollapsed"
@@ -143,22 +113,14 @@
                   ▶
                 </button>
               </div>
-            </div>
-
-            <div class="appbar">
-              <div class="title">
-                <img :src="iconSrc" @error="onIconError" class="app-icon" alt="" aria-hidden="true" />
-                <span>Operational Dashboard</span>
-                <span class="range-badge" aria-label="Active range">
-                  <span class="range-badge__mode" v-text="rangeBadgePrimary" />
-                  <span class="range-badge__span" v-text="rangeBadgeSecondary" />
-                </span>
-              </div>
-              <div class="hint appbar-meta">
-                <NcLoadingIcon v-if="isLoading" :size="16" />
-                <span v-text="uid" />
-                <span v-if="isTruncated" title="Results truncated for performance">· Partial data</span>
-              </div>
+              <button
+                class="range-toolbar__btn range-toolbar__btn--refresh"
+                type="button"
+                :disabled="isLoading"
+                @click="loadCurrent"
+              >
+                Refresh
+              </button>
             </div>
 
             <div class="banner warn" v-if="isTruncated" :title="truncTooltip">
@@ -214,6 +176,10 @@
                   <span class="ghost-btn__icon" aria-hidden="true">✎</span>
                   {{ isLayoutEditing ? 'Done editing' : 'Edit layout' }}
                 </button>
+                <span class="range-badge" aria-label="Active range">
+                  <span class="range-badge__mode" v-text="rangeBadgePrimary" />
+                  <span class="range-badge__span" v-text="rangeBadgeSecondary" />
+                </span>
                 <div v-if="isLayoutEditing" class="cards-toolbar__add">
                   <select v-model="newWidgetType" @change="handleAddWidget">
                     <option value="" disabled>Select widget…</option>
@@ -362,8 +328,6 @@ type BalanceOverviewSummary = {
 } | null
 
 const { navOpen, toggleNav, navToggleLabel, navToggleIcon } = useSidebarState()
-const sidebarRef = ref<InstanceType<typeof Sidebar> | null>(null)
-
 function ensureSidebarVisible() {
   if (!navOpen.value) {
     toggleNav()
@@ -914,14 +878,8 @@ const {
   performLoad: () => performLoad(),
 })
 
-function focusSidebarTab(tab: 'notes' | 'config') {
-  ensureSidebarVisible()
-  sidebarRef.value?.openTab(tab)
-}
-
 const {
   shortcutsOpen,
-  openShortcuts,
   closeShortcuts,
   shortcutGroups,
 } = useKeyboardShortcuts({
@@ -929,7 +887,7 @@ const {
   goNext,
   toggleRange: toggleRangeCollapsed,
   saveNotes: () => saveNotes(),
-  openConfigPanel: () => focusSidebarTab('config'),
+  openConfigPanel: () => ensureSidebarVisible(),
   toggleEditLayout: () => {
     isLayoutEditing.value = !isLayoutEditing.value
   },
@@ -1251,10 +1209,6 @@ function formatDateKey(date: Date): string {
   const month = `${date.getMonth() + 1}`.padStart(2, '0')
   const day = `${date.getDate()}`.padStart(2, '0')
   return `${year}-${month}-${day}`
-}
-
-function handleOpenShortcuts(trigger?: HTMLElement | null) {
-  openShortcuts(trigger ?? null, 'button')
 }
 
 useDashboardBoot({

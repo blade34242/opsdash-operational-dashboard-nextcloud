@@ -115,4 +115,20 @@ describe('useConfigExportImport', () => {
     expect(ctx.widgetTabs.value.tabs).toHaveLength(1)
     expect(ctx.widgetTabs.value.tabs[0].widgets[0].type).toBe('note_editor')
   })
+
+  it('rejects payloads without recognized keys', async () => {
+    const ctx = setup()
+    await ctx.applyConfigSource({ foo: 'bar' })
+
+    expect(ctx.notifyError).toHaveBeenCalledWith('No recognised configuration keys found in file')
+    expect(ctx.postJson).not.toHaveBeenCalled()
+  })
+
+  it('warns when ignored keys are present', async () => {
+    const ctx = setup()
+    await ctx.applyConfigSource({ cals: ['personal'], extra: 'ignore' })
+
+    expect(ctx.postJson).toHaveBeenCalledWith('/persist', expect.any(Object))
+    expect(ctx.notifyError).toHaveBeenCalledWith(expect.stringContaining('ignored keys'))
+  })
 })

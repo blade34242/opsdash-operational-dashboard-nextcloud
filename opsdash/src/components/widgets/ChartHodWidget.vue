@@ -3,6 +3,7 @@
     <div v-if="showHeader" class="chart-widget__header">
       <div class="chart-widget__title">{{ titleText }}</div>
       <div v-if="subtitle" class="chart-widget__subtitle">{{ subtitle }}</div>
+      <div v-if="lookbackLabel" class="chart-widget__meta">{{ lookbackLabel }}</div>
     </div>
     <HeatmapCanvas v-if="hodData" :hod="hodData" />
     <div v-else class="chart-widget__empty">No data</div>
@@ -20,12 +21,20 @@ const props = defineProps<{
   cardBg?: string | null
   showHeader?: boolean
   showHint?: boolean
+  lookbackWeeks?: number | null
+  rangeMode?: 'week' | 'month' | string
   hodData?: { dows: string[]; hours: string[] | number[]; matrix: number[][] } | null
 }>()
 
 const showHeader = computed(() => props.showHeader !== false)
 const titleText = computed(() => props.title || 'Hours of day')
 const cardStyle = computed(() => ({ background: props.cardBg || undefined }))
+const lookbackLabel = computed(() => {
+  const count = typeof props.lookbackWeeks === 'number' ? Math.max(0, Math.round(props.lookbackWeeks)) : 0
+  if (!count) return ''
+  const unit = (props.rangeMode || '').toString().toLowerCase() === 'month' ? 'month' : 'week'
+  return `History · last ${count} ${count === 1 ? unit : `${unit}s`}`
+})
 </script>
 
 <style scoped>
@@ -55,6 +64,10 @@ const cardStyle = computed(() => ({ background: props.cardBg || undefined }))
   text-align: center;
 }
 .chart-widget__hint {
+  font-size: calc(11px * var(--widget-scale, 1));
+  color: var(--muted);
+}
+.chart-widget__meta{
   font-size: calc(11px * var(--widget-scale, 1));
   color: var(--muted);
 }

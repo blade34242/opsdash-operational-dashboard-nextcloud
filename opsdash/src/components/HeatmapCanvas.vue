@@ -21,10 +21,15 @@ function draw(){
     return
   }
   const ctx = ctxFor(cvEl); if(!ctx) { return }
+  const styles = getComputedStyle(cvEl)
+  const widgetScale = Math.max(0.5, Number.parseFloat(styles.getPropertyValue('--widget-scale')) || 1)
+  const widgetSpace = Math.max(0.5, Number.parseFloat(styles.getPropertyValue('--widget-space')) || widgetScale)
+  const widgetDensity = Math.max(0.5, Number.parseFloat(styles.getPropertyValue('--widget-density')) || 1)
+  const textScale = widgetScale * widgetDensity
   const W=cvEl.clientWidth,H=cvEl.clientHeight
   const rows=data.dows||[], cols=data.hours||[], m=data.matrix||[]
   ctx.clearRect(0,0,W,H)
-  const pad=36, x0=pad, y0=pad, x1=W-pad, y1=H-pad
+  const pad=36*widgetSpace, x0=pad, y0=pad, x1=W-pad, y1=H-pad
   const cw=(x1-x0)/Math.max(1,cols.length), rh=(y1-y0)/Math.max(1,rows.length)
   const vmax = Math.max(0, ...m.flat()) || 1
   if (rows.length && cols.length) {
@@ -40,9 +45,9 @@ function draw(){
     }
   }
   ctx.fillStyle = getComputedStyle(document.documentElement).getPropertyValue('--fg').trim()||'#0f172a'
-  ctx.font = '12px ui-sans-serif,system-ui'
-  rows.forEach((d,i)=> ctx.fillText(d, 8, y0 + i*rh + 12))
-  cols.forEach((h,i)=>{ if (i%2===0) ctx.fillText(String(h), x0 + i*cw + 2, y0 - 6) })
+  ctx.font = `${12 * textScale}px ui-sans-serif,system-ui`
+  rows.forEach((d,i)=> ctx.fillText(d, 8, y0 + i*rh + 12 * textScale))
+  cols.forEach((h,i)=>{ if (i%2===0) ctx.fillText(String(h), x0 + i*cw + 2, y0 - 6 * textScale) })
 }
 
 onMounted(async ()=>{

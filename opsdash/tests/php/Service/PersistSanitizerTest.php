@@ -273,4 +273,15 @@ class PersistSanitizerTest extends TestCase {
     $result = $this->sanitizer->sanitizePresetName("<><><>");
     $this->assertSame('', $result);
   }
+
+  public function testSanitizePresetNameTrimsLength(): void {
+    $name = str_repeat('A', 200);
+    $result = $this->sanitizer->sanitizePresetName($name);
+    $this->assertSame(80, mb_strlen($result));
+  }
+
+  public function testSanitizeThemePreferenceRejectsInvalid(): void {
+    $this->assertNull($this->sanitizer->sanitizeThemePreference('purple'));
+    $this->assertSame('light', $this->sanitizer->sanitizeThemePreference('Light'));
+  }
 }

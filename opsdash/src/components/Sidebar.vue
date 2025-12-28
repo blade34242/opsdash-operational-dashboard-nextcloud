@@ -1,27 +1,17 @@
 <template>
-  <!-- Sidebar: range controls, calendar selection + grouping -->
   <NcAppNavigation>
     <slot name="actions" />
-    <div class="sb-title" title="Filter and group calendars">Filter Calendars</div>
+    <div class="sidebar-header">
+      <button
+        class="sidebar-toggle-btn"
+        type="button"
+        @click="$emit('toggle-nav')"
+        :aria-label="navToggleLabel"
+      >
+        {{ navToggleIcon }}
+      </button>
+    </div>
     <div class="rangebar" title="Time range">
-      <div class="range-actions">
-        <button
-          class="sidebar-action-btn"
-          type="button"
-          :disabled="isLoading"
-          @click="$emit('load')"
-        >
-          Refresh
-        </button>
-        <button
-          class="sidebar-action-btn sidebar-action-btn--icon"
-          type="button"
-          @click="$emit('toggle-nav')"
-          :aria-label="navToggleLabel"
-        >
-          {{ navToggleIcon }}
-        </button>
-      </div>
       <div class="range-toggle">
         <NcCheckboxRadioSwitch type="radio" name="range-week" :checked="range==='week'" @update:checked="val => { if (val) $emit('update:range','week') }">Week</NcCheckboxRadioSwitch>
         <NcCheckboxRadioSwitch type="radio" name="range-month" :checked="range==='month'" @update:checked="val => { if (val) $emit('update:range','month') }">Month</NcCheckboxRadioSwitch>
@@ -31,103 +21,70 @@
         <span class="range-dates">{{ from }} – {{ to }}</span>
         <NcButton class="nav-btn" type="tertiary" :disabled="isLoading" @click="$emit('update:offset', offset+1)" title="Next">▶</NcButton>
       </div>
-    </div>
-    <div class="sb-tabs sb-tabs--primary" role="tablist" aria-label="Sidebar sections">
-      <button
-        id="opsdash-sidebar-tab-calendars"
-        type="button"
-        class="sb-tab"
-        :class="{ active: activeTab === 'calendars' }"
-        role="tab"
-        :aria-selected="activeTab === 'calendars'"
-        aria-controls="opsdash-sidebar-pane-calendars"
-        @click="activeTab = 'calendars'"
-      >
-        Calendars
-      </button>
-    </div>
-    <div class="sb-tabs sb-tabs--secondary" role="tablist" aria-label="Detail settings">
-      <button
-        id="opsdash-sidebar-tab-profiles"
-        type="button"
-        class="sb-tab"
-        :class="{ active: activeTab === 'profiles' }"
-        role="tab"
-        :aria-selected="activeTab === 'profiles'"
-        aria-controls="opsdash-sidebar-pane-profiles"
-        @click="activeTab = 'profiles'"
-        v-if="props.dashboardMode !== 'quick'"
-      >
-        Profiles
-      </button>
+      <div class="range-refresh">
+        <button
+          class="sidebar-action-btn"
+          type="button"
+          :disabled="isLoading"
+          @click="$emit('load')"
+        >
+          Refresh
+        </button>
+      </div>
     </div>
 
-    <div class="sb-tabs sb-tabs--secondary" role="tablist" aria-label="Advanced configuration">
-      <button
-        id="opsdash-sidebar-tab-config"
-        type="button"
-        class="sb-tab"
-        :class="{ active: activeTab === 'config' }"
-        role="tab"
-        :aria-selected="activeTab === 'config'"
-        aria-controls="opsdash-sidebar-pane-config"
-        @click="activeTab = 'config'"
+    <div class="sidebar-shortcuts">
+      <NcButton
+        type="tertiary"
+        size="small"
+        class="shortcuts-btn"
+        @click="shortcutsOpen = !shortcutsOpen"
       >
-        Theme
-      </button>
-      <button
-        id="opsdash-sidebar-tab-report"
-        type="button"
-        class="sb-tab"
-        :class="{ active: activeTab === 'report' }"
-        role="tab"
-        :aria-selected="activeTab === 'report'"
-        aria-controls="opsdash-sidebar-pane-report"
-        @click="activeTab = 'report'"
-        v-if="props.dashboardMode !== 'quick'"
-      >
-        Report
-      </button>
+        Keyboard shortcuts
+      </NcButton>
     </div>
 
-    <SidebarCalendarsPane
-      v-if="activeTab === 'calendars'"
-      :calendars="calendars"
-      :selected="selected"
-      :range="range"
-      :is-loading="isLoading"
-      :category-options="categoryOptions"
-      :calendar-target-messages="calendarTargetMessages"
-      :calendar-category-id="calendarCategoryId"
-      :get-target="getTarget"
-      @select-all="emitSelectAll"
-      @toggle-calendar="emitToggleCalendar"
-      @set-category="handleCalendarCategory"
-      @target-input="handleCalendarTargetInput"
-      @rerun-onboarding="(step?: string) => emit('rerun-onboarding', step)"
-      @open-shortcuts="(el) => emit('open-shortcuts', el)"
-    />
-
-    <SidebarConfigPane
-      v-else-if="activeTab === 'config'"
-      :presets="presetsList"
-      :is-loading="props.presetsLoading"
-      :is-saving="props.presetSaving"
-      :is-applying="props.presetApplying"
-      :warnings="props.presetWarnings"
-      :theme-preference="props.themePreference"
-      :effective-theme="props.effectiveTheme"
-      :system-theme="props.systemTheme"
-      @save="(name: string) => emit('save-preset', name)"
-      @load="(name: string) => emit('load-preset', name)"
-      @delete="(name: string) => emit('delete-preset', name)"
-      @refresh="() => emit('refresh-presets')"
-      @clear-warnings="() => emit('clear-preset-warnings')"
-      @set-theme-preference="(value: 'auto' | 'light' | 'dark') => emit('set-theme-preference', value)"
-    />
+    <div class="sidebar-block">
+      <div class="sb-actions sb-actions--secondary">
+        <NcButton
+          type="primary"
+          size="small"
+          class="rerun-btn"
+          title="Open the onboarding setup again"
+          @click="$emit('rerun-onboarding')"
+        >
+          Re-run onboarding
+        </NcButton>
+      </div>
+      <ol class="onboarding-jumps">
+        <li><button type="button" class="link" @click="$emit('rerun-onboarding', 'dashboard')">Dashboard</button></li>
+        <li><button type="button" class="link" @click="$emit('rerun-onboarding', 'calendars')">Calendars</button></li>
+        <li><button type="button" class="link" @click="$emit('rerun-onboarding', 'categories')">Targets</button></li>
+        <li><button type="button" class="link" @click="$emit('rerun-onboarding', 'preferences')">Preferences</button></li>
+        <li><button type="button" class="link" @click="$emit('rerun-onboarding', 'review')">Review</button></li>
+      </ol>
+      <div v-if="shortcutsOpen" class="shortcuts-box" role="region" aria-label="Keyboard shortcuts">
+        <div class="shortcuts-box__header">
+          <span>Keyboard shortcuts</span>
+          <button type="button" class="ghost sm" @click="shortcutsOpen = false">✕</button>
+        </div>
+        <div class="shortcuts-box__body">
+          <div v-for="group in shortcutGroups" :key="group.id" class="shortcuts-box__group">
+            <div class="shortcuts-box__title">{{ group.title }}</div>
+            <ul>
+              <li v-for="item in group.items" :key="item.id">
+                <span class="label">{{ item.label }}</span>
+                <span class="combo">{{ item.combo.join(' + ') }}</span>
+                <span v-if="item.description" class="desc">{{ item.description }}</span>
+              </li>
+            </ul>
+          </div>
+        </div>
+      </div>
+    </div>
 
     <SidebarProfilesPane
-      v-else-if="activeTab === 'profiles'"
+      v-if="props.dashboardMode !== 'quick'"
       :presets="presetsList"
       :is-loading="props.presetsLoading"
       :is-saving="props.presetSaving"
@@ -141,41 +98,21 @@
       @export-config="() => emit('export-config')"
       @import-config="(file: File) => emit('import-config', file)"
     />
-
-    <SidebarReportPane
-      v-else-if="activeTab === 'report'"
-      :reporting-config="props.reportingConfig"
-      :saving="props.reportingSaving"
-      @save-reporting="(value) => emit('save-reporting', value)"
-    />
-
   </NcAppNavigation>
 </template>
 
 <script setup lang="ts">
-import { computed, ref, reactive, watch } from 'vue'
+import { computed, ref } from 'vue'
 import { NcAppNavigation, NcButton, NcCheckboxRadioSwitch } from '@nextcloud/vue'
-import { normalizeTargetsConfig, type TargetsConfig, type TargetsMode } from '../services/targets'
-import type { ReportingConfig, DeckFeatureSettings } from '../services/reporting'
-import SidebarCalendarsPane from './sidebar/SidebarCalendarsPane.vue'
-import SidebarConfigPane from './sidebar/SidebarConfigPane.vue'
 import SidebarProfilesPane from './sidebar/SidebarProfilesPane.vue'
-import SidebarReportPane from './sidebar/SidebarReportPane.vue'
-import { applyNumericUpdate, type InputMessage } from './sidebar/validation'
+import { KEYBOARD_SHORTCUT_GROUPS } from '../services/shortcuts'
 
 const props = defineProps<{
-  calendars: Array<{id:string;displayname:string;color?:string}>
-  selected: string[]
-  groupsById: Record<string, number>
   isLoading: boolean
   range: 'week'|'month'
   offset: number
   from: string
   to: string
-  // targets maps
-  targetsWeek?: Record<string, number>
-  targetsMonth?: Record<string, number>
-  targetsConfig: TargetsConfig
   navToggleLabel: string
   navToggleIcon: string
   presets: Array<{ name: string; createdAt?: string | null; updatedAt?: string | null; selectedCount: number; calendarCount: number }>
@@ -183,12 +120,6 @@ const props = defineProps<{
   presetSaving: boolean
   presetApplying: boolean
   presetWarnings: string[]
-  themePreference: 'auto' | 'light' | 'dark'
-  effectiveTheme: 'light' | 'dark'
-  systemTheme: 'light' | 'dark'
-  reportingConfig: ReportingConfig
-  deckSettings: DeckFeatureSettings
-  reportingSaving: boolean
   dashboardMode?: 'quick' | 'standard' | 'pro'
 }>()
 
@@ -196,11 +127,6 @@ const emit = defineEmits([
   'load',
   'update:range',
   'update:offset',
-  'select-all',
-  'toggle-calendar',
-  'set-group',
-  'set-target',
-  'update:targets-config',
   'toggle-nav',
   'save-preset',
   'load-preset',
@@ -208,324 +134,153 @@ const emit = defineEmits([
   'refresh-presets',
   'clear-preset-warnings',
   'rerun-onboarding',
-  'set-theme-preference',
   'export-config',
   'import-config',
-  'open-shortcuts',
-  'save-reporting',
-  'save-deck-settings',
 ])
 
-type SidebarTab = 'calendars'|'config'|'profiles'|'report'
-
-const activeTab = ref<SidebarTab>('calendars')
-watch(() => props.dashboardMode, (mode) => {
-  if (mode === 'quick' && (activeTab.value === 'profiles' || activeTab.value === 'report')) {
-    activeTab.value = 'calendars'
-  }
-})
-
-const targets = computed(() => props.targetsConfig)
-const categoryOptions = computed(() => targets.value?.categories ?? [])
 const presetsList = computed(() => props.presets ?? [])
-
-const BASE_CATEGORY_COLORS = ['#2563EB', '#F97316', '#10B981', '#A855F7', '#EC4899', '#14B8A6', '#F59E0B', '#6366F1', '#0EA5E9', '#65A30D']
-
-const categoryColorPalette = computed(() => {
-  const palette = new Set<string>()
-  const push = (value?: string | null) => {
-    const color = sanitizeHexColor(value)
-    if (color) {
-      palette.add(color)
-    }
-  }
-  ;(props.calendars || []).forEach((cal: any) => push(cal?.color))
-  categoryOptions.value.forEach((cat: any) => push(cat?.color))
-  BASE_CATEGORY_COLORS.forEach((color) => palette.add(color))
-  return Array.from(palette)
-})
-
-function updateConfig(mutator: (cfg: TargetsConfig)=>void){
-  const next = normalizeTargetsConfig(JSON.parse(JSON.stringify(props.targetsConfig || {})) as TargetsConfig)
-  mutator(next)
-  emit('update:targets-config', next)
-}
-
-const canAddCategory = computed(() => nextGroupId() !== null)
-
-const calendarTargetMessages = reactive<Record<string, InputMessage | null>>({})
-const categoryTargetMessages = reactive<Record<string, InputMessage | null>>({})
-const totalTargetMessage = ref<InputMessage | null>(null)
-const allDayHoursMessage = ref<InputMessage | null>(null)
-const paceThresholdMessages = reactive<{ onTrack: InputMessage | null; atRisk: InputMessage | null }>({ onTrack: null, atRisk: null })
-const forecastMomentumMessage = ref<InputMessage | null>(null)
-const forecastPaddingMessage = ref<InputMessage | null>(null)
-
-function nextGroupId(): number | null {
-  const used = new Set<number>()
-  for (const cat of categoryOptions.value) {
-    (cat.groupIds || []).forEach((g:number) => used.add(Number(g)))
-  }
-  Object.values(props.groupsById || {}).forEach((g:any) => used.add(Number(g)))
-  for (let i = 1; i <= 9; i++) {
-    if (!used.has(i)) return i
-  }
-  return null
-}
-
-function makeCategoryId(): string {
-  return `cat-${Date.now().toString(36)}-${Math.random().toString(36).slice(2,5)}`
-}
-
-function calendarCategoryId(id: string): string {
-  const group = getGroup(id)
-  const cat = categoryOptions.value.find(cat => Array.isArray(cat.groupIds) && cat.groupIds.includes(group))
-  return cat ? cat.id : ''
-}
-
-function setCalendarCategory(calendarId: string, categoryId: string){
-  if (!categoryId) {
-    emit('set-group', { id: calendarId, n: 0 })
-    return
-  }
-  const cat = categoryOptions.value.find(cat => cat.id === categoryId)
-  if (!cat) {
-    emit('set-group', { id: calendarId, n: 0 })
-    return
-  }
-  const group = ensureCategoryGroup(cat.id)
-  emit('set-group', { id: calendarId, n: group })
-}
-
-function ensureCategoryGroup(catId: string): number {
-  const cat = categoryOptions.value.find(cat => cat.id === catId)
-  if (!cat) return 0
-  const existing = Array.isArray(cat.groupIds) && cat.groupIds.length ? Number(cat.groupIds[0]) : null
-  if (existing && Number.isFinite(existing)) return existing
-  const next = nextGroupId() ?? 0
-  updateConfig(cfg => {
-    const target = cfg.categories.find(c => c.id === catId)
-    if (target) target.groupIds = next ? [next] : []
-  })
-  return next
-}
-
-function updateCategory(id: string, mutator: (cat: any) => void){
-  updateConfig(cfg => {
-    const cat = cfg.categories.find(c => c.id === id)
-    if (cat) mutator(cat)
-  })
-}
-
-function getGroup(id:string){
-  const n = Number((props.groupsById||{})[id] ?? 0)
-  return (isFinite(n) ? Math.max(0, Math.min(9, Math.trunc(n))) : 0)
-}
-
-function getTarget(id:string){
-  const map = props.range==='month' ? (props.targetsMonth||{}) : (props.targetsWeek||{})
-  const n = Number((map as any)[id] ?? '')
-  return isFinite(n) ? n : ''
-}
-
-function emitSelectAll(value: boolean) {
-  emit('select-all', value)
-}
-
-function emitToggleCalendar(id: string) {
-  emit('toggle-calendar', id)
-}
-
-function handleCalendarCategory(payload: { id: string; category: string }) {
-  setCalendarCategory(payload.id, payload.category)
-}
-
-function handleCalendarTargetInput(payload: { id: string; value: string }) {
-  onCalendarTargetInput(payload.id, payload.value)
-}
-
-function handleSummaryOption(payload: { key: keyof TargetsConfig['timeSummary']; value: boolean }) {
-  setSummaryOption(payload.key, payload.value)
-}
-
-
-function onCalendarTargetInput(id: string, value: string){
-  applyNumericUpdate(
-    value,
-    { min: 0, max: 10000, step: 0.25, decimals: 2 },
-    (message) => { calendarTargetMessages[id] = message },
-    (num) => emit('set-target', { id, h: num }),
-  )
-}
-
-function onTotalTarget(value: string){
-  applyNumericUpdate(
-    value,
-    { min: 0, max: 1000, step: 0.5, decimals: 2 },
-    (message) => { totalTargetMessage.value = message },
-    (num) => updateConfig(cfg => { cfg.totalHours = num }),
-  )
-}
-
-function setAllDayHours(value: string){
-  applyNumericUpdate(
-    value,
-    { min: 0, max: 24, step: 0.25, decimals: 2 },
-    (message) => { allDayHoursMessage.value = message },
-    (num) => updateConfig(cfg => { cfg.allDayHours = num }),
-    '0–24 hours per day',
-  )
-}
-
-
-function setCategoryTarget(id: string, value: string){
-  applyNumericUpdate(
-    value,
-    { min: 0, max: 1000, step: 0.5, decimals: 2 },
-    (message) => { categoryTargetMessages[id] = message },
-    (num) => updateCategory(id, cat => { cat.targetHours = num }),
-  )
-}
-
-function setCategoryLabel(id: string, value: string){
-  updateCategory(id, cat => { cat.label = value.trim() || cat.label })
-}
-
-function setCategoryWeekend(id: string, checked: boolean){
-  updateCategory(id, cat => { cat.includeWeekend = checked })
-}
-
-function setCategoryColor(id: string, value: string){
-  const color = sanitizeHexColor(value)
-  updateCategory(id, cat => {
-    cat.color = color ?? null
-  })
-}
-
-function setCategoryPaceMode(id: string, mode: string){
-  if (mode !== 'days_only' && mode !== 'time_aware') return
-  updateCategory(id, cat => { cat.paceMode = mode as TargetsMode })
-}
-
-function setIncludeWeekendTotal(checked: boolean){
-  updateConfig(cfg => { cfg.pace.includeWeekendTotal = checked })
-}
-
-function setPaceMode(mode: string){
-  if (mode !== 'days_only' && mode !== 'time_aware') return
-  updateConfig(cfg => { cfg.pace.mode = mode as TargetsMode })
-}
-
-function setThreshold(which: 'onTrack'|'atRisk', value: string){
-  applyNumericUpdate(
-    value,
-    { min: -100, max: 100, step: 0.1, decimals: 1 },
-    (message) => { paceThresholdMessages[which] = message },
-    (num) => updateConfig(cfg => { cfg.pace.thresholds[which] = num }),
-  )
-}
-
-
-function setForecastMethod(value: string){
-  const method = value === 'momentum' ? 'momentum' : 'linear'
-  updateConfig(cfg => { cfg.forecast.methodPrimary = method })
-}
-
-function setForecastMomentum(value: string){
-  applyNumericUpdate(
-    value,
-    { min: 1, max: 14, step: 1, decimals: 0 },
-    (message) => { forecastMomentumMessage.value = message },
-    (num) => updateConfig(cfg => { cfg.forecast.momentumLastNDays = num }),
-  )
-}
-
-function setForecastPadding(value: string){
-  applyNumericUpdate(
-    value,
-    { min: 0, max: 100, step: 0.1, decimals: 1 },
-    (message) => { forecastPaddingMessage.value = message },
-    (num) => updateConfig(cfg => { cfg.forecast.padding = num }),
-  )
-}
-
-function setUiOption<K extends keyof TargetsConfig['ui']>(key: K, checked: boolean){
-  updateConfig(cfg => { cfg.ui[key] = checked })
-}
-
-function addCategory(){
-  const group = nextGroupId()
-  if (group === null) {
-    window.alert?.('All category slots are currently in use (max 9).')
-    return
-  }
-  updateConfig(cfg => {
-    const nextColor = findNextCategoryColor(cfg.categories)
-    cfg.categories = [...cfg.categories, {
-      id: makeCategoryId(),
-      label: `Category ${cfg.categories.length + 1}`,
-      targetHours: 0,
-      includeWeekend: true,
-      paceMode: 'days_only',
-      color: nextColor,
-      groupIds: [group],
-    }]
-  })
-}
-
-function removeCategory(id: string){
-  if (categoryOptions.value.length <= 1) return
-  const cat = categoryOptions.value.find(c => c.id === id)
-  if (!cat) return
-  const group = Array.isArray(cat.groupIds) && cat.groupIds.length ? Number(cat.groupIds[0]) : null
-  updateConfig(cfg => {
-    cfg.categories = cfg.categories.filter(c => c.id !== id)
-  })
-  if (group !== null) {
-    Object.entries(props.groupsById || {}).forEach(([calId, grp]) => {
-      if (Number(grp) === group) {
-        emit('set-group', { id: calId, n: 0 })
-      }
-    })
-  }
-}
-
-function sanitizeHexColor(value: any): string | null {
-  if (typeof value !== 'string') return null
-  const trimmed = value.trim()
-  if (!/^#([0-9a-fA-F]{3}|[0-9a-fA-F]{6})$/.test(trimmed)) {
-    return null
-  }
-  if (trimmed.length === 4) {
-    const [, r, g, b] = trimmed
-    return `#${r}${r}${g}${g}${b}${b}`.toUpperCase()
-  }
-  return trimmed.toUpperCase()
-}
-
-function findNextCategoryColor(categories: Array<{ color?: string | null }>): string | null {
-  const used = new Set<string>()
-  categories.forEach((cat) => {
-    const color = sanitizeHexColor(cat?.color ?? null)
-    if (color) used.add(color)
-  })
-  for (const color of BASE_CATEGORY_COLORS) {
-    if (!used.has(color)) return color
-  }
-  return BASE_CATEGORY_COLORS[0] ?? null
-}
-
-function openTab(tab: SidebarTab) {
-  activeTab.value = tab
-}
-
-defineExpose({
-  openTab,
-})
+const shortcutsOpen = ref(false)
+const shortcutGroups = KEYBOARD_SHORTCUT_GROUPS
 </script>
 
 <style scoped>
-.input-message{font-size:11px;margin-top:4px;color:var(--muted)}
-.input-message.error{color:var(--neg)}
-.input-message.warning{color:var(--warning)}
+.sidebar-header{
+  position:absolute;
+  top:8px;
+  right:8px;
+  z-index:2;
+}
+
+.sidebar-toggle-btn{
+  appearance:none;
+  border-radius:14px;
+  border:1px solid color-mix(in oklab, var(--brand), transparent 55%);
+  background:color-mix(in oklab, var(--brand), transparent 86%);
+  color:var(--brand);
+  width:38px;
+  height:38px;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  box-shadow:0 6px 14px rgba(15,23,42,0.12);
+  cursor:pointer;
+  font-size:16px;
+}
+
+.sidebar-toggle-btn:hover{
+  background:color-mix(in oklab, var(--brand), transparent 76%);
+  border-color:color-mix(in oklab, var(--brand), transparent 40%);
+}
+
+.sidebar-toggle-btn:focus-visible{
+  outline:2px solid color-mix(in oklab, var(--brand), transparent 40%);
+  outline-offset:2px;
+}
+
+:global(.app-opsdash #app-navigation),
+:global(.app-opsdash .app-navigation){
+  position:relative;
+}
+
+.rangebar{
+  margin-top:34px;
+}
+
+.sidebar-shortcuts{
+  margin:8px 0 4px;
+}
+
+.onboarding-jumps{
+  display:grid;
+  gap:4px;
+  margin:6px 0 10px;
+  padding-left:18px;
+  font-size:12px;
+  color: var(--muted, #6b7280);
+}
+
+.onboarding-jumps .link{
+  background: transparent;
+  border: 0;
+  padding: 0;
+  color: inherit;
+  text-align: left;
+  text-decoration: none;
+  cursor: pointer;
+}
+
+.onboarding-jumps .link:hover{
+  color: var(--color-primary-text);
+  text-decoration: underline;
+}
+
+.shortcuts-box{
+  margin:8px 0 12px;
+  background:color-mix(in oklab, #111827, #1f2937 60%);
+  border:1px solid color-mix(in oklab, #4b5563, transparent 20%);
+  border-radius:10px;
+  box-shadow:0 10px 18px rgba(0,0,0,0.18);
+  padding:10px;
+}
+
+.shortcuts-box__header{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  font-size:12px;
+  font-weight:700;
+  text-transform:uppercase;
+  letter-spacing:0.04em;
+  color:#cbd5f5;
+  margin-bottom:8px;
+}
+
+.shortcuts-box__body{
+  display:flex;
+  flex-direction:column;
+  gap:10px;
+}
+
+.shortcuts-box__title{
+  font-size:11px;
+  font-weight:700;
+  color:#9ca3af;
+  text-transform:uppercase;
+  letter-spacing:0.04em;
+  margin-bottom:4px;
+}
+
+.shortcuts-box__group ul{
+  list-style:none;
+  padding:0;
+  margin:0;
+  display:flex;
+  flex-direction:column;
+  gap:6px;
+}
+
+.shortcuts-box__group li{
+  display:grid;
+  grid-template-columns: 1fr auto;
+  gap:6px 10px;
+  align-items:center;
+  color:#e5e7eb;
+  font-size:12px;
+}
+
+.shortcuts-box__group .combo{
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size:11px;
+  background:rgba(15, 23, 42, 0.8);
+  border-radius:6px;
+  padding:2px 6px;
+  color:#f8fafc;
+}
+
+.shortcuts-box__group .desc{
+  grid-column: 1 / -1;
+  color:#94a3b8;
+  font-size:11px;
+}
+
 </style>

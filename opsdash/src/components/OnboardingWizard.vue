@@ -2,7 +2,7 @@
   <transition name="onboarding-fade">
     <div v-if="visible" class="onboarding-overlay" role="dialog" aria-modal="true">
       <div class="onboarding-backdrop" @click="handleClose"></div>
-      <div class="onboarding-panel" @click.stop>
+      <div class="onboarding-panel" :class="`theme-${previewTheme}`" @click.stop>
         <header class="onboarding-header">
           <div class="onboarding-title">
             <h2>Welcome to Opsdash</h2>
@@ -100,6 +100,9 @@
             :calendars="calendars"
             :local-selection="localSelection"
             :toggle-calendar="toggleCalendar"
+            :calendar-targets="calendarTargets"
+            :get-calendar-target="getCalendarTarget"
+            :set-calendar-target="setCalendarTarget"
           />
         </section>
 
@@ -110,6 +113,9 @@
             :category-total-hours="categoryTotalHours"
             :selected-calendars="selectedCalendars"
             :assignments="assignments"
+            :calendar-targets="calendarTargets"
+            :get-calendar-target="getCalendarTarget"
+            :set-calendar-target="setCalendarTarget"
             :add-category="addCategory"
             :remove-category="removeCategory"
             :set-category-label="setCategoryLabel"
@@ -194,6 +200,7 @@ const props = defineProps<{
   snapshotSaving?: boolean
   snapshotNotice?: { type: 'success' | 'error'; message: string } | null
   initialDashboardMode?: 'quick' | 'standard' | 'pro'
+  initialTargetsWeek?: Record<string, number>
   initialTargetsConfig?: {
     activityCard?: Pick<ActivityCardConfig, 'showDayOffTrend'>
     balanceTrendLookback?: number
@@ -271,12 +278,15 @@ const {
   categories,
   selectedCalendars,
   assignments,
+  calendarTargets,
   addCategory,
   removeCategory,
   setCategoryLabel,
   setCategoryTarget,
   toggleCategoryWeekend,
   assignCalendar,
+  setCalendarTarget,
+  getCalendarTarget,
   openColorId,
   toggleColorPopover,
   closeColorPopover,
@@ -336,6 +346,116 @@ function emitSaveStep() {
   display: flex;
   flex-direction: column;
   padding: 24px 28px;
+}
+
+.onboarding-panel.theme-light {
+  color: #0f172a;
+  background: #ffffff;
+}
+
+.onboarding-panel.theme-dark {
+  --color-main-background: #0f172a;
+  --color-background-contrast: #111827;
+  --color-text: #e5e7eb;
+  --color-text-maxcontrast: #e5e7eb;
+  --color-text-light: #94a3b8;
+  --color-border: #1f2937;
+  --color-primary-element: #60a5fa;
+  --color-primary: #60a5fa;
+  color: #e5e7eb;
+  background: #0f172a;
+  box-shadow: 0 18px 48px rgba(0, 0, 0, 0.5);
+}
+
+.onboarding-panel.theme-dark .hint,
+.onboarding-panel.theme-dark .subtitle,
+.onboarding-panel.theme-dark .step-pill {
+  color: #94a3b8;
+}
+
+.onboarding-panel.theme-dark h2,
+.onboarding-panel.theme-dark h3,
+.onboarding-panel.theme-dark h4,
+.onboarding-panel.theme-dark p,
+.onboarding-panel.theme-dark li {
+  color: #e5e7eb;
+}
+
+.onboarding-panel.theme-dark .step-pill {
+  background: #111827;
+  border-color: #1f2937;
+}
+
+.onboarding-panel.theme-dark .step-pill.active {
+  color: #93c5fd;
+  border-color: rgba(96, 165, 250, 0.6);
+  background: rgba(96, 165, 250, 0.18);
+}
+
+.onboarding-panel.theme-dark input,
+.onboarding-panel.theme-dark select,
+.onboarding-panel.theme-dark textarea {
+  background: #111827;
+  color: #e5e7eb;
+  border: 1px solid #1f2937;
+}
+
+.onboarding-panel.theme-dark .calendar-item {
+  background: #0b1220;
+  border-color: #1f2937;
+}
+
+.onboarding-panel.theme-dark .category-card,
+.onboarding-panel.theme-dark .pref-card,
+.onboarding-panel.theme-dark .strategy-card {
+  background: #111827;
+  border-color: #1f2937;
+}
+
+.onboarding-panel.theme-dark .config-warning {
+  border-color: rgba(251, 146, 60, 0.5);
+  background: rgba(251, 146, 60, 0.12);
+}
+
+.onboarding-panel.theme-dark .config-warning p {
+  color: #fde68a;
+}
+
+.onboarding-panel.theme-dark .snapshot-notice--success {
+  background: rgba(34, 197, 94, 0.18);
+  color: #bbf7d0;
+}
+
+.onboarding-panel.theme-dark .snapshot-notice--error {
+  background: rgba(239, 68, 68, 0.2);
+  color: #fecaca;
+}
+
+.onboarding-panel.theme-dark .close-btn {
+  color: #cbd5f5;
+}
+
+.onboarding-panel.theme-dark .close-btn:hover {
+  color: #93c5fd;
+}
+
+.onboarding-panel.theme-dark .color-popover {
+  background: #0b1220;
+  border-color: #1f2937;
+}
+
+.onboarding-panel.theme-dark .color-link {
+  color: #93c5fd;
+}
+
+.onboarding-panel.theme-dark .review-grid h5 {
+  color: #e2e8f0;
+}
+
+.onboarding-panel.theme-dark .warning {
+  background: rgba(248, 113, 113, 0.12);
+  border-color: rgba(248, 113, 113, 0.4);
+  color: #fecaca;
 }
 
 .onboarding-header {
@@ -715,6 +835,12 @@ function emitSaveStep() {
   gap: 12px;
 }
 
+.onboarding-overlay .calendar-targets {
+  margin-top: 16px;
+  display: grid;
+  gap: 12px;
+}
+
 .onboarding-overlay .assignment-row {
   display: grid;
   grid-template-columns: 1fr minmax(160px, 220px);
@@ -722,7 +848,18 @@ function emitSaveStep() {
   align-items: center;
 }
 
+.onboarding-overlay .target-row {
+  display: grid;
+  grid-template-columns: 1fr minmax(120px, 160px);
+  gap: 12px;
+  align-items: center;
+}
+
 .onboarding-overlay .assignment-row select {
+  padding: 6px 8px;
+}
+
+.onboarding-overlay .target-row input {
   padding: 6px 8px;
 }
 

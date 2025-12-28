@@ -1,4 +1,4 @@
-# Sidebar Configuration Reference (Opsdash 0.5.1)
+# Sidebar Configuration Reference (Opsdash 0.5.2)
 
 Canonical map of every setting that lives in the sidebar and how it persists.
 Keep this file updated whenever a new toggle/value is added or renamed.
@@ -11,7 +11,7 @@ All sidebar state can be represented as a single JSON envelope:
 
 ```json
 {
-  "version": "0.5.1",
+  "version": "0.5.2",
   "generated": "2025-12-21T19:45:00Z",
   "payload": {
     "cals": ["cal-1", "cal-3"],

@@ -59,4 +59,26 @@ describe('useRangeToolbar', () => {
     expect(offset.value).toBe(2)
     expect(performLoad).toHaveBeenCalledTimes(2)
   })
+
+  it('shows collapsed controls when nav is closed', () => {
+    const navOpen = ref(false)
+    const range = ref<'week' | 'month'>('week')
+    const offset = ref(0)
+    const from = ref('')
+    const to = ref('')
+    const isLoading = ref(false)
+    const performLoad = vi.fn()
+
+    const toolbar = useRangeToolbar({
+      navOpen,
+      range,
+      offset,
+      from,
+      to,
+      isLoading,
+      performLoad,
+    })
+
+    expect(toolbar.showCollapsedRangeControls.value).toBe(true)
+  })
 })

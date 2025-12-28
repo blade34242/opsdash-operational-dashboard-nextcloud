@@ -50,6 +50,8 @@ export const chartHodEntry: RegistryEntry = {
       cardBg: def.options?.cardBg,
       showHeader: def.options?.showHeader !== false,
       showHint: def.options?.showHint === true,
+      lookbackWeeks: ctx.lookbackWeeks,
+      rangeMode: ctx.rangeMode,
       hodData: ctx.charts?.hod || null,
     }
   },

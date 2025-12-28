@@ -50,8 +50,12 @@ export function invert(hex: string): string {
 export function heatColor(t: number): string {
   const clamp = (x: number) => (x < 0 ? 0 : x > 1 ? 1 : x)
   const tt = Math.pow(clamp(t), 0.6)
-  const c1 = hexToRgb('#e0f2fe')
-  const c2 = hexToRgb('#7c3aed')
+  const root = typeof document !== 'undefined' ? document.getElementById('opsdash') : null
+  const styles = root ? getComputedStyle(root) : null
+  const low = styles?.getPropertyValue('--heatmap-low').trim() || '#e0f2fe'
+  const high = styles?.getPropertyValue('--heatmap-high').trim() || '#7c3aed'
+  const c1 = hexToRgb(low)
+  const c2 = hexToRgb(high)
   if (!c1 || !c2) return '#7c3aed'
   const mix = (a: number, b: number, p: number) => Math.round(a + (b - a) * p)
   const r = mix(c1.r, c2.r, tt)

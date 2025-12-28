@@ -101,6 +101,19 @@
         </select>
       </div>
     </div>
+    <div v-if="selectedCalendars.length" class="calendar-targets">
+      <h4>Calendar targets (h / week)</h4>
+      <div v-for="cal in selectedCalendars" :key="`targets-${cal.id}`" class="target-row">
+        <span class="cal-name">{{ cal.displayname }}</span>
+        <input
+          type="number"
+          min="0"
+          step="0.25"
+          :value="getCalendarTarget(cal.id)"
+          @input="setCalendarTarget(cal.id, ($event.target as HTMLInputElement).value)"
+        />
+      </div>
+    </div>
     <p v-else class="hint">Select at least one calendar to continue.</p>
   </template>
 </template>
@@ -115,6 +128,9 @@ defineProps<{
   categoryTotalHours: number
   selectedCalendars: CalendarSummary[]
   assignments: Record<string, string>
+  calendarTargets: Record<string, number>
+  getCalendarTarget: (id: string) => number | ''
+  setCalendarTarget: (id: string, value: string) => void
   addCategory: () => void
   removeCategory: (id: string) => void
   setCategoryLabel: (id: string, value: string) => void
@@ -130,4 +146,3 @@ defineProps<{
   onColorInput: (id: string, value: string) => void
 }>()
 </script>
-

@@ -4,11 +4,13 @@
   </template>
 
 <script setup lang="ts">
-import { onMounted, ref, watch } from 'vue'
+import { onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { ctxFor } from '../services/charts'
 
 const props = defineProps<{ stacked?: any, colorsById: Record<string,string>, showLabels?: boolean }>()
 const cv = ref<HTMLCanvasElement|null>(null)
+let ro: ResizeObserver | null = null
+let mo: MutationObserver | null = null
 
 function drawOutlinedText(ctx: CanvasRenderingContext2D, text: string, x: number, y: number, options?: { align?: CanvasTextAlign; baseline?: CanvasTextBaseline; font?: string }) {
   ctx.save()
@@ -99,7 +101,12 @@ function drawForecastOverlay(
 function draw(){
   const cvEl = cv.value; if (!cvEl) return
   const ctx = ctxFor(cvEl); if(!ctx) return
-  const W=cvEl.clientWidth,H=cvEl.clientHeight,pad=28,x0=pad*1.4,y0=H-pad,x1=W-pad
+  const styles = getComputedStyle(cvEl)
+  const widgetScale = Math.max(0.5, Number.parseFloat(styles.getPropertyValue('--widget-scale')) || 1)
+  const widgetSpace = Math.max(0.5, Number.parseFloat(styles.getPropertyValue('--widget-space')) || widgetScale)
+  const widgetDensity = Math.max(0.5, Number.parseFloat(styles.getPropertyValue('--widget-density')) || 1)
+  const textScale = widgetScale * widgetDensity
+  const W=cvEl.clientWidth,H=cvEl.clientHeight,pad=28*widgetSpace,x0=pad*1.4,y0=H-pad,x1=W-pad
   const line=getComputedStyle(document.documentElement).getPropertyValue('--line').trim()||'#e5e7eb'
   const fg=getComputedStyle(document.documentElement).getPropertyValue('--fg').trim()||'#0f172a'
   ctx.clearRect(0,0,W,H)
@@ -119,9 +126,9 @@ function draw(){
     const combinedTotals = actualTotals.map((val, idx)=> val + forecastTotals[idx])
     const max = Math.max(1, ...combinedTotals)
     const n=labels.length||1
-    const g=8
-    const bw=Math.max(6,(x1-x0-g*(n+1))/n)
-    const scale=(y0-pad)/max
+    const g=8*widgetSpace
+    const bw=Math.max(6*widgetSpace,(x1-x0-g*(n+1))/n)
+    const chartScale=(y0-pad)/max
     let sumActual = 0
     let sumForecast = 0
     labels.forEach((_,i)=>{
@@ -130,16 +137,16 @@ function draw(){
       let colActual = 0
       series.forEach((s)=>{
         const v = Math.max(0, Number(s.data?.[i]||0))
-        const h = v*scale
+        const h = v*chartScale
         y -= h
         const col = props.colorsById[s.id] || s.color || '#93c5fd'
         if (h>0.5) {
           ctx.fillStyle = col
           ctx.fillRect(x, y, bw, h)
-          if (props.showLabels !== false && h>14 && bw>22 && v>0.01) {
+          if (props.showLabels !== false && h>14*textScale && bw>22*textScale && v>0.01) {
             const label = formatHours(v)
             ctx.fillStyle = textColorFor(col, fg)
-            ctx.font = '11px ui-sans-serif,system-ui'
+            ctx.font = `${11 * textScale}px ui-sans-serif,system-ui`
             const tw = ctx.measureText(label).width
             ctx.fillText(label, x + bw/2 - tw/2, y + h/2 + 4)
           }
@@ -152,7 +159,7 @@ function draw(){
       series.forEach((s)=>{
         const vf = Math.max(0, Number(s.forecast?.[i] || 0))
         if (vf <= 0) return
-        const hf = vf * scale
+        const hf = vf * chartScale
         yForecast -= hf
         colForecast += vf
         if (hf <= 0.5) {
@@ -170,19 +177,19 @@ function draw(){
       })
       sumActual += colActual
       sumForecast += colForecast
-      ctx.fillStyle=fg; ctx.font='12px ui-sans-serif,system-ui'
+      ctx.fillStyle=fg; ctx.font=`${12 * textScale}px ui-sans-serif,system-ui`
       const t=weekday(String(labels[i]||''))
-      if (bw>26){ const tw=ctx.measureText(t).width; ctx.fillText(t, x+bw/2-tw/2, y0+14) }
+      if (bw>26*textScale){ const tw=ctx.measureText(t).width; ctx.fillText(t, x+bw/2-tw/2, y0+14*textScale) }
       const labelValue = colForecast>0.01
         ? `~${formatHours(colActual + colForecast)}h`
         : colActual>0.01
           ? `${formatHours(colActual)}h`
           : ''
       if (props.showLabels !== false && labelValue) {
-        drawOutlinedText(ctx, labelValue, x + bw/2, Math.max(pad + 4, yForecast - 2), {
+        drawOutlinedText(ctx, labelValue, x + bw/2, Math.max(pad + 4 * textScale, yForecast - 2), {
           align: 'center',
           baseline: 'bottom',
-          font: '11px ui-sans-serif,system-ui',
+          font: `${11 * textScale}px ui-sans-serif,system-ui`,
         })
       }
     })
@@ -190,10 +197,10 @@ function draw(){
       ? `~${formatHours(sumActual + sumForecast)}h expected`
       : `${formatHours(sumActual)}h total`
     if (props.showLabels !== false) {
-      drawOutlinedText(ctx, totalLabel, x1 - 4, pad + 4, {
+      drawOutlinedText(ctx, totalLabel, x1 - 4, pad + 4 * textScale, {
         align: 'right',
         baseline: 'top',
-        font: '12px ui-sans-serif,system-ui',
+        font: `${12 * textScale}px ui-sans-serif,system-ui`,
       })
     }
     return
@@ -201,7 +208,28 @@ function draw(){
   return
 }
 
-onMounted(()=>{ draw(); window.addEventListener('resize', draw) })
+function bindObservers() {
+  try {
+    ro = new ResizeObserver(() => draw())
+    if (cv.value) ro.observe(cv.value)
+  } catch(_) {}
+  try {
+    const target = cv.value?.closest('.layout-item') || cv.value?.parentElement
+    if (target) {
+      mo = new MutationObserver(() => draw())
+      mo.observe(target, { attributes: true, attributeFilter: ['style', 'class'] })
+    }
+  } catch(_) {}
+}
+
+onMounted(()=>{ draw(); bindObservers(); window.addEventListener('resize', draw) })
+onBeforeUnmount(() => {
+  try { window.removeEventListener('resize', draw) } catch(_) {}
+  try { ro && cv.value && ro.unobserve(cv.value) } catch(_) {}
+  try { mo && mo.disconnect() } catch(_) {}
+  ro = null
+  mo = null
+})
 watch(()=>props.stacked, ()=> draw(), { deep:true })
 watch(()=>props.colorsById, ()=> draw(), { deep:true })
 watch(()=>props.showLabels, ()=> draw())

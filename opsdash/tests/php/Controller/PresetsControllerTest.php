@@ -110,4 +110,24 @@ class PresetsControllerTest extends TestCase {
     $this->assertArrayNotHasKey('unknown', $result['payload']['targets_week']);
     $this->assertArrayNotHasKey('unknown', $result['payload']['targets_month']);
   }
+
+  public function testTrimPresetsKeepsMostRecent(): void {
+    $method = new \ReflectionMethod(PresetsController::class, 'trimPresets');
+    $method->setAccessible(true);
+
+    $presets = [];
+    for ($i = 0; $i < 25; $i++) {
+      $presets['preset-' . $i] = [
+        'updated_at' => sprintf('2025-01-%02dT00:00:00Z', $i + 1),
+      ];
+    }
+
+    /** @var array<string,array<string,mixed>> $trimmed */
+    $trimmed = $method->invoke($this->controller, $presets);
+
+    $this->assertCount(20, $trimmed);
+    $this->assertArrayHasKey('preset-24', $trimmed);
+    $this->assertArrayHasKey('preset-5', $trimmed);
+    $this->assertArrayNotHasKey('preset-0', $trimmed);
+  }
 }

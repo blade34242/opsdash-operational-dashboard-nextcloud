@@ -17,7 +17,7 @@ import {
   type DeckFeatureSettings,
   type ReportingConfig,
 } from '../src/services/reporting'
-import type { ActivityCardConfig } from '../src/services/targets'
+import { clampTarget, convertWeekToMonth, type ActivityCardConfig } from '../src/services/targets'
 import { fetchDeckBoardsMeta } from '../src/services/deck'
 
 type WizardProps = {
@@ -37,6 +37,7 @@ type WizardProps = {
   initialDeckSettings?: DeckFeatureSettings
   initialReportingConfig?: ReportingConfig
   initialDashboardMode?: 'quick' | 'standard' | 'pro'
+  initialTargetsWeek?: Record<string, number>
   snapshotSaving?: boolean
   snapshotNotice?: { type: 'success' | 'error'; message: string } | null
   // legacy/optional: was referenced without being typed in the SFC
@@ -59,6 +60,7 @@ export function useOnboardingWizard(options: { props: WizardProps; emit: WizardE
   const localSelection = ref<string[]>([])
   const categories = ref<CategoryDraft[]>([])
   const assignments = ref<Record<string, string>>({})
+  const calendarTargets = ref<Record<string, number>>({})
   const themePreference = ref<'auto' | 'light' | 'dark'>('auto')
   const allDayHoursInput = ref(8)
   const totalHoursInput = ref<number | null>(null)
@@ -227,6 +229,12 @@ export function useOnboardingWizard(options: { props: WizardProps; emit: WizardE
     allDayHoursInput.value = clampAllDayHours(props.initialAllDayHours ?? 8)
     totalHoursInput.value = clampTotalHours(props.initialTotalHours ?? null)
     trendLookbackInput.value = clampLookback(props.initialTargetsConfig?.balanceTrendLookback ?? 3)
+    calendarTargets.value = {}
+    Object.entries(props.initialTargetsWeek ?? {}).forEach(([id, hours]) => {
+      if (props.calendars.some((cal) => cal.id === id)) {
+        calendarTargets.value[id] = clampTarget(hours)
+      }
+    })
     deckSettingsDraft.value = cloneDeckSettings(props.initialDeckSettings ?? createDefaultDeckSettings())
     reportingDraft.value = { ...(props.initialReportingConfig ?? createDefaultReportingConfig()) }
     activityDraft.value = {
@@ -363,6 +371,12 @@ export function useOnboardingWizard(options: { props: WizardProps; emit: WizardE
   watch(
     localSelection,
     () => {
+      const allowed = new Set(localSelection.value)
+      const next: Record<string, number> = {}
+      Object.entries(calendarTargets.value).forEach(([id, hours]) => {
+        if (allowed.has(id)) next[id] = hours
+      })
+      calendarTargets.value = next
       ensureAssignments()
     },
     { deep: true },
@@ -656,14 +670,26 @@ export function useOnboardingWizard(options: { props: WizardProps; emit: WizardE
       const total = clampTotalHours(totalHoursInput.value)
       if (total != null) config.totalHours = total
     }
+    const targetsWeek = { ...result.targetsWeek }
+    Object.entries(calendarTargets.value).forEach(([id, hours]) => {
+      if (localSelection.value.includes(id)) {
+        targetsWeek[id] = clampTarget(hours)
+      }
+    })
+    const targetsMonth = Object.fromEntries(
+      Object.entries(targetsWeek).map(([id, hours]) => [id, convertWeekToMonth(hours)]),
+    )
+    if (Object.keys(targetsWeek).length) {
+      config.ui.showCalendarCharts = true
+    }
 
     emit('complete', {
       strategy: selectedStrategy.value,
       selected: [...localSelection.value],
       targetsConfig: config,
       groups: result.groups,
-      targetsWeek: result.targetsWeek,
-      targetsMonth: result.targetsMonth,
+      targetsWeek,
+      targetsMonth,
       themePreference: themePreference.value,
       deckSettings: cloneDeckSettings(deckSettingsDraft.value),
       reportingConfig: { ...reportingDraft.value },
@@ -693,11 +719,23 @@ export function useOnboardingWizard(options: { props: WizardProps; emit: WizardE
       const total = clampTotalHours(totalHoursInput.value)
       if (total != null) config.totalHours = total
     }
+    const targetsWeek = { ...result.targetsWeek }
+    Object.entries(calendarTargets.value).forEach(([id, hours]) => {
+      if (localSelection.value.includes(id)) {
+        targetsWeek[id] = clampTarget(hours)
+      }
+    })
+    const targetsMonth = Object.fromEntries(
+      Object.entries(targetsWeek).map(([id, hours]) => [id, convertWeekToMonth(hours)]),
+    )
+    if (Object.keys(targetsWeek).length) {
+      config.ui.showCalendarCharts = true
+    }
     return {
       targetsConfig: config,
       groups: result.groups,
-      targetsWeek: result.targetsWeek,
-      targetsMonth: result.targetsMonth,
+      targetsWeek,
+      targetsMonth,
       selected: [...localSelection.value],
     }
   }
@@ -774,6 +812,24 @@ export function useOnboardingWizard(options: { props: WizardProps; emit: WizardE
     localSelection.value = localSelection.value.filter((cid) => cid !== id)
   }
 
+  function setCalendarTarget(id: string, value: string) {
+    const parsed = Number(value)
+    if (!Number.isFinite(parsed)) {
+      const next = { ...calendarTargets.value }
+      delete next[id]
+      calendarTargets.value = next
+      return
+    }
+    calendarTargets.value = {
+      ...calendarTargets.value,
+      [id]: clampTarget(parsed),
+    }
+  }
+
+  function getCalendarTarget(id: string): number | '' {
+    return Number.isFinite(calendarTargets.value[id]) ? calendarTargets.value[id] : ''
+  }
+
   return {
     stepOrder,
     stepIndex,
@@ -782,6 +838,7 @@ export function useOnboardingWizard(options: { props: WizardProps; emit: WizardE
     localSelection,
     categories,
     assignments,
+    calendarTargets,
     themePreference,
     allDayHoursInput,
     totalHoursInput,
@@ -823,6 +880,8 @@ export function useOnboardingWizard(options: { props: WizardProps; emit: WizardE
     setCategoryTarget,
     toggleCategoryWeekend,
     assignCalendar,
+    setCalendarTarget,
+    getCalendarTarget,
     toggleColorPopover,
     closeColorPopover,
     resolvedColor,

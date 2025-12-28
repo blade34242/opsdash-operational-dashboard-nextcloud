@@ -3,7 +3,7 @@
 </template>
 
 <script setup lang="ts">
-import { onMounted, ref, watch } from 'vue'
+import { onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { ctxFor } from '../services/charts'
 
 const props = defineProps<{
@@ -12,6 +12,8 @@ const props = defineProps<{
 }>()
 
 const cv = ref<HTMLCanvasElement | null>(null)
+let ro: ResizeObserver | null = null
+let mo: MutationObserver | null = null
 
 function formatHours(value: number): string {
   const normalized = Math.max(0, Number(value) || 0)
@@ -23,9 +25,14 @@ function draw() {
   if (!cvEl || !props.data) return
   const ctx = ctxFor(cvEl)
   if (!ctx) return
+  const styles = getComputedStyle(cvEl)
+  const widgetScale = Math.max(0.5, Number.parseFloat(styles.getPropertyValue('--widget-scale')) || 1)
+  const widgetSpace = Math.max(0.5, Number.parseFloat(styles.getPropertyValue('--widget-space')) || widgetScale)
+  const widgetDensity = Math.max(0.5, Number.parseFloat(styles.getPropertyValue('--widget-density')) || 1)
+  const textScale = widgetScale * widgetDensity
   const W = cvEl.clientWidth
   const H = cvEl.clientHeight
-  const pad = 28
+  const pad = 28 * widgetSpace
   const x0 = pad * 1.4
   const y0 = H - pad
   const x1 = W - pad
@@ -46,33 +53,55 @@ function draw() {
   if (!labels.length || !data.length) return
   const max = Math.max(1, ...data)
   const n = labels.length
-  const gap = 8
-  const bw = Math.max(6, (x1 - x0 - gap * (n + 1)) / n)
-  const scale = (y0 - pad) / max
+  const gap = 8 * widgetSpace
+  const bw = Math.max(6 * widgetSpace, (x1 - x0 - gap * (n + 1)) / n)
+  const chartScale = (y0 - pad) / max
   ctx.fillStyle = '#93c5fd'
   labels.forEach((label, i) => {
     const val = data[i] ?? 0
-    const h = Math.max(0, val * scale)
+    const h = Math.max(0, val * chartScale)
     const x = x0 + gap + i * (bw + gap)
     const y = y0 - h
     ctx.fillRect(x, y, bw, h)
     ctx.fillStyle = fg
-    ctx.font = '12px ui-sans-serif,system-ui'
+    ctx.font = `${12 * textScale}px ui-sans-serif,system-ui`
     if (bw > 26) {
       const tw = ctx.measureText(label).width
-      ctx.fillText(label, x + bw / 2 - tw / 2, y0 + 14)
+      ctx.fillText(label, x + bw / 2 - tw / 2, y0 + 14 * textScale)
     }
-    if (props.showLabels !== false && h > 14 && bw > 22 && val > 0.01) {
+    if (props.showLabels !== false && h > 14 * textScale && bw > 22 * textScale && val > 0.01) {
       const labelVal = `${formatHours(val)}h`
       const tw = ctx.measureText(labelVal).width
-      ctx.fillText(labelVal, x + bw / 2 - tw / 2, y + h / 2 + 4)
+      ctx.fillText(labelVal, x + bw / 2 - tw / 2, y + h / 2 + 4 * textScale)
     }
   })
 }
 
+function bindObservers() {
+  try {
+    ro = new ResizeObserver(() => draw())
+    if (cv.value) ro.observe(cv.value)
+  } catch (_) {}
+  try {
+    const target = cv.value?.closest('.layout-item') || cv.value?.parentElement
+    if (target) {
+      mo = new MutationObserver(() => draw())
+      mo.observe(target, { attributes: true, attributeFilter: ['style', 'class'] })
+    }
+  } catch (_) {}
+}
+
 onMounted(() => {
   draw()
+  bindObservers()
   window.addEventListener('resize', draw)
+})
+onBeforeUnmount(() => {
+  try { window.removeEventListener('resize', draw) } catch (_) {}
+  try { ro && cv.value && ro.unobserve(cv.value) } catch (_) {}
+  try { mo && mo.disconnect() } catch (_) {}
+  ro = null
+  mo = null
 })
 watch(() => props.data, () => draw(), { deep: true })
 watch(() => props.showLabels, () => draw())

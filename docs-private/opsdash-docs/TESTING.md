@@ -42,11 +42,15 @@ Always run `npm run build` once after Vitest to ensure hashed assets match any m
 ### Widget layout persistence
 - **Unit (Vitest)**: exercise `normalizeWidgetTabs` with mixed inputs (legacy array, tabbed payload, invalid shapes).
 - **PHPUnit**: `PersistController` sanitizes `widgets` payload and preserves allowed layout fields (width/height/order/options).
+- **PHPUnit**: `NotesController` guards auth and clamps range/offset in `notes()` (see `tests/php/Controller/NotesControllerTest.php`).
+- **PHPUnit**: `NotesService` history/escaping/truncation (`tests/php/Service/NotesServiceTest.php`).
 
 ### UI regression checks
 - **Playwright**:
   - “Edit layout” toolbar remains visible, tabs render next to it, and “Add widget” still functions.
   - No console errors when switching tabs or saving layout.
+- **Vitest**:
+  - Sidebar rangebar emits range/offset/refresh events (`test/SidebarRangebar.test.ts`).
 
 ---
 
