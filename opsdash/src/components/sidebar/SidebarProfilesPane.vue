@@ -183,10 +183,6 @@ function formatRelative(value?: string | null): string {
 </script>
 
 <style scoped>
-.sb-title{
-  font-weight:600;
-  margin-bottom:6px;
-}
 .sb-description{
   font-size:12px;
   color:var(--text-color-tertiary);

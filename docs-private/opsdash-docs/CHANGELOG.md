@@ -8,6 +8,15 @@ All notable changes to this project are documented here. This file is served loc
 - UI: Sidebar refresh button enlarged; keyboard shortcuts moved to the bottom.
 - UI: Sidebar setup + profiles sections reuse the rangebar framing style.
 - UI: Sidebar uses a single scrollbar in the outer navigation container and positions it on the left.
+- Widgets: Deck cards widget auto-detects label tags as filters, shows counts, and lets users hide tag filters per widget.
+- Widgets: Deck cards widget supports a compact list toggle for a denser card layout.
+- Widgets: Pie chart supports slice highlighting from legend hover and direct slice hover.
+- Widgets: Pie chart scale is slightly reduced for a tighter footprint.
+- Widgets: Stacked chart widgets scale is slightly reduced for a tighter footprint.
+- Widgets: Stacked chart widgets highlight series on legend hover and direct bar hover.
+- Widgets: Stacked chart widgets label each stack segment and show per-column totals with leader labels for small segments.
+- Widgets: Day-of-week and hours-of-day charts now fold in the configured lookback window.
+- Widgets: Lookback views now color-code weeks in Per-day/Day-of-week, and Hours-of-day adds stacked/overlay modes with a legend.
 - UI: Sidebar open/close state persists locally; defaults to open if the stored value is missing/invalid.
 - UX: Widget layout edits no longer reset the active dashboard tab.
 - Widgets: Day-off trend uses the global week/month unit and defaults the low/high color pickers to red/green.

@@ -5,10 +5,10 @@
 
 <script setup lang="ts">
 import { onMounted, onBeforeUnmount, ref, watch, nextTick } from 'vue'
-import { ctxFor, heatColor } from '../services/charts'
+import { ctxFor, heatColor, hexToRgb, rgbToHex, themeVar } from '../services/charts'
 
 // Props: hod contains weekday labels (rows), hour labels (cols), and a matrix of hour sums
-const props = defineProps<{ hod?: { dows:string[], hours:string[]|number[], matrix:number[][] } }>()
+const props = defineProps<{ hod?: { dows:string[], hours:string[]|number[], matrix:number[][] }, baseColor?: string }>()
 const cv = ref<HTMLCanvasElement|null>(null)
 let ro: ResizeObserver | null = null
 
@@ -32,6 +32,17 @@ function draw(){
   const pad=36*widgetSpace, x0=pad, y0=pad, x1=W-pad, y1=H-pad
   const cw=(x1-x0)/Math.max(1,cols.length), rh=(y1-y0)/Math.max(1,rows.length)
   const vmax = Math.max(0, ...m.flat()) || 1
+  const baseColor = typeof props.baseColor === 'string' ? props.baseColor.trim() : ''
+  const lowColor = themeVar(cvEl, '--heatmap-low', '#e0f2fe')
+  const lowRgb = hexToRgb(lowColor)
+  const baseRgb = hexToRgb(baseColor)
+  const colorFor = (ratio: number) => {
+    const clamp = Math.max(0, Math.min(1, ratio))
+    const tt = Math.pow(clamp, 0.6)
+    if (!lowRgb || !baseRgb) return heatColor(tt)
+    const mix = (a: number, b: number, p: number) => Math.round(a + (b - a) * p)
+    return rgbToHex(mix(lowRgb.r, baseRgb.r, tt), mix(lowRgb.g, baseRgb.g, tt), mix(lowRgb.b, baseRgb.b, tt))
+  }
   if (rows.length && cols.length) {
     console.info('[opsdash] heatmap draw', { rows: rows.length, cols: cols.length, vmax })
   }
@@ -40,11 +51,11 @@ function draw(){
       const v = (m[r]?.[c]) || 0
       const ratio = v / vmax
       const x = x0 + c*cw, y = y0 + r*rh
-      ctx.fillStyle = heatColor(ratio)
+      ctx.fillStyle = colorFor(ratio)
       ctx.fillRect(x,y,cw-1,rh-1)
     }
   }
-  ctx.fillStyle = getComputedStyle(document.documentElement).getPropertyValue('--fg').trim()||'#0f172a'
+  ctx.fillStyle = themeVar(cvEl, '--fg', '#0f172a')
   ctx.font = `${12 * textScale}px ui-sans-serif,system-ui`
   rows.forEach((d,i)=> ctx.fillText(d, 8, y0 + i*rh + 12 * textScale))
   cols.forEach((h,i)=>{ if (i%2===0) ctx.fillText(String(h), x0 + i*cw + 2, y0 - 6 * textScale) })

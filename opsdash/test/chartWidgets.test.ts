@@ -67,4 +67,48 @@ describe('chart widgets', () => {
     const props = entry.buildProps(def, ctx) as any
     expect(props.stacked.series[0].forecast?.[1]).toBe(2)
   })
+
+  it('uses lookback series for day-of-week when available', () => {
+    const entry = widgetsRegistry.chart_dow
+    const def: any = { options: { scope: 'calendar', forecastMode: 'off' } }
+    const ctx: any = {
+      lookbackWeeks: 2,
+      charts: {
+        perDaySeries: {
+          labels: ['2025-10-21'],
+          series: [{ id: 'cal-1', name: 'Cal 1', data: [5] }],
+        },
+        perDaySeriesByOffset: [
+          { offset: 0, labels: ['2025-10-20'], series: [{ id: 'cal-1', name: 'Cal 1', data: [5] }] },
+          { offset: 1, labels: ['2025-10-20'], series: [{ id: 'cal-1', name: 'Cal 1', data: [3] }] },
+        ],
+      },
+      colorsById: { 'cal-1': '#111111' },
+      calendarCategoryMap: {},
+      categoryColorMap: {},
+    }
+    const props = entry.buildProps(def, ctx) as any
+    expect(props.groupedData.series[0].data[0]).toBe(5)
+    expect(props.groupedData.series[1].data[0]).toBe(3)
+  })
+
+  it('uses lookback heatmap data when available', () => {
+    const entry = widgetsRegistry.chart_hod
+    const def: any = { options: {} }
+    const ctx: any = {
+      lookbackWeeks: 2,
+      rangeMode: 'week',
+      charts: {
+        hod: { dows: ['Mon'], hours: [0], matrix: [[1]] },
+        hodLookback: { dows: ['Mon'], hours: [0], matrix: [[4]] },
+        hodByOffset: [
+          { offset: 0, dows: ['Mon'], hours: [0], matrix: [[4]] },
+          { offset: 1, dows: ['Mon'], hours: [0], matrix: [[2]] },
+        ],
+      },
+    }
+    const props = entry.buildProps(def, ctx) as any
+    expect(props.hodData).toEqual(ctx.charts.hodLookback)
+    expect(props.lookbackEntries).toHaveLength(2)
+  })
 })

@@ -31,6 +31,7 @@ export type DeckFilterMode =
   | 'created_today_mine'
   | 'created_range_all'
   | 'created_range_mine'
+  | `tag_${string}`
   | 'created_today_all'
   | 'created_today_mine'
   | 'created_range_all'

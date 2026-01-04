@@ -1,7 +1,7 @@
 <template>
   <div class="card time-summary compact" :style="cardStyle">
     <div class="time-summary-firstline" v-if="showHeader">
-      <em>{{ titleText }} · {{ rangeHeading }}</em>
+      <em>{{ titleText }}</em>
     </div>
     <div class="today-highlight" v-if="todayTotal !== null">
       <div class="today-label">Total today</div>
@@ -48,20 +48,51 @@
       <div class="time-summary-activity__line">
         Events {{ activity.events }} • Active Days {{ activity.activeDays ?? 0 }} • Typical {{ typicalWindow }}{{ activityOffsetSuffix }}
       </div>
-      <div class="time-summary-activity__line">
+      <div class="time-summary-activity__line" v-if="showActivityDetails">
         Weekend {{ pct(activity.weekendShare) }}
         <span v-if="weekendDeltaLabel" class="time-summary-activity__delta">({{ weekendDeltaLabel }})</span>
         • Evening {{ pct(activity.eveningShare) }}
         <span v-if="eveningDeltaLabel" class="time-summary-activity__delta">({{ eveningDeltaLabel }})</span>
       </div>
-      <div class="time-summary-activity__line">
+      <div class="time-summary-activity__line" v-if="showActivityDetails">
         Earliest/Late {{ earliestLatestLabel }}
       </div>
-      <div class="time-summary-activity__line">
+      <div class="time-summary-activity__line" v-if="showActivityDetails">
         Overlaps {{ activity.overlapEvents ?? 0 }} • Longest {{ longestSessionLabel }}
       </div>
-      <div class="time-summary-activity__line">
+      <div class="time-summary-activity__line" v-if="showActivityDetails">
         Last day off {{ lastDayOffLabel }}
+      </div>
+    </div>
+    <div class="time-summary-history" v-if="showHistory && historyItems.length">
+      <div class="time-summary-history__header">
+        <div class="time-summary-history__title">Lookback</div>
+        <div class="time-summary-history__mode">{{ historyViewLabel }}</div>
+      </div>
+      <div v-if="historyView === 'pills'" class="time-summary-history__pills">
+        <div class="history-pill" v-for="item in historyItems" :key="item.offset">
+          <div class="history-pill__title">{{ item.label }}</div>
+          <div class="history-pill__metrics">
+            <span class="history-pill__metric" v-for="metric in item.metrics" :key="metric.key">
+              <span class="history-pill__metric-label">{{ metric.label }}</span>
+              <span class="history-pill__metric-value">{{ metric.value }}</span>
+            </span>
+          </div>
+        </div>
+      </div>
+      <div v-else class="time-summary-history__list">
+        <div class="history-entry" v-for="item in historyItems" :key="item.offset">
+          <div class="history-entry__header">
+            <span class="history-entry__title">{{ item.label }}</span>
+            <span v-if="item.range" class="history-entry__range">{{ item.range }}</span>
+          </div>
+          <div class="history-entry__metrics">
+            <div class="history-entry__metric" v-for="metric in item.metrics" :key="metric.key">
+              <span class="history-entry__metric-label">{{ metric.label }}</span>
+              <span class="history-entry__metric-value">{{ metric.value }}</span>
+            </div>
+          </div>
+        </div>
       </div>
     </div>
     <div class="time-summary-delta" v-if="deltaLine">
@@ -86,6 +117,47 @@ type SummaryConfig = {
   showCalendarSummary: boolean
   showTopCategory: boolean
   showBalance: boolean
+}
+
+type HistoryEntry = {
+  offset: number
+  label: string
+  rangeStart: string
+  rangeEnd: string
+  totalHours: number
+  avgDay: number
+  avgEvent: number
+  medianDay: number
+  busiest: { date?: string; hours?: number } | null
+  workdayAvg: number
+  workdayMedian: number
+  weekendAvg: number
+  weekendMedian: number
+  weekendShare: number | null
+  activeCalendars: number
+  calendarSummary: string
+  topCategory: { label: string; actualHours: number; targetHours: number; percent: number; color?: string } | null
+  balanceIndex: number | null
+  activity: {
+    events: number
+    activeDays: number
+    typicalStart: string | null
+    typicalEnd: string | null
+    weekendShare: number | null
+    eveningShare: number | null
+    earliestStart: string | null
+    latestEnd: string | null
+    overlapEvents: number | null
+    longestSession: number | null
+    lastDayOff: string | null
+    lastHalfDayOff: string | null
+  }
+}
+
+type HistoryMetric = {
+  key: string
+  label: string
+  value: string
 }
 
 const defaultConfig: SummaryConfig = {
@@ -164,6 +236,10 @@ const props = defineProps<{
   rangeEnd?: string
   offset?: number
   showHeader?: boolean
+  history?: HistoryEntry[]
+  showHistory?: boolean
+  historyView?: 'list' | 'pills'
+  showActivityDetails?: boolean
 }>()
 
 const summaryConfig = computed<SummaryConfig>(() => Object.assign({}, defaultConfig, props.config ?? {}))
@@ -191,11 +267,10 @@ const todayTotal = computed(() => {
 const titleText = computed(() => props.title || 'Time Summary')
 const cardStyle = computed(() => ({ background: props.cardBg || undefined }))
 const showHeader = computed(() => props.showHeader !== false)
-const rangeHeading = computed(() => {
-  const base = props.summary.rangeLabel || (props.rangeMode === 'month' ? 'Month' : 'Week')
-  const span = rangeSpanLabel.value
-  return span ? `${base} (${span})` : base
-})
+const showHistory = computed(() => props.showHistory !== false)
+const historyView = computed(() => (props.historyView === 'pills' ? 'pills' : 'list'))
+const historyViewLabel = computed(() => (historyView.value === 'pills' ? 'Compact' : 'Detailed'))
+const showActivityDetails = computed(() => props.showActivityDetails !== false)
 const offsetBase = computed(() =>
   Number.isFinite(props.summary.offset) ? props.summary.offset : (props.offset ?? 0),
 )
@@ -280,6 +355,112 @@ const eveningDeltaLabel = computed(() => {
   return shareDeltaLabel(activity.value.eveningShare, activity.value.delta.eveningShare)
 })
 
+const historyItems = computed(() => {
+  if (!showHistory.value) return []
+  const history = Array.isArray(props.history) ? props.history : []
+  return history.map((entry) => {
+    const metrics: HistoryMetric[] = []
+    if (summaryConfig.value.showTotal) {
+      metrics.push({ key: 'total', label: 'Total', value: `${n2(entry.totalHours)} h` })
+    }
+    if (summaryConfig.value.showAverage) {
+      metrics.push({ key: 'avg-day', label: `Avg/day (${modeLabel.value})`, value: `${n2(entry.avgDay)} h` })
+      metrics.push({ key: 'avg-event', label: 'Avg/event', value: `${n2(entry.avgEvent)} h` })
+    }
+    if (summaryConfig.value.showMedian) {
+      metrics.push({ key: 'median', label: 'Median/day', value: `${n2(entry.medianDay)} h` })
+    }
+    if (summaryConfig.value.showBusiest) {
+      metrics.push({ key: 'busiest', label: 'Busiest', value: formatBusiest(entry.busiest) })
+    }
+    if (summaryConfig.value.showWorkday) {
+      metrics.push({
+        key: 'workday',
+        label: 'Workdays',
+        value: `${n2(entry.workdayAvg)} h avg · ${n2(entry.workdayMedian)} h median`,
+      })
+    }
+    if (summaryConfig.value.showWeekend) {
+      const share = summaryConfig.value.showWeekendShare && entry.weekendShare != null
+        ? ` (${n1(entry.weekendShare)}%)`
+        : ''
+      metrics.push({
+        key: 'weekend',
+        label: 'Weekend',
+        value: `${n2(entry.weekendAvg)} h avg · ${n2(entry.weekendMedian)} h median${share}`,
+      })
+    }
+    if (summaryConfig.value.showCalendarSummary) {
+      metrics.push({
+        key: 'calendars',
+        label: `${entry.activeCalendars} calendars`,
+        value: entry.calendarSummary || '—',
+      })
+    }
+    if (summaryConfig.value.showTopCategory) {
+      metrics.push({
+        key: 'top-category',
+        label: 'Top category',
+        value: formatTopCategory(entry.topCategory),
+      })
+    }
+    if (summaryConfig.value.showBalance) {
+      metrics.push({
+        key: 'balance',
+        label: 'Balance index',
+        value: entry.balanceIndex == null ? '—' : entry.balanceIndex.toFixed(2),
+      })
+    }
+    metrics.push({ key: 'events', label: 'Events', value: String(entry.activity?.events ?? 0) })
+    metrics.push({ key: 'active-days', label: 'Active days', value: String(entry.activity?.activeDays ?? 0) })
+    metrics.push({ key: 'typical', label: 'Typical', value: formatTypical(entry.activity?.typicalStart, entry.activity?.typicalEnd) })
+    if (showActivityDetails.value) {
+      metrics.push({
+        key: 'weekend-share',
+        label: 'Weekend share',
+        value: entry.activity?.weekendShare == null ? '—' : `${n1(entry.activity.weekendShare)}%`,
+      })
+      metrics.push({
+        key: 'evening-share',
+        label: 'Evening share',
+        value: entry.activity?.eveningShare == null ? '—' : `${n1(entry.activity.eveningShare)}%`,
+      })
+      metrics.push({
+        key: 'earliest-latest',
+        label: 'Earliest/Late',
+        value: formatEarliestLatest(entry.activity?.earliestStart, entry.activity?.latestEnd),
+      })
+      metrics.push({
+        key: 'overlaps',
+        label: 'Overlaps',
+        value: String(entry.activity?.overlapEvents ?? 0),
+      })
+      metrics.push({
+        key: 'longest',
+        label: 'Longest',
+        value: formatLongest(entry.activity?.longestSession),
+      })
+      metrics.push({
+        key: 'last-day-off',
+        label: 'Last day off',
+        value: entry.activity?.lastDayOff || '—',
+      })
+      metrics.push({
+        key: 'last-half-day',
+        label: 'Last half day',
+        value: entry.activity?.lastHalfDayOff || '—',
+      })
+    }
+
+    return {
+      offset: entry.offset,
+      label: entry.label || `Offset ${formatOffset(entry.offset)}`,
+      range: formatRangeSpan(entry.rangeStart, entry.rangeEnd),
+      metrics,
+    }
+  })
+})
+
 const rangeSpanLabel = computed(() => {
   const from = props.summary.rangeStart || props.rangeStart
   const to = props.summary.rangeEnd || props.rangeEnd
@@ -317,6 +498,7 @@ function n2(v: unknown) {
 
 function timeOf(value: string | null | undefined) {
   if (!value) return ''
+  if (/^\d{2}:\d{2}$/.test(value)) return value
   const date = new Date(value)
   if (Number.isNaN(date.getTime())) return ''
   return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
@@ -371,6 +553,49 @@ function comparisonRangeLabel(shift: number) {
 function formatOffset(offset: number) {
   if (offset === 0) return '0'
   return offset > 0 ? `+${offset}` : `${offset}`
+}
+
+function formatRangeSpan(startValue?: string, endValue?: string) {
+  const start = startValue ? parseDate(startValue) : null
+  const end = endValue ? parseDate(endValue) : null
+  if (!start || !end) return ''
+  const fmt = new Intl.DateTimeFormat(undefined, { month: 'short', day: 'numeric' })
+  const startLabel = fmt.format(start)
+  const endLabel = fmt.format(end)
+  return startLabel === endLabel ? startLabel : `${startLabel}–${endLabel}`
+}
+
+function formatBusiest(busiest: { date?: string; hours?: number } | null) {
+  if (!busiest?.date) return '—'
+  const hours = Number(busiest?.hours ?? 0)
+  return `${busiest.date} · ${n2(hours)} h`
+}
+
+function formatTopCategory(cat: HistoryEntry['topCategory']) {
+  if (!cat) return '—'
+  const targetPart = cat.targetHours > 0 ? ` (${Math.round(cat.percent)}% of ${n2(cat.targetHours)} h)` : ''
+  return `${cat.label} — ${n2(cat.actualHours)} h${targetPart}`
+}
+
+function formatTypical(start?: string | null, end?: string | null) {
+  const s = timeOf(start || null)
+  const e = timeOf(end || null)
+  if (s && e) return `${s}–${e}`
+  if (s) return `${s}→`
+  if (e) return `→${e}`
+  return '—'
+}
+
+function formatEarliestLatest(earliest?: string | null, latest?: string | null) {
+  const s = timeOf(earliest || null)
+  const e = timeOf(latest || null)
+  if (!s && !e) return '—'
+  return `${s || '—'} / ${e || '—'}`
+}
+
+function formatLongest(value?: number | null) {
+  if (value == null) return '—'
+  return `${Number(value).toFixed(1)} h`
 }
 
 function shareDeltaLabel(current: number | null | undefined, delta: number | null | undefined) {
@@ -539,6 +764,116 @@ function shareDeltaLabel(current: number | null | undefined, delta: number | nul
   border-top: 1px dashed color-mix(in oklab, var(--muted), transparent 70%);
   font-size: calc(12px * var(--widget-scale, 1));
   color: var(--muted);
+}
+.time-summary-history {
+  margin-top: calc(8px * var(--widget-space, 1));
+  padding-top: calc(8px * var(--widget-space, 1));
+  border-top: 1px solid var(--line);
+  display: grid;
+  gap: calc(8px * var(--widget-space, 1));
+}
+.time-summary-history__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: calc(8px * var(--widget-space, 1));
+}
+.time-summary-history__title {
+  font-weight: 600;
+  color: var(--fg);
+}
+.time-summary-history__mode {
+  font-size: calc(11px * var(--widget-scale, 1));
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--muted);
+}
+.time-summary-history__list {
+  display: grid;
+  gap: calc(10px * var(--widget-space, 1));
+}
+.history-entry {
+  border: 1px solid color-mix(in oklab, var(--line, #e5e7eb), transparent 20%);
+  border-radius: calc(12px * var(--widget-space, 1));
+  padding: calc(10px * var(--widget-space, 1));
+  background: color-mix(in oklab, var(--card, #fff), transparent 6%);
+}
+.history-entry__header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: calc(6px * var(--widget-space, 1)) calc(10px * var(--widget-space, 1));
+  margin-bottom: calc(8px * var(--widget-space, 1));
+}
+.history-entry__title {
+  font-weight: 600;
+  color: var(--fg);
+}
+.history-entry__range {
+  font-size: calc(11px * var(--widget-scale, 1));
+  color: var(--muted);
+}
+.history-entry__metrics {
+  display: grid;
+  gap: calc(6px * var(--widget-space, 1));
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+}
+.history-entry__metric {
+  display: flex;
+  flex-direction: column;
+  gap: calc(2px * var(--widget-space, 1));
+}
+.history-entry__metric-label {
+  font-size: calc(11px * var(--widget-scale, 1));
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+.history-entry__metric-value {
+  font-size: calc(12px * var(--widget-scale, 1));
+  color: var(--fg);
+}
+.time-summary-history__pills {
+  display: grid;
+  gap: calc(10px * var(--widget-space, 1));
+}
+.history-pill {
+  border: 1px solid color-mix(in oklab, var(--line, #e5e7eb), transparent 20%);
+  border-radius: calc(999px * var(--widget-space, 1));
+  padding: calc(8px * var(--widget-space, 1)) calc(12px * var(--widget-space, 1));
+  background: color-mix(in oklab, var(--card, #fff), transparent 6%);
+  display: grid;
+  gap: calc(6px * var(--widget-space, 1));
+}
+.history-pill__title {
+  font-weight: 600;
+  color: var(--fg);
+  font-size: calc(12px * var(--widget-scale, 1));
+}
+.history-pill__metrics {
+  display: flex;
+  flex-wrap: wrap;
+  gap: calc(6px * var(--widget-space, 1));
+}
+.history-pill__metric {
+  display: inline-flex;
+  align-items: center;
+  gap: calc(4px * var(--widget-space, 1));
+  padding: calc(2px * var(--widget-space, 1)) calc(8px * var(--widget-space, 1));
+  border-radius: 999px;
+  background: color-mix(in oklab, var(--card, #fff), transparent 12%);
+  border: 1px solid color-mix(in oklab, var(--line, #e5e7eb), transparent 35%);
+}
+.history-pill__metric-label {
+  font-size: calc(10px * var(--widget-scale, 1));
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--muted);
+}
+.history-pill__metric-value {
+  font-size: calc(11px * var(--widget-scale, 1));
+  color: var(--fg);
+  font-weight: 600;
 }
 .summary-badge {
   display: inline-flex;

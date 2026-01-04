@@ -5,22 +5,30 @@
 
 <script setup lang="ts">
 import { onBeforeUnmount, onMounted, ref, watch } from 'vue'
-import { ctxFor } from '../services/charts'
+import { ctxFor, themeVar } from '../services/charts'
 
-const props = defineProps<{ stacked?: any, colorsById: Record<string,string>, showLabels?: boolean }>()
+const props = defineProps<{ stacked?: any, colorsById: Record<string,string>, showLabels?: boolean, highlightId?: string | null }>()
 const cv = ref<HTMLCanvasElement|null>(null)
 let ro: ResizeObserver | null = null
 let mo: MutationObserver | null = null
+let geometry: { segments: Array<{ x: number; y: number; width: number; height: number; id: string }> } | null = null
+const hoverId = ref<string | null>(null)
 
-function drawOutlinedText(ctx: CanvasRenderingContext2D, text: string, x: number, y: number, options?: { align?: CanvasTextAlign; baseline?: CanvasTextBaseline; font?: string }) {
+function drawOutlinedText(
+  ctx: CanvasRenderingContext2D,
+  text: string,
+  x: number,
+  y: number,
+  options?: { align?: CanvasTextAlign; baseline?: CanvasTextBaseline; font?: string; fill?: string; stroke?: string },
+) {
   ctx.save()
   if (options?.font) ctx.font = options.font
   if (options?.align) ctx.textAlign = options.align
   if (options?.baseline) ctx.textBaseline = options.baseline
   ctx.lineWidth = 3
-  ctx.strokeStyle = 'rgba(0,0,0,0.55)'
+  ctx.strokeStyle = options?.stroke || 'rgba(0,0,0,0.55)'
   ctx.strokeText(text, x, y)
-  ctx.fillStyle = '#ffffff'
+  ctx.fillStyle = options?.fill || '#ffffff'
   ctx.fillText(text, x, y)
   ctx.restore()
 }
@@ -62,10 +70,11 @@ type ForecastVariant = 'future' | 'mixed'
 
 function drawForecastOverlay(
   ctx: CanvasRenderingContext2D,
-  opts: { x: number; y: number; width: number; height: number; baseColor: string; variant: ForecastVariant },
+  opts: { x: number; y: number; width: number; height: number; baseColor: string; variant: ForecastVariant; alphaScale?: number },
 ) {
   const { x, y, width, height, baseColor, variant } = opts
   const isMixed = variant === 'mixed'
+  const alphaScale = Math.max(0, Math.min(1, Number(opts.alphaScale ?? 1)))
 
   const baseInset = Math.min(width * (isMixed ? 0.35 : 0.22), 6)
   const innerWidth = Math.max(2, isMixed ? width * 0.45 : width - baseInset * 2)
@@ -75,21 +84,21 @@ function drawForecastOverlay(
 
   ctx.save()
   ctx.fillStyle = fillColor
-  ctx.globalAlpha = isMixed ? 0.12 : 0.16
+  ctx.globalAlpha = (isMixed ? 0.12 : 0.16) * alphaScale
   ctx.fillRect(innerX, y, innerWidth, height)
   ctx.restore()
 
   ctx.save()
   ctx.strokeStyle = strokeColor
   ctx.lineWidth = isMixed ? 1.25 : 1.5
-  ctx.globalAlpha = isMixed ? 0.6 : 0.75
+  ctx.globalAlpha = (isMixed ? 0.6 : 0.75) * alphaScale
   ctx.setLineDash([4, 4])
   ctx.strokeRect(innerX, y, innerWidth, height)
   ctx.restore()
 
   ctx.save()
   ctx.strokeStyle = strokeColor
-  ctx.globalAlpha = isMixed ? 0.35 : 0.45
+  ctx.globalAlpha = (isMixed ? 0.35 : 0.45) * alphaScale
   ctx.lineWidth = 1
   ctx.beginPath()
   ctx.moveTo(innerX, y)
@@ -105,51 +114,114 @@ function draw(){
   const widgetScale = Math.max(0.5, Number.parseFloat(styles.getPropertyValue('--widget-scale')) || 1)
   const widgetSpace = Math.max(0.5, Number.parseFloat(styles.getPropertyValue('--widget-space')) || widgetScale)
   const widgetDensity = Math.max(0.5, Number.parseFloat(styles.getPropertyValue('--widget-density')) || 1)
-  const textScale = widgetScale * widgetDensity
+  const stackedScale = Math.max(0.6, Number.parseFloat(styles.getPropertyValue('--stacked-scale')) || 0.85)
+  const textScale = widgetScale * widgetDensity * stackedScale
+  const labelFont = `${11 * textScale}px ui-sans-serif,system-ui`
   const W=cvEl.clientWidth,H=cvEl.clientHeight,pad=28*widgetSpace,x0=pad*1.4,y0=H-pad,x1=W-pad
-  const line=getComputedStyle(document.documentElement).getPropertyValue('--line').trim()||'#e5e7eb'
-  const fg=getComputedStyle(document.documentElement).getPropertyValue('--fg').trim()||'#0f172a'
+  const line=themeVar(cvEl, '--line', '#e5e7eb')
+  const fg=themeVar(cvEl, '--fg', '#0f172a')
+  const bg=themeVar(cvEl, '--bg', '#ffffff')
   ctx.clearRect(0,0,W,H)
   ctx.strokeStyle=line; ctx.lineWidth=1
   ctx.beginPath(); ctx.moveTo(x0,y0); ctx.lineTo(x1,y0); ctx.moveTo(x0,y0); ctx.lineTo(x0,pad); ctx.stroke()
 
   const stacked:any = props.stacked
   if (stacked && stacked.labels && stacked.series) {
+    const segments: Array<{ x: number; y: number; width: number; height: number; id: string }> = []
     let labels:string[] = stacked.labels||[]
     let series:any[] = stacked.series||[]
     // Reorder to start with Monday if labels represent a 7-day week
     const reordered = reorderToMonday(labels, series)
     labels = reordered.labels
     series = reordered.series
+    const seriesIds = series.map((entry) => String(entry?.id ?? ''))
+    if (hoverId.value && !seriesIds.includes(hoverId.value)) {
+      hoverId.value = null
+    }
+    const highlightKey = (props.highlightId ?? hoverId.value) ? String(props.highlightId ?? hoverId.value) : ''
+    const hasHighlight = Boolean(highlightKey && seriesIds.includes(highlightKey))
     const actualTotals = labels.map((_,i)=> series.reduce((a,s)=>a+Math.max(0, Number(s.data?.[i]||0)),0))
     const forecastTotals = labels.map((_,i)=> series.reduce((a,s)=>a+Math.max(0, Number(s.forecast?.[i]||0)),0))
     const combinedTotals = actualTotals.map((val, idx)=> val + forecastTotals[idx])
     const max = Math.max(1, ...combinedTotals)
     const n=labels.length||1
-    const g=8*widgetSpace
-    const bw=Math.max(6*widgetSpace,(x1-x0-g*(n+1))/n)
-    const chartScale=(y0-pad)/max
+    const gBase=8*widgetSpace
+    const bwBase=Math.max(6*widgetSpace,(x1-x0-gBase*(n+1))/n)
+    const g=gBase*stackedScale
+    const bw=Math.max(4*widgetSpace*stackedScale,bwBase*stackedScale)
+    const chartWidth = bw*n + g*(n+1)
+    const xStart = x0 + Math.max(0, (x1 - x0 - chartWidth) / 2)
+    const chartScale=(y0-pad)/max*stackedScale
     let sumActual = 0
     let sumForecast = 0
     labels.forEach((_,i)=>{
-      const x = x0+g+i*(bw+g)
+      const x = xStart+g+i*(bw+g)
       let y=y0
       let colActual = 0
+      const segmentLabels: Array<{
+        y: number
+        text: string
+        align: CanvasTextAlign
+        textX: number
+        lineStartX: number
+        lineEndX: number
+        alpha: number
+      }> = []
       series.forEach((s)=>{
         const v = Math.max(0, Number(s.data?.[i]||0))
         const h = v*chartScale
         y -= h
+        const id = String(s.id ?? '')
         const col = props.colorsById[s.id] || s.color || '#93c5fd'
+        const isMatch = hasHighlight && id === highlightKey
+        const isDim = hasHighlight && !isMatch
         if (h>0.5) {
+          ctx.save()
+          if (isDim) ctx.globalAlpha = 0.25
           ctx.fillStyle = col
           ctx.fillRect(x, y, bw, h)
-          if (props.showLabels !== false && h>14*textScale && bw>22*textScale && v>0.01) {
-            const label = formatHours(v)
-            ctx.fillStyle = textColorFor(col, fg)
-            ctx.font = `${11 * textScale}px ui-sans-serif,system-ui`
-            const tw = ctx.measureText(label).width
-            ctx.fillText(label, x + bw/2 - tw/2, y + h/2 + 4)
+          if (isMatch) {
+            ctx.strokeStyle = 'rgba(255,255,255,0.9)'
+            ctx.lineWidth = 1.5
+            ctx.strokeRect(x, y, bw, h)
           }
+          ctx.restore()
+        }
+        if (props.showLabels !== false && v>0.01) {
+          const label = formatHours(v)
+          ctx.font = labelFont
+          const tw = ctx.measureText(label).width
+          const canInside = h>14*textScale && bw>tw + 6*textScale
+          if (canInside) {
+            ctx.save()
+            if (isDim) ctx.globalAlpha = 0.25
+            ctx.fillStyle = textColorFor(col, fg)
+            ctx.font = labelFont
+            ctx.fillText(label, x + bw/2 - tw/2, y + h/2 + 4)
+            ctx.restore()
+          } else if (h>0.5) {
+            const mid = y + h/2
+            const margin = 6*widgetSpace
+            const rightX = x + bw + margin
+            const leftX = x - margin
+            const useRight = rightX + tw <= x1
+            const textX = useRight ? rightX : leftX
+            const align: CanvasTextAlign = useRight ? 'left' : 'right'
+            const lineStartX = useRight ? x + bw : x
+            const lineEndX = useRight ? textX - 4*widgetSpace : textX + 4*widgetSpace
+            segmentLabels.push({
+              y: mid,
+              text: label,
+              align,
+              textX,
+              lineStartX,
+              lineEndX,
+              alpha: isDim ? 0.25 : 1,
+            })
+          }
+        }
+        if (h > 0.5) {
+          segments.push({ x, y, width: bw, height: h, id })
         }
         colActual += v
       })
@@ -165,7 +237,10 @@ function draw(){
         if (hf <= 0.5) {
           return
         }
+        const id = String(s.id ?? '')
         const baseCol = props.colorsById[s.id] || s.color || '#93c5fd'
+        const isMatch = hasHighlight && id === highlightKey
+        const isDim = hasHighlight && !isMatch
         drawForecastOverlay(ctx, {
           x,
           y: yForecast,
@@ -173,8 +248,52 @@ function draw(){
           height: hf,
           baseColor: baseCol,
           variant: colActual > 0.01 ? 'mixed' : 'future',
+          alphaScale: isDim ? 0.25 : 1,
         })
       })
+      if (props.showLabels !== false && segmentLabels.length) {
+        const spacing = 12 * textScale
+        const minY = pad + 6 * textScale
+        const maxY = y0 - 6 * textScale
+        segmentLabels.sort((a, b) => a.y - b.y)
+        segmentLabels.forEach((label, idx) => {
+          if (idx === 0) {
+            label.y = Math.max(label.y, minY)
+          } else {
+            label.y = Math.max(label.y, segmentLabels[idx - 1].y + spacing)
+          }
+        })
+        const overflow = segmentLabels[segmentLabels.length - 1].y - maxY
+        if (overflow > 0) {
+          segmentLabels.forEach((label) => {
+            label.y -= overflow
+          })
+        }
+        const underflow = minY - segmentLabels[0].y
+        if (underflow > 0) {
+          segmentLabels.forEach((label) => {
+            label.y += underflow
+          })
+        }
+        ctx.save()
+        ctx.font = labelFont
+        ctx.textBaseline = 'middle'
+        segmentLabels.forEach((label) => {
+          ctx.save()
+          ctx.globalAlpha = label.alpha
+          ctx.strokeStyle = line
+          ctx.lineWidth = 1
+          ctx.beginPath()
+          ctx.moveTo(label.lineStartX, label.y)
+          ctx.lineTo(label.lineEndX, label.y)
+          ctx.stroke()
+          ctx.fillStyle = fg
+          ctx.textAlign = label.align
+          ctx.fillText(label.text, label.textX, label.y)
+          ctx.restore()
+        })
+        ctx.restore()
+      }
       sumActual += colActual
       sumForecast += colForecast
       ctx.fillStyle=fg; ctx.font=`${12 * textScale}px ui-sans-serif,system-ui`
@@ -190,6 +309,8 @@ function draw(){
           align: 'center',
           baseline: 'bottom',
           font: `${11 * textScale}px ui-sans-serif,system-ui`,
+          fill: fg,
+          stroke: bg,
         })
       }
     })
@@ -201,10 +322,14 @@ function draw(){
         align: 'right',
         baseline: 'top',
         font: `${12 * textScale}px ui-sans-serif,system-ui`,
+        fill: fg,
+        stroke: bg,
       })
     }
+    geometry = { segments }
     return
   }
+  geometry = null
   return
 }
 
@@ -227,12 +352,62 @@ onBeforeUnmount(() => {
   try { window.removeEventListener('resize', draw) } catch(_) {}
   try { ro && cv.value && ro.unobserve(cv.value) } catch(_) {}
   try { mo && mo.disconnect() } catch(_) {}
+  try {
+    const el = cv.value
+    if (el) {
+      el.removeEventListener('mousemove', onMouseMove)
+      el.removeEventListener('mouseleave', onMouseLeave)
+    }
+  } catch (_) {}
   ro = null
   mo = null
 })
 watch(()=>props.stacked, ()=> draw(), { deep:true })
 watch(()=>props.colorsById, ()=> draw(), { deep:true })
 watch(()=>props.showLabels, ()=> draw())
+watch(()=>props.highlightId, ()=> draw())
+
+function onMouseMove(event: MouseEvent) {
+  const cvEl = cv.value
+  if (!cvEl || !geometry) return
+  const rect = cvEl.getBoundingClientRect()
+  const x = event.clientX - rect.left
+  const y = event.clientY - rect.top
+  let nextId: string | null = null
+  for (let i = geometry.segments.length - 1; i >= 0; i -= 1) {
+    const seg = geometry.segments[i]
+    if (x >= seg.x && x <= seg.x + seg.width && y >= seg.y && y <= seg.y + seg.height) {
+      nextId = seg.id
+      break
+    }
+  }
+  if (nextId !== hoverId.value) {
+    hoverId.value = nextId
+    draw()
+  }
+}
+
+function onMouseLeave() {
+  if (hoverId.value) {
+    hoverId.value = null
+    draw()
+  }
+}
+
+watch(
+  () => cv.value,
+  (el, prev) => {
+    if (prev) {
+      prev.removeEventListener('mousemove', onMouseMove)
+      prev.removeEventListener('mouseleave', onMouseLeave)
+    }
+    if (el) {
+      el.addEventListener('mousemove', onMouseMove)
+      el.addEventListener('mouseleave', onMouseLeave)
+    }
+  },
+  { immediate: true },
+)
 
 // Convert a YYYY-MM-DD label to German weekday short name; otherwise keep as-is
 // If labels represent 7 dates, reorder so Monday comes first; reorder series.data accordingly
@@ -288,3 +463,9 @@ function isoDay(d: Date): number {
   return n === 0 ? 7 : n
 }
 </script>
+
+<style scoped>
+.chart {
+  cursor: pointer;
+}
+</style>

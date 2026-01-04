@@ -4,11 +4,13 @@
 
 <script setup lang="ts">
 import { onBeforeUnmount, onMounted, ref, watch } from 'vue'
-import { ctxFor } from '../services/charts'
+import { ctxFor, themeVar } from '../services/charts'
 
 const props = defineProps<{
-  data?: { labels?: string[]; data?: number[] }
+  data?: { labels?: string[]; data?: number[]; colors?: string[] }
   showLabels?: boolean
+  xLabel?: string
+  yLabel?: string
 }>()
 
 const cv = ref<HTMLCanvasElement | null>(null)
@@ -36,8 +38,8 @@ function draw() {
   const x0 = pad * 1.4
   const y0 = H - pad
   const x1 = W - pad
-  const line = getComputedStyle(document.documentElement).getPropertyValue('--line').trim() || '#e5e7eb'
-  const fg = getComputedStyle(document.documentElement).getPropertyValue('--fg').trim() || '#0f172a'
+  const line = themeVar(cvEl, '--line', '#e5e7eb')
+  const fg = themeVar(cvEl, '--fg', '#0f172a')
   ctx.clearRect(0, 0, W, H)
   ctx.strokeStyle = line
   ctx.lineWidth = 1
@@ -47,21 +49,34 @@ function draw() {
   ctx.moveTo(x0, y0)
   ctx.lineTo(x0, pad)
   ctx.stroke()
+  ctx.fillStyle = fg
+  ctx.font = `${12 * textScale}px ui-sans-serif,system-ui`
+  const xLabel = String(props.xLabel ?? '').trim()
+  if (xLabel) {
+    const tw = ctx.measureText(xLabel).width
+    const y = Math.min(H - 6 * textScale, y0 + 18 * textScale)
+    ctx.fillText(xLabel, x0 + (x1 - x0) / 2 - tw / 2, y)
+  }
+  const yLabel = String(props.yLabel ?? '').trim()
+  if (yLabel) {
+    ctx.fillText(yLabel, 6 * widgetSpace, pad * 0.8)
+  }
 
   const labels = (props.data.labels || []).map((label) => String(label ?? ''))
   const data = (props.data.data || []).map((val) => Math.max(0, Number(val) || 0))
+  const colors = Array.isArray(props.data.colors) ? props.data.colors : []
   if (!labels.length || !data.length) return
   const max = Math.max(1, ...data)
   const n = labels.length
   const gap = 8 * widgetSpace
   const bw = Math.max(6 * widgetSpace, (x1 - x0 - gap * (n + 1)) / n)
   const chartScale = (y0 - pad) / max
-  ctx.fillStyle = '#93c5fd'
   labels.forEach((label, i) => {
     const val = data[i] ?? 0
     const h = Math.max(0, val * chartScale)
     const x = x0 + gap + i * (bw + gap)
     const y = y0 - h
+    ctx.fillStyle = colors[i] || '#93c5fd'
     ctx.fillRect(x, y, bw, h)
     ctx.fillStyle = fg
     ctx.font = `${12 * textScale}px ui-sans-serif,system-ui`

@@ -126,6 +126,26 @@
               </label>
             </div>
           </template>
+          <template v-else-if="control.type === 'taglist'">
+            <div class="taglist">
+              <div v-if="control.hint" class="taglist__hint">{{ control.hint }}</div>
+              <div v-else-if="isTagListDefault(control)" class="taglist__hint">
+                All tags are active by default. Uncheck to hide a filter.
+              </div>
+              <label v-for="opt in control.options || []" :key="`${control.key}-${opt.value}`" class="taglist__item">
+                <span class="taglist__meta">
+                  <input
+                    type="checkbox"
+                    :value="opt.value"
+                    :checked="tagListSelected(control, opt.value)"
+                    @change="onTagListToggle(control, opt.value, $event)"
+                  />
+                  <span class="taglist__label">{{ opt.label }}</span>
+                </span>
+                <span v-if="typeof opt.count === 'number'" class="taglist__count">{{ opt.count }}</span>
+              </label>
+            </div>
+          </template>
           <template v-else-if="control.type === 'textarea'">
             <textarea
               :id="`opt-${control.key}`"
@@ -276,6 +296,30 @@ function onMulti(key: string, value: any, event: Event) {
   if (checked) next.add(value)
   else next.delete(value)
   emit('change', key, Array.from(next))
+}
+function tagListOptionValues(control: any): string[] {
+  if (!Array.isArray(control?.options)) return []
+  return control.options.map((opt: any) => String(opt?.value ?? '')).filter(Boolean)
+}
+function tagListSelected(control: any, value: any) {
+  const raw = valueFor(control.key)
+  const selected = Array.isArray(raw) ? raw.map((entry: any) => String(entry)) : tagListOptionValues(control)
+  return selected.includes(String(value))
+}
+function isTagListDefault(control: any) {
+  return !Array.isArray(valueFor(control.key))
+}
+function onTagListToggle(control: any, value: any, event: Event) {
+  const checked = (event.target as HTMLInputElement).checked
+  const options = tagListOptionValues(control)
+  const raw = valueFor(control.key)
+  const current = Array.isArray(raw) ? raw.map((entry: any) => String(entry)) : options
+  const next = new Set(current)
+  const key = String(value)
+  if (checked) next.add(key)
+  else next.delete(key)
+  const ordered = options.filter((opt) => next.has(opt))
+  emit('change', control.key, ordered)
 }
 function valueFor(key: string) {
   if (key === 'scale') {
@@ -506,6 +550,35 @@ function splitFilterValue(value: string) {
 }
 .multi__item span{
   color:#e5e7eb;
+}
+.taglist{
+  display:flex;
+  flex-direction:column;
+  gap:6px;
+}
+.taglist__hint{
+  font-size:12px;
+  color:#9ca3af;
+  line-height:1.35;
+}
+.taglist__item{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:10px;
+  font-size:15px;
+}
+.taglist__meta{
+  display:flex;
+  align-items:center;
+  gap:6px;
+}
+.taglist__label{
+  color:#e5e7eb;
+}
+.taglist__count{
+  font-size:12px;
+  color:#9ca3af;
 }
 .filter-builder{
   display:flex;

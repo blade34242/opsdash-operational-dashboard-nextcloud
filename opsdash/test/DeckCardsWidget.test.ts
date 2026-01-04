@@ -61,4 +61,299 @@ describe('DeckCardsWidget', () => {
     expect(wrapper.findAll('.deck-card').length).toBe(1)
     expect(wrapper.find('.deck-card__title').text()).toBe('Open mine today')
   })
+
+  it('adds auto tag filters with counts', () => {
+    const taggedCards = [
+      {
+        id: 10,
+        title: 'Urgent card',
+        boardId: 1,
+        boardTitle: 'A',
+        status: 'active',
+        match: 'due',
+        assignees: [],
+        labels: [{ id: 11, title: 'Urgent' }],
+        createdTs: now,
+      },
+      {
+        id: 11,
+        title: 'Second urgent',
+        boardId: 1,
+        boardTitle: 'A',
+        status: 'active',
+        match: 'due',
+        assignees: [],
+        labels: [{ id: 11, title: 'Urgent' }, { id: 12, title: 'Backlog' }],
+        createdTs: now,
+      },
+    ]
+    const wrapper = mount(DeckCardsWidget, {
+      props: {
+        cards: taggedCards,
+        rangeLabel: 'This week',
+        filters: ['all'],
+        defaultFilter: 'all',
+        autoTagsEnabled: true,
+      },
+      global: { stubs },
+    })
+    const buttons = wrapper.findAll('.deck-filter-btn')
+    const urgent = buttons.find((btn) => btn.text().includes('Urgent'))
+    expect(urgent).toBeTruthy()
+    expect(urgent?.text()).toContain('2')
+  })
+
+  it('respects tag filter selection', () => {
+    const taggedCards = [
+      {
+        id: 10,
+        title: 'Urgent card',
+        boardId: 1,
+        boardTitle: 'A',
+        status: 'active',
+        match: 'due',
+        assignees: [],
+        labels: [{ id: 11, title: 'Urgent' }],
+        createdTs: now,
+      },
+      {
+        id: 11,
+        title: 'Backlog card',
+        boardId: 1,
+        boardTitle: 'A',
+        status: 'active',
+        match: 'due',
+        assignees: [],
+        labels: [{ id: 12, title: 'Backlog' }],
+        createdTs: now,
+      },
+    ]
+    const wrapper = mount(DeckCardsWidget, {
+      props: {
+        cards: taggedCards,
+        rangeLabel: 'This week',
+        filters: ['all'],
+        defaultFilter: 'all',
+        autoTagsEnabled: true,
+        autoTagSelection: ['tag_11'],
+      },
+      global: { stubs },
+    })
+    const labels = wrapper.findAll('.deck-filter-btn').map((btn) => btn.text())
+    expect(labels.some((text) => text.includes('Urgent'))).toBe(true)
+    expect(labels.some((text) => text.includes('Backlog'))).toBe(false)
+  })
+
+  it('filters by tag when selected', () => {
+    const taggedCards = [
+      {
+        id: 10,
+        title: 'Urgent card',
+        boardId: 1,
+        boardTitle: 'A',
+        status: 'active',
+        match: 'due',
+        assignees: [],
+        labels: [{ id: 11, title: 'Urgent' }],
+        createdTs: now,
+      },
+      {
+        id: 11,
+        title: 'Backlog card',
+        boardId: 1,
+        boardTitle: 'A',
+        status: 'active',
+        match: 'due',
+        assignees: [],
+        labels: [{ id: 12, title: 'Backlog' }],
+        createdTs: now,
+      },
+    ]
+    const wrapper = mount(DeckCardsWidget, {
+      props: {
+        cards: taggedCards,
+        rangeLabel: 'This week',
+        filters: ['all'],
+        defaultFilter: 'tag_11',
+        autoTagsEnabled: true,
+      },
+      global: { stubs },
+    })
+    const cardsShown = wrapper.findAll('.deck-card')
+    expect(cardsShown.length).toBe(1)
+    expect(cardsShown[0].find('.deck-card__title').text()).toBe('Urgent card')
+  })
+
+  it('skips auto tag filters when disabled', () => {
+    const taggedCards = [
+      {
+        id: 10,
+        title: 'Urgent card',
+        boardId: 1,
+        boardTitle: 'A',
+        status: 'active',
+        match: 'due',
+        assignees: [],
+        labels: [{ id: 11, title: 'Urgent' }],
+        createdTs: now,
+      },
+    ]
+    const wrapper = mount(DeckCardsWidget, {
+      props: {
+        cards: taggedCards,
+        rangeLabel: 'This week',
+        filters: ['all'],
+        defaultFilter: 'all',
+        autoTagsEnabled: false,
+      },
+      global: { stubs },
+    })
+    const labels = wrapper.findAll('.deck-filter-btn').map((btn) => btn.text())
+    expect(labels.some((text) => text.includes('Urgent'))).toBe(false)
+  })
+
+  it('counts tags using cleaned cards', () => {
+    const taggedCards = [
+      {
+        id: 10,
+        title: 'Active urgent',
+        boardId: 1,
+        boardTitle: 'A',
+        status: 'active',
+        match: 'due',
+        assignees: [],
+        labels: [{ id: 11, title: 'Urgent' }],
+        createdTs: now,
+      },
+      {
+        id: 11,
+        title: 'Done urgent',
+        boardId: 1,
+        boardTitle: 'A',
+        status: 'done',
+        match: 'completed',
+        assignees: [],
+        labels: [{ id: 11, title: 'Urgent' }],
+        createdTs: now,
+      },
+      {
+        id: 12,
+        title: 'Archived urgent',
+        boardId: 1,
+        boardTitle: 'A',
+        status: 'archived',
+        match: 'due',
+        assignees: [],
+        labels: [{ id: 11, title: 'Urgent' }],
+        createdTs: now,
+      },
+    ]
+    const wrapper = mount(DeckCardsWidget, {
+      props: {
+        cards: taggedCards,
+        rangeLabel: 'This week',
+        filters: ['all'],
+        defaultFilter: 'all',
+        includeArchived: false,
+        includeCompleted: false,
+      },
+      global: { stubs },
+    })
+    const buttons = wrapper.findAll('.deck-filter-btn')
+    const urgent = buttons.find((btn) => btn.text().includes('Urgent'))
+    expect(urgent).toBeTruthy()
+    expect(urgent?.text()).toContain('1')
+  })
+
+  it('limits tag filters to selected boards', () => {
+    const taggedCards = [
+      {
+        id: 10,
+        title: 'Board A tag',
+        boardId: 1,
+        boardTitle: 'A',
+        status: 'active',
+        match: 'due',
+        assignees: [],
+        labels: [{ id: 11, title: 'Alpha' }],
+        createdTs: now,
+      },
+      {
+        id: 11,
+        title: 'Board B tag',
+        boardId: 2,
+        boardTitle: 'B',
+        status: 'active',
+        match: 'due',
+        assignees: [],
+        labels: [{ id: 12, title: 'Beta' }],
+        createdTs: now,
+      },
+    ]
+    const wrapper = mount(DeckCardsWidget, {
+      props: {
+        cards: taggedCards,
+        rangeLabel: 'This week',
+        filters: ['all'],
+        defaultFilter: 'all',
+        boardIds: [1],
+        autoTagsEnabled: true,
+      },
+      global: { stubs },
+    })
+    const labels = wrapper.findAll('.deck-filter-btn').map((btn) => btn.text())
+    expect(labels.some((text) => text.includes('Alpha'))).toBe(true)
+    expect(labels.some((text) => text.includes('Beta'))).toBe(false)
+  })
+
+  it('falls back to default filters when tag filter is unavailable', () => {
+    const taggedCards = [
+      {
+        id: 10,
+        title: 'Tag one',
+        boardId: 1,
+        boardTitle: 'A',
+        status: 'active',
+        match: 'due',
+        assignees: [],
+        labels: [{ id: 11, title: 'Urgent' }],
+        createdTs: now,
+      },
+      {
+        id: 11,
+        title: 'Tag two',
+        boardId: 1,
+        boardTitle: 'A',
+        status: 'active',
+        match: 'due',
+        assignees: [],
+        labels: [{ id: 12, title: 'Backlog' }],
+        createdTs: now,
+      },
+    ]
+    const wrapper = mount(DeckCardsWidget, {
+      props: {
+        cards: taggedCards,
+        rangeLabel: 'This week',
+        filters: ['all'],
+        defaultFilter: 'tag_11',
+        autoTagsEnabled: false,
+      },
+      global: { stubs },
+    })
+    expect(wrapper.findAll('.deck-card').length).toBe(2)
+  })
+
+  it('renders a compact list when enabled', () => {
+    const wrapper = mount(DeckCardsWidget, {
+      props: {
+        cards,
+        rangeLabel: 'This week',
+        compactList: true,
+      },
+      global: { stubs },
+    })
+    expect(wrapper.find('.deck-panel--compact').exists()).toBe(true)
+    expect(wrapper.find('.deck-card__row').exists()).toBe(true)
+  })
 })

@@ -5,9 +5,11 @@ const TimeSummaryCard = defineAsyncComponent(() =>
 )
 
 import { buildTitle } from '../helpers'
-import { createDefaultTargetsConfig } from '../../targets'
+import { createDefaultTargetsConfig, convertWeekToMonth } from '../../targets'
 import type { TargetsConfig } from '../../targets'
+import { computeIndexForShares } from '../../balanceIndex'
 import type { RegistryEntry } from '../types'
+import { formatLookbackLabel, sortLookbackOffsets } from './chartHelpers'
 
 const baseTitle = 'Time Summary'
 
@@ -22,6 +24,9 @@ export const timeSummaryV2Entry: RegistryEntry = {
     return {
       ...defaults,
       mode: 'active',
+      showHistory: true,
+      historyView: 'list',
+      showActivityDetails: true,
     }
   })(),
   controls: [
@@ -34,6 +39,12 @@ export const timeSummaryV2Entry: RegistryEntry = {
         { value: 'all', label: 'All days' },
       ],
     },
+    { key: 'showHistory', label: 'Show history', type: 'toggle' },
+    { key: 'historyView', label: 'History layout', type: 'select', options: [
+      { value: 'list', label: 'List' },
+      { value: 'pills', label: 'Pills' },
+    ] },
+    { key: 'showActivityDetails', label: 'Activity details', type: 'toggle' },
     { key: 'showTotal', label: 'Total hours', type: 'toggle' },
     { key: 'showAverage', label: 'Average per day', type: 'toggle' },
     { key: 'showMedian', label: 'Median per day', type: 'toggle' },
@@ -51,16 +62,37 @@ export const timeSummaryV2Entry: RegistryEntry = {
       ...baseConfig,
       timeSummary: { ...baseConfig.timeSummary },
     }
+    const rangeMode = String(ctx.rangeMode || 'week').toLowerCase() === 'month' ? 'month' : 'week'
+    const mode = (def.options?.mode as 'active' | 'all' | undefined) ?? ctx.activeDayMode ?? 'active'
+    const showHistory = def.options?.showHistory !== false
+    const historyView = def.options?.historyView === 'pills' ? 'pills' : 'list'
+    const showActivityDetails = def.options?.showActivityDetails !== false
     const applyToggle = (key: keyof TargetsConfig['timeSummary']) => {
       if (def.options?.[key] === undefined) return
       cfg.timeSummary[key] = !!def.options[key]
     }
     ;(['showTotal','showAverage','showMedian','showBusiest','showWorkday','showWeekend','showWeekendShare','showCalendarSummary','showTopCategory','showBalance'] as Array<keyof TargetsConfig['timeSummary']>).forEach(applyToggle)
 
+    const history =
+      showHistory && Number(ctx.lookbackWeeks) > 1
+        ? buildHistoryEntries({
+            mode,
+            rangeMode,
+            lookbackWeeks: Number(ctx.lookbackWeeks),
+            perDaySeriesByOffset: ctx.charts?.perDaySeriesByOffset,
+            hodByOffset: ctx.charts?.hodByOffset,
+            summaryByOffset: ctx.charts?.summaryByOffset,
+            targetsConfig: normalizeTargetsConfigForRange(cfg, rangeMode),
+            calendarCategoryMap: ctx.calendarCategoryMap || {},
+            calendarGroups: Array.isArray(ctx.calendarGroups) ? ctx.calendarGroups : [],
+            categoryColorMap: ctx.categoryColorMap || {},
+          })
+        : []
+
     return {
       summary: ctx.summary,
       activitySummary: ctx.activitySummary,
-      mode: (def.options?.mode as 'active' | 'all' | undefined) ?? ctx.activeDayMode ?? 'active',
+      mode,
       config: cfg.timeSummary,
       todayGroups: def.props?.todayGroups ?? ctx.groups,
       title: buildTitle(baseTitle, def.options?.titlePrefix),
@@ -70,6 +102,435 @@ export const timeSummaryV2Entry: RegistryEntry = {
       rangeEnd: ctx.to,
       offset: ctx.offset,
       showHeader: def.options?.showHeader !== false,
+      showHistory,
+      historyView,
+      showActivityDetails,
+      history,
     }
   },
+}
+
+type HistoryEntry = {
+  offset: number
+  label: string
+  rangeStart: string
+  rangeEnd: string
+  totalHours: number
+  avgDay: number
+  avgEvent: number
+  medianDay: number
+  busiest: { date?: string; hours?: number } | null
+  workdayAvg: number
+  workdayMedian: number
+  weekendAvg: number
+  weekendMedian: number
+  weekendShare: number | null
+  activeCalendars: number
+  calendarSummary: string
+  topCategory: { label: string; actualHours: number; targetHours: number; percent: number; color?: string } | null
+  balanceIndex: number | null
+  activity: {
+    events: number
+    activeDays: number
+    typicalStart: string | null
+    typicalEnd: string | null
+    weekendShare: number | null
+    eveningShare: number | null
+    earliestStart: string | null
+    latestEnd: string | null
+    overlapEvents: number | null
+    longestSession: number | null
+    lastDayOff: string | null
+    lastHalfDayOff: string | null
+  }
+}
+
+function buildHistoryEntries(opts: {
+  mode: 'active' | 'all'
+  rangeMode: 'week' | 'month'
+  lookbackWeeks: number
+  perDaySeriesByOffset: any
+  hodByOffset: any
+  summaryByOffset: any
+  targetsConfig: TargetsConfig
+  calendarCategoryMap: Record<string, string>
+  calendarGroups: Array<{ id: string; label?: string }>
+  categoryColorMap: Record<string, string>
+}): HistoryEntry[] {
+  const perDayInput = Array.isArray(opts.perDaySeriesByOffset) ? opts.perDaySeriesByOffset : []
+  if (!perDayInput.length) return []
+  const hodInput = Array.isArray(opts.hodByOffset) ? opts.hodByOffset : []
+  const summaryInput = Array.isArray(opts.summaryByOffset) ? opts.summaryByOffset : []
+
+  const perDayMap = new Map<number, any>()
+  perDayInput.forEach((entry) => {
+    const offset = Number(entry?.offset ?? 0)
+    if (Number.isFinite(offset)) perDayMap.set(offset, entry)
+  })
+  const hodMap = new Map<number, any>()
+  hodInput.forEach((entry) => {
+    const offset = Number(entry?.offset ?? 0)
+    if (Number.isFinite(offset)) hodMap.set(offset, entry)
+  })
+  const summaryMap = new Map<number, any>()
+  summaryInput.forEach((entry) => {
+    const offset = Number(entry?.offset ?? 0)
+    if (Number.isFinite(offset)) summaryMap.set(offset, entry)
+  })
+
+  const maxOffset = Math.max(0, Math.min(6, Math.floor(opts.lookbackWeeks) - 1))
+  if (maxOffset <= 0) return []
+
+  const offsets = sortLookbackOffsets(perDayInput)
+    .map((entry) => Number(entry?.offset ?? 0))
+    .filter((offset) => Number.isFinite(offset) && offset > 0 && offset <= maxOffset)
+
+  const categoryLabelById = new Map<string, string>()
+  opts.calendarGroups.forEach((group) => {
+    const id = String(group?.id ?? '').trim()
+    if (id) categoryLabelById.set(id, String(group?.label ?? id))
+  })
+  opts.targetsConfig.categories.forEach((cat) => {
+    const id = String(cat?.id ?? '').trim()
+    if (id && !categoryLabelById.has(id)) {
+      categoryLabelById.set(id, String(cat?.label ?? id))
+    }
+  })
+
+  return offsets
+    .map((offset) => {
+      const perDayEntry = perDayMap.get(offset)
+      if (!perDayEntry) return null
+      const perDay = buildPerDayStats(perDayEntry)
+      const summaryEntry = summaryMap.get(offset)
+      const hodEntry = hodMap.get(offset)
+      const totalHours = round2(perDay.totalHours)
+      const events = Number(summaryEntry?.events ?? summaryEntry?.eventsCount ?? 0) || 0
+      const overlapEvents = Number(summaryEntry?.overlap_events ?? summaryEntry?.overlapEvents ?? 0) || 0
+      const longestSession = Number(summaryEntry?.longest_session ?? summaryEntry?.longestSession ?? 0) || 0
+      const earliestStart = stringOrNull(summaryEntry?.earliest_start ?? summaryEntry?.earliestStart)
+      const latestEnd = stringOrNull(summaryEntry?.latest_end ?? summaryEntry?.latestEnd)
+      const hodStats = hodEntry ? buildHodStats(hodEntry, totalHours) : null
+
+      const activeDays = perDay.activeDays
+      const avgDay = round2(avg(perDay.filteredTotals(opts.mode)))
+      const medianDay = round2(median(perDay.filteredTotals(opts.mode)))
+      const avgEvent = events > 0 ? round2(totalHours / events) : 0
+      const workdayAvg = round2(avg(perDay.filteredWorkdayTotals(opts.mode)))
+      const workdayMedian = round2(median(perDay.filteredWorkdayTotals(opts.mode)))
+      const weekendAvg = round2(avg(perDay.filteredWeekendTotals(opts.mode)))
+      const weekendMedian = round2(median(perDay.filteredWeekendTotals(opts.mode)))
+      const weekendShare = hodStats?.weekendShare ?? perDay.weekendShare
+
+      const calendarSummary = buildCalendarSummary(perDay.calendarTotals, totalHours)
+      const topCategory = buildTopCategory({
+        calendarTotals: perDay.calendarTotals,
+        categoryLabelById,
+        categoryColorMap: opts.categoryColorMap,
+        calendarCategoryMap: opts.calendarCategoryMap,
+        targetsConfig: opts.targetsConfig,
+      })
+      const balanceIndex = buildBalanceIndex({
+        totalHours,
+        calendarTotals: perDay.calendarTotals,
+        calendarCategoryMap: opts.calendarCategoryMap,
+        targetsConfig: opts.targetsConfig,
+      })
+
+      return {
+        offset,
+        label: formatLookbackLabel({ offset, from: perDayEntry?.from, to: perDayEntry?.to }, opts.rangeMode),
+        rangeStart: String(perDayEntry?.from ?? ''),
+        rangeEnd: String(perDayEntry?.to ?? ''),
+        totalHours,
+        avgDay,
+        avgEvent,
+        medianDay,
+        busiest: perDay.busiest,
+        workdayAvg,
+        workdayMedian,
+        weekendAvg,
+        weekendMedian,
+        weekendShare,
+        activeCalendars: perDay.activeCalendars,
+        calendarSummary,
+        topCategory,
+        balanceIndex,
+        activity: {
+          events,
+          activeDays,
+          typicalStart: hodStats?.typicalStart ?? null,
+          typicalEnd: hodStats?.typicalEnd ?? null,
+          weekendShare: hodStats?.weekendShare ?? null,
+          eveningShare: hodStats?.eveningShare ?? null,
+          earliestStart,
+          latestEnd,
+          overlapEvents,
+          longestSession: round2(longestSession),
+          lastDayOff: perDay.lastDayOff,
+          lastHalfDayOff: perDay.lastHalfDayOff,
+        },
+      }
+    })
+    .filter((entry): entry is HistoryEntry => !!entry)
+}
+
+function normalizeTargetsConfigForRange(config: TargetsConfig, rangeMode: 'week' | 'month'): TargetsConfig {
+  const clone: TargetsConfig = JSON.parse(JSON.stringify(config))
+  if (rangeMode === 'month') {
+    clone.totalHours = convertWeekToMonth(clone.totalHours)
+    clone.categories = clone.categories.map((cat) => ({
+      ...cat,
+      targetHours: convertWeekToMonth(cat.targetHours),
+    }))
+  }
+  return clone
+}
+
+function buildPerDayStats(entry: any) {
+  const labels = Array.isArray(entry?.labels) ? entry.labels.map((label: any) => String(label ?? '')) : []
+  const series = Array.isArray(entry?.series) ? entry.series : []
+  const totals = labels.map((_, idx) => series.reduce((sum: number, row: any) => {
+    const raw = Number(row?.data?.[idx] ?? 0)
+    return sum + (Number.isFinite(raw) ? Math.max(0, raw) : 0)
+  }, 0))
+  const calendarTotals = series.map((row: any) => {
+    const id = String(row?.id ?? '')
+    const name = String(row?.name ?? row?.label ?? id)
+    const total = Array.isArray(row?.data)
+      ? row.data.reduce((sum: number, v: any) => {
+          const num = Number(v ?? 0)
+          return sum + (Number.isFinite(num) ? Math.max(0, num) : 0)
+        }, 0)
+      : 0
+    return { id, name, total: round2(total), color: row?.color ? String(row.color) : undefined }
+  })
+  const totalHours = totals.reduce((sum, v) => sum + v, 0)
+  const activeCalendars = calendarTotals.filter((row) => row.total > 0).length
+  const busiest = (() => {
+    if (!labels.length) return null
+    let max = -1
+    let maxIdx = -1
+    totals.forEach((val, idx) => {
+      if (val > max) {
+        max = val
+        maxIdx = idx
+      }
+    })
+    if (maxIdx < 0 || max <= 0) return null
+    return { date: labels[maxIdx], hours: round2(max) }
+  })()
+  const workdayTotals: number[] = []
+  const weekendTotals: number[] = []
+  totals.forEach((val, idx) => {
+    const day = dayOfWeek(labels[idx])
+    if (day == null) return
+    if (day === 0 || day === 6) {
+      weekendTotals.push(val)
+    } else {
+      workdayTotals.push(val)
+    }
+  })
+
+  const weekendShare = totalHours > 0
+    ? round1((weekendTotals.reduce((sum, v) => sum + v, 0) / totalHours) * 100)
+    : null
+
+  const { lastDayOff, lastHalfDayOff } = findLastDayOff(labels, totals)
+  const activeDays = totals.filter((v) => v > 0.01).length
+
+  return {
+    labels,
+    totals,
+    totalHours,
+    activeCalendars,
+    busiest,
+    workdayTotals,
+    weekendTotals,
+    weekendShare,
+    lastDayOff,
+    lastHalfDayOff,
+    activeDays,
+    filteredTotals: (mode: 'active' | 'all') => mode === 'active' ? totals.filter((v) => v > 0) : totals,
+    filteredWorkdayTotals: (mode: 'active' | 'all') => mode === 'active' ? workdayTotals.filter((v) => v > 0) : workdayTotals,
+    filteredWeekendTotals: (mode: 'active' | 'all') => mode === 'active' ? weekendTotals.filter((v) => v > 0) : weekendTotals,
+    calendarTotals,
+  }
+}
+
+function buildHodStats(entry: any, totalHours: number) {
+  const dows = Array.isArray(entry?.dows) ? entry.dows.map((d: any) => String(d ?? '')) : []
+  const matrix = Array.isArray(entry?.matrix) ? entry.matrix : []
+  const rowMap = new Map<string, number[]>()
+  dows.forEach((dow: string, idx: number) => {
+    const row = Array.isArray(matrix[idx]) ? matrix[idx] : []
+    rowMap.set(dow, row.map((val) => Number(val ?? 0)))
+  })
+  const hourTotals = Array.from({ length: 24 }, (_, idx) =>
+    Array.from(rowMap.values()).reduce((sum, row) => sum + Number(row[idx] ?? 0), 0),
+  )
+  const threshold = 0.25
+  let typicalStart: string | null = null
+  let typicalEnd: string | null = null
+  for (let i = 0; i < 24; i += 1) {
+    if (hourTotals[i] >= threshold) {
+      typicalStart = `${String(i).padStart(2, '0')}:00`
+      break
+    }
+  }
+  for (let i = 23; i >= 0; i -= 1) {
+    if (hourTotals[i] >= threshold) {
+      typicalEnd = `${String(i + 1).padStart(2, '0')}:00`
+      break
+    }
+  }
+  const weekendTotal = (rowMap.get('Sat') || []).reduce((sum, v) => sum + Number(v ?? 0), 0)
+    + (rowMap.get('Sun') || []).reduce((sum, v) => sum + Number(v ?? 0), 0)
+  let eveningTotal = 0
+  rowMap.forEach((row) => {
+    for (let i = 18; i < 24; i += 1) {
+      eveningTotal += Number(row[i] ?? 0)
+    }
+  })
+  const weekendShare = totalHours > 0 ? round1((weekendTotal / totalHours) * 100) : null
+  const eveningShare = totalHours > 0 ? round1((eveningTotal / totalHours) * 100) : null
+  return {
+    typicalStart,
+    typicalEnd,
+    weekendShare,
+    eveningShare,
+  }
+}
+
+function buildCalendarSummary(
+  calendarTotals: Array<{ name: string; total: number }>,
+  totalHours: number,
+): string {
+  if (totalHours <= 0) return ''
+  const ranked = calendarTotals.slice().sort((a, b) => b.total - a.total)
+  return ranked
+    .filter((row) => row.total > 0)
+    .slice(0, 3)
+    .map((row) => `${row.name} ${round1((row.total / totalHours) * 100)}%`)
+    .join(', ')
+}
+
+function buildTopCategory(input: {
+  calendarTotals: Array<{ id: string; total: number }>
+  calendarCategoryMap: Record<string, string>
+  categoryLabelById: Map<string, string>
+  categoryColorMap: Record<string, string>
+  targetsConfig: TargetsConfig
+}) {
+  const totals = new Map<string, number>()
+  input.calendarTotals.forEach((row) => {
+    const catId = String(input.calendarCategoryMap?.[row.id] ?? '')
+    if (!catId) return
+    totals.set(catId, (totals.get(catId) || 0) + row.total)
+  })
+  if (!totals.size) return null
+  let topId = ''
+  let topTotal = -1
+  totals.forEach((value, id) => {
+    if (value > topTotal) {
+      topTotal = value
+      topId = id
+    }
+  })
+  if (!topId) return null
+  const targetEntry = input.targetsConfig.categories.find((cat) => String(cat.id) === topId)
+  const targetHours = Number(targetEntry?.targetHours ?? 0) || 0
+  const percent = targetHours > 0 ? round1((topTotal / targetHours) * 100) : 0
+  return {
+    label: input.categoryLabelById.get(topId) || topId,
+    actualHours: round2(topTotal),
+    targetHours: round2(targetHours),
+    percent,
+    color: input.categoryColorMap?.[topId],
+  }
+}
+
+function buildBalanceIndex(input: {
+  totalHours: number
+  calendarTotals: Array<{ id: string; total: number }>
+  calendarCategoryMap: Record<string, string>
+  targetsConfig: TargetsConfig
+}): number | null {
+  if (input.totalHours <= 0) return null
+  const basis = input.targetsConfig.balance?.index?.basis || 'category'
+  if (basis === 'off') return null
+  const shares: Record<string, number> = {}
+  if (basis === 'calendar') {
+    input.calendarTotals.forEach((row) => {
+      if (row.total <= 0) return
+      shares[row.id] = row.total / input.totalHours
+    })
+  } else {
+    const totals = new Map<string, number>()
+    input.calendarTotals.forEach((row) => {
+      const catId = String(input.calendarCategoryMap?.[row.id] ?? '')
+      if (!catId) return
+      totals.set(catId, (totals.get(catId) || 0) + row.total)
+    })
+    totals.forEach((value, id) => {
+      if (value <= 0) return
+      shares[id] = value / input.totalHours
+    })
+  }
+  if (!Object.keys(shares).length) return null
+  return computeIndexForShares({
+    shares,
+    targets: input.targetsConfig.categories,
+    basis,
+  })
+}
+
+function avg(values: number[]): number {
+  if (!values.length) return 0
+  return values.reduce((sum, v) => sum + v, 0) / values.length
+}
+
+function median(values: number[]): number {
+  if (!values.length) return 0
+  const sorted = [...values].sort((a, b) => a - b)
+  const mid = Math.floor(sorted.length / 2)
+  return sorted.length % 2 ? sorted[mid] : (sorted[mid - 1] + sorted[mid]) / 2
+}
+
+function dayOfWeek(label: string): number | null {
+  if (!label) return null
+  const date = new Date(`${label}T00:00:00`)
+  if (Number.isNaN(date.getTime())) return null
+  return date.getDay()
+}
+
+function findLastDayOff(labels: string[], totals: number[]) {
+  let lastDayOff: string | null = null
+  let lastHalfDayOff: string | null = null
+  const halfThreshold = 4
+  for (let i = labels.length - 1; i >= 0; i -= 1) {
+    const dayTotal = totals[i] ?? 0
+    if (!lastDayOff && dayTotal <= 0.01) {
+      lastDayOff = labels[i]
+    }
+    if (!lastHalfDayOff && dayTotal > 0.01 && dayTotal <= halfThreshold) {
+      lastHalfDayOff = labels[i]
+    }
+    if (lastDayOff && lastHalfDayOff) break
+  }
+  return { lastDayOff, lastHalfDayOff }
+}
+
+function round1(value: number) {
+  return Math.round(value * 10) / 10
+}
+
+function round2(value: number) {
+  return Math.round(value * 100) / 100
+}
+
+function stringOrNull(value: any): string | null {
+  if (value === undefined || value === null) return null
+  const str = String(value).trim()
+  return str ? str : null
 }

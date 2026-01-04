@@ -7,7 +7,10 @@ import {
   buildDowFromPerDay,
   buildPerDayFromStacked,
   filterStackedByIds,
+  formatLookbackLabel,
+  getLookbackColor,
   parseIdList,
+  sortLookbackOffsets,
 } from './chartHelpers'
 
 const ChartDowWidget = defineAsyncComponent(() =>
@@ -59,19 +62,65 @@ export const chartDowEntry: RegistryEntry = {
     const calendarFilter = new Set(parseIdList(def.options?.calendarFilter))
     const categoryFilter = new Set(parseIdList(def.options?.categoryFilter))
     const categoryColorMap = ctx.categoryColorMap || {}
-    const baseStacked = buildStackedWithForecast({
-      perDaySeries: ctx.charts?.perDaySeries,
-      forecastMode: def.options?.forecastMode,
-      targetsConfig: ctx.targetsConfig,
-      currentTargets: ctx.currentTargets,
-      calendarCategoryMap: ctx.calendarCategoryMap,
-    })
-    const stacked =
-      scope === 'category'
-        ? aggregateStackedByCategory(baseStacked, ctx.calendarCategoryMap || {}, categoryFilter, categoryColorMap)
-        : filterStackedByIds(baseStacked, calendarFilter)
-    const perDay = buildPerDayFromStacked(stacked)
-    const chartData = buildDowFromPerDay(perDay)
+    const lookbackWeeks = Number.isFinite(ctx.lookbackWeeks) ? Math.max(1, Math.min(6, Number(ctx.lookbackWeeks))) : 1
+    const lookbackInput =
+      lookbackWeeks > 1 && Array.isArray(ctx.charts?.perDaySeriesByOffset)
+        ? ctx.charts.perDaySeriesByOffset
+        : null
+    let chartData: { labels?: string[]; data?: number[] } | null = null
+    let groupedData: { labels: string[]; series: Array<{ id: string; name?: string; label?: string; color?: string; data?: number[] }> } | null = null
+    let legendItems: Array<{ id: string; label: string; color: string }> = []
+
+    if (lookbackInput && lookbackInput.length) {
+      const sorted = sortLookbackOffsets(lookbackInput)
+      const labels: string[] = []
+      const series: Array<{ id: string; name?: string; label?: string; color?: string; data?: number[] }> = []
+      legendItems = []
+      sorted.forEach((entry, idx) => {
+        const perDaySeries = { labels: entry.labels || [], series: entry.series || [] }
+        const baseStacked = buildStackedWithForecast({
+          perDaySeries,
+          forecastMode: def.options?.forecastMode,
+          targetsConfig: ctx.targetsConfig,
+          currentTargets: ctx.currentTargets,
+          calendarCategoryMap: ctx.calendarCategoryMap,
+        })
+        const stacked =
+          scope === 'category'
+            ? aggregateStackedByCategory(baseStacked, ctx.calendarCategoryMap || {}, categoryFilter, categoryColorMap)
+            : filterStackedByIds(baseStacked, calendarFilter)
+        const perDay = buildPerDayFromStacked(stacked)
+        const dow = buildDowFromPerDay(perDay)
+        if (!dow) return
+        if (!labels.length) labels.push(...(dow.labels || []))
+        const color = getLookbackColor(idx)
+        const label = formatLookbackLabel(entry, ctx.rangeMode)
+        series.push({
+          id: `offset-${entry.offset ?? idx}`,
+          name: label,
+          label,
+          color,
+          data: dow.data || [],
+        })
+        legendItems.push({ id: `offset-${entry.offset ?? idx}`, label, color })
+      })
+      groupedData = labels.length && series.length ? { labels, series } : null
+    } else {
+      const perDaySeriesInput = ctx.charts?.perDaySeries
+      const baseStacked = buildStackedWithForecast({
+        perDaySeries: perDaySeriesInput,
+        forecastMode: def.options?.forecastMode,
+        targetsConfig: ctx.targetsConfig,
+        currentTargets: ctx.currentTargets,
+        calendarCategoryMap: ctx.calendarCategoryMap,
+      })
+      const stacked =
+        scope === 'category'
+          ? aggregateStackedByCategory(baseStacked, ctx.calendarCategoryMap || {}, categoryFilter, categoryColorMap)
+          : filterStackedByIds(baseStacked, calendarFilter)
+      const perDay = buildPerDayFromStacked(stacked)
+      chartData = buildDowFromPerDay(perDay)
+    }
     return {
       title: buildTitle(baseTitle, def.options?.titlePrefix),
       subtitle: scope === 'category' ? 'By category' : 'By calendar',
@@ -79,7 +128,11 @@ export const chartDowEntry: RegistryEntry = {
       showHeader: def.options?.showHeader !== false,
       showLabels: def.options?.showLabels !== false,
       compact: def.options?.compact === true,
+      xLabel: 'Weekday',
+      yLabel: 'Hours (h)',
       chartData,
+      groupedData,
+      legendItems,
     }
   },
 }

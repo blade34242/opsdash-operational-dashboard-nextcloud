@@ -1,5 +1,5 @@
 <template>
-  <div class="deck-panel" :style="cardStyle">
+  <div class="deck-panel" :class="{ 'deck-panel--compact': props.compact }" :style="cardStyle">
   <div class="deck-panel__header" v-if="showHeader">
     <div class="deck-panel__heading">
       <div class="deck-panel__title">{{ titleLabel }}</div>
@@ -78,44 +78,86 @@
       />
       <ul v-else class="deck-card-list" ref="listEl">
         <li v-for="(card, idx) in cards" :key="card.id" class="deck-card" :data-idx="idx">
-          <div class="deck-card__status-row">
-            <span class="deck-card__status" :class="card.status">
-              {{ statusLabel(card.status) }}
-            </span>
-            <span v-if="card.match === 'due' && card.due" class="deck-card__time">
-              Due {{ formatDate(card.due) }}
-            </span>
-            <span v-else-if="card.done" class="deck-card__time">
-              Completed {{ formatDate(card.done) }}
-            </span>
-          </div>
-          <div class="deck-card__title">{{ card.title }}</div>
-          <div class="deck-card__meta">
-            <span class="deck-card__board" :style="{ borderColor: card.boardColor || 'var(--color-primary)' }">
-              {{ card.boardTitle }}
-            </span>
-            <span class="deck-card__stack">{{ card.stackTitle }}</span>
-          </div>
-          <div class="deck-card__labels" v-if="card.labels.length">
-            <span
-              v-for="label in card.labels"
-              :key="`deck-label-${card.id}-${label.id ?? label.title}`"
-              class="deck-card__label"
-              :style="{ background: label.color || 'var(--color-background-darker)' }"
-            >
-              {{ label.title }}
-            </span>
-          </div>
-          <div class="deck-card__assignees" v-if="card.assignees.length">
-            <span class="deck-card__assignees-label">Assigned:</span>
-            <span
-              v-for="assignee in card.assignees"
-              :key="`deck-assignee-${card.id}-${assignee.uid ?? assignee.id}`"
-              class="deck-card__assignee"
-            >
-              {{ assignee.displayName || assignee.uid }}
-            </span>
-          </div>
+          <template v-if="props.compact">
+            <div class="deck-card__row">
+              <span class="deck-card__status" :class="card.status">
+                {{ statusLabel(card.status) }}
+              </span>
+              <span v-if="card.match === 'due' && card.due" class="deck-card__time">
+                Due {{ formatDate(card.due) }}
+              </span>
+              <span v-else-if="card.done" class="deck-card__time">
+                Completed {{ formatDate(card.done) }}
+              </span>
+              <span class="deck-card__title">{{ card.title }}</span>
+              <span class="deck-card__meta">
+                <span class="deck-card__board" :style="{ borderColor: card.boardColor || 'var(--color-primary)' }">
+                  {{ card.boardTitle }}
+                </span>
+                <span class="deck-card__stack">{{ card.stackTitle }}</span>
+              </span>
+              <span class="deck-card__labels" v-if="card.labels.length">
+                <span
+                  v-for="label in card.labels"
+                  :key="`deck-label-${card.id}-${label.id ?? label.title}`"
+                  class="deck-card__label"
+                  :style="{ background: label.color || 'var(--color-background-darker)' }"
+                >
+                  {{ label.title }}
+                </span>
+              </span>
+              <span class="deck-card__assignees" v-if="card.assignees.length">
+                <span class="deck-card__assignees-label">Assigned:</span>
+                <span
+                  v-for="assignee in card.assignees"
+                  :key="`deck-assignee-${card.id}-${assignee.uid ?? assignee.id}`"
+                  class="deck-card__assignee"
+                >
+                  {{ assignee.displayName || assignee.uid }}
+                </span>
+              </span>
+            </div>
+          </template>
+          <template v-else>
+            <div class="deck-card__status-row">
+              <span class="deck-card__status" :class="card.status">
+                {{ statusLabel(card.status) }}
+              </span>
+              <span v-if="card.match === 'due' && card.due" class="deck-card__time">
+                Due {{ formatDate(card.due) }}
+              </span>
+              <span v-else-if="card.done" class="deck-card__time">
+                Completed {{ formatDate(card.done) }}
+              </span>
+            </div>
+            <div class="deck-card__title">{{ card.title }}</div>
+            <div class="deck-card__meta">
+              <span class="deck-card__board" :style="{ borderColor: card.boardColor || 'var(--color-primary)' }">
+                {{ card.boardTitle }}
+              </span>
+              <span class="deck-card__stack">{{ card.stackTitle }}</span>
+            </div>
+            <div class="deck-card__labels" v-if="card.labels.length">
+              <span
+                v-for="label in card.labels"
+                :key="`deck-label-${card.id}-${label.id ?? label.title}`"
+                class="deck-card__label"
+                :style="{ background: label.color || 'var(--color-background-darker)' }"
+              >
+                {{ label.title }}
+              </span>
+            </div>
+            <div class="deck-card__assignees" v-if="card.assignees.length">
+              <span class="deck-card__assignees-label">Assigned:</span>
+              <span
+                v-for="assignee in card.assignees"
+                :key="`deck-assignee-${card.id}-${assignee.uid ?? assignee.id}`"
+                class="deck-card__assignee"
+              >
+                {{ assignee.displayName || assignee.uid }}
+              </span>
+            </div>
+          </template>
         </li>
       </ul>
     </template>
@@ -146,6 +188,7 @@ const props = defineProps<{
   autoScroll?: boolean
   intervalSeconds?: number
   showCount?: boolean
+  compact?: boolean
   title?: string
   cardBg?: string | null
   showHeader?: boolean
@@ -388,6 +431,72 @@ function statusLabel(status: DeckCardSummary['status']) {
   display: flex;
   gap: calc(8px * var(--widget-space, 1));
   flex-wrap: wrap;
+}
+.deck-panel--compact {
+  gap: calc(10px * var(--widget-space, 1));
+}
+.deck-panel--compact .deck-panel__filters {
+  gap: calc(6px * var(--widget-space, 1));
+}
+.deck-panel--compact .deck-card-list {
+  gap: calc(10px * var(--widget-space, 1));
+}
+.deck-panel--compact .deck-card {
+  padding: calc(6px * var(--widget-space, 1)) calc(8px * var(--widget-space, 1));
+  gap: 0;
+  border-radius: calc(8px * var(--widget-space, 1));
+}
+.deck-panel--compact .deck-card__row {
+  display: flex;
+  align-items: center;
+  gap: calc(8px * var(--widget-space, 1));
+  white-space: nowrap;
+  overflow-x: auto;
+  padding-bottom: 2px;
+}
+.deck-panel--compact .deck-card__row::-webkit-scrollbar {
+  height: 6px;
+}
+.deck-panel--compact .deck-card__row::-webkit-scrollbar-thumb {
+  background: color-mix(in oklab, var(--color-border), transparent 30%);
+  border-radius: 999px;
+}
+.deck-panel--compact .deck-card__status-row {
+  font-size: calc(12px * var(--widget-scale, 1));
+  gap: calc(6px * var(--widget-space, 1));
+}
+.deck-panel--compact .deck-card__status {
+  font-size: calc(11px * var(--widget-scale, 1));
+  letter-spacing: 0.04em;
+}
+.deck-panel--compact .deck-card__time {
+  font-size: calc(11px * var(--widget-scale, 1));
+  color: var(--color-text-maxcontrast);
+}
+.deck-panel--compact .deck-card__title {
+  font-size: calc(13px * var(--widget-scale, 1));
+  font-weight: 600;
+}
+.deck-panel--compact .deck-card__meta {
+  font-size: calc(11px * var(--widget-scale, 1));
+  gap: calc(6px * var(--widget-space, 1));
+}
+.deck-panel--compact .deck-card__board {
+  padding: calc(1px * var(--widget-space, 1)) calc(6px * var(--widget-space, 1));
+  font-size: calc(10px * var(--widget-scale, 1));
+}
+.deck-panel--compact .deck-card__labels {
+  gap: calc(4px * var(--widget-space, 1));
+  flex-wrap: nowrap;
+}
+.deck-panel--compact .deck-card__label {
+  font-size: calc(10px * var(--widget-scale, 1));
+  padding: calc(1px * var(--widget-space, 1)) calc(6px * var(--widget-space, 1));
+}
+.deck-panel--compact .deck-card__assignees {
+  font-size: calc(11px * var(--widget-scale, 1));
+  gap: calc(4px * var(--widget-space, 1));
+  flex-wrap: nowrap;
 }
 .deck-panel__body{
   flex: 1;

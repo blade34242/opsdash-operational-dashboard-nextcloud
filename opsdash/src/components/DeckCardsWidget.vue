@@ -14,6 +14,7 @@
     :auto-scroll="props.autoScroll !== false"
     :interval-seconds="props.intervalSeconds"
     :show-count="props.showCount !== false"
+    :compact="props.compactList === true"
     :title="props.title"
     :card-bg="props.cardBg"
     :show-header="props.showHeader !== false"
@@ -29,9 +30,10 @@
 import { computed, ref, watch } from 'vue'
 import DeckCardsPanel from './DeckCardsPanel.vue'
 import type { DeckCardSummary } from '../services/deck'
+import { buildDeckTagOptions, cardHasTag } from '../services/deckTags'
 import type { DeckFilterMode, DeckMineMode } from '../services/reporting'
 
-const props = defineProps<{
+const props = withDefaults(defineProps<{
   cards: DeckCardSummary[]
   rangeLabel: string
   from?: string
@@ -61,9 +63,14 @@ const props = defineProps<{
     labels?: string[]
     assignees?: string[]
   }>
+  autoTagsEnabled?: boolean
+  autoTagSelection?: string[]
+  compactList?: boolean
   editable?: boolean
   onUpdateFilters?: (filters: DeckFilterMode[]) => void
-}>()
+}>(), {
+  autoTagsEnabled: true,
+})
 
 defineEmits<{
   refresh: []
@@ -90,23 +97,57 @@ const boardsSet = computed<Set<number>>(() => {
   return new Set(ids)
 })
 
-const filterCounts = computed(() => {
-  const allowArchived = props.includeArchived !== false
+const baseCards = computed(() => {
   const base = (props.cards || []).filter((card) => {
     if (!boardsSet.value.size) return true
     return card.boardId != null && boardsSet.value.has(Number(card.boardId))
   })
-  const cleaned = base.filter(
+  return base
+})
+
+const cleanedCards = computed(() => {
+  const allowArchived = props.includeArchived !== false
+  return baseCards.value.filter(
     (card) =>
       (allowArchived || card.status !== 'archived') &&
       (props.includeCompleted !== false || card.status !== 'done'),
   )
-  const modes = [
-    ...(props.filters && props.filters.length ? props.filters : defaultFilters),
-    ...(props.customFilters || []).map((f) => `custom_${f.id}` as DeckFilterMode),
-  ]
+})
+
+const tagOptions = computed(() => {
+  if (props.autoTagsEnabled === false) return []
+  return buildDeckTagOptions(cleanedCards.value)
+})
+
+const tagSelection = computed(() => {
+  if (!Array.isArray(props.autoTagSelection)) return null
+  return new Set(props.autoTagSelection.map((value) => String(value)))
+})
+
+const tagFilterOptions = computed(() => {
+  if (props.autoTagsEnabled === false) return []
+  const options = tagOptions.value
+  if (!options.length) return []
+  const selection = tagSelection.value
+  if (!selection) return options
+  return options.filter((opt) => selection.has(opt.value))
+})
+
+const customFilterValues = computed(() =>
+  (props.customFilters || []).map((f) => `custom_${f.id}` as DeckFilterMode),
+)
+
+const filterModes = computed(() => {
+  const base = (props.filters && props.filters.length ? props.filters : defaultFilters) as DeckFilterMode[]
+  const tags = tagFilterOptions.value.map((opt) => opt.value as DeckFilterMode)
+  return [...base, ...customFilterValues.value, ...tags]
+})
+
+const filterCounts = computed(() => {
+  const allowArchived = props.includeArchived !== false
+  const cleaned = cleanedCards.value
   const counts = new Map<DeckFilterMode, number>()
-  modes.forEach((mode) => {
+  filterModes.value.forEach((mode) => {
     counts.set(mode, filterCardsForMode(mode, cleaned, allowArchived).length)
   })
   return counts
@@ -154,7 +195,13 @@ const filterOptionDefs = computed(() => {
       mine: false,
       count: counts.get(`custom_${f.id}` as DeckFilterMode) ?? 0,
     }))
-  return [...built, ...custom]
+  const tags = tagFilterOptions.value.map((opt) => ({
+    value: opt.value as DeckFilterMode,
+    label: opt.label,
+    mine: false,
+    count: counts.get(opt.value as DeckFilterMode) ?? opt.count ?? 0,
+  }))
+  return [...built, ...custom, ...tags]
 })
 
 const activeFilter = ref<DeckFilterMode>(sanitizeDefaultFilter())
@@ -166,16 +213,23 @@ watch(
   },
 )
 
+watch(
+  () => filterOptionDefs.value.map((opt) => opt.value).join('|'),
+  () => {
+    const options = filterOptionDefs.value
+    if (!options.length) return
+    if (!options.some((opt) => opt.value === activeFilter.value)) {
+      activeFilter.value = options[0].value
+    }
+  },
+)
+
 const filtersEnabled = computed(() => filterOptionDefs.value.length > 1)
 const allowMine = computed(() => props.allowMine !== false && !!(props.uid || '').trim())
 
 const filteredCards = computed(() => {
   const allowArchived = props.includeArchived !== false || activeFilter.value.startsWith('archived')
-  const base = (props.cards || []).filter((card) => {
-    if (!boardsSet.value.size) return true
-    return card.boardId != null && boardsSet.value.has(Number(card.boardId))
-  })
-  const cleaned = base.filter(
+  const cleaned = baseCards.value.filter(
     (card) =>
       (allowArchived || card.status !== 'archived') &&
       (props.includeCompleted !== false || card.status !== 'done'),
@@ -305,6 +359,9 @@ function filterCardsForMode(mode: DeckFilterMode, cleaned: DeckCardSummary[], al
     return cleaned.filter((card) => {
       return matchesCustomFilter(card, custom, mineMatch)
     })
+  }
+  if (mode.startsWith('tag_')) {
+    return cleaned.filter((card) => cardHasTag(card, mode))
   }
   if (mode.includes('_')) {
     const [statusKey, scope] = mode.split('_') as ['open' | 'done' | 'archived' | 'due', 'all' | 'mine']

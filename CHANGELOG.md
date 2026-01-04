@@ -6,6 +6,15 @@ All notable changes to this project will be documented in this file.
 ### Added
 - Balance overview now surfaces a compact Balance index badge in the card header.
 - Sidebar navigation is explicitly registered so Opsdash appears in Nextcloud’s app menu (and NC max version extended to 32).
+- Deck cards widget auto-detects label tags as filters, shows counts, and lets users hide tag filters per widget.
+- Deck cards widget adds a compact list toggle for denser card rows without losing metadata.
+- Pie chart highlights slices on legend hover and direct slice hover.
+- Pie chart scale is slightly reduced for a tighter visual footprint.
+- Stacked chart widgets scale is slightly reduced for a tighter visual footprint.
+- Stacked chart widgets highlight series on legend hover and direct bar hover.
+- Stacked chart widgets now label each stack segment and show per-column totals with leader labels for small segments.
+- Day-of-week and hours-of-day charts now fold in the configured lookback window for history context.
+- Lookback charts now color weeks consistently in Per-day/Day-of-week, and Hours-of-day adds stacked/overlay lookback modes with a legend.
 
 ### Changed
 - Sidebar layout: setup wizard block copy/numbered steps, framed sections, larger refresh button, and keyboard shortcuts moved to the bottom.

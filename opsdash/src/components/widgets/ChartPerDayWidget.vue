@@ -4,8 +4,20 @@
       <div class="chart-widget__title">{{ titleText }}</div>
       <div v-if="subtitle" class="chart-widget__subtitle">{{ subtitle }}</div>
     </div>
-    <SimpleBars v-if="chartData" :data="chartData" :show-labels="showLabels" />
+    <SimpleBars
+      v-if="chartData"
+      :data="chartData"
+      :show-labels="showLabels"
+      :x-label="xLabel"
+      :y-label="yLabel"
+    />
     <div v-else class="chart-widget__empty">No data</div>
+    <ul v-if="legendItems.length" class="chart-widget__legend">
+      <li v-for="item in legendItems" :key="item.id">
+        <span class="dot" :style="{ background: item.color }"></span>
+        <span>{{ item.label }}</span>
+      </li>
+    </ul>
   </div>
 </template>
 
@@ -19,12 +31,18 @@ const props = defineProps<{
   cardBg?: string | null
   showHeader?: boolean
   showLabels?: boolean
-  chartData?: { labels?: string[]; data?: number[] } | null
+  xLabel?: string
+  yLabel?: string
+  chartData?: { labels?: string[]; data?: number[]; colors?: string[] } | null
+  legendItems?: Array<{ id: string; label: string; color: string }>
 }>()
 
 const showHeader = computed(() => props.showHeader !== false)
 const titleText = computed(() => props.title || 'Per-day totals')
 const cardStyle = computed(() => ({ background: props.cardBg || undefined }))
+const legendItems = computed(() => props.legendItems || [])
+const xLabel = computed(() => props.xLabel || '')
+const yLabel = computed(() => props.yLabel || '')
 </script>
 
 <style scoped>
@@ -52,5 +70,25 @@ const cardStyle = computed(() => ({ background: props.cardBg || undefined }))
   border-radius: calc(10px * var(--widget-space, 1));
   color: var(--muted);
   text-align: center;
+}
+.chart-widget__legend {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: grid;
+  gap: calc(6px * var(--widget-space, 1));
+  font-size: calc(12px * var(--widget-scale, 1));
+}
+.chart-widget__legend li {
+  display: flex;
+  align-items: center;
+  gap: calc(6px * var(--widget-space, 1));
+  border-radius: 999px;
+  padding: calc(2px * var(--widget-space, 1)) calc(6px * var(--widget-space, 1));
+}
+.chart-widget__legend .dot {
+  width: calc(10px * var(--widget-space, 1));
+  height: calc(10px * var(--widget-space, 1));
+  border-radius: 50%;
 }
 </style>

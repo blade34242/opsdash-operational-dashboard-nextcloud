@@ -4,6 +4,7 @@ import { nextTick } from 'vue'
 
 import PieChart from '../src/components/PieChart.vue'
 import StackedBars from '../src/components/StackedBars.vue'
+import ChartStackedWidget from '../src/components/widgets/ChartStackedWidget.vue'
 
 type StubContext = ReturnType<typeof createStubContext>
 
@@ -135,6 +136,118 @@ describe('StackedBars', () => {
 
     wrapper.unmount()
   })
+
+  it('dims non-highlighted series when highlightId is set', async () => {
+    const wrapper = mount(StackedBars, {
+      props: {
+        stacked: {
+          labels: ['2025-10-20'],
+          series: [
+            { id: 'cal-1', data: [2] },
+            { id: 'cal-2', data: [3] },
+          ],
+        },
+        colorsById: { 'cal-1': '#ff8800', 'cal-2': '#22cc88' },
+        highlightId: 'cal-1',
+      },
+    })
+
+    await nextTick()
+
+    const ctx = contexts.at(-1)
+    const highlightRects = ctx?.rects.filter((rect) => rect.fill === '#ff8800') ?? []
+    const dimRects = ctx?.rects.filter((rect) => rect.fill === '#22cc88') ?? []
+
+    expect(highlightRects.length).toBeGreaterThan(0)
+    expect(dimRects.length).toBeGreaterThan(0)
+    expect(highlightRects.every((rect) => rect.alpha === 1)).toBe(true)
+    expect(dimRects.every((rect) => rect.alpha < 1)).toBe(true)
+
+    wrapper.unmount()
+  })
+
+  it('dims non-hovered series when hovering a bar', async () => {
+    const wrapper = mount(StackedBars, {
+      props: {
+        stacked: {
+          labels: ['2025-10-20'],
+          series: [
+            { id: 'cal-1', data: [2] },
+            { id: 'cal-2', data: [3] },
+          ],
+        },
+        colorsById: { 'cal-1': '#ff8800', 'cal-2': '#22cc88' },
+      },
+    })
+
+    await nextTick()
+
+    const canvas = wrapper.find('canvas')
+    await canvas.trigger('mousemove', { clientX: 100, clientY: 110 })
+
+    const ctx = contexts.at(-1)
+    const highlighted = ctx?.rects.filter((rect) => rect.fill === '#ff8800') ?? []
+    const dimmed = ctx?.rects.filter((rect) => rect.fill === '#22cc88') ?? []
+
+    expect(highlighted.length).toBeGreaterThan(0)
+    expect(dimmed.length).toBeGreaterThan(0)
+    expect(dimmed.some((rect) => rect.alpha < 1)).toBe(true)
+
+    wrapper.unmount()
+  })
+
+  it('renders labels for small segments outside the bar', async () => {
+    const wrapper = mount(StackedBars, {
+      props: {
+        stacked: {
+          labels: ['2025-10-20'],
+          series: [
+            { id: 'cal-1', data: [0.1] },
+            { id: 'cal-2', data: [10] },
+          ],
+        },
+        colorsById: { 'cal-1': '#ff8800', 'cal-2': '#22cc88' },
+        showLabels: true,
+      },
+    })
+
+    await nextTick()
+
+    const ctx = contexts.at(-1)
+    expect(ctx?.texts.some((entry) => entry.text === '0.1')).toBe(true)
+
+    wrapper.unmount()
+  })
+})
+
+describe('ChartStackedWidget', () => {
+  it('adds hovered class on legend hover', async () => {
+    const wrapper = mount(ChartStackedWidget, {
+      props: {
+        showLegend: true,
+        stacked: {
+          labels: ['2025-10-20'],
+          series: [
+            { id: 'cal-1', name: 'Alpha', data: [2] },
+            { id: 'cal-2', name: 'Beta', data: [1] },
+          ],
+        },
+        colorsById: { 'cal-1': '#ff8800', 'cal-2': '#22cc88' },
+      },
+    })
+
+    await nextTick()
+
+    const items = wrapper.findAll('.chart-widget__legend li')
+    expect(items.length).toBe(2)
+    expect(items[0].classes()).not.toContain('hovered')
+    await items[0].trigger('mouseenter')
+    expect(items[0].classes()).toContain('hovered')
+    await items[0].trigger('mouseleave')
+    expect(items[0].classes()).not.toContain('hovered')
+
+    wrapper.unmount()
+  })
 })
 
 function createStubContext() {
@@ -148,12 +261,14 @@ function createStubContext() {
   const rectFills: string[] = []
   const rects: Array<{ x: number; y: number; width: number; height: number; fill: string; alpha: number }> = []
   const strokeRects: Array<{ x: number; y: number; width: number; height: number; stroke: string; alpha: number; lineWidth: number }> = []
+  const texts: Array<{ text: string; x: number; y: number; fill: string; alpha: number }> = []
 
   return {
     fills,
     rectFills,
     rects,
     strokeRects,
+    texts,
     set fillStyle(value: string) {
       fillStyle = value
     },
@@ -204,7 +319,9 @@ function createStubContext() {
         globalAlpha = state.globalAlpha
       }
     }),
-    fillText: vi.fn(),
+    fillText: vi.fn((text: string, x: number, y: number) => {
+      texts.push({ text, x, y, fill: fillStyle, alpha: globalAlpha })
+    }),
     strokeText: vi.fn(),
     measureText: vi.fn((text: string) => ({ width: text.length * 6 })),
     fillRect: vi.fn((x: number, y: number, width: number, height: number) => {

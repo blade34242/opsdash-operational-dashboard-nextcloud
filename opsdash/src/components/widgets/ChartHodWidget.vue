@@ -5,7 +5,13 @@
       <div v-if="subtitle" class="chart-widget__subtitle">{{ subtitle }}</div>
       <div v-if="lookbackLabel" class="chart-widget__meta">{{ lookbackLabel }}</div>
     </div>
-    <HeatmapCanvas v-if="hodData" :hod="hodData" />
+    <HeatmapLookback
+      v-if="lookbackEntries.length"
+      :entries="lookbackEntries"
+      :mode="lookbackMode"
+      :show-legend="showLegend"
+    />
+    <HeatmapCanvas v-else-if="hodData" :hod="hodData" />
     <div v-else class="chart-widget__empty">No data</div>
     <div v-if="showHint && hodData" class="chart-widget__hint">24×7 Heatmap: hours by weekday and hour.</div>
   </div>
@@ -14,6 +20,7 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 import HeatmapCanvas from '../HeatmapCanvas.vue'
+import HeatmapLookback from '../HeatmapLookback.vue'
 
 const props = defineProps<{
   title?: string
@@ -21,14 +28,20 @@ const props = defineProps<{
   cardBg?: string | null
   showHeader?: boolean
   showHint?: boolean
+  showLegend?: boolean
+  lookbackMode?: string
   lookbackWeeks?: number | null
   rangeMode?: 'week' | 'month' | string
   hodData?: { dows: string[]; hours: string[] | number[]; matrix: number[][] } | null
+  lookbackEntries?: Array<{ id: string; label: string; color: string; hod: { dows: string[]; hours: string[] | number[]; matrix: number[][] } }>
 }>()
 
 const showHeader = computed(() => props.showHeader !== false)
 const titleText = computed(() => props.title || 'Hours of day')
 const cardStyle = computed(() => ({ background: props.cardBg || undefined }))
+const lookbackEntries = computed(() => props.lookbackEntries || [])
+const showLegend = computed(() => props.showLegend !== false)
+const lookbackMode = computed(() => props.lookbackMode || 'stacked')
 const lookbackLabel = computed(() => {
   const count = typeof props.lookbackWeeks === 'number' ? Math.max(0, Math.round(props.lookbackWeeks)) : 0
   if (!count) return ''

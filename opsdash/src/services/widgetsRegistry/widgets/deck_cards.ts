@@ -4,6 +4,7 @@ const DeckCardsWidget = defineAsyncComponent(() =>
   import('../../../components/DeckCardsWidget.vue').then((m) => m.default),
 )
 
+import { buildDeckTagOptions } from '../../deckTags'
 import { buildTitle, parseBoardIds, parseFilters, prettyFilterLabel } from '../helpers'
 import type { RegistryEntry } from '../types'
 
@@ -22,6 +23,8 @@ export const deckCardsEntry: RegistryEntry = {
     autoScroll: true,
     intervalSeconds: 5,
     showCount: true,
+    autoTagsEnabled: true,
+    compactList: false,
     customFilters: [],
     filters: [
       'open_all',
@@ -43,6 +46,7 @@ export const deckCardsEntry: RegistryEntry = {
   controls: [
     { key: 'boardIds', label: 'Boards to include', type: 'multiselect', options: [] },
     { key: 'filters', label: 'Filters to show', type: 'multiselect', options: [] },
+    { key: 'autoTagsEnabled', label: 'Auto tag filters', type: 'toggle' },
     { key: 'allowMine', label: 'Allow mine filters', type: 'toggle' },
     { key: 'mineMode', label: 'Mine mode', type: 'select', options: [
       { value: 'assignee', label: 'Assignee' },
@@ -54,6 +58,7 @@ export const deckCardsEntry: RegistryEntry = {
     { key: 'autoScroll', label: 'Auto-scroll list', type: 'toggle' },
     { key: 'intervalSeconds', label: 'Scroll every (s)', type: 'number', min: 3, max: 10, step: 1 },
     { key: 'showCount', label: 'Show count pill', type: 'toggle' },
+    { key: 'compactList', label: 'Compact list', type: 'toggle' },
     { key: 'customFilters', label: 'Custom filters', type: 'filterbuilder' },
   ],
   dynamicControls: (options, ctx) => {
@@ -82,10 +87,35 @@ export const deckCardsEntry: RegistryEntry = {
     const boardOptions = Array.isArray(ctx.deckBoards)
       ? ctx.deckBoards.map((b: any) => ({ value: b.id, label: b.title || `Board ${b.id}` }))
       : []
+    const boardIds = Array.isArray(options.boardIds)
+      ? options.boardIds
+      : parseBoardIds(options.boardIds)
+    const allowArchived = options.includeArchived !== false
+    const includeCompleted = options.includeCompleted !== false
+    const boardSet = new Set(boardIds.map((id: any) => Number(id)).filter((id: number) => Number.isInteger(id)))
+    const cards = Array.isArray(ctx.deckCards) ? ctx.deckCards : []
+    const cleaned = cards.filter((card: any) => {
+      if (boardSet.size && !(card?.boardId != null && boardSet.has(Number(card.boardId)))) return false
+      if (!allowArchived && card?.status === 'archived') return false
+      if (!includeCompleted && card?.status === 'done') return false
+      return true
+    })
+    const tagOptions = buildDeckTagOptions(cleaned)
+    const tagControls = []
+    if (options.autoTagsEnabled !== false && tagOptions.length) {
+      tagControls.push({
+        key: 'autoTagSelection',
+        label: 'Tag filters',
+        type: 'taglist',
+        options: tagOptions,
+        hint: 'Uncheck tags to hide their filters. Counts reflect the current cards.',
+      })
+    }
     return [
       { key: 'filters', label: 'Filters', type: 'multiselect', options: filterChoices },
       filterSelect,
       { key: 'boardIds', label: 'Boards', type: 'multiselect', options: boardOptions },
+      ...tagControls,
     ]
   },
   buildProps: (def, ctx) => {
@@ -117,6 +147,11 @@ export const deckCardsEntry: RegistryEntry = {
       autoScroll: def.options?.autoScroll !== false,
       intervalSeconds: def.options?.intervalSeconds ?? 5,
       showCount: def.options?.showCount !== false,
+      compactList: def.options?.compactList === true,
+      autoTagsEnabled: def.options?.autoTagsEnabled !== false,
+      autoTagSelection: Array.isArray(def.options?.autoTagSelection)
+        ? def.options?.autoTagSelection
+        : undefined,
       showHeader: def.options?.showHeader !== false,
       customFilters,
       editable: ctx.isLayoutEditing === true,

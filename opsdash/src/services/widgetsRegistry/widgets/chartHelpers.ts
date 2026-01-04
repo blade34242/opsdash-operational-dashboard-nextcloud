@@ -3,6 +3,31 @@ import { createDefaultTargetsConfig, type ActivityForecastMode, type TargetsConf
 type PieData = { ids: string[]; labels: string[]; data: number[]; colors?: string[] }
 type StackedData = { labels: string[]; series: Array<{ id: string; name?: string; label?: string; color?: string; data?: number[]; forecast?: number[] }> }
 
+const LOOKBACK_PALETTE = ['#2563eb', '#f97316', '#10b981', '#a855f7', '#ec4899', '#14b8a6']
+
+export function getLookbackColor(index: number): string {
+  return LOOKBACK_PALETTE[index % LOOKBACK_PALETTE.length] || '#60a5fa'
+}
+
+export function sortLookbackOffsets<T extends { offset?: number }>(input: T[]): T[] {
+  return input.slice().sort((a, b) => {
+    const aOffset = Number(a?.offset ?? 0)
+    const bOffset = Number(b?.offset ?? 0)
+    return aOffset - bOffset
+  })
+}
+
+export function formatLookbackLabel(entry: { offset?: number; from?: string; to?: string }, rangeMode?: string): string {
+  const unit = String(rangeMode || '').toLowerCase() === 'month' ? 'Month' : 'Week'
+  const offset = Number(entry?.offset ?? 0)
+  const base = offset === 0 ? `Current ${unit.toLowerCase()}` : `${unit} -${offset}`
+  const from = String(entry?.from ?? '').trim()
+  const to = String(entry?.to ?? '').trim()
+  if (from && to) return `${base} (${from} to ${to})`
+  if (from) return `${base} (${from})`
+  return base
+}
+
 export function parseIdList(input: any): string[] {
   if (Array.isArray(input)) {
     return input.map((val) => String(val ?? '').trim()).filter(Boolean)

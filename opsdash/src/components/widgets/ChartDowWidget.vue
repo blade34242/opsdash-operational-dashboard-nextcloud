@@ -4,13 +4,33 @@
       <div class="chart-widget__title">{{ titleText }}</div>
       <div v-if="subtitle" class="chart-widget__subtitle">{{ subtitle }}</div>
     </div>
-    <SimpleBars v-if="chartData" :data="chartData" :show-labels="showLabels" />
+    <GroupedBars
+      v-if="groupedData"
+      :data="groupedData"
+      :show-labels="showLabels"
+      :x-label="xLabel"
+      :y-label="yLabel"
+    />
+    <SimpleBars
+      v-else-if="chartData"
+      :data="chartData"
+      :show-labels="showLabels"
+      :x-label="xLabel"
+      :y-label="yLabel"
+    />
     <div v-else class="chart-widget__empty">No data</div>
+    <ul v-if="legendItems.length" class="chart-widget__legend">
+      <li v-for="item in legendItems" :key="item.id">
+        <span class="dot" :style="{ background: item.color }"></span>
+        <span>{{ item.label }}</span>
+      </li>
+    </ul>
   </div>
 </template>
 
 <script setup lang="ts">
 import { computed } from 'vue'
+import GroupedBars from '../GroupedBars.vue'
 import SimpleBars from '../SimpleBars.vue'
 
 const props = defineProps<{
@@ -19,12 +39,19 @@ const props = defineProps<{
   cardBg?: string | null
   showHeader?: boolean
   showLabels?: boolean
+  xLabel?: string
+  yLabel?: string
   chartData?: { labels?: string[]; data?: number[] } | null
+  groupedData?: { labels?: string[]; series?: Array<{ id?: string; name?: string; label?: string; color?: string; data?: number[] }> } | null
+  legendItems?: Array<{ id: string; label: string; color: string }>
 }>()
 
 const showHeader = computed(() => props.showHeader !== false)
 const titleText = computed(() => props.title || 'Day of week')
 const cardStyle = computed(() => ({ background: props.cardBg || undefined }))
+const legendItems = computed(() => props.legendItems || [])
+const xLabel = computed(() => props.xLabel || '')
+const yLabel = computed(() => props.yLabel || '')
 </script>
 
 <style scoped>
@@ -52,5 +79,25 @@ const cardStyle = computed(() => ({ background: props.cardBg || undefined }))
   border-radius: calc(10px * var(--widget-space, 1));
   color: var(--muted);
   text-align: center;
+}
+.chart-widget__legend {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: grid;
+  gap: calc(6px * var(--widget-space, 1));
+  font-size: calc(12px * var(--widget-scale, 1));
+}
+.chart-widget__legend li {
+  display: flex;
+  align-items: center;
+  gap: calc(6px * var(--widget-space, 1));
+  border-radius: 999px;
+  padding: calc(2px * var(--widget-space, 1)) calc(6px * var(--widget-space, 1));
+}
+.chart-widget__legend .dot {
+  width: calc(10px * var(--widget-space, 1));
+  height: calc(10px * var(--widget-space, 1));
+  border-radius: 50%;
 }
 </style>

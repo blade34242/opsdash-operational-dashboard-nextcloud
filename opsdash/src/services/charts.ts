@@ -14,6 +14,14 @@ export function ctxFor(c: HTMLCanvasElement | null): CanvasRenderingContext2D | 
   return ctx
 }
 
+export function themeVar(el: Element | null, name: string, fallback: string): string {
+  if (typeof document === 'undefined') return fallback
+  const root = el?.closest?.('#opsdash') ?? document.getElementById('opsdash')
+  const styles = root ? getComputedStyle(root) : null
+  const value = styles?.getPropertyValue(name).trim()
+  return value || fallback
+}
+
 interface RgbColor {
   r: number
   g: number

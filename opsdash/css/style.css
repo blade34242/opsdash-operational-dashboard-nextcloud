@@ -10,6 +10,8 @@
   --neg:#ef4444;
   --heatmap-low:#e0f2fe;
   --heatmap-high:#7c3aed;
+  --pie-scale:0.85;
+  --stacked-scale:0.85;
   --opsdash-sidebar-width:320px;
   --opsdash-gap:16px;
   --opsdash-radius:16px;
@@ -737,6 +739,8 @@
 }
 #opsdash .sb-title{
   font-weight:700;
+  font-size:15px;
+  letter-spacing:0.01em;
   margin-bottom:8px;
   text-align:center;
   text-decoration:underline;

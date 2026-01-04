@@ -10,10 +10,20 @@
       :colors-by-id="colorsById"
       :colors-by-name="colorsByName"
       :show-labels="showLabels"
+      :highlight-id="hoveredId"
     />
     <div v-else class="chart-widget__empty">No data</div>
     <ul v-if="showLegend && legendItems.length" class="chart-widget__legend">
-      <li v-for="item in legendItems" :key="item.id">
+      <li
+        v-for="item in legendItems"
+        :key="item.id"
+        :class="{ hovered: hoveredId === item.id }"
+        @mouseenter="hoveredId = item.id"
+        @mouseleave="hoveredId = null"
+        @focus="hoveredId = item.id"
+        @blur="hoveredId = null"
+        tabindex="0"
+      >
         <span class="dot" :style="{ background: item.color }"></span>
         <span>{{ item.label }}</span>
         <span class="val">{{ item.value }}</span>
@@ -23,7 +33,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed } from 'vue'
+import { computed, ref } from 'vue'
 import PieChart from '../PieChart.vue'
 
 type PieData = { ids: string[]; labels: string[]; data: number[]; colors?: string[] }
@@ -46,6 +56,7 @@ const titleText = computed(() => props.title || 'Pie chart')
 const cardStyle = computed(() => ({ background: props.cardBg || undefined }))
 const colorsById = computed(() => props.colorsById || {})
 const colorsByName = computed(() => props.colorsByName || {})
+const hoveredId = ref<string | null>(null)
 
 const legendItems = computed(() => {
   const data = props.chartData
@@ -100,6 +111,14 @@ const legendItems = computed(() => {
   display: flex;
   align-items: center;
   gap: calc(6px * var(--widget-space, 1));
+  border-radius: 999px;
+  padding: calc(2px * var(--widget-space, 1)) calc(6px * var(--widget-space, 1));
+  transition: color 0.15s ease, background 0.15s ease;
+  cursor: pointer;
+}
+.chart-widget__legend li.hovered {
+  color: var(--brand);
+  background: color-mix(in oklab, var(--brand), transparent 90%);
 }
 .chart-widget__legend .dot {
   width: calc(10px * var(--widget-space, 1));

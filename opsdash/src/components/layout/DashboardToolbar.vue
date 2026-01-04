@@ -158,20 +158,20 @@ function heightLabel(height: string) {
 .ghost.danger{ color:#b91c1c; border-color:#fca5a5; }
 .widget-toolbar-layer{
   position:fixed;
-  inset:0;
+  inset:auto 24px 10px calc(24px + var(--opsdash-nav-offset, 0px));
   pointer-events:none;
   z-index:2147480000;
   display:flex;
   align-items:flex-end;
-  justify-content:stretch;
-  padding:0 12px 10px calc(16px + var(--opsdash-nav-offset, 0px));
+  justify-content:center;
+  padding:0;
   background: none;
 }
 .widget-toolbar{
   pointer-events:auto;
   position:relative;
   margin-top:0;
-  padding:5px 7px;
+  padding:7px 10px;
   border:1px solid rgba(59,130,246,0.55);
   background:#0b1222;
   border:1px solid color-mix(in oklab, var(--color-primary,#2563eb), transparent 20%);
@@ -180,10 +180,10 @@ function heightLabel(height: string) {
   display:flex;
   align-items:center;
   justify-content:space-between;
-  gap:4px;
+  gap:6px;
   box-shadow:0 8px 20px rgba(15,23,42,0.55), 0 0 0 1px rgba(59,130,246,0.18);
-  max-width:none;
-  width:calc(100% - 12px);
+  max-width:1200px;
+  width:min(100%, 1200px);
   opacity:1;
   z-index:2147480001;
   backdrop-filter: blur(6px);
@@ -195,25 +195,26 @@ function heightLabel(height: string) {
 }
 .toolbar-title{
   font-weight:600;
+  font-size:13px;
   color:#e5e7eb;
 }
 .toolbar-actions{
   display:flex;
-  gap:4px;
+  gap:6px;
   flex-wrap:wrap;
   align-items:center;
 }
 .toolbar-quick{
   display:flex;
-  gap:4px;
+  gap:6px;
   flex-wrap:wrap;
   align-items:center;
 }
 .toolbar-field{
   display:flex;
   align-items:center;
-  gap:4px;
-  font-size:10px;
+  gap:6px;
+  font-size:12px;
   color:#e5e7eb;
 }
 .toolbar-field span{
@@ -225,13 +226,13 @@ function heightLabel(height: string) {
   border:1px solid color-mix(in oklab, #4b5563, transparent 35%);
   background:color-mix(in oklab, #0f172a, #111827 70%);
   color:#e2e8f0;
-  padding:2px 5px;
-  font-size:10px;
-  min-width:72px;
+  padding:3px 6px;
+  font-size:12px;
+  min-width:88px;
 }
 .toolbar-field input[type="color"]{
-  width:22px;
-  height:18px;
+  width:26px;
+  height:20px;
   padding:0;
   border:1px solid color-mix(in oklab, #4b5563, transparent 35%);
   border-radius:6px;
@@ -241,8 +242,8 @@ function heightLabel(height: string) {
   gap:4px;
 }
 .widget-toolbar .ghost{
-  padding:3px 5px;
-  font-size:11px;
+  padding:5px 8px;
+  font-size:12px;
   background:#0f172a;
   border-color:#4b5563;
   background:color-mix(in oklab, #111827, #1f2937 80%);

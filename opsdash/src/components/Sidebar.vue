@@ -33,6 +33,7 @@
     </div>
 
     <div class="sidebar-block sidebar-block--framed">
+      <div class="sb-title">Guided Setup</div>
       <div class="sb-actions sb-actions--secondary">
         <NcButton
           type="primary"
@@ -41,6 +42,7 @@
           title="Open the setup wizard again"
           @click="$emit('rerun-onboarding')"
         >
+          <span class="rerun-btn__icon" aria-hidden="true">⚙</span>
           Setup wizard
         </NcButton>
       </div>
@@ -220,6 +222,13 @@ const shortcutGroups = KEYBOARD_SHORTCUT_GROUPS
   background:color-mix(in oklab, var(--card), transparent 10%);
   padding:12px 14px;
   box-shadow:0 6px 16px rgba(15, 23, 42, 0.12), inset 0 0 0 1px color-mix(in oklab, var(--brand), transparent 82%);
+}
+
+.rerun-btn__icon{
+  display:inline-flex;
+  margin-right:6px;
+  font-size:12px;
+  line-height:1;
 }
 
 .onboarding-jumps{
