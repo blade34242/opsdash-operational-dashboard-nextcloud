@@ -1,17 +1,16 @@
 <template>
   <NcAppNavigation>
     <slot name="actions" />
-    <div class="sidebar-header">
+    <div class="rangebar" title="Time range">
       <button
-        class="sidebar-toggle-btn"
+        class="sidebar-toggle-btn sidebar-toggle-btn--corner"
         type="button"
         @click="$emit('toggle-nav')"
         :aria-label="navToggleLabel"
+        :title="navToggleLabel"
       >
         {{ navToggleIcon }}
       </button>
-    </div>
-    <div class="rangebar" title="Time range">
       <div class="range-toggle">
         <NcCheckboxRadioSwitch type="radio" name="range-week" :checked="range==='week'" @update:checked="val => { if (val) $emit('update:range','week') }">Week</NcCheckboxRadioSwitch>
         <NcCheckboxRadioSwitch type="radio" name="range-month" :checked="range==='month'" @update:checked="val => { if (val) $emit('update:range','month') }">Month</NcCheckboxRadioSwitch>
@@ -33,28 +32,20 @@
       </div>
     </div>
 
-    <div class="sidebar-shortcuts">
-      <NcButton
-        type="tertiary"
-        size="small"
-        class="shortcuts-btn"
-        @click="shortcutsOpen = !shortcutsOpen"
-      >
-        Keyboard shortcuts
-      </NcButton>
-    </div>
-
-    <div class="sidebar-block">
+    <div class="sidebar-block sidebar-block--framed">
       <div class="sb-actions sb-actions--secondary">
         <NcButton
           type="primary"
           size="small"
           class="rerun-btn"
-          title="Open the onboarding setup again"
+          title="Open the setup wizard again"
           @click="$emit('rerun-onboarding')"
         >
-          Re-run onboarding
+          Setup wizard
         </NcButton>
+      </div>
+      <div class="onboarding-help">
+        Revisit the setup wizard to adjust your dashboard step by step.
       </div>
       <ol class="onboarding-jumps">
         <li><button type="button" class="link" @click="$emit('rerun-onboarding', 'dashboard')">Dashboard</button></li>
@@ -63,6 +54,34 @@
         <li><button type="button" class="link" @click="$emit('rerun-onboarding', 'preferences')">Preferences</button></li>
         <li><button type="button" class="link" @click="$emit('rerun-onboarding', 'review')">Review</button></li>
       </ol>
+    </div>
+
+    <div class="sidebar-block sidebar-block--framed" v-if="props.dashboardMode !== 'quick'">
+      <SidebarProfilesPane
+        :presets="presetsList"
+        :is-loading="props.presetsLoading"
+        :is-saving="props.presetSaving"
+        :is-applying="props.presetApplying"
+        :warnings="props.presetWarnings"
+        @save="(name: string) => emit('save-preset', name)"
+        @load="(name: string) => emit('load-preset', name)"
+        @delete="(name: string) => emit('delete-preset', name)"
+        @refresh="() => emit('refresh-presets')"
+        @clear-warnings="() => emit('clear-preset-warnings')"
+        @export-config="() => emit('export-config')"
+        @import-config="(file: File) => emit('import-config', file)"
+      />
+    </div>
+
+    <div class="sidebar-shortcuts sidebar-shortcuts--bottom">
+      <NcButton
+        type="tertiary"
+        size="small"
+        class="shortcuts-btn"
+        @click="shortcutsOpen = !shortcutsOpen"
+      >
+        Keyboard shortcuts
+      </NcButton>
       <div v-if="shortcutsOpen" class="shortcuts-box" role="region" aria-label="Keyboard shortcuts">
         <div class="shortcuts-box__header">
           <span>Keyboard shortcuts</span>
@@ -82,22 +101,6 @@
         </div>
       </div>
     </div>
-
-    <SidebarProfilesPane
-      v-if="props.dashboardMode !== 'quick'"
-      :presets="presetsList"
-      :is-loading="props.presetsLoading"
-      :is-saving="props.presetSaving"
-      :is-applying="props.presetApplying"
-      :warnings="props.presetWarnings"
-      @save="(name: string) => emit('save-preset', name)"
-      @load="(name: string) => emit('load-preset', name)"
-      @delete="(name: string) => emit('delete-preset', name)"
-      @refresh="() => emit('refresh-presets')"
-      @clear-warnings="() => emit('clear-preset-warnings')"
-      @export-config="() => emit('export-config')"
-      @import-config="(file: File) => emit('import-config', file)"
-    />
   </NcAppNavigation>
 </template>
 
@@ -144,27 +147,20 @@ const shortcutGroups = KEYBOARD_SHORTCUT_GROUPS
 </script>
 
 <style scoped>
-.sidebar-header{
-  position:absolute;
-  top:8px;
-  right:8px;
-  z-index:2;
-}
-
 .sidebar-toggle-btn{
   appearance:none;
   border-radius:14px;
   border:1px solid color-mix(in oklab, var(--brand), transparent 55%);
   background:color-mix(in oklab, var(--brand), transparent 86%);
   color:var(--brand);
-  width:38px;
-  height:38px;
+  width:26px;
+  height:26px;
   display:flex;
   align-items:center;
   justify-content:center;
   box-shadow:0 6px 14px rgba(15,23,42,0.12);
   cursor:pointer;
-  font-size:16px;
+  font-size:11px;
 }
 
 .sidebar-toggle-btn:hover{
@@ -183,20 +179,58 @@ const shortcutGroups = KEYBOARD_SHORTCUT_GROUPS
 }
 
 .rangebar{
-  margin-top:34px;
+  margin-top:12px;
+}
+
+.sidebar-toggle-btn--corner{
+  position:absolute;
+  top:-10px;
+  right:-10px;
+  border-color:color-mix(in oklab, var(--brand), var(--line) 70%);
+  background:color-mix(in oklab, var(--card), transparent 10%);
+  box-shadow:0 6px 16px rgba(15,23,42,0.12), inset 0 0 0 1px color-mix(in oklab, var(--brand), transparent 82%);
 }
 
 .sidebar-shortcuts{
   margin:8px 0 4px;
 }
 
+.sidebar-shortcuts--bottom{
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  margin-top:12px;
+}
+
+.sidebar-shortcuts--bottom .shortcuts-btn{
+  margin:0 auto;
+}
+
+.sidebar-shortcuts--bottom .shortcuts-box{
+  width:100%;
+}
+
+.sidebar-block{
+  margin:8px 0 12px;
+}
+
+.sidebar-block--framed{
+  border:1px solid color-mix(in oklab, var(--brand), var(--line) 70%);
+  border-radius:14px;
+  background:color-mix(in oklab, var(--card), transparent 10%);
+  padding:12px 14px;
+  box-shadow:0 6px 16px rgba(15, 23, 42, 0.12), inset 0 0 0 1px color-mix(in oklab, var(--brand), transparent 82%);
+}
+
 .onboarding-jumps{
   display:grid;
   gap:4px;
-  margin:6px 0 10px;
+  margin:6px 0 4px;
   padding-left:18px;
   font-size:12px;
   color: var(--muted, #6b7280);
+  list-style: decimal;
+  list-style-position: inside;
 }
 
 .onboarding-jumps .link{
@@ -212,6 +246,13 @@ const shortcutGroups = KEYBOARD_SHORTCUT_GROUPS
 .onboarding-jumps .link:hover{
   color: var(--color-primary-text);
   text-decoration: underline;
+}
+
+.onboarding-help{
+  font-size:12px;
+  color: var(--muted, #6b7280);
+  margin-top:2px;
+  margin-bottom:4px;
 }
 
 .shortcuts-box{

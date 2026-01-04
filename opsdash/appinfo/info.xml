@@ -10,8 +10,16 @@
   <namespace>Opsdash</namespace>
   <bootstrap>OCA\Opsdash\AppInfo\Application</bootstrap>
   <category>tools</category>
+  <navigations>
+    <navigation>
+      <name>Operational Dashboard</name>
+      <route>opsdash.overview.index</route>
+      <icon>app.svg</icon>
+      <order>10</order>
+    </navigation>
+  </navigations>
   <dependencies>
-    <nextcloud min-version="30" max-version="31"/>
+    <nextcloud min-version="30" max-version="32"/>
   </dependencies>
   <icon>app.svg</icon>
 </info>

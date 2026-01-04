@@ -17,6 +17,20 @@ class Application extends App implements IBootstrap {
     }
 
     public function register(IRegistrationContext $context): void {
+        if (method_exists($context, 'registerNavigation')) {
+            $context->registerNavigation(function () {
+                $url = \OC::$server->getURLGenerator();
+                $l10nFactory = \OC::$server->getL10NFactory();
+                $l = $l10nFactory->get('opsdash');
+                return [
+                    'id' => 'opsdash',
+                    'order' => 10,
+                    'href' => $url->linkToRoute('opsdash.overview.index'),
+                    'icon' => $url->imagePath('opsdash', 'app.svg'),
+                    'name' => $l->t('Operational Dashboard'),
+                ];
+            });
+        }
         if (method_exists($context, 'registerCommand')) {
             $context->registerCommand(ReportCommand::class);
             return;

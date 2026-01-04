@@ -3,7 +3,17 @@
 All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
-- Pending changes.
+### Added
+- Balance overview now surfaces a compact Balance index badge in the card header.
+- Sidebar navigation is explicitly registered so Opsdash appears in Nextcloud’s app menu (and NC max version extended to 32).
+
+### Changed
+- Sidebar layout: setup wizard block copy/numbered steps, framed sections, larger refresh button, and keyboard shortcuts moved to the bottom.
+- Sidebar scrolling now uses the outer navigation container (single scrollbar) with left-side scroll positioning.
+- Sidebar open/close state now persists locally (defaults to open if storage is missing or invalid).
+- Widget layout editing keeps the active tab selected after widget changes.
+- Day-off trend widget uses the global range unit (week/month) and defaults color pickers to red/green tones.
+- Day-off trend widget adds Balance Index-style trend label options (date range, week/month, offset).
 
 ### Added
 - Onboarding wizard “Dashboard preset” step (Quick / Standard / Pro) that applies a preset widget layout and stores the chosen dashboard mode.

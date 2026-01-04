@@ -3,7 +3,16 @@
 All notable changes to this project are documented here. This file is served locally for development.
 
 ## [Unreleased]
-- Pending changes.
+- UI: Balance overview now surfaces a compact Balance index badge in the card header.
+- UI: Sidebar setup wizard block renamed + help copy added; steps are numbered.
+- UI: Sidebar refresh button enlarged; keyboard shortcuts moved to the bottom.
+- UI: Sidebar setup + profiles sections reuse the rangebar framing style.
+- UI: Sidebar uses a single scrollbar in the outer navigation container and positions it on the left.
+- UI: Sidebar open/close state persists locally; defaults to open if the stored value is missing/invalid.
+- UX: Widget layout edits no longer reset the active dashboard tab.
+- Widgets: Day-off trend uses the global week/month unit and defaults the low/high color pickers to red/green.
+- Widgets: Day-off trend supports Balance Index-style trend label modes (date range, week/month, offset).
+- Platform: Opsdash registers a navigation entry and declares NC 32 support (max-version).
 - UI: dashboard now supports multiple layout tabs (rename, set default, add/remove); only the active tab renders.
 - Config: widget layout payload now persists as `{ tabs, defaultTabId }` and legacy arrays normalize into a single tab.
 - UI: layout toolbar and tabs rebalanced for dark-theme contrast; controls sit left of the notification area.

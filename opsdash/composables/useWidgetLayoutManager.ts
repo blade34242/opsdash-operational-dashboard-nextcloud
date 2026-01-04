@@ -306,7 +306,12 @@ export function useWidgetLayoutManager(options: {
     const normalized = normalizeWidgetTabs(payload, fallback)
     layoutTabs.value = normalized.tabs
     defaultTabId.value = normalized.defaultTabId
-    activeTabId.value = normalized.defaultTabId
+    const currentActive = activeTabId.value
+    if (currentActive && normalized.tabs.some((tab) => tab.id === currentActive)) {
+      activeTabId.value = currentActive
+    } else {
+      activeTabId.value = normalized.defaultTabId
+    }
   }
 
   return {

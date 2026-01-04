@@ -40,6 +40,7 @@ type DayOffTrendEntry = {
   daysWorked: number
 }
 
+type LabelMode = 'date' | 'period' | 'offset'
 type DayOffTrendTile = DayOffTrendEntry & { share: number; tone: 'low' | 'mid' | 'high' }
 
 const props = defineProps<{
@@ -51,8 +52,16 @@ const props = defineProps<{
   toneLowColor?: string | null
   toneHighColor?: string | null
   showHeader?: boolean
+  labelMode?: LabelMode
 }>()
 
+const historyUnit = computed(() => (props.unit === 'mo' ? 'mo' : 'wk'))
+const currentUnitLabel = computed(() => (props.unit === 'mo' ? 'This month' : 'This week'))
+const labelMode = computed<LabelMode>(() => {
+  const mode = (props.labelMode || 'period').toString().toLowerCase()
+  if (mode === 'date' || mode === 'offset') return mode as LabelMode
+  return 'period'
+})
 const historyCount = computed(() => {
   const configured = typeof props.lookback === 'number' ? props.lookback : null
   if (configured != null) {
@@ -77,8 +86,8 @@ const normalized = computed<DayOffTrendEntry[]>(() => {
       daysWorked: Number(entry?.daysWorked ?? entry?.days_worked ?? 0) || 0,
     })
   })
-  const unit = props.unit === 'mo' ? 'mo' : 'wk'
-  const nowLabel = props.unit === 'mo' ? 'This month' : 'This week'
+  const unit = historyUnit.value
+  const nowLabel = currentUnitLabel.value
   const entries: DayOffTrendEntry[] = []
   const current = byOffset.get(0) ?? {
     offset: 0,
@@ -111,7 +120,7 @@ const tiles = computed<DayOffTrendTile[]>(() =>
     const total = Math.max(0, Number(entry.totalDays) || 0)
     const daysOff = Math.max(0, Math.min(total, Number(entry.daysOff) || 0))
     const share = total > 0 ? daysOff / total : 0
-    return { ...entry, share, tone: classifyTone(share) }
+    return { ...entry, label: formatLabel(entry), share, tone: classifyTone(share) }
   }),
 )
 
@@ -156,6 +165,61 @@ function classifyTone(value: number): 'low' | 'mid' | 'high' {
   if (value >= 0.5) return 'high'
   if (value >= 0.25) return 'mid'
   return 'low'
+}
+
+const dateFormatter = new Intl.DateTimeFormat(undefined, { day: '2-digit', month: '2-digit' })
+
+function parseDate(value?: string) {
+  if (!value) return null
+  const date = new Date(value)
+  if (Number.isNaN(date.getTime())) return null
+  return date
+}
+
+function isoWeek(date: Date) {
+  const tmp = new Date(Date.UTC(date.getFullYear(), date.getMonth(), date.getDate()))
+  const dayNum = tmp.getUTCDay() || 7
+  tmp.setUTCDate(tmp.getUTCDate() + 4 - dayNum)
+  const yearStart = new Date(Date.UTC(tmp.getUTCFullYear(), 0, 1))
+  const weekNo = Math.ceil((((tmp.getTime() - yearStart.getTime()) / 86400000) + 1) / 7)
+  return weekNo
+}
+
+function formatRange(from?: string, to?: string) {
+  const start = parseDate(from)
+  const end = parseDate(to)
+  if (!start || !end) return ''
+  const fromLabel = dateFormatter.format(start)
+  const toLabel = dateFormatter.format(end)
+  return fromLabel === toLabel ? fromLabel : `${fromLabel}–${toLabel}`
+}
+
+function fallbackLabel(offset: number, label?: string) {
+  if (label) return label
+  if (offset === 0) return currentUnitLabel.value
+  return `-${offset} ${historyUnit.value}`
+}
+
+function formatPeriodLabel(entry: DayOffTrendEntry) {
+  const baseDate = parseDate(entry.from) || parseDate(entry.to)
+  if (!baseDate) {
+    return fallbackLabel(entry.offset, entry.label)
+  }
+  if (historyUnit.value === 'mo') {
+    return `MONTH ${baseDate.getMonth() + 1}`
+  }
+  return `WEEK ${isoWeek(baseDate)}`
+}
+
+function formatLabel(entry: DayOffTrendEntry) {
+  const offset = Number(entry.offset ?? 0) || 0
+  if (labelMode.value === 'offset') {
+    return offset === 0 ? 'Current' : `-${offset}`
+  }
+  if (labelMode.value === 'date') {
+    return formatRange(entry.from, entry.to) || fallbackLabel(offset, entry.label)
+  }
+  return formatPeriodLabel(entry)
 }
 
 function normalizeColor(value?: string | null): string | null {

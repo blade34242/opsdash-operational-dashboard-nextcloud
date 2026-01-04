@@ -111,8 +111,11 @@
   background:var(--card);
   border:0;
   border-radius:0;
-  padding:14px;
-  overflow:hidden;
+  padding:0 !important;
+  overflow-x:hidden !important;
+  overflow-y:auto !important;
+  scrollbar-gutter:stable;
+  direction:rtl;
   transition:width .25s ease, max-width .25s ease, padding .25s ease, border .25s ease, box-shadow .25s ease, opacity .2s ease;
 }
 #opsdash .app-content__navigation[aria-hidden="true"]{
@@ -160,8 +163,14 @@
   gap:8px;
   flex:1 1 auto;
   min-height:0;
-  overflow-y:auto;
-  padding-right:4px;
+  overflow-y:visible !important;
+  overflow-x:visible;
+  padding:14px;
+  scrollbar-gutter:stable;
+}
+
+#opsdash .app-navigation .sb-pane{
+  overflow-y:visible;
 }
 #opsdash .app-shell{
   position:relative;
@@ -529,6 +538,7 @@
   flex-direction:column;
   gap:10px;
   align-items:stretch;
+  position:relative;
   margin:6px 0 12px;
   padding:12px 14px;
   border:1px solid color-mix(in oklab, var(--brand), var(--line) 70%);
@@ -596,7 +606,8 @@
   box-shadow:0 8px 18px rgba(37,99,235,0.18);
   text-transform:uppercase;
   letter-spacing:.05em;
-  font-size:11px;
+  font-size:15px;
+  font-weight:800;
 }
 #opsdash .rangebar .range-refresh .sidebar-action-btn:not(:disabled):hover{
   background:color-mix(in oklab, var(--brand), transparent 78%);
@@ -1707,4 +1718,19 @@
 #opsdash .tab-context-menu button:disabled{
   opacity:0.4;
   cursor:not-allowed;
+}
+
+#opsdash .app-content .app-content__navigation,
+#opsdash .app-content__navigation{
+  overflow-x:hidden !important;
+  overflow-y:auto !important;
+  padding:0 !important;
+  direction:rtl;
+}
+
+#opsdash .app-content .app-content__navigation #opsdash-sidebar.app-navigation{
+  overflow-y:visible !important;
+  overflow-x:visible;
+  padding:14px;
+  direction:ltr;
 }

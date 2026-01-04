@@ -194,6 +194,21 @@ describe('widgetsRegistry targets_v2', () => {
     expect(props.cardBg).toBe('#fafafa')
   })
 
+  it('dayoff_trend uses global unit and defaults tone colors', () => {
+    const entry = widgetsRegistry.dayoff_trend
+    const def: any = { options: {}, layout: {}, type: 'dayoff_trend', id: 'd1', version: 1 }
+    const ctx: any = { activityDayOffTrend: [], activityTrendUnit: 'mo', activityDayOffLookback: 2 }
+    const props = entry.buildProps(def, ctx) as any
+    const keys = (entry.controls || []).map((control: any) => control.key)
+
+    expect(keys).not.toContain('unit')
+    expect(keys).toContain('labelMode')
+    expect(entry.defaultOptions?.toneLowColor).toBe('#dc2626')
+    expect(entry.defaultOptions?.toneHighColor).toBe('#16a34a')
+    expect(entry.defaultOptions?.labelMode).toBe('period')
+    expect(props.unit).toBe('mo')
+  })
+
   it('common title prefix is applied when provided', () => {
     const entry = widgetsRegistry.balance_index
     const def: any = {

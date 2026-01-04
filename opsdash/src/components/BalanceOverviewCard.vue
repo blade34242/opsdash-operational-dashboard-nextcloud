@@ -2,6 +2,20 @@
   <div class="card balance-card" :style="cardStyle">
     <div class="balance-card__header" v-if="showHeader">
       <span>{{ titleText }} ({{ rangeLabel }})</span>
+      <div
+        v-if="balanceIndexDisplay"
+        class="balance-index"
+        :style="balanceIndexStyle"
+        :title="balanceIndexTitle"
+      >
+        <div class="balance-index__ring" aria-hidden="true">
+          <span class="balance-index__value">{{ balanceIndexDisplay }}</span>
+        </div>
+        <div class="balance-index__meta">
+          <div class="balance-index__label">Balance index</div>
+          <div class="balance-index__range">{{ rangeLabel }}</div>
+        </div>
+      </div>
     </div>
     <div v-if="activitySummary" class="balance-card__activity">
       <div class="activity-hero">
@@ -185,6 +199,34 @@ const settingsActivity = computed<ActivityCardConfig>(() =>
 const titleText = computed(() => props.title || 'Activity & Balance')
 const cardStyle = computed(() => ({ background: props.cardBg || undefined }))
 const showHeader = computed(() => props.showHeader !== false)
+const balanceIndex = computed(() => {
+  const raw = props.overview?.index
+  const num = typeof raw === 'number' ? raw : Number(raw ?? NaN)
+  if (!Number.isFinite(num)) return null
+  return Math.max(0, Math.min(1, num))
+})
+const balanceIndexDisplay = computed(() => {
+  if (balanceIndex.value == null) return ''
+  return balanceIndex.value.toFixed(2)
+})
+const balanceIndexStyle = computed(() => {
+  if (balanceIndex.value == null) return {}
+  const pct = Math.round(balanceIndex.value * 100)
+  let color = '#dc2626'
+  if (balanceIndex.value >= 0.8) {
+    color = '#16a34a'
+  } else if (balanceIndex.value >= 0.65) {
+    color = '#f59e0b'
+  }
+  return {
+    '--balance-index-fill': `${pct}%`,
+    '--balance-index-color': color,
+  }
+})
+const balanceIndexTitle = computed(() => {
+  if (balanceIndex.value == null) return ''
+  return `Balance index ${balanceIndex.value.toFixed(2)} for ${props.rangeLabel}`
+})
 
 const activityHeroLine = computed(() => {
   if (!props.activitySummary) return ''
@@ -488,9 +530,60 @@ function classifyDayOffTone(value: number): 'low' | 'mid' | 'high' {
   display: flex;
   align-items: center;
   justify-content: space-between;
+  gap: calc(8px * var(--widget-space, 1));
   font-weight: 600;
   color: var(--fg);
   font-size: var(--widget-title-size, calc(14px * var(--widget-scale, 1)));
+}
+.balance-index {
+  display: flex;
+  align-items: center;
+  gap: calc(6px * var(--widget-space, 1));
+  text-align: right;
+}
+.balance-index__ring {
+  width: calc(34px * var(--widget-scale, 1));
+  height: calc(34px * var(--widget-scale, 1));
+  border-radius: 999px;
+  background: conic-gradient(
+    var(--balance-index-color, #2563eb) var(--balance-index-fill, 0%),
+    color-mix(in srgb, var(--color-border, #e5e7eb), transparent 40%) 0
+  );
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+}
+.balance-index__ring::after {
+  content: '';
+  position: absolute;
+  inset: calc(4px * var(--widget-space, 1));
+  border-radius: 999px;
+  background: var(--color-main-background, #fff);
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--balance-index-color, #2563eb) 20%, transparent);
+}
+.balance-index__value {
+  position: relative;
+  z-index: 1;
+  font-weight: 700;
+  font-size: calc(11px * var(--widget-scale, 1));
+  font-variant-numeric: tabular-nums;
+  color: var(--fg);
+}
+.balance-index__meta {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+}
+.balance-index__label {
+  font-size: calc(8.5px * var(--widget-scale, 1));
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--muted);
+}
+.balance-index__range {
+  font-size: calc(10px * var(--widget-scale, 1));
+  color: var(--fg);
 }
 .balance-card__activity {
   display: flex;
