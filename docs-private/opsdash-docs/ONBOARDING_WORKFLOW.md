@@ -1,128 +1,25 @@
-# Onboarding Workflow Specification
-
-This document defines the first-run experience for the Opsdash app. It expands 
-on the target strategy selector and captures all UX and technical requirements 
-needed to guide new users toward a useful initial configuration.
-
-## Objectives
-- Help new users understand what Opsdash offers within 60 seconds.
-- Capture enough preferences to produce meaningful dashboard data without 
-  overwhelming users.
-- Offer clear escape hatches (skip, change later) while nudging toward best 
-  practices.
-- Persist onboarding choices via the existing `/persist` endpoint so the flow 
-  never repeats unnecessarily.
-
-## Current Status (0.5.3+)
-- ✅ Wizard ships with intro → strategy → dashboard → calendars → categories → preferences → review sequence.
-- ✅ Intro supports “Edit current setup” vs “Create new profile”, plus a profile backup button for existing configs.
-- ✅ Category presets (Work/Hobby/Sport, Focus/Personal/Recovery, Client/Internal/Learning) speed setup; pacing dropdown is exposed.
-- ✅ Calendar targets only show in Power mode; category assignments are mandatory with an explicit Unassigned state.
-- ✅ Review summarizes dashboard layout + theme and can save the result as a new profile (profiles store widgets/tabs, theme, Deck, reporting, and targets).
-- ✅ Theme selector, all-day hours input, total-hours summary, Deck setup, reporting cadence, and Activity day-off toggle are live.
-- ✅ Each onboarding step can save its current changes without completing the full wizard.
-
-## User Stories
-- *As a new user*, I want a quick explanation of what Opsdash does so that I 
-  know why I should continue.
-- *As a goal-driven user*, I want to select the target complexity that matches 
-  my workflows (total only, categories, calendars) so that my dashboard stays 
-  actionable.
-- *As an admin/tester*, I want to reset onboarding state for QA or support.
-- *As a returning user*, I want to bypass onboarding instantly, while still 
-  being able to change the chosen profile later.
+# Onboarding Workflow
 
 ## Entry Conditions
-- Triggered the first time `load()` returns without an onboarding flag in the 
-  persisted payload.
-- Also triggered when the stored onboarding version is lower than the client’s 
-  expected version (to allow future expansion).
-- Exposed via a manual entry point (`?onboarding=reset` query parameter) to 
-  support testing/support.
+- First load without onboarding state.
+- Stored onboarding version older than required.
+- Manual reset via `?onboarding=reset`.
 
-## High-Level Flow
-1. **Intro Screen**
-   - Brief summary (e.g., “Opsdash visualizes your calendar workload.”).
-   - List of highlights (Targets, Balance, Notes).
-   - `Get started` primary action, `Maybe later` secondary (skip sets default 
-     profile and marks onboarding complete).
-   - If an existing configuration is detected, allow a mode choice:
-     - Edit current setup (pre-filled).
-     - Create new profile (empty selections).
-   - Offer a “Save current setup as profile” backup action.
-2. **Target Strategy Step**
-   - Presents the strategies described in `TARGET_STRATEGIES.md`.
-   - Each strategy card includes: recommended audience, quick bullet benefits, 
-     preview illustration or icon, default configuration summary.
-   - Selecting Balanced/Power reveals the Targets step later in the flow.
-   - `Continue` becomes enabled after selection.
-3. **Dashboard Layout Step**
-   - Choose Quick / Standard / Pro widget layouts (affects initial widgets/tabs).
-4. **Calendar Selection Step**
-   - Pulls available calendars with no defaults; at least one must be selected.
-   - Calendar targets are optional and only show in Power mode.
-5. **Categories & Targets Step** (strategies with categories)
-   - Users can create/rename categories, set weekly targets, and toggle weekend inclusion.
-   - Quick presets seed common category sets with colors and targets.
-   - Selected calendars must be mapped to a category; Unassigned blocks continue.
-   - Pacing mode is selectable per category (days only vs time aware).
-6. **Preferences & Automations Step**
-  - Theme selector (`Follow Nextcloud`, `Force light`, `Force dark`) with guidance that charts keep calendar colours; applies once onboarding completes.
-  - Input for total weekly target (editable for total-only strategies, read-only summary when categories are active).
-  - All-day event hours control (default 8 h) so multi-day all-day events align with expected workloads.
-  - Deck quick-setup: show detected Deck boards (if the Deck app is enabled) with checkboxes so users can immediately choose which boards surface in the Deck tab. Defaults: all boards visible; tooltips link to Deck if no boards are found. **Shipped** — see `pref-card--deck` in `OnboardingWizard.vue`.
-  - Reporting primer: toggle to enable weekly/monthly digests plus reminder cadence. Surface a short explanation (“Opsdash can send a weekly recap and remind you when targets drift”). **Shipped** — persisted via `reporting_config`.
-  - Activity day-off trend toggle: explains the new heatmap on the Activity card so users can opt out before their first load. **Shipped** — persisted via `targets_config_activity.showDayOffTrend`.
-  - Global trend lookback: set how many past weeks/months charts compare against. **Shipped** — persisted via `targets_config.balance.trend.lookbackWeeks`.
-7. **Review & Confirm**
-   - Summary of choices: strategy, calendars, targets, theme preference, dashboard layout, Deck visibility, and reporting cadence.
-   - Optional “Save as new profile” (name required when enabled).
-   - `Start dashboard` finalizes choices and writes them via `/persist`.
-8. **Completion Toast**
-   - “Setup saved — you can change this later in the Sidebar.”
-   - Automatically scroll/focus the main dashboard.
+## Flow (current)
+1. Intro (edit current vs create new profile, optional backup).
+2. Strategy (Focused/Balanced/Power).
+3. Dashboard layout (Quick/Standard/Pro).
+4. Calendars (no defaults; at least one required).
+5. Categories/Targets (only for Balanced/Power).
+6. Preferences (theme, all-day hours, reporting, Deck, activity day-off).
+7. Review (summary + optional "save as new profile").
 
-## Data & Persistence
-- Extend persisted payload with:
-  ```json
-  {
-    "onboarding": {
-      "completed": true,
-      "version": 1,
-      "strategy": "total_only",
-      "completed_at": "2025-01-12T10:15:00Z"
-    }
-  }
-  ```
-- When missing or `version < current`, prompt onboarding.
-- Store the initial target/weekend/category choices using existing fields 
-  (`targets_week`, `targets_month`, `targets_config`, `groups`).
-- Profiles (presets) can be created during onboarding and include widgets/tabs, theme, Deck, reporting, and targets.
-- Include a UI toggle in Sidebar → Calendars: “Re-run onboarding”. — ✅ wired to `createOnboardingWizardState` so the wizard remounts on every manual reopen (0.4.4, 2025-11).
-- Persist new preferences alongside the existing payload:
-  - `theme_preference`
-  - `targets_config.balance.trend.lookbackWeeks` (global default; chart widgets can override per widget)
-  - `reporting_config` (enabled/schedule/interim/reminders)
-  - `deck_settings` (`enabled`, `defaultFilter`, `hiddenBoards`)
-  - `targets_config.activityCard.showDayOffTrend`
+## Rules
+- Calendar targets only show in Power mode.
+- Category assignment is mandatory; Unassigned blocks continue.
+- Quick category presets seed common defaults.
+- Wizard can save per step without finishing.
 
-## Content Requirements
-- Intro copy: “Opsdash visualises your calendar time and keeps goals on track.”
-- Highlights: Targets · Balance · Notes.
-- Use placeholder illustrations/icons for the MVP; final artwork arrives later. No localisation in phase 1.
-- Wizard FAQ: “Can I change this later? Yes — open Sidebar → Targets.”
-
-## Out of Scope (v1)
-- Team onboarding (track separately).
-- Importing historical targets (future enhancement).
-
-## Decisions (2025-03)
-- Demo data stays out of scope. Surface the hint “Make sure your calendars contain recent events so charts have data.” during onboarding instead of seeding demo events.
-- The wizard inherits dashboard theme tokens once Phase 1 theming ships; no bespoke palette work before that milestone.
-- Calendar-day goal conversion remains a backlog item to revisit after the initial onboarding release stabilises.
-- Deck + reporting controls live in the wizard but also expose “Learn more” links that open the Deck/Report sidebar panes after completion.
-
-## Next Steps
-- Polish copy & illustrations (wizard currently text-only).
-- QA across desktop/mobile, light/dark themes (see theming spec).
-- Extend Playwright coverage to hit the new “new profile” path and profile save flow.
+## Persistence
+- Writes through `/overview/persist`.
+- Profiles (via `/overview/presets`) include widgets/tabs, theme, Deck, reporting, and targets.

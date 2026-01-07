@@ -21,7 +21,7 @@ Not shipped (exclude from tarball)
 - tools/ (seed scripts)
 - test/ (Vitest tests)
 - backup/ (any backups)
-- docs/ (optional to include; not required by runtime)
+- docs-private/ (internal docs)
 - vite.config.ts, tsconfig.json, package*.json/lockfiles
 
 Reference tree (minimal example)

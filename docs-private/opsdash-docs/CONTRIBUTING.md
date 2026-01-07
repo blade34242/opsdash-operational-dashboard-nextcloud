@@ -3,10 +3,10 @@
 Thanks for your interest in improving this app! A few guidelines:
 
 ## Development
-- Requirements: Node.js 18+, Nextcloud 32.
+- Requirements: Node.js 20+, Nextcloud 30-32.
 - Install deps: `npm ci`
-- Build: `npm run build` (outputs `js/main46.js`)
-- Dev: `npm run dev` for frontend iteration (build for NC integration).
+- Build: `npm run build` (produces `js/.vite/manifest.json` + hashed assets).
+- Dev: `npm run dev` for frontend iteration; build for NC integration.
 
 ## Coding Standards
 - PHP: PSR-12, strict types where possible, thin controllers, logic in services.
@@ -20,8 +20,7 @@ Thanks for your interest in improving this app! A few guidelines:
 - Describe any performance impact and migration notes.
 
 ## Tests (recommended)
-- Server: selection filtering, group clamps, offset bounds, truncation meta.
-- Client: `useRange`, `useNotes`, API client, chart draw scheduling.
+- `npm run test:unit` (Vitest) and `composer run test:unit` (PHPUnit).
 
 ## Reporting Issues
 - Include NC version, app version, steps to reproduce, and server logs (sanitized).

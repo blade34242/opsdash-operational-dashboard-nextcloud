@@ -3,16 +3,16 @@
 Base path: `/apps/opsdash`
 
 ## Routing & Controllers (internal)
-- `/overview/load`, `/overview`, `/overview/ping` → `OverviewController`
-- `/overview/persist` → `PersistController`
-- `/overview/notes` (GET/POST) → `NotesController`
-- `/overview/presets` → `PresetsController`
+- `/overview/load`, `/overview`, `/overview/ping` -> `OverviewController`
+- `/overview/persist` -> `PersistController`
+- `/overview/notes` (GET/POST) -> `NotesController`
+- `/overview/presets` -> `PresetsController` (profile storage; endpoint name unchanged)
 
 ## Load Statistics (read-only)
 - Method: GET `/overview/load`
 - Query params:
   - `range`: `week` | `month` (default: `week`)
-  - `offset`: integer −24..24 (default: 0)
+  - `offset`: integer -24..24 (default: 0)
   - Optional preview: `cals[]=id` or `calsCsv=id1,id2`
 - Response: JSON
 ```
@@ -31,6 +31,10 @@ Base path: `/apps/opsdash`
   colors: { byId: { [id]: '#RRGGBB' }, byName: { [name]: '#RRGGBB' } },
   groups: { byId: { [id]: 0..9 } },
   targets: { week: { [id]: number }, month: { [id]: number } },
+  targetsConfig: { ... },
+  reportingConfig: { ... },
+  deckSettings: { ... },
+  themePreference: 'auto'|'light'|'dark',
   stats: { total_hours, avg_per_day, ... },
   byCal: [...], byDay: [...], longest: [...],
   charts: {
@@ -46,47 +50,18 @@ Base path: `/apps/opsdash`
     tabs: [
       { id: string, label: string, widgets: Array<{ id, type, layout, options?, version }> }
     ]
-  }
+  },
+  onboarding: { completed, version, ... }
 }
 ```
 
 ## Persist Selection (save)
 - Method: POST `/overview/persist`
-- Body: JSON `{ cals: string[]; groups?: Record<string,number>; targets_week?: Record<string,number>; targets_month?: Record<string,number>; widgets?: WidgetTabsState }`
-- Optional: include `targets_config` (mirrors the structure returned by `/load`, covering `categories`, `pace`, `forecast`, `ui`, `timeSummary`, `activityCard`, `balance`). `activityCard.forecastMode` is now legacy; chart widgets store projection mode per widget. Deprecated balance precision fields (`roundPercent`/`roundRatio`/`showDailyStacks`) are ignored server-side.
+- Body: JSON `{ cals: string[]; groups?: Record<string,number>; targets_week?: Record<string,number>; targets_month?: Record<string,number>; targets_config?: TargetsConfig; widgets?: WidgetTabsState; theme_preference?: 'auto'|'light'|'dark'; reporting_config?: ReportingConfig; deck_settings?: DeckFeatureSettings }`
+- Notes: `targets_config` mirrors `/load` (categories, pace, forecast, ui, timeSummary, activityCard, balance). Legacy balance precision fields are ignored server-side.
 - CSRF: required (`window.oc_requesttoken`)
-- Response: `{ ok, saved, read, groups_saved?, groups_read?, targets_week_saved?, targets_week_read?, targets_month_saved?, targets_month_read?, targets_config_saved?, targets_config_read?, warnings? }` — `targets_config_*` always echo the sanitized `balance.ui` flags so clients don’t need local defaults.
-
-Errors
-- Validation failures return **HTTP 400** with a structured payload:
-  ```json
-  {
-    "ok": false,
-    "message": "Validation failed",
-    "errors": [
-      {
-        "field": "targets_week.cal-a1",
-        "message": "Enter a valid number",
-        "severity": "error",
-        "code": "invalid_number",
-        "expected": { "min": 0, "max": 10000, "step": 0.25 },
-        "received": "abc"
-      }
-    ],
-    "warnings": [
-      {
-        "field": "targets_month.cal-a1",
-        "message": "Adjusted to allowed value (Allowed range 0 - 10000, step 0.25)",
-        "severity": "warning",
-        "code": "number_adjusted",
-        "expected": { "min": 0, "max": 10000, "step": 0.25 },
-        "received": "10000.8",
-        "adjusted": 10000
-      }
-    ]
-  }
-  ```
-- `errors` contains the fields that blocked the save; `warnings` (optional) lists values that were clamped during a successful save so the client can surface inline feedback. Messages honour the requester’s locale via Nextcloud l10n.
+- Response (sanitised echo):
+  `{ ok, saved, read, groups_read?, targets_week_read?, targets_month_read?, targets_config_read?, theme_preference_read?, reporting_config_read?, deck_settings_read?, widgets_read? }`
 
 Example (replace cookie + token with values from your browser session):
 ```bash
@@ -103,7 +78,7 @@ curl -sS "${BASE}/index.php/apps/opsdash/overview/persist" \
 ```
 
 Validation
-- `cals`: intersected with user’s calendars; unknown ids ignored.
+- `cals`: intersected with user's calendars; unknown ids ignored.
 - `groups`: per-calendar 0..9; missing ids default to 0 (the UI sets these automatically when a category is chosen).
 - `targets_*`: per-calendar hours clamped to [0..10000], decimals allowed; unknown ids ignored.
 
@@ -129,26 +104,26 @@ curl -sS "${BASE}/index.php/apps/opsdash/overview/notes" \
   -H "Content-Type: application/json" \
   -H "requesttoken: ${TOKEN}" \
   -H "Cookie: ${COOKIES}" \
-  -d '{"range":"week","offset":0,"content":"Updated via curl ✔"}' | jq
+  -d '{"range":"week","offset":0,"content":"Updated via curl OK"}' | jq
 ```
 
 ## Ping (health)
 - Method: GET `/overview/ping`
-- Response: `{ ok, app, ts }`
+- Response: `{ ok, app, version, changelog, ts }`
 
-## Presets
+## Profiles (endpoint: `/overview/presets`)
 - List summaries
   - Method: GET `/overview/presets`
   - Response: `{ ok, presets: Array<{ name, createdAt, updatedAt, selectedCount, calendarCount }> }`
-- Save/overwrite preset
+- Save/overwrite profile
   - Method: POST `/overview/presets`
   - Body: `{ name: string, selected: string[], groups: Record<string,number>, targets_week: Record<string,number>, targets_month: Record<string,number>, targets_config: TargetsConfig, widgets?: WidgetTabsState, theme_preference?: string, deck_settings?: DeckFeatureSettings, reporting_config?: ReportingConfig }`
   - Response: `{ ok, preset: { name, createdAt, updatedAt }, presets: [...], warnings?: string[] }`
-  - Notes: payload is sanitised against the user’s current calendars; unknown ids are dropped with a warning.
-- Load preset
+  - Notes: payload is sanitised against the user's current calendars; unknown ids are dropped with a warning.
+- Load profile
   - Method: GET `/overview/presets/{name}`
   - Response: `{ ok, preset: { name, createdAt, updatedAt, selected, groups, targets_week, targets_month, targets_config, widgets?, theme_preference?, deck_settings?, reporting_config?, warnings?: string[] }, warnings?: string[] }`
-  - The response already includes a sanitised payload; if warnings are present the client should surface them (and ideally ask for confirmation) before applying the result.
-- Delete preset
+  - The response already includes a sanitised payload; if warnings are present the client should surface them before applying the result.
+- Delete profile
   - Method: DELETE `/overview/presets/{name}`
   - Response: `{ ok, presets: [...] }`

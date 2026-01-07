@@ -3,18 +3,17 @@
 This consolidates the release workflow, packaging/signing steps, App Store submission details, and the internal publishing checklist.
 
 ## Versioning & Branches
-- Semantic Versioning per line (e.g., 0.4.x for NC 30–31, 0.5.x for NC 32+).
 - Align `appinfo/info.xml`, `package.json`, and the public `CHANGELOG.md`.
-- `main`: current development line. `support/<line>`: maintenance branches for older NC versions.
+- Use a release branch only when preparing an App Store submission.
 
 ## Pre-release Checklist
-1. **Choose compatibility window** – adjust `<nextcloud min-version="X" max-version="Y"/>` if QA confirms broader support.
-2. **Update versions & changelog** – bump `appinfo/info.xml`, `package.json`, `CHANGELOG.md`.
-3. **Build + sanity check** – `npm ci && npm run build`; run the app locally to verify nav, charts, targets, timezone bucketing.
-4. **Run tests** – `npm run test -- --run`, `composer run test:unit`, `npm run test:e2e`, security scripts in `tools/security/`.
+1. **Choose compatibility window** - adjust `<nextcloud min-version="X" max-version="Y"/>` if QA confirms broader support.
+2. **Update versions & changelog** - bump `appinfo/info.xml`, `package.json`, `CHANGELOG.md`.
+3. **Build + sanity check** - `npm ci && npm run build`; run the app locally.
+4. **Run tests** - `npm run test -- --run`, `composer run test:unit`, `npm run test:e2e`, security scripts in `tools/security/`.
 
 ## Packaging & Signing
-1. `VERSION=<x.y.z> make appstore` – copies `opsdash/` into `build/opsdash`, installs prod deps, strips dev files, and creates `build/opsdash-<version>.tar.gz`.
+1. `VERSION=<x.y.z> make appstore` - copies `opsdash/` into `build/opsdash`, installs prod deps, strips dev files, and creates `build/opsdash-<version>.tar.gz`.
 2. Sign the staged app:
    ```bash
    php /var/www/html/occ integrity:sign-app \
