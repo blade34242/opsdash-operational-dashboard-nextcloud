@@ -70,31 +70,7 @@ const STRATEGIES: StrategyDefinition[] = [
   },
 ]
 
-const CATEGORY_KEYWORDS: Record<string, string[]> = {
-  work: ['work', 'focus', 'deep', 'project'],
-  personal: ['personal', 'home', 'family', 'life'],
-  recovery: ['recovery', 'wellness', 'rest', 'health'],
-  hobby: ['hobby', 'learn', 'study', 'growth'],
-  sport: ['sport', 'fitness', 'gym', 'run', 'ride'],
-}
-
 const CATEGORY_COLOR_PALETTE = ['#2563EB', '#F97316', '#10B981', '#A855F7', '#EC4899', '#14B8A6', '#F59E0B', '#6366F1']
-
-function pickCategoryId(
-  label: string,
-  categoryOrder: string[],
-  keywords: Record<string, string[]>,
-  index: number,
-): string {
-  const lower = label.toLowerCase()
-  for (const id of categoryOrder) {
-    const matches = keywords[id] || []
-    if (matches.some((keyword) => lower.includes(keyword))) {
-      return id
-    }
-  }
-  return categoryOrder[index % categoryOrder.length]
-}
 
 function deriveMonthTargets(targetsWeek: Record<string, number>): Record<string, number> {
   const month: Record<string, number> = {}
@@ -146,10 +122,11 @@ function sanitizeAssignments(
     return result
   }
   const categoryIds = new Set(categories.map((cat) => cat.id))
-  const fallback = categories[0].id
   selected.forEach((calId) => {
     const claimed = assignments[calId]
-    result[calId] = categoryIds.has(claimed) ? claimed : fallback
+    if (categoryIds.has(claimed)) {
+      result[calId] = claimed
+    }
   })
   return result
 }
@@ -165,7 +142,7 @@ export function createStrategyDraft(
   calendars: CalendarSummary[],
   selectedInput: string[],
 ): { categories: CategoryDraft[]; assignments: Record<string, string> } {
-  const selected = selectedInput.length ? [...new Set(selectedInput.filter((id) => calendars.some((cal) => cal.id === id)))] : calendars.map((c) => c.id)
+  const selected = [...new Set(selectedInput.filter((id) => calendars.some((cal) => cal.id === id)))]
 
   if (strategyId === 'total_only') {
     return {
@@ -174,44 +151,9 @@ export function createStrategyDraft(
     }
   }
 
-  const categoryOrder =
-    strategyId === 'total_plus_categories'
-      ? ['work', 'personal', 'recovery']
-      : ['work', 'hobby', 'sport']
-  const categoryDefaults =
-    strategyId === 'total_plus_categories'
-      ? [
-          { id: 'work', label: 'Work', targetHours: 32, includeWeekend: false, color: CATEGORY_COLOR_PALETTE[0] },
-          { id: 'personal', label: 'Personal', targetHours: 8, includeWeekend: true, color: CATEGORY_COLOR_PALETTE[1] },
-          { id: 'recovery', label: 'Recovery', targetHours: 4, includeWeekend: true, color: CATEGORY_COLOR_PALETTE[2] },
-        ]
-      : [
-          { id: 'work', label: 'Work', targetHours: 32, includeWeekend: false, color: CATEGORY_COLOR_PALETTE[0] },
-          { id: 'hobby', label: 'Hobby', targetHours: 6, includeWeekend: true, color: CATEGORY_COLOR_PALETTE[1] },
-          { id: 'sport', label: 'Sport', targetHours: 4, includeWeekend: true, color: CATEGORY_COLOR_PALETTE[2] },
-        ]
-
-  const assignments: Record<string, string> = {}
-  let idx = 0
-  calendars
-    .filter((cal) => selected.includes(cal.id))
-    .forEach((cal) => {
-      assignments[cal.id] = pickCategoryId(cal.displayname, categoryOrder, CATEGORY_KEYWORDS, idx)
-      idx += 1
-    })
-
-  const categories: CategoryDraft[] = categoryDefaults.map((cat) => ({
-    id: cat.id,
-    label: cat.label,
-    targetHours: cat.targetHours,
-    includeWeekend: cat.includeWeekend,
-    paceMode: 'days_only',
-    color: sanitizeHexColor(cat.color) ?? null,
-  }))
-
   return {
-    categories,
-    assignments,
+    categories: [],
+    assignments: Object.fromEntries(selected.map((id) => [id, ''])),
   }
 }
 
@@ -224,7 +166,7 @@ export function buildStrategyResult(
     assignments?: Record<string, string>
   },
 ): StrategyBuildResult {
-  const selected = selectedInput.length ? [...new Set(selectedInput.filter((id) => calendars.some((cal) => cal.id === id)))] : calendars.map((c) => c.id)
+  const selected = [...new Set(selectedInput.filter((id) => calendars.some((cal) => cal.id === id)))]
   const baseConfig = normalizeTargetsConfig(createDefaultTargetsConfig())
   const groups: Record<string, number> = {}
   const targetsWeek: Record<string, number> = {}

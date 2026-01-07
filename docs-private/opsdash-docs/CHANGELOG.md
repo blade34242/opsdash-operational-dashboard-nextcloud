@@ -3,6 +3,12 @@
 All notable changes to this project are documented here. This file is served locally for development.
 
 ## [Unreleased]
+- Onboarding: intro now offers “Edit current setup” vs “Create new profile,” plus a profile backup button.
+- Onboarding: category presets added (Work/Hobby/Sport, Focus/Personal/Recovery, Client/Internal/Learning) with mandatory assignments and pacing dropdowns.
+- Onboarding: calendar targets show only in Power mode; review now summarizes dashboard layout + theme and can save as a new profile.
+- Profiles: preset payloads now include widget tabs, theme, Deck settings, and reporting config for full-layout restores.
+- Widgets: Hours-of-day legend now uses clearer labels and shows the low→high range.
+- UI: onboarding panel adopts the rangebar-style blue frame.
 - UI: Balance overview now surfaces a compact Balance index badge in the card header.
 - UI: Sidebar setup wizard block renamed + help copy added; steps are numbered.
 - UI: Sidebar refresh button enlarged; keyboard shortcuts moved to the bottom.

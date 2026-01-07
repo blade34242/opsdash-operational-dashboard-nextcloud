@@ -5,9 +5,33 @@
     <li>Balance — ensure your focus areas get the right attention.</li>
     <li>Notes — capture insights and the story behind the numbers.</li>
   </ul>
+  <div v-if="hasExistingConfig" class="onboarding-mode">
+    <p class="hint">Choose how to start.</p>
+    <div class="mode-grid">
+      <button
+        type="button"
+        class="mode-card"
+        :class="{ active: profileMode === 'existing' }"
+        @click="setProfileMode('existing')"
+      >
+        <strong>Edit current setup</strong>
+        <span>Start from your existing calendars, targets, widgets, and theme.</span>
+      </button>
+      <button
+        type="button"
+        class="mode-card"
+        :class="{ active: profileMode === 'new' }"
+        @click="setProfileMode('new')"
+      >
+        <strong>Create new profile</strong>
+        <span>Start with empty selections and build a fresh layout.</span>
+      </button>
+    </div>
+  </div>
   <div v-if="hasExistingConfig" class="config-warning">
     <p>
-      You already have a dashboard configuration. Saving a preset now keeps a backup before onboarding applies new values.
+      You already have a dashboard configuration. Save a profile backup of widgets/tabs, targets, deck, reporting, and theme
+      before onboarding applies changes.
     </p>
     <NcButton
       type="tertiary"
@@ -16,7 +40,7 @@
       :aria-busy="snapshotSaving"
       @click="onSaveCurrentConfig"
     >
-      Save current setup as preset
+      Save current setup as profile
     </NcButton>
   </div>
   <p class="hint">You can change configuration later from the Sidebar.</p>
@@ -38,7 +62,8 @@ defineProps<{
   snapshotSaving: boolean
   saving: boolean
   snapshotNotice: { type: 'success' | 'error'; message: string } | null
+  profileMode: 'existing' | 'new'
+  setProfileMode: (mode: 'existing' | 'new') => void
   onSaveCurrentConfig: () => void
 }>()
 </script>
-

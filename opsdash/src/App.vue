@@ -1,5 +1,5 @@
 <template>
-  <div id="opsdash" class="opsdash" :class="{ 'is-nav-collapsed': !navOpen }">
+  <div id="opsdash" class="opsdash" :class="[{ 'is-nav-collapsed': !navOpen }, opsdashThemeClass]">
     <OnboardingWizard
       :key="onboardingRunId"
       :visible="onboardingWizardVisible"
@@ -17,6 +17,8 @@
       :initial-deck-settings="wizardInitialDeckSettings"
       :initial-reporting-config="wizardInitialReportingConfig"
       :initial-dashboard-mode="wizardInitialDashboardMode"
+      :initial-categories="wizardInitialCategories"
+      :initial-assignments="wizardInitialAssignments"
       :start-step="wizardStartStep"
       :has-existing-config="hasExistingConfig"
       :saving="isOnboardingSaving"
@@ -694,6 +696,9 @@ const {
   notifySuccess,
   notifyError,
 })
+const opsdashThemeClass = computed(() =>
+  effectiveTheme.value === 'dark' ? 'opsdash-theme-dark' : 'opsdash-theme-light',
+)
 
 function openOnboardingFromLayout(step?: string) {
   openWizardFromSidebar((step as any) || 'categories')
@@ -778,6 +783,11 @@ const {
   targetsWeek,
   targetsMonth,
   targetsConfig,
+  themePreference,
+  setThemePreference,
+  reportingConfig,
+  deckSettings,
+  widgetTabs: widgetTabsRef,
   userChangedSelection,
 })
 
@@ -819,6 +829,8 @@ const {
   wizardInitialDeckSettings,
   wizardInitialReportingConfig,
   wizardInitialDashboardMode,
+  wizardInitialCategories,
+  wizardInitialAssignments,
   isOnboardingSaving,
   isSnapshotSaving: isWizardSnapshotSaving,
   snapshotNotice: wizardSnapshotNotice,
@@ -831,6 +843,7 @@ const {
   onboardingState,
   calendars,
   selected,
+  groupsById,
   targetsConfig,
   deckSettings,
   reportingConfig,

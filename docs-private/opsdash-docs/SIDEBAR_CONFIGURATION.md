@@ -1,4 +1,4 @@
-# Sidebar Configuration Reference (Opsdash 0.5.2)
+# Sidebar Configuration Reference (Opsdash 0.5.3)
 
 Canonical map of every setting that lives in the sidebar and how it persists.
 Keep this file updated whenever a new toggle/value is added or renamed.
@@ -11,7 +11,7 @@ All sidebar state can be represented as a single JSON envelope:
 
 ```json
 {
-  "version": "0.5.2",
+  "version": "0.5.3",
   "generated": "2025-12-21T19:45:00Z",
   "payload": {
     "cals": ["cal-1", "cal-3"],
@@ -191,7 +191,7 @@ These thresholds influence both the Balance card and the `warning`/`insight` tex
 | Field | Description |
 | ----- | ----------- |
 | `theme_preference` | Stored alongside other payload keys. Valid values: `auto`, `light`, `dark` (persisted via `/persist` since 0.4.4, refined in 0.4.5). |
-| Presets | Saved separately under the presets store (full snapshot of `payload`). |
+| Presets | Saved separately under the presets store (full snapshot including widgets/tabs, theme, Deck, and reporting). |
 
 Transient fields (profile input, preset form state) remain local and are cleared after save.
 

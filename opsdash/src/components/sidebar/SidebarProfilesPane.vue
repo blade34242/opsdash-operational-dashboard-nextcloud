@@ -7,7 +7,7 @@
   >
     <div class="sb-title">Profiles</div>
     <p class="sb-description">
-      Export/import full configs or save/load named profiles (calendars, groups, targets, settings).
+      Export/import full configs or save/load named profiles (calendars, groups, targets, widgets, settings).
     </p>
 
     <div class="setup-actions">

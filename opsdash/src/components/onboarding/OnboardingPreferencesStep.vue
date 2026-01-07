@@ -88,7 +88,7 @@
 
     <article class="pref-card">
       <h4>Trend lookback (global)</h4>
-      <p class="pref-desc">Controls how many past periods trend widgets compare against.</p>
+      <p class="pref-desc">Controls lookback for Balance, Day-off, and Category mix trends.</p>
       <label class="field">
         <span class="label">Lookback (weeks / months)</span>
         <input
@@ -112,7 +112,7 @@
           :checked="deckSettingsDraft.enabled"
           @change="setDeckEnabled(($event.target as HTMLInputElement).checked)"
         />
-        <span>Show Deck tab inside Config &amp; Setup</span>
+        <span>Enable Deck cards on dashboard</span>
       </label>
       <template v-if="deckSettingsDraft.enabled">
         <p class="pref-hint">Select which boards appear. Deck permissions still apply.</p>

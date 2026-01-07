@@ -44,6 +44,8 @@
               :snapshot-saving="props.snapshotSaving ?? false"
               :saving="saving"
               :snapshot-notice="props.snapshotNotice ?? null"
+              :profile-mode="profileMode"
+              :set-profile-mode="setProfileMode"
               :on-save-current-config="() => emit('save-current-config')"
             />
           </section>
@@ -103,6 +105,7 @@
             :calendar-targets="calendarTargets"
             :get-calendar-target="getCalendarTarget"
             :set-calendar-target="setCalendarTarget"
+            :show-calendar-targets="calendarTargetsEnabled"
           />
         </section>
 
@@ -113,13 +116,17 @@
             :category-total-hours="categoryTotalHours"
             :selected-calendars="selectedCalendars"
             :assignments="assignments"
+            :show-calendar-targets="calendarTargetsEnabled"
             :calendar-targets="calendarTargets"
             :get-calendar-target="getCalendarTarget"
             :set-calendar-target="setCalendarTarget"
             :add-category="addCategory"
             :remove-category="removeCategory"
             :set-category-label="setCategoryLabel"
+            :category-presets="categoryPresets"
+            :apply-category-preset="applyCategoryPreset"
             :set-category-target="setCategoryTarget"
+            :set-category-pace-mode="setCategoryPaceMode"
             :toggle-category-weekend="toggleCategoryWeekend"
             :assign-calendar="assignCalendar"
             :open-color-id="openColorId"
@@ -135,9 +142,11 @@
         <section v-else-if="currentStep === 'review'" class="onboarding-step">
           <OnboardingReviewStep
             :strategy-title="strategyTitle"
+            :categories-enabled="categoriesEnabled"
             :selected-calendars="selectedCalendars"
             :draft-targets-categories="draft.targetsConfig.categories"
             :draft-total-hours="draft.targetsConfig.totalHours"
+            :total-hours-input="totalHoursInput"
             :category-total-hours="categoryTotalHours"
             :deck-review-summary="deckReviewSummary"
             :deck-enabled="deckSettingsDraft.enabled"
@@ -145,6 +154,13 @@
             :reporting-enabled="reportingDraft.enabled"
             :reporting-summary="reportingSummary"
             :show-day-off-trend="activityDraft.showDayOffTrend"
+            :theme-preference="themePreference"
+            :dashboard-mode="dashboardMode"
+            :save-profile="saveProfile"
+            :profile-name="profileName"
+            :show-save-profile="props.hasExistingConfig ?? false"
+            :set-save-profile="setSaveProfile"
+            :set-profile-name="setProfileName"
           />
         </section>
       </main>
@@ -156,7 +172,7 @@
         <NcButton
           v-else
           type="primary"
-          :disabled="saving"
+          :disabled="saving || nextDisabled"
           @click="emitComplete"
         >
           Start dashboard
@@ -176,7 +192,7 @@ import OnboardingStrategyStep from './onboarding/OnboardingStrategyStep.vue'
 import OnboardingCalendarsStep from './onboarding/OnboardingCalendarsStep.vue'
 import OnboardingCategoriesStep from './onboarding/OnboardingCategoriesStep.vue'
 import OnboardingReviewStep from './onboarding/OnboardingReviewStep.vue'
-import type { CalendarSummary, StrategyDefinition } from '../services/onboarding'
+import type { CalendarSummary, CategoryDraft, StrategyDefinition } from '../services/onboarding'
 import type { DeckFeatureSettings, ReportingConfig } from '../services/reporting'
 import type { ActivityCardConfig, TargetsConfig } from '../services/targets'
 import { useOnboardingWizard } from '../../composables/useOnboardingWizard'
@@ -197,6 +213,8 @@ const props = defineProps<{
   initialDeckSettings?: DeckFeatureSettings
   initialReportingConfig?: ReportingConfig
   hasExistingConfig?: boolean
+  initialCategories?: CategoryDraft[]
+  initialAssignments?: Record<string, string>
   snapshotSaving?: boolean
   snapshotNotice?: { type: 'success' | 'error'; message: string } | null
   initialDashboardMode?: 'quick' | 'standard' | 'pro'
@@ -222,6 +240,8 @@ const emit = defineEmits<{
     reportingConfig: ReportingConfig
     activityCard: Pick<ActivityCardConfig, 'showDayOffTrend'>
     dashboardMode: 'quick' | 'standard' | 'pro'
+    saveProfile?: boolean
+    profileName?: string
   }): void
   (e: 'save-step', payload: Record<string, unknown>): void
   (e: 'save-current-config'): void
@@ -244,12 +264,16 @@ const {
   prevStep,
   nextStep,
   emitComplete,
+  profileMode,
+  saveProfile,
+  profileName,
   themePreference,
   systemThemeLabel,
   previewTheme,
   totalHoursInput,
   categoryTotalHours,
   categoriesEnabled,
+  calendarTargetsEnabled,
   onTotalHoursChange,
   allDayHoursInput,
   onAllDayHoursChange,
@@ -283,6 +307,7 @@ const {
   removeCategory,
   setCategoryLabel,
   setCategoryTarget,
+  setCategoryPaceMode,
   toggleCategoryWeekend,
   assignCalendar,
   setCalendarTarget,
@@ -291,14 +316,19 @@ const {
   toggleColorPopover,
   closeColorPopover,
   categoryColorPalette,
+  categoryPresets,
   resolvedColor,
   applyColor,
   onColorInput,
   draft,
   strategyTitle,
+  applyCategoryPreset,
   deckReviewSummary,
   deckVisibleBoards,
   reportingSummary,
+  setProfileMode,
+  setSaveProfile,
+  setProfileName,
   buildStepPayload,
 } = useOnboardingWizard({ props, emit })
 
@@ -341,8 +371,11 @@ function emitSaveStep() {
   width: min(960px, 100%);
   max-height: calc(100vh - 48px);
   background: var(--color-main-background, #fff);
-  border-radius: 12px;
-  box-shadow: 0 18px 48px rgba(15, 23, 42, 0.35);
+  border: 1px solid color-mix(in oklab, var(--brand, #2563eb), var(--line, #e2e8f0) 70%);
+  border-radius: 14px;
+  box-shadow:
+    0 18px 48px rgba(15, 23, 42, 0.35),
+    inset 0 0 0 1px color-mix(in oklab, var(--brand, #2563eb), transparent 82%);
   display: flex;
   flex-direction: column;
   padding: 24px 28px;
@@ -364,7 +397,9 @@ function emitSaveStep() {
   --color-primary: #60a5fa;
   color: #e5e7eb;
   background: #0f172a;
-  box-shadow: 0 18px 48px rgba(0, 0, 0, 0.5);
+  box-shadow:
+    0 18px 48px rgba(0, 0, 0, 0.5),
+    inset 0 0 0 1px color-mix(in oklab, var(--brand, #60a5fa), transparent 82%);
 }
 
 .onboarding-panel.theme-dark .hint,
@@ -410,6 +445,23 @@ function emitSaveStep() {
 .onboarding-panel.theme-dark .strategy-card {
   background: #111827;
   border-color: #1f2937;
+}
+
+.onboarding-panel.theme-dark .mode-card,
+.onboarding-panel.theme-dark .input-unit,
+.onboarding-panel.theme-dark .empty-state {
+  background: #111827;
+  border-color: #1f2937;
+}
+
+.onboarding-panel.theme-dark .mode-card.active {
+  border-color: rgba(96, 165, 250, 0.6);
+  box-shadow: 0 12px 24px rgba(0, 0, 0, 0.4);
+}
+
+.onboarding-panel.theme-dark .input-unit .unit {
+  background: #0b1220;
+  color: #94a3b8;
 }
 
 .onboarding-panel.theme-dark .config-warning {
@@ -665,9 +717,121 @@ function emitSaveStep() {
   color: var(--color-text-light);
 }
 
+.onboarding-overlay .review-profile {
+  display: grid;
+  gap: 8px;
+}
+
+.onboarding-overlay .onboarding-mode {
+  margin: 16px 0;
+}
+
+.onboarding-overlay .mode-grid {
+  display: grid;
+  gap: 12px;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+}
+
+.onboarding-overlay .mode-card {
+  border: 1px solid var(--color-border);
+  background: var(--color-background-contrast);
+  border-radius: 10px;
+  padding: 12px 14px;
+  text-align: left;
+  cursor: pointer;
+  display: grid;
+  gap: 6px;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease, transform 0.2s ease;
+}
+
+.onboarding-overlay .mode-card strong {
+  font-size: 0.98rem;
+}
+
+.onboarding-overlay .mode-card span {
+  font-size: 0.85rem;
+  color: var(--color-text-light);
+}
+
+.onboarding-overlay .mode-card.active {
+  border-color: color-mix(in oklab, var(--color-primary), transparent 35%);
+  box-shadow: 0 12px 24px rgba(15, 23, 42, 0.15);
+  transform: translateY(-1px);
+}
+
+.onboarding-overlay .mode-card:focus-visible {
+  outline: 2px solid color-mix(in oklab, var(--brand, #2563eb), transparent 45%);
+  outline-offset: 2px;
+}
+
 .onboarding-overlay .categories-editor {
   display: grid;
   gap: 16px;
+}
+
+.onboarding-overlay .category-presets {
+  display: grid;
+  gap: 8px;
+  margin-bottom: 16px;
+}
+
+.onboarding-overlay .preset-grid {
+  display: grid;
+  gap: 10px;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+}
+
+.onboarding-overlay .preset-card {
+  text-align: left;
+  border: 1px solid var(--color-border);
+  background: var(--color-background-contrast);
+  border-radius: 12px;
+  padding: 12px 14px;
+  display: grid;
+  gap: 6px;
+  cursor: pointer;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease, transform 0.2s ease;
+}
+
+.onboarding-overlay .preset-card:hover {
+  border-color: color-mix(in oklab, var(--color-primary), transparent 40%);
+  box-shadow: 0 8px 18px rgba(15, 23, 42, 0.12);
+  transform: translateY(-1px);
+}
+
+.onboarding-overlay .preset-card:focus-visible {
+  outline: 2px solid color-mix(in oklab, var(--brand, #2563eb), transparent 45%);
+  outline-offset: 2px;
+}
+
+.onboarding-overlay .preset-title {
+  font-weight: 600;
+}
+
+.onboarding-overlay .preset-desc {
+  font-size: 0.85rem;
+  color: var(--color-text-light);
+}
+
+.onboarding-overlay .preset-swatches {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+}
+
+.onboarding-overlay .preset-swatch {
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  border: 1px solid color-mix(in oklab, var(--color-border), transparent 30%);
+}
+
+.onboarding-overlay .empty-state {
+  padding: 12px 14px;
+  border-radius: 10px;
+  border: 1px dashed color-mix(in oklab, var(--color-border), transparent 30%);
+  background: color-mix(in oklab, var(--color-background-contrast), transparent 20%);
+  color: var(--color-text-light);
 }
 
 .onboarding-overlay .category-card {
@@ -684,6 +848,7 @@ function emitSaveStep() {
   display: flex;
   gap: 12px;
   align-items: center;
+  flex-wrap: wrap;
 }
 
 .onboarding-overlay .category-color-indicator {
@@ -699,6 +864,7 @@ function emitSaveStep() {
   padding: 6px 8px;
   border: 1px solid var(--color-border);
   border-radius: 4px;
+  min-width: 180px;
 }
 
 .onboarding-overlay .category-actions {
@@ -734,6 +900,33 @@ function emitSaveStep() {
   flex-direction: column;
   gap: 6px;
   position: relative;
+}
+
+.onboarding-overlay .color-button {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  border: 1px solid var(--color-border);
+  background: var(--color-background-contrast);
+  padding: 4px 8px;
+  border-radius: 999px;
+  font-size: 12px;
+  color: var(--color-text);
+  cursor: pointer;
+}
+
+.onboarding-overlay .color-button:hover {
+  border-color: color-mix(in oklab, var(--color-primary), transparent 35%);
+}
+
+.onboarding-overlay .color-button:focus-visible {
+  outline: 2px solid color-mix(in oklab, var(--brand, #2563eb), transparent 45%);
+  outline-offset: 2px;
+}
+
+.onboarding-overlay .color-button .category-color-indicator {
+  width: 12px;
+  height: 12px;
 }
 
 .onboarding-overlay .color-link {
@@ -829,6 +1022,48 @@ function emitSaveStep() {
   color: var(--color-text-light);
 }
 
+.onboarding-overlay .input-unit {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  align-items: center;
+  border: 1px solid var(--color-border);
+  border-radius: 8px;
+  overflow: hidden;
+  background: var(--color-background-contrast);
+}
+
+.onboarding-overlay .input-unit input {
+  border: none;
+  padding: 7px 10px;
+  background: transparent;
+}
+
+.onboarding-overlay .input-unit .unit {
+  padding: 6px 10px;
+  font-size: 0.75rem;
+  color: var(--color-text-light);
+  background: color-mix(in oklab, var(--color-border), transparent 70%);
+  white-space: nowrap;
+}
+
+.onboarding-overlay .field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.onboarding-overlay .field .label {
+  font-size: 0.8rem;
+  color: var(--color-text-light);
+}
+
+.onboarding-overlay .field-hint {
+  display: block;
+  margin-top: 4px;
+  font-size: 0.75rem;
+  color: var(--color-text-light);
+}
+
 .onboarding-overlay .calendar-assignments {
   margin-top: 24px;
   display: grid;
@@ -843,14 +1078,14 @@ function emitSaveStep() {
 
 .onboarding-overlay .assignment-row {
   display: grid;
-  grid-template-columns: 1fr minmax(160px, 220px);
+  grid-template-columns: 1fr minmax(160px, 220px) auto;
   gap: 12px;
   align-items: center;
 }
 
 .onboarding-overlay .target-row {
   display: grid;
-  grid-template-columns: 1fr minmax(120px, 160px);
+  grid-template-columns: 1fr minmax(150px, 200px);
   gap: 12px;
   align-items: center;
 }
@@ -859,12 +1094,17 @@ function emitSaveStep() {
   padding: 6px 8px;
 }
 
-.onboarding-overlay .target-row input {
-  padding: 6px 8px;
-}
-
 .onboarding-overlay .cal-name {
   font-size: 0.95rem;
+}
+
+.onboarding-overlay .assignment-warning {
+  font-size: 0.75rem;
+  color: var(--color-error);
+}
+
+.onboarding-overlay .assignment-row.is-unassigned select {
+  border-color: color-mix(in oklab, var(--color-error), transparent 50%);
 }
 
 .onboarding-footer {
@@ -892,6 +1132,17 @@ function emitSaveStep() {
 
 .onboarding-overlay .pref-card h4 {
   margin: 0;
+}
+
+.onboarding-overlay .toggle-row {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  font-size: 0.95rem;
+}
+
+.onboarding-overlay .toggle-row input[type="checkbox"] {
+  transform: scale(1.05);
 }
 
 .onboarding-overlay .pref-card--deck .toggle-row {

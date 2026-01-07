@@ -3,6 +3,8 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 
 import { useDashboardPresets } from '../composables/useDashboardPresets'
 import { createDefaultTargetsConfig } from '../src/services/targets'
+import { createDefaultDeckSettings, createDefaultReportingConfig } from '../src/services/reporting'
+import { createDefaultWidgetTabs } from '../src/services/widgetsRegistry'
 import presetFixture from './fixtures/preset-export.json'
 
 function createPresetManager(overrides: Partial<Parameters<typeof useDashboardPresets>[0]> = {}) {
@@ -11,6 +13,11 @@ function createPresetManager(overrides: Partial<Parameters<typeof useDashboardPr
   const targetsWeek = ref<Record<string, number>>({ 'cal-1': 10 })
   const targetsMonth = ref<Record<string, number>>({ 'cal-1': 40 })
   const targetsConfig = ref(createDefaultTargetsConfig())
+  const widgetTabs = overrides.widgetTabs ?? ref(createDefaultWidgetTabs('standard'))
+  const themePreference = overrides.themePreference ?? ref<'auto' | 'light' | 'dark'>('auto')
+  const reportingConfig = overrides.reportingConfig ?? ref(createDefaultReportingConfig())
+  const deckSettings = overrides.deckSettings ?? ref(createDefaultDeckSettings())
+  const setThemePreference = overrides.setThemePreference ?? vi.fn()
   const userChangedSelection = ref(false)
 
   const route = vi.fn<(name: 'presetsList' | 'presetsSave' | 'presetsLoad' | 'presetsDelete', param?: string) => string>().mockImplementation((name, param?: string) => {
@@ -46,6 +53,11 @@ function createPresetManager(overrides: Partial<Parameters<typeof useDashboardPr
     targetsWeek,
     targetsMonth,
     targetsConfig,
+    themePreference,
+    setThemePreference,
+    reportingConfig,
+    deckSettings,
+    widgetTabs,
     userChangedSelection,
     ...overrides,
   })
@@ -56,6 +68,11 @@ function createPresetManager(overrides: Partial<Parameters<typeof useDashboardPr
     targetsWeek,
     targetsMonth,
     targetsConfig,
+    themePreference,
+    reportingConfig,
+    deckSettings,
+    setThemePreference,
+    widgetTabs,
     userChangedSelection,
     route,
     getJson,
@@ -91,17 +108,38 @@ describe('useDashboardPresets', () => {
 
   it('saves presets and records warnings', async () => {
     const postJson = vi.fn().mockResolvedValue({ presets: [], warnings: ['Calendar missing'] })
-    const manager = createPresetManager({ postJson })
+    const themePreference = ref<'auto' | 'light' | 'dark'>('dark')
+    const manager = createPresetManager({ postJson, themePreference })
 
     await manager.savePreset(' Deep Work ')
 
-    expect(postJson).toHaveBeenCalledWith('/presets', expect.objectContaining({ name: 'Deep Work' }))
+    expect(postJson).toHaveBeenCalledWith('/presets', expect.objectContaining({
+      name: 'Deep Work',
+      widgets: manager.widgetTabs.value,
+      theme_preference: 'dark',
+      reporting_config: manager.reportingConfig.value,
+      deck_settings: manager.deckSettings.value,
+    }))
     expect(manager.presetWarnings.value).toEqual(['Calendar missing'])
     expect(manager.notifySuccess).toHaveBeenCalledWith('Profile "Deep Work" saved')
     expect(manager.notifyError).not.toHaveBeenCalled()
   })
 
   it('loads preset, applies data, queues save, and refreshes list', async () => {
+    const presetWidgets = {
+      tabs: [
+        {
+          id: 'tab-1',
+          label: 'Overview',
+          widgets: [
+            { id: 'widget-note', type: 'note_editor', layout: { width: 'half', height: 'm', order: 1 }, options: {}, version: 1 },
+          ],
+        },
+      ],
+      defaultTabId: 'tab-1',
+    }
+    const presetReporting = { ...createDefaultReportingConfig(), enabled: true }
+    const presetDeck = { ...createDefaultDeckSettings(), enabled: false, defaultFilter: 'open_all' }
     const presetPayload = {
       preset: {
         selected: ['cal-1', 'cal-2'],
@@ -109,12 +147,17 @@ describe('useDashboardPresets', () => {
         targets_week: { 'cal-1': 5 },
         targets_month: { 'cal-1': 20 },
         targets_config: { ...createDefaultTargetsConfig(), totalHours: 120 },
+        theme_preference: 'dark',
+        reporting_config: presetReporting,
+        deck_settings: presetDeck,
+        widgets: presetWidgets,
       },
       presets: [],
     }
     const getJson = vi.fn().mockResolvedValueOnce(presetPayload).mockResolvedValueOnce({ presets: [] })
     const queueSave = vi.fn()
-    const manager = createPresetManager({ getJson, queueSave })
+    const setThemePreference = vi.fn()
+    const manager = createPresetManager({ getJson, queueSave, setThemePreference })
 
     const confirmSpy = vi.spyOn(window, 'confirm').mockReturnValue(true)
 
@@ -124,6 +167,11 @@ describe('useDashboardPresets', () => {
     expect(manager.selected.value).toEqual(['cal-1', 'cal-2'])
     expect(manager.targetsWeek.value['cal-1']).toBe(5)
     expect(manager.targetsConfig.value.totalHours).toBe(120)
+    expect(setThemePreference).toHaveBeenCalledWith('dark', { persist: false })
+    expect(manager.reportingConfig.value.enabled).toBe(true)
+    expect(manager.deckSettings.value.enabled).toBe(false)
+    expect(manager.deckSettings.value.defaultFilter).toBe('open_all')
+    expect(manager.widgetTabs.value.tabs[0].widgets[0].type).toBe('note_editor')
     expect(queueSave).toHaveBeenCalledWith(true)
     expect(manager.notifySuccess).toHaveBeenCalledWith('Profile "Focus" applied')
     expect(confirmSpy).not.toHaveBeenCalled()

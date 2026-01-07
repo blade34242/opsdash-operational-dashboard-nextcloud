@@ -16,6 +16,7 @@
       <footer>Best for: {{ strategy.recommendedFor }}</footer>
     </article>
   </div>
+  <p class="hint">Balanced and Power include a Targets step for categories and calendar assignments.</p>
 </template>
 
 <script setup lang="ts">
@@ -33,4 +34,3 @@ defineProps<{
   setSelectedStrategy: (id: StrategyDefinition['id']) => void
 }>()
 </script>
-

@@ -1,5 +1,5 @@
 <template>
-  <div class="card chart-widget" :style="cardStyle">
+  <div class="card chart-widget chart-widget--hod" :style="cardStyle">
     <div v-if="showHeader" class="chart-widget__header">
       <div class="chart-widget__title">{{ titleText }}</div>
       <div v-if="subtitle" class="chart-widget__subtitle">{{ subtitle }}</div>
@@ -83,5 +83,9 @@ const lookbackLabel = computed(() => {
 .chart-widget__meta{
   font-size: calc(11px * var(--widget-scale, 1));
   color: var(--muted);
+}
+.chart-widget--hod {
+  --heatmap-low: color-mix(in srgb, var(--brand, #2563eb) 10%, var(--card, #ffffff));
+  --heatmap-high: color-mix(in srgb, var(--brand, #2563eb) 80%, var(--card, #ffffff));
 }
 </style>

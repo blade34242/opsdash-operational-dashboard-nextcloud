@@ -1,6 +1,6 @@
 import { buildTargetsSummary, createEmptyTargetsSummary, convertWeekToMonth } from '../targets'
 
-import type { TextPresetKey, WidgetRenderContext } from './types'
+import type { WidgetRenderContext } from './types'
 
 export const BASE_COLORS = ['#2563EB', '#F97316', '#10B981', '#A855F7', '#EC4899', '#14B8A6', '#F59E0B', '#6366F1', '#0EA5E9', '#65A30D']
 
@@ -57,72 +57,6 @@ export function numberOr(primary?: any, override?: any) {
   return Number.isFinite(num) ? num : undefined
 }
 
-export function resolvePreset(key?: TextPresetKey): { title?: string; body?: string } {
-  switch (key) {
-    case 'targets': return { title: 'Targets' }
-    case 'activity': return { title: 'Activity & Schedule' }
-    case 'balance': return { title: 'Balance' }
-    case 'mix': return { title: 'Category mix trend' }
-    case 'dayoff': return { title: 'Days off trend' }
-    case 'deck': return { title: 'Deck summary' }
-    case 'notes': return { title: 'Notes' }
-    default: return {}
-  }
-}
-
-export function collectPresetItems(key?: TextPresetKey, options: Record<string, any> = {}, ctx?: WidgetRenderContext) {
-  if (!key) return []
-  if (key === 'activity') {
-    const summary: any = ctx?.activitySummary || {}
-    const fmtPct = (v: any) => `${Number(v ?? 0).toFixed(1)}%`
-    const fmtTime = (a: any, b?: any) => [a, b].filter(Boolean).join(' / ')
-    const fmtHours = (v: any) => `${Number(v ?? 0).toFixed(1)}h`
-    const fmtDate = (v: any) => (v ? String(v) : '—')
-    const map = [
-      { opt: 'weekendShare', key: 'weekend', label: 'Weekend share', value: fmtPct(summary.weekendShare) },
-      { opt: 'eveningShare', key: 'evening', label: 'Evening share', value: fmtPct(summary.eveningShare) },
-      { opt: 'earliestLatest', key: 'earliest', label: 'Earliest/Late times', value: fmtTime(summary.typicalStart, summary.typicalEnd) },
-      { opt: 'overlaps', key: 'overlaps', label: 'Overlaps', value: String(summary.overlapEvents ?? '—') },
-      { opt: 'longest', key: 'longest', label: 'Longest session', value: fmtHours(summary.longestSession) },
-      { opt: 'lastDayOff', key: 'lastDayOff', label: 'Last day off', value: fmtDate(summary.lastDayOff) },
-    ]
-    return map.filter((m) => options[m.opt] !== false)
-  }
-  const itemsByKey: Record<TextPresetKey, Array<{ key: string; label?: string; value?: string }>> = {
-    '': [],
-    targets: [
-      { key: 'status', label: 'Status', value: 'Pace / Delta / Forecast' },
-      { key: 'today', label: 'Today', value: 'Today overlay' },
-      { key: 'legend', label: 'Legend', value: 'Category breakdown' },
-    ],
-    activity: [], // handled above
-    balance: [
-      { key: 'index', label: 'Index', value: 'Balance index value' },
-      { key: 'trend', label: 'Trend', value: 'Trend history/heat' },
-      { key: 'notes', label: 'Notes', value: 'Pinned notes snippet' },
-    ],
-    mix: [
-      { key: 'badge', label: 'Badge', value: 'Balance badge' },
-      { key: 'history', label: 'History', value: 'Category mix tiles' },
-    ],
-    dayoff: [
-      { key: 'header', label: 'Trend header', value: 'Period lookback' },
-      { key: 'tiles', label: 'Trend tiles', value: 'Days off per week' },
-    ],
-    deck: [
-      { key: 'header', label: 'Deck header', value: 'Range + Ticker' },
-      { key: 'buckets', label: 'Buckets', value: 'Open/Done/Archived counts' },
-      { key: 'empty', label: 'Empty states', value: 'No cards' },
-    ],
-    notes: [
-      { key: 'labels', label: 'Labels', value: 'Prev/Current labels' },
-      { key: 'content', label: 'Content', value: 'Prev/Current note texts' },
-    ],
-  }
-  const list = itemsByKey[key] || []
-  if (options.include) return list
-  return list.length ? [list[0]] : []
-}
 
 export function parseBoardIds(input: any): Array<number> {
   if (Array.isArray(input)) {

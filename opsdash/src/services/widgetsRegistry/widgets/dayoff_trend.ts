@@ -7,12 +7,12 @@ const DayOffTrendCard = defineAsyncComponent(() =>
 import { buildTitle } from '../helpers'
 import type { RegistryEntry } from '../types'
 
-const baseTitle = 'Days off trend'
+const baseTitle = 'Time Off Trend'
 
 export const dayOffTrendEntry: RegistryEntry = {
   component: DayOffTrendCard,
   defaultLayout: { width: 'quarter', height: 's', order: 45 },
-  label: 'Days off trend',
+  label: 'Time Off Trend',
   baseTitle,
   configurable: true,
   defaultOptions: {

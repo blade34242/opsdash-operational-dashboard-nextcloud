@@ -87,6 +87,27 @@ describe('useOnboardingActions', () => {
     expect(ctx.notifySuccess).toHaveBeenCalledWith('Onboarding saved')
   })
 
+  it('saves a profile when requested', async () => {
+    const ctx = setup()
+    await ctx.complete({
+      strategy: 'total_only',
+      selected: ['cal-1'],
+      targetsConfig: createDefaultTargetsConfig(),
+      groups: {},
+      targetsWeek: {},
+      targetsMonth: {},
+      themePreference: 'auto',
+      deckSettings: createDefaultDeckSettings(),
+      reportingConfig: createDefaultReportingConfig(),
+      activityCard: { showDayOffTrend: true },
+      dashboardMode: 'standard',
+      saveProfile: true,
+      profileName: 'My profile',
+    })
+
+    expect(ctx.savePreset).toHaveBeenCalledWith('My profile')
+  })
+
   it('saves preset snapshots and surfaces a notice', async () => {
     const ctx = setup()
     await ctx.saveSnapshot()

@@ -1,6 +1,6 @@
 import { computed, ref, watch, type Ref } from 'vue'
 
-import { ONBOARDING_VERSION, type StrategyDefinition, type CalendarSummary } from '../src/services/onboarding'
+import { ONBOARDING_VERSION, type StrategyDefinition, type CalendarSummary, type CategoryDraft } from '../src/services/onboarding'
 import type { TargetsConfig } from '../src/services/targets'
 import type { DeckFeatureSettings, ReportingConfig } from '../src/services/reporting'
 
@@ -12,6 +12,7 @@ interface OnboardingFlowDeps {
   onboardingState: Ref<OnboardingState | null>
   calendars: Ref<Array<Record<string, any>>>
   selected: Ref<string[]>
+  groupsById: Ref<Record<string, number>>
   targetsConfig: Ref<TargetsConfig>
   deckSettings: Ref<DeckFeatureSettings>
   reportingConfig: Ref<ReportingConfig>
@@ -55,6 +56,49 @@ export function useOnboardingFlow(deps: OnboardingFlowDeps) {
     activityCard: deps.targetsConfig.value?.activityCard,
     balanceTrendLookback: deps.targetsConfig.value?.balance?.trend?.lookbackWeeks ?? 3,
   }))
+  const sanitizeHexColor = (value: unknown): string | null => {
+    if (typeof value !== 'string') return null
+    const trimmed = value.trim()
+    if (!/^#([0-9a-fA-F]{3}|[0-9a-fA-F]{6})$/.test(trimmed)) {
+      return null
+    }
+    if (trimmed.length === 4) {
+      const [, r, g, b] = trimmed
+      return `#${r}${r}${g}${g}${b}${b}`.toUpperCase()
+    }
+    return trimmed.toUpperCase()
+  }
+  const wizardInitialCategories = computed<CategoryDraft[]>(() => {
+    const raw = Array.isArray(deps.targetsConfig.value?.categories) ? deps.targetsConfig.value.categories : []
+    return raw.map((cat: any, index: number) => ({
+      id: String(cat?.id ?? `cat_${index}`),
+      label: String(cat?.label ?? `Category ${index + 1}`),
+      targetHours: Number.isFinite(cat?.targetHours) ? Number(cat.targetHours) : 0,
+      includeWeekend: !!cat?.includeWeekend,
+      paceMode: cat?.paceMode === 'time_aware' ? 'time_aware' : 'days_only',
+      color: sanitizeHexColor(cat?.color) ?? null,
+    }))
+  })
+  const wizardInitialAssignments = computed<Record<string, string>>(() => {
+    const assignments: Record<string, string> = {}
+    const groupToCategory = new Map<number, string>()
+    const raw = Array.isArray(deps.targetsConfig.value?.categories) ? deps.targetsConfig.value.categories : []
+    raw.forEach((cat: any) => {
+      const groupId = Array.isArray(cat?.groupIds) ? Number(cat.groupIds[0]) : Number(cat?.groupId)
+      if (Number.isFinite(groupId)) {
+        groupToCategory.set(groupId, String(cat?.id ?? ''))
+      }
+    })
+    const selectedSet = new Set(deps.selected.value || [])
+    Object.entries(deps.groupsById.value || {}).forEach(([calId, groupId]) => {
+      if (!selectedSet.has(calId)) return
+      const catId = groupToCategory.get(Number(groupId))
+      if (catId) {
+        assignments[calId] = catId
+      }
+    })
+    return assignments
+  })
   const wizardInitialDeckSettings = computed(() => ({ ...(deps.deckSettings.value || {}) }))
   const wizardInitialReportingConfig = computed(() => ({ ...(deps.reportingConfig.value || {}) }))
   const wizardInitialDashboardMode = computed(() => (deps.onboardingState.value?.dashboardMode as any) || 'standard')
@@ -132,6 +176,8 @@ export function useOnboardingFlow(deps: OnboardingFlowDeps) {
     wizardCalendars,
     wizardInitialSelection,
     wizardInitialStrategy,
+    wizardInitialCategories,
+    wizardInitialAssignments,
     wizardInitialAllDayHours,
     wizardInitialTotalHours,
     wizardInitialTargetsConfig,

@@ -12,9 +12,12 @@
     <canvas v-show="mode === 'overlay'" ref="cv" class="chart heatmap-lookback__overlay" />
     <div v-if="showLegend && entries.length" class="heatmap-lookback__legend">
       <div class="heatmap-lookback__legend-scale">
-        <span>Low</span>
-        <span class="heatmap-lookback__legend-bar"></span>
-        <span>High</span>
+        <span>{{ legendLowLabel }}</span>
+        <span class="heatmap-lookback__legend-bar" aria-hidden="true"></span>
+        <span>{{ legendHighLabel }}</span>
+      </div>
+      <div class="heatmap-lookback__legend-meta">
+        <span>{{ legendRange }}</span>
       </div>
       <ul class="heatmap-lookback__legend-weeks">
         <li v-for="entry in entries" :key="entry.id">
@@ -46,6 +49,28 @@ let ro: ResizeObserver | null = null
 const entries = computed(() => (Array.isArray(props.entries) ? props.entries : []))
 const mode = computed(() => (props.mode === 'overlay' ? 'overlay' : 'stacked'))
 const showLegend = computed(() => props.showLegend !== false)
+const legendStats = computed(() => {
+  let max = 0
+  entries.value.forEach((entry) => {
+    entry?.hod?.matrix?.forEach((row) => {
+      row.forEach((val) => {
+        const num = Number(val)
+        if (Number.isFinite(num)) {
+          max = Math.max(max, Math.max(0, num))
+        }
+      })
+    })
+  })
+  return { max }
+})
+const legendLowLabel = computed(() => 'Less hours')
+const legendHighLabel = computed(() => 'More hours')
+const legendRange = computed(() => {
+  const max = legendStats.value.max
+  if (!Number.isFinite(max) || max <= 0) return 'No activity yet'
+  const formatted = Number.isInteger(max) ? String(max) : max.toFixed(1)
+  return `0 to ${formatted} h`
+})
 
 function drawOverlay() {
   if (mode.value !== 'overlay') return
@@ -187,6 +212,10 @@ watch(() => [entries.value, mode.value], () => {
   height: calc(8px * var(--widget-space, 1));
   border-radius: 999px;
   background: linear-gradient(90deg, var(--heatmap-low), var(--heatmap-high));
+}
+.heatmap-lookback__legend-meta {
+  font-size: calc(10px * var(--widget-scale, 1));
+  color: var(--muted);
 }
 .heatmap-lookback__legend-weeks {
   list-style: none;

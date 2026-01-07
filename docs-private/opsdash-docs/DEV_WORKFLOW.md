@@ -60,10 +60,10 @@ The Vue mount pulls its entrypoint from the manifest, so filenames never need ma
 
 ### Theme Overrides
 - Theme tab lets users pick `Follow Nextcloud`, `Force light`, or `Force dark`.
-- Preference is persisted per-user server-side (`theme_preference` via `/overview/persist`) and bootstrapped into the DOM for instant paint; preset export/import includes it so profiles stay portable.
+- Preference is persisted per-user server-side (`theme_preference` via `/overview/persist`) and bootstrapped into the DOM for instant paint; profile export/import includes it alongside widgets/tabs, Deck, and reporting.
 
 ### Presets
-- `GET/POST/DELETE /overview/presets` manage named snapshots of the full sidebar state.
+- `GET/POST/DELETE /overview/presets` manage named snapshots of the full configuration (targets, groups, widgets/tabs, theme, Deck, reporting).
 - Loading a preset sanitises mismatched calendars/categories and reports warnings back to the UI.
 - Export/import helpers (`tools/security/preset_export_import.sh`) validate round-trips.
 

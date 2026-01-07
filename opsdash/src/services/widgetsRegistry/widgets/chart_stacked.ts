@@ -12,12 +12,12 @@ const ChartStackedWidget = defineAsyncComponent(() =>
   import('../../../components/widgets/ChartStackedWidget.vue').then((m) => m.default),
 )
 
-const baseTitle = 'Stacked chart'
+const baseTitle = 'Stacked Chart'
 
 export const chartStackedEntry: RegistryEntry = {
   component: ChartStackedWidget,
   defaultLayout: { width: 'full', height: 'l', order: 80 },
-  label: 'Chart · Stacked',
+  label: 'Stacked Chart',
   baseTitle,
   configurable: true,
   defaultOptions: {

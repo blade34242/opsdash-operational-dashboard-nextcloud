@@ -16,12 +16,12 @@ const ChartPerDayWidget = defineAsyncComponent(() =>
   import('../../../components/widgets/ChartPerDayWidget.vue').then((m) => m.default),
 )
 
-const baseTitle = 'Per-day'
+const baseTitle = 'Daily Chart'
 
 export const chartPerDayEntry: RegistryEntry = {
   component: ChartPerDayWidget,
   defaultLayout: { width: 'half', height: 'm', order: 82 },
-  label: 'Chart · Per-day',
+  label: 'Daily Chart',
   baseTitle,
   configurable: true,
   defaultOptions: {

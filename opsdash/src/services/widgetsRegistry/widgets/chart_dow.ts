@@ -17,12 +17,12 @@ const ChartDowWidget = defineAsyncComponent(() =>
   import('../../../components/widgets/ChartDowWidget.vue').then((m) => m.default),
 )
 
-const baseTitle = 'Day of week'
+const baseTitle = 'Day-of-Week Chart'
 
 export const chartDowEntry: RegistryEntry = {
   component: ChartDowWidget,
   defaultLayout: { width: 'half', height: 'm', order: 84 },
-  label: 'Chart · Day of week',
+  label: 'Day-of-Week Chart',
   baseTitle,
   configurable: true,
   defaultOptions: {

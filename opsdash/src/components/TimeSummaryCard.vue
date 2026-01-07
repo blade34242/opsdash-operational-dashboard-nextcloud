@@ -1,8 +1,8 @@
 <template>
-  <div class="card time-summary compact" :style="cardStyle">
-    <div class="time-summary-firstline" v-if="showHeader">
-      <em>{{ titleText }}</em>
-    </div>
+    <div class="card time-summary compact" :style="cardStyle">
+      <div class="time-summary-firstline" v-if="showHeader">
+      <span>{{ headerText }}</span>
+      </div>
     <div class="today-highlight" v-if="todayTotal !== null">
       <div class="today-label">Total today</div>
       <div class="today-value">{{ n2(todayTotal) }} h</div>
@@ -265,6 +265,11 @@ const todayTotal = computed(() => {
 })
 
 const titleText = computed(() => props.title || 'Time Summary')
+const headerText = computed(() => {
+  const base = titleText.value
+  const range = props.summary?.rangeLabel || ''
+  return range ? `${base} · ${range}` : base
+})
 const cardStyle = computed(() => ({ background: props.cardBg || undefined }))
 const showHeader = computed(() => props.showHeader !== false)
 const showHistory = computed(() => props.showHistory !== false)
@@ -672,10 +677,6 @@ function shareDeltaLabel(current: number | null | undefined, delta: number | nul
   font-size: var(--widget-title-size, calc(14px * var(--widget-scale, 1)));
   color: var(--fg);
   font-weight: 600;
-}
-.time-summary-firstline em {
-  font-style: italic;
-  color: var(--fg);
 }
 .mode-pill {
   display: inline-flex;

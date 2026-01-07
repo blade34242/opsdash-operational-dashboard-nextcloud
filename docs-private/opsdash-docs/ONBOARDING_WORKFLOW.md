@@ -13,12 +13,13 @@ needed to guide new users toward a useful initial configuration.
 - Persist onboarding choices via the existing `/persist` endpoint so the flow 
   never repeats unnecessarily.
 
-## Current Status (0.5.2+)
-- ✅ Wizard ships with intro → strategy → calendars → categories → preferences → review sequence.
-- ✅ Theme selector, all-day hours input, total-hours summary, and Deck quick-setup block are live; deck settings are emitted via `deck_settings` so the SPA + server stay in sync.
-- ✅ Snapshot reminder + preset backup live on the intro screen; Calendars tab exposes “Re-run onboarding”.
-- ✅ Reporting cadence + alerts are configurable in the preferences step and included in the review summary (`reporting_config` persisted via `/overview/persist`).
-- ✅ Activity day-off heatmap toggle is exposed and persisted (`targets_config_activity.showDayOffTrend`).
+## Current Status (0.5.3+)
+- ✅ Wizard ships with intro → strategy → dashboard → calendars → categories → preferences → review sequence.
+- ✅ Intro supports “Edit current setup” vs “Create new profile”, plus a profile backup button for existing configs.
+- ✅ Category presets (Work/Hobby/Sport, Focus/Personal/Recovery, Client/Internal/Learning) speed setup; pacing dropdown is exposed.
+- ✅ Calendar targets only show in Power mode; category assignments are mandatory with an explicit Unassigned state.
+- ✅ Review summarizes dashboard layout + theme and can save the result as a new profile (profiles store widgets/tabs, theme, Deck, reporting, and targets).
+- ✅ Theme selector, all-day hours input, total-hours summary, Deck setup, reporting cadence, and Activity day-off toggle are live.
 - ✅ Each onboarding step can save its current changes without completing the full wizard.
 
 ## User Stories
@@ -45,22 +46,27 @@ needed to guide new users toward a useful initial configuration.
    - List of highlights (Targets, Balance, Notes).
    - `Get started` primary action, `Maybe later` secondary (skip sets default 
      profile and marks onboarding complete).
-   - If an existing configuration is detected, display a reminder to save a preset first (button triggers the same save flow as Theme → “Save current configuration”).
+   - If an existing configuration is detected, allow a mode choice:
+     - Edit current setup (pre-filled).
+     - Create new profile (empty selections).
+   - Offer a “Save current setup as profile” backup action.
 2. **Target Strategy Step**
    - Presents the strategies described in `TARGET_STRATEGIES.md`.
    - Each strategy card includes: recommended audience, quick bullet benefits, 
      preview illustration or icon, default configuration summary.
-   - Selecting a card reveals strategy-specific inputs (e.g., total hours).
+   - Selecting Balanced/Power reveals the Targets step later in the flow.
    - `Continue` becomes enabled after selection.
-3. **Calendar Selection Step**
-   - Pulls available calendars and highlights recommended defaults (e.g., work 
-     calendars pre-selected).
-   - Shows progress indicator (`Step 2 of 4` when categories are enabled).
-4. **Categories & Targets Step** (strategies with categories)
-  - Users can create/rename categories, assign weekly targets, and toggle weekend inclusion.
-  - Selected calendars can be mapped to categories before first load.
-  - Category rows inherit suggested colours from mapped calendars (fallback palette matches Nextcloud); users can tweak them before completing onboarding.
-5. **Preferences & Automations Step**
+3. **Dashboard Layout Step**
+   - Choose Quick / Standard / Pro widget layouts (affects initial widgets/tabs).
+4. **Calendar Selection Step**
+   - Pulls available calendars with no defaults; at least one must be selected.
+   - Calendar targets are optional and only show in Power mode.
+5. **Categories & Targets Step** (strategies with categories)
+   - Users can create/rename categories, set weekly targets, and toggle weekend inclusion.
+   - Quick presets seed common category sets with colors and targets.
+   - Selected calendars must be mapped to a category; Unassigned blocks continue.
+   - Pacing mode is selectable per category (days only vs time aware).
+6. **Preferences & Automations Step**
   - Theme selector (`Follow Nextcloud`, `Force light`, `Force dark`) with guidance that charts keep calendar colours; applies once onboarding completes.
   - Input for total weekly target (editable for total-only strategies, read-only summary when categories are active).
   - All-day event hours control (default 8 h) so multi-day all-day events align with expected workloads.
@@ -68,13 +74,11 @@ needed to guide new users toward a useful initial configuration.
   - Reporting primer: toggle to enable weekly/monthly digests plus reminder cadence. Surface a short explanation (“Opsdash can send a weekly recap and remind you when targets drift”). **Shipped** — persisted via `reporting_config`.
   - Activity day-off trend toggle: explains the new heatmap on the Activity card so users can opt out before their first load. **Shipped** — persisted via `targets_config_activity.showDayOffTrend`.
   - Global trend lookback: set how many past weeks/months charts compare against. **Shipped** — persisted via `targets_config.balance.trend.lookbackWeeks`.
-  - Balance Index Basis dropdown (new): let users choose whether the index is calculated solely from category shares, solely from calendar totals, or by combining both (default “both”). Each option comes with a short explanation under the control and writes `targets_config.balance.indexBasis` so the dashboard renders the requested mix consistently and the backend can echo the selection on future `/persist` calls.
-6. **Review & Confirm**
-   - Summary of choices: strategy, selected calendars, targets seeded, weekend 
-    handling, balance hints, theme preference, all-day setting, Deck visibility, and reporting cadence.
+7. **Review & Confirm**
+   - Summary of choices: strategy, calendars, targets, theme preference, dashboard layout, Deck visibility, and reporting cadence.
+   - Optional “Save as new profile” (name required when enabled).
    - `Start dashboard` finalizes choices and writes them via `/persist`.
-   - Optional `Back` and `Skip for now`.
-7. **Completion Toast**
+8. **Completion Toast**
    - “Setup saved — you can change this later in the Sidebar.”
    - Automatically scroll/focus the main dashboard.
 
@@ -93,6 +97,7 @@ needed to guide new users toward a useful initial configuration.
 - When missing or `version < current`, prompt onboarding.
 - Store the initial target/weekend/category choices using existing fields 
   (`targets_week`, `targets_month`, `targets_config`, `groups`).
+- Profiles (presets) can be created during onboarding and include widgets/tabs, theme, Deck, reporting, and targets.
 - Include a UI toggle in Sidebar → Calendars: “Re-run onboarding”. — ✅ wired to `createOnboardingWizardState` so the wizard remounts on every manual reopen (0.4.4, 2025-11).
 - Persist new preferences alongside the existing payload:
   - `theme_preference`
@@ -100,7 +105,6 @@ needed to guide new users toward a useful initial configuration.
   - `reporting_config` (enabled/schedule/interim/reminders)
   - `deck_settings` (`enabled`, `defaultFilter`, `hiddenBoards`)
   - `targets_config.activityCard.showDayOffTrend`
-  - `targets_config.balance.indexBasis`
 
 ## Content Requirements
 - Intro copy: “Opsdash visualises your calendar time and keeps goals on track.”
@@ -120,10 +124,5 @@ needed to guide new users toward a useful initial configuration.
 
 ## Next Steps
 - Polish copy & illustrations (wizard currently text-only).
-- Add missing controls to the preferences step:
-  - Reporting cadence + reminders (hook into `reporting_config` and mirror the sidebar defaults).
-  - Activity day-off heatmap toggle (sets `targets_config.activityCard.showDayOffTrend`).
-  - Balance Index Basis dropdown (category / calendar / both) accompanied by short help text describing what each choice shows on the dashboard and how it affects notifications.
-- Update the review screen to summarize reporting + day-off choices alongside Deck visibility.
-- QA across desktop/mobile, light/dark themes (see theming spec) after adding the new controls.
-- When reporting cadence lands, ensure `/overview/persist` echoes the cadence so clients can drop fallbacks similar to the Deck settings readback.
+- QA across desktop/mobile, light/dark themes (see theming spec).
+- Extend Playwright coverage to hit the new “new profile” path and profile save flow.

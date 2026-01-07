@@ -7,12 +7,12 @@ const CalendarTableWidget = defineAsyncComponent(() =>
   import('../../../components/widgets/CalendarTableWidget.vue').then((m) => m.default),
 )
 
-const baseTitle = 'By calendar'
+const baseTitle = 'Calendar Table'
 
 export const calendarTableEntry: RegistryEntry = {
   component: CalendarTableWidget,
   defaultLayout: { width: 'full', height: 'l', order: 70 },
-  label: 'Table · By calendar',
+  label: 'Calendar Table',
   baseTitle,
   configurable: true,
   defaultOptions: {

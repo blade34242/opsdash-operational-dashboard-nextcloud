@@ -7,12 +7,12 @@ const ChartHodWidget = defineAsyncComponent(() =>
   import('../../../components/widgets/ChartHodWidget.vue').then((m) => m.default),
 )
 
-const baseTitle = 'Hours of day'
+const baseTitle = 'Time-of-Day Chart'
 
 export const chartHodEntry: RegistryEntry = {
   component: ChartHodWidget,
   defaultLayout: { width: 'full', height: 'l', order: 86 },
-  label: 'Chart · Hours of day',
+  label: 'Time-of-Day Chart',
   baseTitle,
   configurable: true,
   defaultOptions: {

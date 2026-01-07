@@ -17,23 +17,30 @@
       <span>{{ cal.displayname }}</span>
     </label>
   </div>
-  <div v-if="localSelection.length" class="calendar-targets">
+  <div v-if="localSelection.length && showCalendarTargets" class="calendar-targets">
     <h4>Calendar targets (h / week)</h4>
+    <p class="hint">Optional in Power mode — set only if you need per-calendar pacing.</p>
     <div
       v-for="cal in calendars.filter((c) => localSelection.includes(c.id))"
       :key="`target-${cal.id}`"
       class="target-row"
     >
       <span class="cal-name">{{ cal.displayname }}</span>
-      <input
-        type="number"
-        min="0"
-        step="0.25"
-        :value="getCalendarTarget(cal.id)"
-        @input="setCalendarTarget(cal.id, ($event.target as HTMLInputElement).value)"
-      />
+      <div class="input-unit">
+        <input
+          type="number"
+          min="0"
+          step="0.25"
+          :value="getCalendarTarget(cal.id)"
+          @input="setCalendarTarget(cal.id, ($event.target as HTMLInputElement).value)"
+        />
+        <span class="unit">h / week</span>
+      </div>
     </div>
   </div>
+  <p v-else-if="localSelection.length && !showCalendarTargets" class="hint">
+    Per-calendar targets are available in Power mode.
+  </p>
   <div v-if="!localSelection.length" class="warning">Select at least one calendar to continue.</div>
 </template>
 
@@ -47,5 +54,6 @@ defineProps<{
   calendarTargets: Record<string, number>
   getCalendarTarget: (id: string) => number | ''
   setCalendarTarget: (id: string, value: string) => void
+  showCalendarTargets: boolean
 }>()
 </script>

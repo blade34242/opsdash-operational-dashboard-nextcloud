@@ -1,6 +1,9 @@
 import { ref, type Ref } from 'vue'
 
 import { normalizeTargetsConfig, cloneTargetsConfig, type TargetsConfig } from '../src/services/targets'
+import { normalizeDeckSettings, normalizeReportingConfig, type DeckFeatureSettings, type ReportingConfig } from '../src/services/reporting'
+import { createDefaultWidgetTabs, normalizeWidgetTabs, type WidgetTabsState } from '../src/services/widgetsRegistry'
+import type { ThemePreference } from './useThemeController'
 
 export type PresetSummary = {
   name: string
@@ -23,6 +26,11 @@ interface DashboardPresetsDeps {
   targetsWeek: Ref<Record<string, number>>
   targetsMonth: Ref<Record<string, number>>
   targetsConfig: Ref<TargetsConfig>
+  themePreference?: Ref<ThemePreference>
+  setThemePreference?: (value: ThemePreference, options?: { persist?: boolean }) => void
+  reportingConfig?: Ref<ReportingConfig>
+  deckSettings?: Ref<DeckFeatureSettings>
+  widgetTabs?: Ref<WidgetTabsState>
   userChangedSelection: Ref<boolean>
 }
 
@@ -62,6 +70,10 @@ export function useDashboardPresets(deps: DashboardPresetsDeps) {
         targets_week: deps.targetsWeek.value,
         targets_month: deps.targetsMonth.value,
         targets_config: deps.targetsConfig.value,
+        ...(deps.widgetTabs ? { widgets: deps.widgetTabs.value } : {}),
+        ...(deps.themePreference ? { theme_preference: deps.themePreference.value } : {}),
+        ...(deps.reportingConfig ? { reporting_config: deps.reportingConfig.value } : {}),
+        ...(deps.deckSettings ? { deck_settings: deps.deckSettings.value } : {}),
       }
       const res = await deps.postJson(deps.route('presetsSave'), payload)
       presets.value = Array.isArray(res?.presets) ? res.presets : presets.value
@@ -88,6 +100,24 @@ export function useDashboardPresets(deps: DashboardPresetsDeps) {
       ? normalizeTargetsConfig(preset.targets_config as TargetsConfig)
       : cloneTargetsConfig(deps.targetsConfig.value)
     deps.targetsConfig.value = cfg
+    if (deps.themePreference && preset?.theme_preference) {
+      const theme = preset.theme_preference as ThemePreference
+      if (deps.setThemePreference) {
+        deps.setThemePreference(theme, { persist: false })
+      } else {
+        deps.themePreference.value = theme
+      }
+    }
+    if (deps.reportingConfig && preset?.reporting_config) {
+      deps.reportingConfig.value = normalizeReportingConfig(preset.reporting_config, deps.reportingConfig.value)
+    }
+    if (deps.deckSettings && preset?.deck_settings) {
+      deps.deckSettings.value = normalizeDeckSettings(preset.deck_settings, deps.deckSettings.value)
+    }
+    if (deps.widgetTabs && preset?.widgets) {
+      const fallback = deps.widgetTabs.value || createDefaultWidgetTabs('standard')
+      deps.widgetTabs.value = normalizeWidgetTabs(preset.widgets, fallback)
+    }
     deps.userChangedSelection.value = false
   }
 

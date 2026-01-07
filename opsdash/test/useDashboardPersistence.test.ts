@@ -302,12 +302,6 @@ describe('useDashboardPersistence', () => {
       widgets: initialTabs,
     }))
     expect(widgetTabs.value.tabs).toHaveLength(1)
-    expect(widgetTabs.value.tabs[0].widgets[0]).toMatchObject({
-      id: expect.stringMatching(/^widget-notes-/),
-      type: 'notes',
-      layout: { width: 'half', height: 'l', order: 5 },
-      options: { mode: 'month' },
-      version: 1,
-    })
+    expect(widgetTabs.value.tabs[0].widgets).toEqual(initialTabs.tabs[0].widgets)
   })
 })

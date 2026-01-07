@@ -1,5 +1,5 @@
 <template>
-  <h3>Dashboard preset</h3>
+  <h3>Dashboard layout</h3>
   <p class="hint">Pick how much you want to see by default. You can change widgets later.</p>
   <div class="strategy-grid">
     <article
@@ -32,4 +32,3 @@ defineProps<{
   }>
 }>()
 </script>
-

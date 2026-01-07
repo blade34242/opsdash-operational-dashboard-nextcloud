@@ -3,10 +3,18 @@
     <div class="header" :class="{ compact: isCompact }">
       <div class="title-row" v-if="showHeader">
         <span class="title">{{ titleText }}</span>
+        <span v-if="lookbackLabel && showTrend" class="pill">{{ lookbackLabel }}</span>
       </div>
       <div class="index" :class="{ centered: isCompact }" v-if="overview">
-        <div class="index-value">{{ formatIndex(overview.index) }}</div>
-        <div class="index-label">Balance index</div>
+        <div class="index-badge" :style="indexBadgeStyle" :title="indexTitle">
+          <div class="index-badge__ring" aria-hidden="true">
+            <span class="index-badge__value">{{ currentIndexDisplay }}</span>
+          </div>
+          <div class="index-badge__meta">
+            <div class="index-badge__label">Current index</div>
+            <div class="index-badge__range" v-if="rangeLabel">{{ rangeLabel }}</div>
+          </div>
+        </div>
       </div>
     </div>
 
@@ -18,7 +26,7 @@
           :class="[
             'trend-block',
             {
-              current: idx === (filteredPoints.length - 1),
+              current: pt.offset === 0,
               'no-range': !hasRangeLabel(idx),
             },
           ]"
@@ -58,9 +66,9 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 import { createDefaultBalanceConfig } from '../services/targets/config'
-import { buildIndexTrend } from '../services/balanceIndex'
+import { computeIndexForShares } from '../services/balanceIndex'
 
-const props = defineProps<{
+const props = withDefaults(defineProps<{
   overview?: any
   rangeLabel?: string
   showBadge?: boolean
@@ -89,38 +97,84 @@ const props = defineProps<{
   showHeader?: boolean
   targetsCategories?: Array<{ id: string; targetHours: number }>
   trendColor?: string
-}>()
+}>(), {
+  showCurrent: true,
+})
 
 const titleText = computed(() => props.title || 'Balance Index')
 const showHeader = computed(() => props.showHeader !== false)
-const trendPoints = computed(() => {
-  const listRaw = Array.isArray(props.overview?.trend?.history)
-    ? props.overview.trend.history
-    : Array.isArray((props.overview as any)?.trendHistory)
-      ? (props.overview as any).trendHistory
-      : []
-  const list = [...listRaw]
-  const lookback = Math.max(
-    1,
-    Number.isFinite(props.loopbackCount) && props.loopbackCount
-      ? Number(props.loopbackCount)
-      : Number.isFinite(props.lookbackWeeks) && props.lookbackWeeks
-        ? Number(props.lookbackWeeks)
-        : 5,
-  )
-  const categories = props.targetsCategories || []
-  const points = buildIndexTrend({
-    history: list,
-    targetsConfig: { categories },
-    basis: props.indexBasis,
-    lookback,
-    currentIndex: typeof props.overview?.index === 'number' ? props.overview.index : undefined,
-  })
-  return points.slice()
+const historyUnit = computed(() => (props.rangeMode || '').toLowerCase() === 'month' ? 'mo' : 'wk')
+const historyRaw = computed(() => {
+  if (Array.isArray(props.overview?.trend?.history)) return props.overview.trend.history
+  if (Array.isArray((props.overview as any)?.trendHistory)) return (props.overview as any).trendHistory
+  return []
 })
+const historyCount = computed(() => {
+  const configured = Number.isFinite(props.lookbackWeeks)
+    ? Number(props.lookbackWeeks)
+    : Number.isFinite(props.loopbackCount)
+      ? Number(props.loopbackCount)
+      : null
+  if (configured != null) {
+    return Math.max(0, Math.min(6, Math.floor(configured)))
+  }
+  const historyEntries = historyRaw.value.filter((entry: any) => Number(entry?.offset ?? 0) > 0)
+  return Math.max(0, Math.min(6, historyEntries.length))
+})
+const historyByOffset = computed(() => {
+  const byOffset = new Map<number, { index: number; label: string }>()
+  const targets = props.targetsCategories || []
+  const basis = props.indexBasis
+  historyRaw.value.forEach((entry: any, idx: number) => {
+    const rawOffset = Number(entry?.offset ?? entry?.step)
+    const offset = Number.isFinite(rawOffset) && rawOffset > 0 ? Math.round(rawOffset) : idx + 1
+    const shares: Record<string, number> = {}
+    if (Array.isArray(entry?.categories)) {
+      entry.categories.forEach((cat: any) => {
+        shares[String(cat.id)] = Number(cat.share ?? 0)
+      })
+    }
+    const values = Object.values(shares)
+    const maxShare = values.length ? Math.max(...values) : 0
+    const totalShare = values.reduce((a, b) => a + b, 0)
+    if (maxShare > 1 || totalShare > 1.5) {
+      Object.keys(shares).forEach((key) => {
+        shares[key] = shares[key] / 100
+      })
+    }
+    const totalAfter = Object.values(shares).reduce((a, b) => a + b, 0)
+    if (totalAfter > 1.0001 && totalAfter > 0) {
+      Object.keys(shares).forEach((key) => {
+        shares[key] = shares[key] / totalAfter
+      })
+    }
+    const index = computeIndexForShares({ shares, targets, basis })
+    byOffset.set(offset, { index, label: entry?.label || '' })
+  })
+  return byOffset
+})
+const normalizedPoints = computed(() => {
+  const points: Array<{ index?: number; label: string; offset: number }> = []
+  const lookback = historyCount.value
+  for (let offset = lookback; offset >= 1; offset -= 1) {
+    const entry = historyByOffset.value.get(offset)
+    points.push({
+      offset,
+      index: entry?.index,
+      label: entry?.label || `-${offset} ${historyUnit.value}`,
+    })
+  }
+  points.push({
+    offset: 0,
+    index: typeof props.overview?.index === 'number' ? props.overview.index : undefined,
+    label: props.rangeLabel || '',
+  })
+  return points
+})
+const showCurrentPoint = computed(() => props.showCurrent !== false)
 const filteredPoints = computed(() => {
-  let pts = trendPoints.value.slice()
-  if (props.showCurrent === false) {
+  let pts = normalizedPoints.value.slice()
+  if (!showCurrentPoint.value) {
     pts = pts.filter((pt: any) => (pt?.offset ?? 0) !== 0)
   }
   if (props.reverseTrend) {
@@ -156,6 +210,38 @@ const isCompact = computed(() => {
   const noMessages = props.showMessages === false || limitedMessages.value.length === 0
   const noConfig = props.showConfig === false
   return noTrend && noMessages && noConfig
+})
+const lookbackLabel = computed(() => {
+  const history = historyCount.value
+  if (history <= 0) return ''
+  const unitWord = historyUnit.value === 'mo' ? 'month' : 'week'
+  return `Last ${history} ${history === 1 ? unitWord : `${unitWord}s`}`
+})
+const currentIndex = computed(() => {
+  const raw = props.overview?.index
+  const num = typeof raw === 'number' ? raw : Number(raw ?? NaN)
+  if (!Number.isFinite(num)) return null
+  return Math.max(0, Math.min(1, num))
+})
+const currentIndexDisplay = computed(() => formatIndex(currentIndex.value ?? undefined))
+const indexBadgeStyle = computed(() => {
+  const value = currentIndex.value
+  if (value == null) return {}
+  const pct = Math.round(value * 100)
+  let color = '#dc2626'
+  if (value >= 0.8) {
+    color = '#16a34a'
+  } else if (value >= 0.65) {
+    color = '#f59e0b'
+  }
+  return {
+    '--index-fill': `${pct}%`,
+    '--index-color': color,
+  }
+})
+const indexTitle = computed(() => {
+  if (currentIndex.value == null) return ''
+  return `Balance index ${currentIndex.value.toFixed(2)}`
 })
 
 const formatIndex = (val?: number) => {
@@ -241,7 +327,7 @@ function endOfMonth(date: Date) {
   return new Date(date.getFullYear(), date.getMonth() + 1, 0)
 }
 function isDefaultOffsetLabel(label: string | undefined) {
-  return !label ? true : /^-\d+\s*wk$/i.test(label.trim())
+  return !label ? true : /^-\d+\s*(wk|mo)$/i.test(label.trim())
 }
 function formatRange(from?: Date, to?: Date) {
   if (!from || !to) return ''
@@ -325,12 +411,80 @@ function computedPeriodTag(idx: number) {
   font-weight:600;
   font-size: var(--widget-title-size, calc(14px * var(--widget-scale, 1)));
 }
+.pill{
+  display:inline-flex;
+  align-items:center;
+  gap:calc(4px * var(--widget-space, 1));
+  padding:calc(2px * var(--widget-space, 1)) calc(8px * var(--widget-space, 1));
+  font-size:calc(10px * var(--widget-scale, 1));
+  border-radius:999px;
+  background: color-mix(in srgb, var(--brand, #2563eb) 15%, white);
+  color:var(--brand, #2563eb);
+  text-transform:uppercase;
+  letter-spacing:.06em;
+}
 .index{
   text-align:right;
 }
 .index.centered{
   text-align:center;
   width:100%;
+}
+.index-badge{
+  display:flex;
+  align-items:center;
+  gap:calc(8px * var(--widget-space, 1));
+  padding:calc(6px * var(--widget-space, 1)) calc(8px * var(--widget-space, 1));
+  border-radius:calc(12px * var(--widget-space, 1));
+  background: color-mix(in oklab, var(--index-color, #2563eb) 14%, transparent);
+  box-shadow: inset 0 0 0 1px color-mix(in oklab, var(--index-color, #2563eb) 35%, transparent);
+}
+.index-badge__ring{
+  width:calc(44px * var(--widget-scale, 1));
+  height:calc(44px * var(--widget-scale, 1));
+  border-radius:999px;
+  background: conic-gradient(
+    var(--index-color, #2563eb) var(--index-fill, 0%),
+    color-mix(in srgb, var(--color-border, #e5e7eb), transparent 40%) 0
+  );
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  position:relative;
+  flex-shrink:0;
+}
+.index-badge__ring::after{
+  content:'';
+  position:absolute;
+  inset:calc(5px * var(--widget-space, 1));
+  border-radius:999px;
+  background: var(--color-main-background, #fff);
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--index-color, #2563eb) 22%, transparent);
+}
+.index-badge__value{
+  position:relative;
+  z-index:1;
+  font-weight:700;
+  font-size:calc(14px * var(--widget-scale, 1));
+  font-variant-numeric:tabular-nums;
+  color:var(--fg,#0f172a);
+}
+.index-badge__meta{
+  display:flex;
+  flex-direction:column;
+  gap:calc(2px * var(--widget-space, 1));
+  text-align:left;
+}
+.index-badge__label{
+  font-size:calc(9px * var(--widget-scale, 1));
+  text-transform:uppercase;
+  letter-spacing:.08em;
+  color:var(--muted);
+}
+.index-badge__range{
+  font-size:calc(11px * var(--widget-scale, 1));
+  color:var(--fg);
+  white-space:nowrap;
 }
 .trend{
   display:flex;

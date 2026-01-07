@@ -3,49 +3,6 @@ import { describe, it, expect } from 'vitest'
 import { createDefaultTargetsConfig } from '../src/services/targets'
 import { mapWidgetToComponent, widgetsRegistry } from '../src/services/widgetsRegistry'
 
-describe('widgetsRegistry text_block presets', () => {
-  it('uses preset title/body when provided', () => {
-    const entry = widgetsRegistry.text_block
-    const def: any = { options: { preset: 'targets' } }
-    const props = entry.buildProps(def, {}) as any
-    expect(props.title).toBe('Targets')
-    // first item only when include=false
-    expect(props.items).toHaveLength(1)
-    expect(props.items[0].key).toBeDefined()
-  })
-
-  it('includes all items when include flag is set', () => {
-    const entry = widgetsRegistry.text_block
-    const def: any = { options: { preset: 'deck', include: true } }
-    const props = entry.buildProps(def, {}) as any
-    expect(props.items.length).toBeGreaterThan(1)
-    const keys = props.items.map((i: any) => i.key)
-    expect(keys).toContain('buckets')
-  })
-
-  it('activity preset honors toggles and defaults to all on', () => {
-    const entry = widgetsRegistry.text_block
-    const defAllOn: any = { options: { preset: 'activity' } }
-    const propsAllOn = entry.buildProps(defAllOn, {}) as any
-    expect(propsAllOn.items.length).toBeGreaterThan(3)
-
-    const defSomeOff: any = {
-      options: {
-        preset: 'activity',
-        weekendShare: false,
-        eveningShare: false,
-        longest: false,
-      },
-    }
-    const propsSomeOff = entry.buildProps(defSomeOff, {}) as any
-    const keys = propsSomeOff.items.map((i: any) => i.key)
-    expect(keys).not.toContain('weekend')
-    expect(keys).not.toContain('evening')
-    expect(keys).not.toContain('longest')
-    expect(keys).toContain('overlaps')
-  })
-})
-
 describe('widgetsRegistry targets_v2', () => {
   it('overrides UI flags without mutating base config', () => {
     const entry = widgetsRegistry.targets_v2
@@ -237,12 +194,11 @@ describe('widgetsRegistry targets_v2', () => {
       summary: {},
       targetsConfig: {},
     }
-    const defText: any = { id: 't1', type: 'text_block', layout: { width: 'half', height: 'm', order: 1 }, options: {}, version: 1 }
+    const defSummary: any = { id: 's1', type: 'time_summary_v2', layout: { width: 'half', height: 'm', order: 1 }, options: {}, version: 1 }
     const defDeck: any = { id: 'd1', type: 'deck_cards', layout: { width: 'half', height: 'm', order: 1 }, options: {}, version: 1 }
-    const defBalance: any = { id: 'b1', type: 'balance', layout: { width: 'half', height: 'm', order: 1 }, options: {}, version: 1 }
 
-    expect(mapWidgetToComponent(defText, { ...baseCtx, isLoading: true })?.loading).toBe(false)
+    expect(mapWidgetToComponent(defSummary, { ...baseCtx, isLoading: true })?.loading).toBe(true)
     expect(mapWidgetToComponent(defDeck, { ...baseCtx, deckLoading: true })?.loading).toBe(true)
-    expect(mapWidgetToComponent(defBalance, { ...baseCtx, isLoading: true })?.loading).toBe(true)
+    expect(mapWidgetToComponent({ ...defSummary, type: 'unknown' }, baseCtx)).toBeNull()
   })
 })

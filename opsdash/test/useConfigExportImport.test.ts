@@ -72,6 +72,7 @@ describe('useConfigExportImport', () => {
     const [filename, envelope] = ctx.createDownload.mock.calls[0]
     expect(filename).toMatch(/opsdash-config-/)
     expect(envelope).toHaveProperty('payload')
+    expect(envelope.payload.widgets).toEqual(ctx.widgetTabs.value)
   })
 
   it('applies onboarding export payload without warnings', async () => {

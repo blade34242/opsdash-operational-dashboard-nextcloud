@@ -115,13 +115,3 @@ export interface RegistryEntry {
     options?: Array<{ value: any; label: string }>
   }>
 }
-
-export type TextPresetKey =
-  | ''
-  | 'targets'
-  | 'activity'
-  | 'balance'
-  | 'mix'
-  | 'dayoff'
-  | 'deck'
-  | 'notes'

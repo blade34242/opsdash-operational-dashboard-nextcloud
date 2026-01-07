@@ -11,6 +11,7 @@ function setupFlow(overrides: Partial<Parameters<typeof useOnboardingFlow>[0]> =
   const onboardingState = ref<OnboardingState | null>(null)
   const calendars = ref<any[]>([{ id: 'cal-1', displayname: 'Primary', color: '#ff0000' }])
   const selected = ref<string[]>(['cal-1'])
+  const groupsById = ref<Record<string, number>>({ 'cal-1': 1 })
   const targetsConfig = ref(createDefaultTargetsConfig())
   const deckSettings = ref(createDefaultDeckSettings())
   const reportingConfig = ref(createDefaultReportingConfig())
@@ -28,6 +29,7 @@ function setupFlow(overrides: Partial<Parameters<typeof useOnboardingFlow>[0]> =
     onboardingState,
     calendars,
     selected,
+    groupsById,
     targetsConfig,
     deckSettings,
     reportingConfig,
@@ -40,6 +42,7 @@ function setupFlow(overrides: Partial<Parameters<typeof useOnboardingFlow>[0]> =
     onboardingState,
     calendars,
     selected,
+    groupsById,
     targetsConfig,
     deckSettings,
     hasInitialLoad,

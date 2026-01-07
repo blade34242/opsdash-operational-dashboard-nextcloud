@@ -142,12 +142,12 @@ curl -sS "${BASE}/index.php/apps/opsdash/overview/notes" \
   - Response: `{ ok, presets: Array<{ name, createdAt, updatedAt, selectedCount, calendarCount }> }`
 - Save/overwrite preset
   - Method: POST `/overview/presets`
-  - Body: `{ name: string, selected: string[], groups: Record<string,number>, targets_week: Record<string,number>, targets_month: Record<string,number>, targets_config: TargetsConfig }`
+  - Body: `{ name: string, selected: string[], groups: Record<string,number>, targets_week: Record<string,number>, targets_month: Record<string,number>, targets_config: TargetsConfig, widgets?: WidgetTabsState, theme_preference?: string, deck_settings?: DeckFeatureSettings, reporting_config?: ReportingConfig }`
   - Response: `{ ok, preset: { name, createdAt, updatedAt }, presets: [...], warnings?: string[] }`
   - Notes: payload is sanitised against the user’s current calendars; unknown ids are dropped with a warning.
 - Load preset
   - Method: GET `/overview/presets/{name}`
-  - Response: `{ ok, preset: { name, createdAt, updatedAt, selected, groups, targets_week, targets_month, targets_config, warnings?: string[] }, warnings?: string[] }`
+  - Response: `{ ok, preset: { name, createdAt, updatedAt, selected, groups, targets_week, targets_month, targets_config, widgets?, theme_preference?, deck_settings?, reporting_config?, warnings?: string[] }, warnings?: string[] }`
   - The response already includes a sanitised payload; if warnings are present the client should surface them (and ideally ask for confirmation) before applying the result.
 - Delete preset
   - Method: DELETE `/overview/presets/{name}`

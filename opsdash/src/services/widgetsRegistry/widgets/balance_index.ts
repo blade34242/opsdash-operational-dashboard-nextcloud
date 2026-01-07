@@ -111,7 +111,7 @@ export const balanceIndexEntry: RegistryEntry = {
       : undefined
     const effectiveLookback = Number.isFinite(loopbackCount)
       ? Number(loopbackCount)
-      : ((Number.isFinite(lookbackWeeks) ? Number(lookbackWeeks) : defaults.trend?.lookbackWeeks ?? 4) + 1)
+      : (Number.isFinite(lookbackWeeks) ? Number(lookbackWeeks) : defaults.trend?.lookbackWeeks ?? 4)
     return {
       overview: ctx.balanceOverview,
       targetsCategories: ctx.targetsConfig?.categories || [],

@@ -30,6 +30,8 @@ type WizardProps = {
   saving?: boolean
   closable?: boolean
   hasExistingConfig?: boolean
+  initialCategories?: CategoryDraft[]
+  initialAssignments?: Record<string, string>
   initialThemePreference?: 'auto' | 'light' | 'dark'
   systemTheme?: 'light' | 'dark'
   initialAllDayHours?: number
@@ -49,6 +51,15 @@ type WizardProps = {
 
 type WizardEmit = (event: string, payload?: any) => void
 
+type ProfileMode = 'existing' | 'new'
+type CategoryPreset = {
+  id: string
+  title: string
+  description: string
+  categories: Array<Pick<CategoryDraft, 'id' | 'label' | 'targetHours' | 'includeWeekend' | 'paceMode' | 'color'>>
+  colors: string[]
+}
+
 export function useOnboardingWizard(options: { props: WizardProps; emit: WizardEmit }) {
   const { props, emit } = options
 
@@ -57,6 +68,9 @@ export function useOnboardingWizard(options: { props: WizardProps; emit: WizardE
   const stepIndex = ref(0)
   const selectedStrategy = ref<StrategyDefinition['id']>('total_only')
   const dashboardMode = ref<'quick' | 'standard' | 'pro'>(props.initialDashboardMode || 'standard')
+  const profileMode = ref<ProfileMode>(props.hasExistingConfig ? 'existing' : 'new')
+  const saveProfile = ref(false)
+  const profileName = ref('')
   const localSelection = ref<string[]>([])
   const categories = ref<CategoryDraft[]>([])
   const assignments = ref<Record<string, string>>({})
@@ -77,23 +91,58 @@ export function useOnboardingWizard(options: { props: WizardProps; emit: WizardE
     {
       id: 'quick' as const,
       title: 'Quick',
-      subtitle: 'Minimal view, core widgets only',
-      highlights: ['Time summary', 'Targets', 'Activity', 'Deck cards lite'],
+      subtitle: 'Minimal, KPI-first layout',
+      highlights: ['Time summary + targets', 'Balance index', 'Days-off trend'],
       widgets: '4 widgets',
     },
     {
       id: 'standard' as const,
       title: 'Standard',
-      subtitle: 'Balanced set for most users',
-      highlights: ['Time/Targets/Balance', 'Activity & trends', 'Deck cards'],
-      widgets: '6–7 widgets',
+      subtitle: 'Balanced layout with charts',
+      highlights: ['Targets + time summary', 'Balance & category mix', 'Calendar table + charts'],
+      widgets: '11 widgets',
     },
     {
       id: 'pro' as const,
       title: 'Pro',
-      subtitle: 'Full layout with extras',
-      highlights: ['All core widgets', 'Deck cards & summary', 'Notes + text block'],
-      widgets: '8+ widgets',
+      subtitle: 'Full layout with everything',
+      highlights: ['Everything in Standard', 'Deck cards + notes editor', 'Extended charts'],
+      widgets: '13 widgets',
+    },
+  ]
+  const categoryPresets: CategoryPreset[] = [
+    {
+      id: 'work_hobby_sport',
+      title: 'Work / Hobby / Sport',
+      description: 'Simple split for work, play, and fitness.',
+      categories: [
+        { id: 'work', label: 'Work', targetHours: 32, includeWeekend: false, paceMode: 'days_only', color: '#2563EB' },
+        { id: 'hobby', label: 'Hobby', targetHours: 6, includeWeekend: true, paceMode: 'days_only', color: '#F97316' },
+        { id: 'sport', label: 'Sport', targetHours: 4, includeWeekend: true, paceMode: 'days_only', color: '#10B981' },
+      ],
+      colors: ['#2563EB', '#F97316', '#10B981'],
+    },
+    {
+      id: 'focus_personal_recovery',
+      title: 'Focus / Personal / Recovery',
+      description: 'Balance deep work, personal time, and rest.',
+      categories: [
+        { id: 'focus', label: 'Focus', targetHours: 30, includeWeekend: false, paceMode: 'days_only', color: '#6366F1' },
+        { id: 'personal', label: 'Personal', targetHours: 8, includeWeekend: true, paceMode: 'days_only', color: '#EC4899' },
+        { id: 'recovery', label: 'Recovery', targetHours: 6, includeWeekend: true, paceMode: 'days_only', color: '#14B8A6' },
+      ],
+      colors: ['#6366F1', '#EC4899', '#14B8A6'],
+    },
+    {
+      id: 'client_internal_learning',
+      title: 'Client / Internal / Learning',
+      description: 'Great for agency or team workloads.',
+      categories: [
+        { id: 'client', label: 'Client', targetHours: 28, includeWeekend: false, paceMode: 'days_only', color: '#0EA5E9' },
+        { id: 'internal', label: 'Internal', targetHours: 8, includeWeekend: false, paceMode: 'days_only', color: '#F59E0B' },
+        { id: 'learning', label: 'Learning', targetHours: 4, includeWeekend: true, paceMode: 'days_only', color: '#22C55E' },
+      ],
+      colors: ['#0EA5E9', '#F59E0B', '#22C55E'],
     },
   ]
 
@@ -167,6 +216,7 @@ export function useOnboardingWizard(options: { props: WizardProps; emit: WizardE
   const strategies = getStrategyDefinitions()
   const selectedStrategyDef = computed(() => strategies.find((s) => s.id === selectedStrategy.value) ?? strategies[0])
   const categoriesEnabled = computed(() => selectedStrategyDef.value.layers.categories)
+  const calendarTargetsEnabled = computed(() => selectedStrategyDef.value.layers.calendars)
   const isClosable = computed(() => props.closable !== false)
 
   const enabledSteps = computed(() => stepOrder.filter((step) => (step === 'categories' ? categoriesEnabled.value : true)))
@@ -220,39 +270,87 @@ export function useOnboardingWizard(options: { props: WizardProps; emit: WizardE
     setScrollLocked(false)
   })
 
-  function resetWizard() {
+  function resetWizard(mode?: ProfileMode) {
+    const resolvedMode: ProfileMode = mode ?? (props.hasExistingConfig ? 'existing' : 'new')
+    profileMode.value = resolvedMode
+    const useExisting = resolvedMode === 'existing'
     stepIndex.value = 0
-    selectedStrategy.value = props.initialStrategy ?? 'total_only'
-    const initial = props.initialSelection?.length ? [...props.initialSelection] : props.calendars.map((c) => c.id)
+    selectedStrategy.value = useExisting ? (props.initialStrategy ?? 'total_only') : 'total_only'
+    dashboardMode.value = useExisting ? (props.initialDashboardMode || 'standard') : 'standard'
+    const initial = useExisting ? [...(props.initialSelection ?? [])] : []
     localSelection.value = Array.from(new Set(initial.filter((id) => props.calendars.some((cal) => cal.id === id))))
-    themePreference.value = props.initialThemePreference ?? 'auto'
-    allDayHoursInput.value = clampAllDayHours(props.initialAllDayHours ?? 8)
-    totalHoursInput.value = clampTotalHours(props.initialTotalHours ?? null)
-    trendLookbackInput.value = clampLookback(props.initialTargetsConfig?.balanceTrendLookback ?? 3)
+    themePreference.value = useExisting ? (props.initialThemePreference ?? 'auto') : 'auto'
+    allDayHoursInput.value = clampAllDayHours(useExisting ? (props.initialAllDayHours ?? 8) : 8)
+    totalHoursInput.value = clampTotalHours(useExisting ? (props.initialTotalHours ?? null) : null)
+    trendLookbackInput.value = clampLookback(useExisting ? (props.initialTargetsConfig?.balanceTrendLookback ?? 3) : 3)
     calendarTargets.value = {}
-    Object.entries(props.initialTargetsWeek ?? {}).forEach(([id, hours]) => {
-      if (props.calendars.some((cal) => cal.id === id)) {
-        calendarTargets.value[id] = clampTarget(hours)
-      }
-    })
-    deckSettingsDraft.value = cloneDeckSettings(props.initialDeckSettings ?? createDefaultDeckSettings())
-    reportingDraft.value = { ...(props.initialReportingConfig ?? createDefaultReportingConfig()) }
+    if (useExisting) {
+      Object.entries(props.initialTargetsWeek ?? {}).forEach(([id, hours]) => {
+        if (props.calendars.some((cal) => cal.id === id)) {
+          calendarTargets.value[id] = clampTarget(hours)
+        }
+      })
+    }
+    deckSettingsDraft.value = cloneDeckSettings(
+      useExisting ? (props.initialDeckSettings ?? createDefaultDeckSettings()) : createDefaultDeckSettings(),
+    )
+    reportingDraft.value = {
+      ...(useExisting ? (props.initialReportingConfig ?? createDefaultReportingConfig()) : createDefaultReportingConfig()),
+    }
     activityDraft.value = {
-      showDayOffTrend: props.initialTargetsConfig?.activityCard?.showDayOffTrend ?? true,
+      showDayOffTrend: useExisting ? (props.initialTargetsConfig?.activityCard?.showDayOffTrend ?? true) : true,
+    }
+    if (props.hasExistingConfig) {
+      saveProfile.value = resolvedMode === 'new'
+      profileName.value = ''
+    } else {
+      saveProfile.value = false
+      profileName.value = ''
     }
     initializeStrategyState()
     if (categoriesEnabled.value) {
-      totalHoursInput.value = clampTotalHours(categoryTotalHours.value)
-    } else if (totalHoursInput.value === null) {
-      totalHoursInput.value = 40
+      if (categories.value.length) {
+        totalHoursInput.value = clampTotalHours(categoryTotalHours.value)
+      } else {
+        totalHoursInput.value = null
+      }
+    } else if (totalHoursInput.value === null && useExisting) {
+      totalHoursInput.value = clampTotalHours(props.initialTotalHours ?? 40)
     }
     applyStartStep()
   }
 
+  function setProfileMode(mode: ProfileMode) {
+    if (profileMode.value === mode) return
+    resetWizard(mode)
+  }
+
+  function setSaveProfile(enabled: boolean) {
+    saveProfile.value = enabled
+    if (!enabled) {
+      profileName.value = ''
+    }
+  }
+
+  function setProfileName(value: string) {
+    profileName.value = value
+  }
+
   function initializeStrategyState() {
-    const draft = createStrategyDraft(selectedStrategy.value, props.calendars, localSelection.value)
-    categories.value = draft.categories.map((cat) => ({ ...cat }))
-    assignments.value = { ...draft.assignments }
+    if (!categoriesEnabled.value) {
+      categories.value = []
+      assignments.value = {}
+      syncTotalsWithStrategy()
+      return
+    }
+    if (profileMode.value === 'existing' && props.initialCategories?.length) {
+      categories.value = cloneCategoryDrafts(props.initialCategories)
+      assignments.value = { ...(props.initialAssignments ?? {}) }
+    } else {
+      const draft = createStrategyDraft(selectedStrategy.value, props.calendars, localSelection.value)
+      categories.value = draft.categories.map((cat) => ({ ...cat }))
+      assignments.value = { ...draft.assignments }
+    }
     ensureAssignments()
     syncTotalsWithStrategy()
   }
@@ -263,11 +361,10 @@ export function useOnboardingWizard(options: { props: WizardProps; emit: WizardE
       return
     }
     const available = new Set(categories.value.map((cat) => cat.id))
-    const fallback = categories.value[0].id
     const next: Record<string, string> = {}
     localSelection.value.forEach((calId) => {
       const wanted = assignments.value[calId]
-      next[calId] = available.has(wanted) ? wanted : fallback
+      next[calId] = available.has(wanted) ? wanted : ''
     })
     assignments.value = next
   }
@@ -291,7 +388,10 @@ export function useOnboardingWizard(options: { props: WizardProps; emit: WizardE
       return
     }
     if (totalHoursInput.value === null) {
-      totalHoursInput.value = clampTotalHours(props.initialTotalHours ?? 40)
+      totalHoursInput.value =
+        profileMode.value === 'existing'
+          ? clampTotalHours(props.initialTotalHours ?? 40)
+          : null
     }
   }
 
@@ -415,6 +515,20 @@ export function useOnboardingWizard(options: { props: WizardProps; emit: WizardE
     categories.value = categories.value.map((cat) => (cat.id === id ? { ...cat, label: value } : cat))
   }
 
+  function applyCategoryPreset(preset: CategoryPreset) {
+    categories.value = preset.categories.map((cat, index) => ({
+      id: String(cat.id || `cat_${index}`),
+      label: cat.label || `Category ${index + 1}`,
+      targetHours: Number.isFinite(cat.targetHours) ? Number(cat.targetHours) : 0,
+      includeWeekend: !!cat.includeWeekend,
+      paceMode: cat.paceMode === 'time_aware' ? 'time_aware' : 'days_only',
+      color: sanitizeColor(cat.color) ?? null,
+    }))
+    assignments.value = {}
+    ensureAssignments()
+    syncTotalsWithStrategy()
+  }
+
   function setCategoryTarget(id: string, value: string) {
     const parsed = Number(value)
     const sanitized = Number.isFinite(parsed) ? Math.max(0, Math.min(1000, parsed)) : undefined
@@ -466,6 +580,18 @@ export function useOnboardingWizard(options: { props: WizardProps; emit: WizardE
       return `#${r}${r}${g}${g}${b}${b}`.toUpperCase()
     }
     return trimmed.toUpperCase()
+  }
+
+  function cloneCategoryDrafts(input: CategoryDraft[] | undefined): CategoryDraft[] {
+    if (!Array.isArray(input)) return []
+    return input.map((cat, index) => ({
+      id: String(cat?.id ?? `cat_${index}`).trim() || `cat_${index}`,
+      label: String(cat?.label ?? `Category ${index + 1}`).trim() || `Category ${index + 1}`,
+      targetHours: Number.isFinite(cat?.targetHours) ? Number(cat.targetHours) : 0,
+      includeWeekend: !!cat?.includeWeekend,
+      paceMode: cat?.paceMode === 'time_aware' ? 'time_aware' : 'days_only',
+      color: sanitizeColor(cat?.color) ?? null,
+    }))
   }
 
   function resolvedColor(cat: { color?: string | null }): string {
@@ -615,7 +741,7 @@ export function useOnboardingWizard(options: { props: WizardProps; emit: WizardE
       if (!localSelection.value.length) return true
       if (!categories.value.length) return true
       const available = new Set(categories.value.map((cat) => cat.id))
-      if (localSelection.value.some((id) => !available.has(assignments.value[id]))) {
+      if (localSelection.value.some((id) => !available.has(assignments.value[id] || ''))) {
         return true
       }
     }
@@ -624,6 +750,9 @@ export function useOnboardingWizard(options: { props: WizardProps; emit: WizardE
         if (totalHoursInput.value === null || totalHoursInput.value < 0) return true
       }
       if (allDayHoursInput.value < 0 || allDayHoursInput.value > 24) return true
+    }
+    if (currentStep.value === 'review') {
+      if (saveProfile.value && profileName.value.trim() === '') return true
     }
     return false
   })
@@ -695,6 +824,8 @@ export function useOnboardingWizard(options: { props: WizardProps; emit: WizardE
       reportingConfig: { ...reportingDraft.value },
       activityCard: { ...activityDraft.value },
       dashboardMode: dashboardMode.value,
+      saveProfile: saveProfile.value,
+      profileName: saveProfile.value ? profileName.value.trim() : '',
     })
   }
 
@@ -835,6 +966,9 @@ export function useOnboardingWizard(options: { props: WizardProps; emit: WizardE
     stepIndex,
     selectedStrategy,
     dashboardMode,
+    profileMode,
+    saveProfile,
+    profileName,
     localSelection,
     categories,
     assignments,
@@ -858,8 +992,10 @@ export function useOnboardingWizard(options: { props: WizardProps; emit: WizardE
     systemThemeLabel,
     categoryTotalHours,
     categoryColorPalette,
+    categoryPresets,
     strategies,
     categoriesEnabled,
+    calendarTargetsEnabled,
     isClosable,
     enabledSteps,
     currentStep,
@@ -871,12 +1007,16 @@ export function useOnboardingWizard(options: { props: WizardProps; emit: WizardE
     selectedCalendars,
     draft,
     strategyTitle,
+    setProfileMode,
+    setSaveProfile,
+    setProfileName,
     applyStartStep,
     goToStep,
     stepLabel,
     addCategory,
     removeCategory,
     setCategoryLabel,
+    applyCategoryPreset,
     setCategoryTarget,
     toggleCategoryWeekend,
     assignCalendar,

@@ -47,11 +47,11 @@ describe('OnboardingWizard', () => {
 
   it('renders snapshot notices when provided', () => {
     const wrapper = mountWizard({
-      snapshotNotice: { type: 'success', message: 'Preset saved' },
+      snapshotNotice: { type: 'success', message: 'Profile saved' },
     })
     const notice = wrapper.find('.snapshot-notice')
     expect(notice.exists()).toBe(true)
-    expect(notice.text()).toContain('Preset saved')
+    expect(notice.text()).toContain('Profile saved')
   })
 
   it('honors startStep and allows jumping via step pills', async () => {

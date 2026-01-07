@@ -7,12 +7,12 @@ const ChartPieWidget = defineAsyncComponent(() =>
   import('../../../components/widgets/ChartPieWidget.vue').then((m) => m.default),
 )
 
-const baseTitle = 'Pie chart'
+const baseTitle = 'Pie Chart'
 
 export const chartPieEntry: RegistryEntry = {
   component: ChartPieWidget,
   defaultLayout: { width: 'half', height: 'm', order: 75 },
-  label: 'Chart · Pie',
+  label: 'Pie Chart',
   baseTitle,
   configurable: true,
   defaultOptions: {

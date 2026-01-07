@@ -7,12 +7,12 @@ const CategoryMixTrendCard = defineAsyncComponent(() =>
 import { buildTitle } from '../helpers'
 import type { RegistryEntry } from '../types'
 
-const baseTitle = 'Category mix trend'
+const baseTitle = 'Category Mix Trend'
 
 export const categoryMixTrendEntry: RegistryEntry = {
   component: CategoryMixTrendCard,
   defaultLayout: { width: 'half', height: 'm', order: 47 },
-  label: 'Category mix trend',
+  label: 'Category Mix Trend',
   baseTitle,
   defaultOptions: {
     lookbackWeeks: 3,

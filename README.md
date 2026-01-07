@@ -15,7 +15,7 @@
 - **Know where the week went** – totals, averages, busiest days, workday/weekend split, top categories, longest tasks.
 - **Stay on target** – per-calendar & per-category goals with pacing badges, Δ indicators, and quick forecasting.
 - **Balance at a glance** – stacked bars, category pies, heatmaps, and configurable chart widgets inside dashboard tabs.
-- **Onboarding & presets** – pick Quick/Standard/Pro dashboard presets in the wizard, snapshot the sidebar, rerun onboarding from the Calendars tab, and keep teammates aligned with shared profiles.
+- **Onboarding & profiles** – pick Quick/Standard/Pro layouts in the wizard, save profile snapshots (widgets/tabs + theme + Deck + reporting), rerun onboarding from Calendars, and keep teammates aligned.
 - **Notes + theming** – week/month notes (editable + read-only history) and per-user theme preferences that load instantly even after clearing cache.
 - **Native & private** – Vue 3 SPA rendered via Nextcloud’s CSP, CSRF, and permissions. No telemetry, no external APIs.
 
@@ -36,7 +36,7 @@ occ app:enable opsdash
 - 🎯 **Targets & pacing** – per calendar/category goals, pace hints, momentum forecasts, daypart insights, and badges.
 - ⚖️ **Balance** – share cards, stacked bars, relations/ratios, trend lookback, heatmaps, longest sessions, daypart toggles.
 - 🧠 **Notes** – edit “This week/month”, read “Last week/month”, optional display on the Balance card.
-- 🧩 **Onboarding wizard & presets** – guided setup (calendars, targets, Deck boards, reporting cadence, Activity heatmap toggle), rerun from Calendars, save/load/delete presets, export/import, theme selector.
+- 🧩 **Onboarding wizard & profiles** – guided setup (calendars, targets, Deck boards, reporting cadence, Activity heatmap toggle), rerun from Calendars, save/load/delete profiles, export/import, theme selector.
 - 🗓️ **Activity & schedule** – KPIs for events/active days plus a “Days off” heatmap that compares the current range with the last few weeks/months.
 - 🔐 **Nextcloud-native** – same theme, request token, permissions, Dav colors, and zero external calls.
 - 🗂️ **Deck widgets** – Deck cards widget with per-widget board/filter selection, auto-scroll ticker, counts; optional Deck summary widget.

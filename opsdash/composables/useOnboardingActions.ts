@@ -23,6 +23,8 @@ export interface WizardCompletePayload {
   reportingConfig: ReportingConfig
   activityCard: Pick<ActivityCardConfig, 'showDayOffTrend'>
   dashboardMode: 'quick' | 'standard' | 'pro'
+  saveProfile?: boolean
+  profileName?: string
 }
 
 export interface WizardStepSavePayload {
@@ -110,6 +112,10 @@ export function useOnboardingActions(deps: OnboardingActionDeps) {
         version_required: ONBOARDING_VERSION,
         resetRequested: false,
       } as any)
+      const profileName = payload.profileName?.trim()
+      if (payload.saveProfile && profileName) {
+        await deps.savePreset(profileName)
+      }
       await deps.reloadAfterPersist()
       deps.notifySuccess('Onboarding saved')
     } catch (error) {
@@ -209,13 +215,13 @@ export function useOnboardingActions(deps: OnboardingActionDeps) {
       await deps.savePreset(name)
       snapshotNotice.value = {
         type: 'success',
-        message: `Preset "${name}" saved — find it under Config & Setup.`,
+        message: `Profile "${name}" saved — find it under Config & Setup.`,
       }
     } catch (error) {
-      console.error('[opsdash] preset backup failed', error)
+      console.error('[opsdash] profile backup failed', error)
       snapshotNotice.value = {
         type: 'error',
-        message: 'Failed to save preset backup. Please try again.',
+        message: 'Failed to save profile backup. Please try again.',
       }
       throw error
     } finally {
