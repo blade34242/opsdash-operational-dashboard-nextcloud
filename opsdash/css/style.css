@@ -218,10 +218,10 @@
   align-items:center;
   gap:10px;
   padding:10px 12px;
-  border:1px solid color-mix(in oklab, var(--line), transparent 30%);
+  border:1px solid color-mix(in oklab, var(--brand), var(--line) 70%);
   border-radius:14px;
   background:color-mix(in oklab, var(--card), transparent 10%);
-  box-shadow:0 6px 16px rgba(15,23,42,0.12);
+  box-shadow:0 6px 16px rgba(15,23,42,0.12), inset 0 0 0 1px color-mix(in oklab, var(--brand), transparent 82%);
   position:sticky;
   top:12px;
   z-index:8;
@@ -254,10 +254,25 @@
   box-shadow:0 6px 14px rgba(15,23,42,0.12);
   font-size:16px;
 }
+#opsdash .range-toolbar__btn.sidebar-action-btn--icon{
+  width:38px;
+  height:38px;
+  border-radius:12px;
+  border-color:color-mix(in oklab, var(--brand), transparent 55%);
+  background:color-mix(in oklab, var(--brand), transparent 86%);
+  box-shadow:0 6px 14px rgba(15,23,42,0.12);
+  font-size:16px;
+  padding:0;
+}
+#opsdash .range-toolbar__btn.sidebar-action-btn--icon:not(:disabled):hover{
+  background:color-mix(in oklab, var(--brand), transparent 76%);
+  border-color:color-mix(in oklab, var(--brand), transparent 40%);
+}
 #opsdash .range-toolbar__btn--pill{
   text-transform:uppercase;
   letter-spacing:.04em;
   font-size:11px;
+  font-weight:700;
 }
 #opsdash .range-toolbar__btn--refresh{
   padding:6px 14px;
@@ -279,6 +294,28 @@
   border:1px solid color-mix(in oklab, var(--line), transparent 30%);
   background:color-mix(in oklab, var(--card), transparent 6%);
   box-shadow:inset 0 1px 1px rgba(15,23,42,0.06);
+}
+#opsdash .range-toolbar__label--pill{
+  border:1px solid color-mix(in oklab, var(--brand), transparent 70%);
+  background:color-mix(in oklab, var(--brand), transparent 92%);
+  color:var(--brand);
+  font-weight:600;
+  font-variant-numeric:tabular-nums;
+}
+#opsdash .range-toolbar__btn.sidebar-action-btn{
+  border-radius:10px;
+  border-color:color-mix(in oklab, var(--brand), transparent 45%);
+  background:color-mix(in oklab, var(--brand), transparent 86%);
+  box-shadow:0 8px 18px rgba(37,99,235,0.18);
+  text-transform:uppercase;
+  letter-spacing:.05em;
+  font-size:14px;
+  font-weight:800;
+  padding:8px 14px;
+}
+#opsdash .range-toolbar__btn.sidebar-action-btn:not(:disabled):hover{
+  background:color-mix(in oklab, var(--brand), transparent 78%);
+  box-shadow:0 10px 22px rgba(37,99,235,0.22);
 }
 #opsdash .appbar{
   display:flex;
@@ -1218,10 +1255,15 @@
   display:flex;
   align-items:center;
   gap:12px;
-  margin-bottom:6px;
+  margin-bottom:8px;
   width:100%;
   flex-wrap:wrap;
   justify-content:flex-start;
+  padding:10px 12px;
+  border:1px solid color-mix(in oklab, var(--brand), var(--line) 70%);
+  border-radius:14px;
+  background:color-mix(in oklab, var(--card), transparent 10%);
+  box-shadow:0 6px 16px rgba(15,23,42,0.12), inset 0 0 0 1px color-mix(in oklab, var(--brand), transparent 82%);
 }
 #opsdash .cards-toolbar__tabs{
   display:flex;

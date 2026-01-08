@@ -1,12 +1,12 @@
 <template>
   <div
-    id="opsdash-sidebar-pane-profiles"
+    :id="panelId"
     class="sb-pane"
-    role="tabpanel"
-    aria-labelledby="opsdash-sidebar-tab-profiles"
+    :role="panelRole"
+    :aria-labelledby="panelLabelledBy"
   >
-    <div class="sb-title">Profiles</div>
-    <p class="sb-description">
+    <div v-if="showHeader" class="sb-title">Profiles</div>
+    <p v-if="showHeader" class="sb-description">
       Export/import full configs or save/load named profiles (calendars, groups, targets, widgets, settings).
     </p>
 
@@ -100,7 +100,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref } from 'vue'
+import { computed, ref } from 'vue'
 import { NcButton } from '@nextcloud/vue'
 
 const props = defineProps<{
@@ -109,6 +109,8 @@ const props = defineProps<{
   isSaving: boolean
   isApplying: boolean
   warnings: string[]
+  showHeader?: boolean
+  asPanel?: boolean
 }>()
 
 const emit = defineEmits<{
@@ -124,6 +126,12 @@ const emit = defineEmits<{
 const presetName = ref('')
 const nameError = ref<string | null>(null)
 const fileInput = ref<HTMLInputElement | null>(null)
+const showHeader = computed(() => props.showHeader !== false)
+const panelId = computed(() => (props.asPanel === false ? undefined : 'opsdash-sidebar-pane-profiles'))
+const panelRole = computed(() => (props.asPanel === false ? undefined : 'tabpanel'))
+const panelLabelledBy = computed(() =>
+  props.asPanel === false ? undefined : 'opsdash-sidebar-tab-profiles',
+)
 
 function onSave() {
   const trimmed = presetName.value.trim()
@@ -265,14 +273,15 @@ function formatRelative(value?: string | null): string {
   gap:8px;
 }
 .preset-item{
-  border:1px solid rgba(56,189,248,0.55);
+  border:1px solid color-mix(in oklab, var(--brand), var(--line) 60%);
   border-radius:6px;
   padding:8px;
   display:flex;
   flex-direction:column;
   gap:6px;
-  background:#dff1ff;
+  background:color-mix(in oklab, var(--brand), var(--card) 92%);
   color:var(--color-main-text);
+  box-shadow:0 8px 16px rgba(15,23,42,0.08), inset 0 0 0 1px color-mix(in oklab, var(--brand), transparent 85%);
 }
 .preset-meta{
   display:flex;
@@ -291,13 +300,10 @@ function formatRelative(value?: string | null): string {
 }
 
 :global(#opsdash.opsdash-theme-dark .preset-item){
-  background:#dff1ff;
-  border-color:rgba(56,189,248,0.55);
-  color:#0f172a;
-}
-
-:global(#opsdash.opsdash-theme-dark .preset-info){
-  color:#475569;
+  background:color-mix(in oklab, var(--brand), #0b1220 82%);
+  border-color:color-mix(in oklab, var(--brand), #0b1220 35%);
+  color:var(--color-main-text);
+  box-shadow:0 10px 18px rgba(0,0,0,0.28), inset 0 0 0 1px color-mix(in oklab, var(--brand), transparent 70%);
 }
 .preset-actions{
   display:flex;

@@ -60,20 +60,16 @@ function mountSidebar() {
       to: '2025-03-09',
       navToggleLabel: 'Toggle sidebar',
       navToggleIcon: '⟨',
-      presets: [],
-      presetsLoading: false,
-      presetSaving: false,
-      presetApplying: false,
-      presetWarnings: [],
+      dashboardMode: 'standard',
     },
   })
 }
 
 describe('Sidebar layout', () => {
-  it('renders the range bar and profiles pane without legacy controls', () => {
+  it('renders the range bar and profiles trigger without legacy controls', () => {
     const wrapper = mountSidebar()
     expect(wrapper.find('.rangebar').exists()).toBe(true)
-    expect(wrapper.find('#opsdash-sidebar-pane-profiles').exists()).toBe(true)
+    expect(wrapper.find('button[aria-label="Profiles"]').exists()).toBe(true)
     expect(wrapper.text()).not.toContain('Projection mode')
     expect(wrapper.text()).not.toContain('Trend lookback')
   })

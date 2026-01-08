@@ -30,6 +30,23 @@
       @save-current-config="handleWizardSaveSnapshot"
       @save-step="handleWizardSaveStep"
     />
+    <ProfilesOverlay
+      :visible="profilesOverlayOpen"
+      :theme="effectiveTheme"
+      :presets="presets"
+      :is-loading="presetsLoading"
+      :is-saving="presetSaving"
+      :is-applying="presetApplying"
+      :warnings="presetWarnings"
+      @close="profilesOverlayOpen = false"
+      @save="savePreset"
+      @load="loadPreset"
+      @delete="deletePreset"
+      @refresh="refreshPresets"
+      @clear-warnings="clearPresetWarnings"
+      @export-config="exportSidebarConfig"
+      @import-config="importSidebarConfig"
+    />
     <NcAppContent app-name="Operational Dashboard" :show-navigation="navOpen">
       <template #navigation>
         <Sidebar
@@ -41,24 +58,15 @@
           :to="to"
           :nav-toggle-label="navToggleLabel"
           :nav-toggle-icon="navToggleIcon"
-          :presets="presets"
-          :presets-loading="presetsLoading"
-          :preset-saving="presetSaving"
-          :preset-applying="presetApplying"
-          :preset-warnings="presetWarnings"
           :dashboard-mode="dashboardMode"
+          :guided-hints="guidedHints"
           @load="performLoad"
           @update:range="(v)=>{ range=v as any; offset=0; performLoad() }"
           @update:offset="(v)=>{ offset=v as number; performLoad() }"
           @toggle-nav="toggleNav"
-          @save-preset="savePreset"
-          @load-preset="loadPreset"
-          @delete-preset="deletePreset"
-          @refresh-presets="refreshPresets"
-          @clear-preset-warnings="clearPresetWarnings"
           @rerun-onboarding="openWizardFromSidebar"
-          @export-config="exportSidebarConfig"
-          @import-config="importSidebarConfig"
+          @open-profiles="profilesOverlayOpen = true"
+          @open-shortcuts="(el) => openShortcuts(el, 'button')"
         />
       </template>
 
@@ -76,7 +84,7 @@
               aria-label="Collapsed range controls"
             >
               <button
-                class="range-toolbar__btn range-toolbar__btn--icon"
+                class="range-toolbar__btn range-toolbar__btn--icon sidebar-action-btn--icon"
                 type="button"
                 @click="toggleNav"
                 :aria-expanded="navOpen"
@@ -96,18 +104,18 @@
               </button>
               <div class="range-toolbar__group" role="group" aria-label="Navigate periods">
                 <button
-                  class="range-toolbar__btn"
+                  class="range-toolbar__btn sidebar-action-btn--icon"
                   type="button"
                   :disabled="isLoading"
                   @click="goPrevious"
                 >
                   ◀
                 </button>
-                <span class="range-toolbar__label" :title="rangeDateLabel">
+                <span class="range-toolbar__label range-toolbar__label--pill" :title="rangeDateLabel">
                   {{ rangeDateLabel }}
                 </span>
                 <button
-                  class="range-toolbar__btn"
+                  class="range-toolbar__btn sidebar-action-btn--icon"
                   type="button"
                   :disabled="isLoading"
                   @click="goNext"
@@ -116,7 +124,7 @@
                 </button>
               </div>
               <button
-                class="range-toolbar__btn range-toolbar__btn--refresh"
+                class="range-toolbar__btn range-toolbar__btn--refresh sidebar-action-btn"
                 type="button"
                 :disabled="isLoading"
                 @click="loadCurrent"
@@ -249,6 +257,7 @@
     <KeyboardShortcutsModal
       :visible="shortcutsOpen"
       :groups="shortcutGroups"
+      :theme="effectiveTheme"
       @close="closeShortcuts"
     />
   </div>
@@ -258,11 +267,12 @@
 import { NcAppContent, NcLoadingIcon } from '@nextcloud/vue'
 import Sidebar from './components/Sidebar.vue'
 import OnboardingWizard from './components/OnboardingWizard.vue'
+import ProfilesOverlay from './components/ProfilesOverlay.vue'
 import KeyboardShortcutsModal from './components/KeyboardShortcutsModal.vue'
 import DashboardLayout from './components/layout/DashboardLayout.vue'
 import { buildTargetsSummary, normalizeTargetsConfig, createEmptyTargetsSummary, createDefaultActivityCardConfig, createDefaultBalanceConfig, cloneTargetsConfig, convertWeekToMonth, type ActivityCardConfig, type BalanceConfig, type TargetsConfig } from './services/targets'
 import { normalizeReportingConfig, normalizeDeckSettings, type DeckFilterMode } from './services/reporting'
-import { ONBOARDING_VERSION } from './services/onboarding'
+import { ONBOARDING_VERSION, getStrategyDefinitions } from './services/onboarding'
 import { createDashboardPreset, createDefaultWidgetTabs, normalizeWidgetTabs, widgetsRegistry } from './services/widgetsRegistry'
 // Lightweight notifications without @nextcloud/dialogs
 function notifySuccess(msg: string){
@@ -330,6 +340,7 @@ type BalanceOverviewSummary = {
 } | null
 
 const { navOpen, toggleNav, navToggleLabel, navToggleIcon } = useSidebarState()
+const profilesOverlayOpen = ref(false)
 function ensureSidebarVisible() {
   if (!navOpen.value) {
     toggleNav()
@@ -893,6 +904,7 @@ const {
 
 const {
   shortcutsOpen,
+  openShortcuts,
   closeShortcuts,
   shortcutGroups,
 } = useKeyboardShortcuts({
@@ -1216,6 +1228,139 @@ const dashboardModeLabel = computed(() => {
 function n1(v:any){ return Number(v ?? 0).toFixed(1) }
 function n2(v:any){ return Number(v ?? 0).toFixed(2) }
 function arrow(v:number){ return v>0?'▲':(v<0?'▼':'—') }
+function fmtHours(v:any){
+  const num = Number(v ?? 0)
+  if (!Number.isFinite(num)) return '0'
+  return Number.isInteger(num) ? String(num) : num.toFixed(1)
+}
+
+const strategyTitle = computed(() => {
+  const strategyId = onboardingState.value?.strategy
+  if (!strategyId) return '—'
+  const match = getStrategyDefinitions().find((def) => def.id === strategyId)
+  return match?.title ?? String(strategyId)
+})
+
+const selectedCalendarLabels = computed(() => {
+  const map = new Map(
+    (calendars.value || []).map((cal: any) => [
+      String(cal?.id ?? ''),
+      String(cal?.displayname ?? cal?.name ?? cal?.calendar ?? cal?.id ?? 'Calendar'),
+    ]),
+  )
+  const labels = (selected.value || [])
+    .map((id) => map.get(String(id)))
+    .filter((value): value is string => !!value)
+  return labels.length ? labels : ['None selected']
+})
+
+function compactList(items: string[], maxItems: number, separator = ', '): string {
+  const filtered = items.filter((item) => item && item !== 'None selected')
+  const shown = filtered.slice(0, maxItems)
+  const extra = filtered.length - shown.length
+  if (!shown.length) return 'None selected'
+  return extra > 0 ? `${shown.join(separator)} +${extra}` : shown.join(separator)
+}
+
+function compactJoin(items: string[], maxItems: number, separator = ' · '): string {
+  const filtered = items.filter(Boolean)
+  const shown = filtered.slice(0, maxItems)
+  const extra = filtered.length - shown.length
+  if (!shown.length) return ''
+  return extra > 0 ? `${shown.join(separator)} +${extra}` : shown.join(separator)
+}
+
+function compactTargetLine(line: string): string {
+  return line.replace(/\s+—\s+/g, ' ').replace(/\s+h$/, 'h')
+}
+
+const targetsPreviewLines = computed(() => {
+  const categories = targetsConfig.value?.categories ?? []
+  if (!categories.length) return ['No category targets']
+  return categories.map((cat) => `${cat.label || cat.id} — ${fmtHours(cat.targetHours)} h`)
+})
+
+const totalWeeklyTargetLine = computed(() => `${n1(targetsConfig.value?.totalHours ?? 0)} h`)
+
+const dashboardLayoutLine = computed(() => {
+  if (dashboardMode.value === 'pro') return 'Pro layout'
+  if (dashboardMode.value === 'quick') return 'Quick layout'
+  return 'Standard layout'
+})
+
+const themeShort = computed(() =>
+  effectiveTheme.value === 'dark' ? 'Dark' : 'Light',
+)
+
+const deckSummary = computed(() => {
+  if (!deckSettings.value?.enabled) {
+    return { status: 'Deck tab disabled', boards: [] as string[] }
+  }
+  const hidden = new Set((deckSettings.value.hiddenBoards || []).map((id: any) => Number(id)))
+  const boardMap = new Map<number, string>()
+  ;(deckCards.value || []).forEach((card: any) => {
+    const boardId = Number(card?.boardId)
+    if (!Number.isFinite(boardId) || hidden.has(boardId)) return
+    const title = String(card?.boardTitle ?? `Board ${boardId}`)
+    if (!boardMap.has(boardId)) boardMap.set(boardId, title)
+  })
+  const boards = Array.from(boardMap.values())
+  const status = `Showing ${boards.length} board${boards.length === 1 ? '' : 's'}`
+  return { status, boards }
+})
+
+const deckLine = computed(() => {
+  if (!deckSettings.value?.enabled) return 'Deck — off'
+  if (deckSummary.value.boards.length === 1) {
+    return `Deck — ${deckSummary.value.boards[0]}`
+  }
+  return `Deck — ${deckSummary.value.boards.length} boards`
+})
+
+const targetsLine = computed(() => {
+  const lines = targetsPreviewLines.value
+  if (!lines.length) return ''
+  if (lines.length === 1 && lines[0] === 'No category targets') return 'No targets'
+  const compact = compactJoin(lines.map(compactTargetLine), 3)
+  if (!compact) return ''
+  return `${compact} · Total ${totalWeeklyTargetLine.value}`
+})
+
+const dashboardHint = computed(() =>
+  compactJoin(
+    [
+      strategyTitle.value && strategyTitle.value !== '—'
+        ? `Strategy — ${strategyTitle.value}`
+        : '',
+      dashboardLayoutLine.value,
+    ],
+    2,
+  ),
+)
+
+const calendarsHint = computed(() => compactList(selectedCalendarLabels.value, 2))
+
+const preferencesHint = computed(() =>
+  compactJoin([`Theme — ${themeShort.value}`, deckLine.value], 2),
+)
+
+const reviewHint = computed(() =>
+  compactJoin(
+    [
+      reportingConfig.value?.enabled ? 'Recap on' : 'Recap off',
+      targetsConfig.value?.activityCard?.showDayOffTrend ? 'Heatmap on' : 'Heatmap off',
+    ],
+    2,
+  ),
+)
+
+const guidedHints = computed(() => ({
+  dashboard: dashboardHint.value,
+  calendars: calendarsHint.value,
+  categories: targetsLine.value,
+  preferences: preferencesHint.value,
+  review: reviewHint.value,
+}))
 
 function formatDateKey(date: Date): string {
   const year = date.getFullYear()

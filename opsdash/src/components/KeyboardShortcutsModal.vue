@@ -1,70 +1,74 @@
 <template>
-  <div
-    v-if="visible"
-    class="shortcuts-overlay"
-    role="dialog"
-    aria-modal="true"
-    aria-labelledby="opsdash-shortcuts-title"
-    @click.self="emitClose"
-  >
+  <transition name="onboarding-fade">
     <div
-      ref="panelRef"
-      class="shortcuts-panel"
-      tabindex="-1"
-      @keydown.esc.prevent="emitClose"
+      v-if="visible"
+      class="onboarding-overlay shortcuts-overlay"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="opsdash-shortcuts-title"
     >
-      <header class="shortcuts-header">
-        <div class="shortcuts-title">
-          <h2 id="opsdash-shortcuts-title">Keyboard Shortcuts</h2>
-          <p class="shortcuts-hint">Press Esc to close or ? to reopen.</p>
+      <div class="onboarding-backdrop" @click="emitClose"></div>
+      <div
+        ref="panelRef"
+        class="onboarding-panel shortcuts-panel"
+        :class="`theme-${panelTheme}`"
+        tabindex="-1"
+        @keydown.esc.prevent="emitClose"
+      >
+        <header class="onboarding-header shortcuts-header">
+          <div class="onboarding-title shortcuts-title">
+            <h2 id="opsdash-shortcuts-title">Keyboard Shortcuts</h2>
+            <p class="shortcuts-hint">Press Esc to close or ? to reopen.</p>
+          </div>
+          <button
+            type="button"
+            class="close-btn shortcuts-close"
+            aria-label="Close shortcuts overlay"
+            @click="emitClose"
+          >
+            ×
+          </button>
+        </header>
+        <div class="onboarding-body shortcuts-body">
+          <section
+            v-for="group in groups"
+            :key="group.id"
+            class="shortcuts-group"
+          >
+            <h3>{{ group.title }}</h3>
+            <ul>
+              <li v-for="item in group.items" :key="item.id">
+                <span class="shortcut-label">
+                  {{ item.label }}
+                  <small v-if="item.description">{{ item.description }}</small>
+                </span>
+                <span class="shortcut-combo" aria-hidden="true">
+                  <kbd v-for="(part, idx) in item.combo" :key="idx">{{ part }}</kbd>
+                </span>
+              </li>
+            </ul>
+          </section>
         </div>
-        <button
-          type="button"
-          class="shortcuts-close"
-          aria-label="Close shortcuts overlay"
-          @click="emitClose"
-        >
-          ×
-        </button>
-      </header>
-      <div class="shortcuts-body">
-        <section
-          v-for="group in groups"
-          :key="group.id"
-          class="shortcuts-group"
-        >
-          <h3>{{ group.title }}</h3>
-          <ul>
-            <li v-for="item in group.items" :key="item.id">
-              <span class="shortcut-label">
-                {{ item.label }}
-                <small v-if="item.description">{{ item.description }}</small>
-              </span>
-              <span class="shortcut-combo" aria-hidden="true">
-                <kbd v-for="(part, idx) in item.combo" :key="idx">{{ part }}</kbd>
-              </span>
-            </li>
-          </ul>
-        </section>
+        <footer class="shortcuts-footer">
+          <NcButton type="primary" size="small" @click="emitClose">
+            Close
+          </NcButton>
+        </footer>
       </div>
-      <footer class="shortcuts-footer">
-        <NcButton type="primary" size="small" @click="emitClose">
-          Close
-        </NcButton>
-      </footer>
     </div>
-  </div>
+  </transition>
 </template>
 
 <script setup lang="ts">
 import { NcButton } from '@nextcloud/vue'
-import { ref, watch, nextTick } from 'vue'
+import { ref, watch, nextTick, computed } from 'vue'
 
 import type { ShortcutGroup } from '../services/shortcuts'
 
 const props = defineProps<{
   visible: boolean
   groups: ShortcutGroup[]
+  theme?: 'light' | 'dark'
 }>()
 
 const emit = defineEmits<{
@@ -72,6 +76,7 @@ const emit = defineEmits<{
 }>()
 
 const panelRef = ref<HTMLDivElement | null>(null)
+const panelTheme = computed(() => (props.theme === 'dark' ? 'dark' : 'light'))
 
 function emitClose() {
   emit('close')
@@ -90,56 +95,19 @@ watch(
 </script>
 
 <style scoped>
-.shortcuts-overlay {
-  position: fixed;
-  inset: 0;
-  background: color-mix(in srgb, var(--color-background-dark-default, rgba(0, 0, 0, 0.85)) 90%, transparent);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 24px;
-  z-index: 9999;
-}
-
 .shortcuts-panel {
   width: min(720px, 100%);
   max-height: 90vh;
   overflow: auto;
-  background: var(--color-main-background, #fff);
-  border-radius: 16px;
-  box-shadow: 0 12px 48px rgba(0, 0, 0, 0.35);
-  padding: 20px;
   display: flex;
   flex-direction: column;
   gap: 16px;
-  outline: none;
-}
-
-.shortcuts-header {
-  display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
-  gap: 12px;
-}
-
-.shortcuts-title h2 {
-  margin: 0;
-  font-size: 20px;
 }
 
 .shortcuts-hint {
   margin: 4px 0 0;
   font-size: 13px;
-  color: var(--text-color-tertiary);
-}
-
-.shortcuts-close {
-  border: none;
-  background: transparent;
-  font-size: 24px;
-  line-height: 1;
-  cursor: pointer;
-  color: var(--text-color-primary, #111);
+  color: var(--color-text-light);
 }
 
 .shortcuts-body {
@@ -152,7 +120,7 @@ watch(
   margin: 0 0 8px;
   font-size: 14px;
   text-transform: uppercase;
-  color: var(--text-color-tertiary);
+  color: var(--color-text-light);
   letter-spacing: 0.06em;
 }
 
@@ -171,7 +139,7 @@ watch(
   justify-content: space-between;
   gap: 12px;
   padding: 8px 0;
-  border-bottom: 1px solid color-mix(in srgb, var(--color-border, rgba(0, 0, 0, 0.1)) 60%, transparent);
+  border-bottom: 1px solid var(--color-border);
 }
 
 .shortcuts-group li:last-child {
@@ -188,7 +156,7 @@ watch(
 .shortcut-label small {
   font-weight: 400;
   font-size: 12px;
-  color: var(--text-color-tertiary);
+  color: var(--color-text-light);
 }
 
 .shortcut-combo {
@@ -201,9 +169,9 @@ kbd {
   font-size: 12px;
   padding: 4px 8px;
   border-radius: 6px;
-  border: 1px solid color-mix(in srgb, var(--color-border, rgba(0, 0, 0, 0.2)) 80%, transparent);
-  background: color-mix(in srgb, var(--color-main-background, #fff) 80%, rgba(0, 0, 0, 0.05));
-  color: var(--text-color-primary, #111);
+  border: 1px solid var(--color-border);
+  background: var(--color-background-contrast);
+  color: var(--color-text);
   box-shadow: inset 0 -1px 0 rgba(255, 255, 255, 0.6);
 }
 

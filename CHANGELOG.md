@@ -15,6 +15,7 @@ All notable changes to this project will be documented in this file.
 - Stacked chart widgets now label each stack segment and show per-column totals with leader labels for small segments.
 - Day-of-week and hours-of-day charts now fold in the configured lookback window for history context.
 - Lookback charts now color weeks consistently in Per-day/Day-of-week, and Hours-of-day adds stacked/overlay lookback modes with a legend.
+- Profiles management is now available in an onboarding-style overlay triggered from the sidebar icon.
 
 ### Changed
 - Sidebar layout: setup wizard block copy/numbered steps, framed sections, larger refresh button, and keyboard shortcuts moved to the bottom.
@@ -23,6 +24,10 @@ All notable changes to this project will be documented in this file.
 - Widget layout editing keeps the active tab selected after widget changes.
 - Day-off trend widget uses the global range unit (week/month) and defaults color pickers to red/green tones.
 - Day-off trend widget adds Balance Index-style trend label options (date range, week/month, offset).
+- Sidebar guided steps now include compact per-step hints (strategy, calendars, targets, etc.) instead of a separate summary block.
+- Sidebar bottom icons now open the same keyboard shortcuts overlay as `?`, with updated iconography and sizing.
+- Sidebar navigation is now full-height (no internal scroll), keeping the bottom icon row pinned.
+- Category mix trend tiles use tone-aware gradients and contrast in light/dark themes.
 
 ### Added
 - Onboarding wizard “Dashboard preset” step (Quick / Standard / Pro) that applies a preset widget layout and stores the chosen dashboard mode.
@@ -40,7 +45,7 @@ All notable changes to this project will be documented in this file.
 - Widget layouts now persist as a tabbed payload (`{ tabs, defaultTabId }`), with legacy arrays normalized into a single tab.
 - Layout toolbar is left-aligned and tab visuals are more pronounced for quick scanning (dark theme contrast improved).
 
-## [0.5.3] - Unreleased
+## [0.5.4] - Unreleased
 ### Added
 - Widget layout persistence now round-trips through `/overview/persist` and `/overview/load`, with sanitisation on the server and normalisation on the client (new `normalizeWidgetLayout`) plus Vitest/PHP coverage.
 - Balance/Activity controls restored: thresholds, index basis selector, display toggles, and activity card toggles with contextual help.
@@ -60,7 +65,7 @@ All notable changes to this project will be documented in this file.
 - Deck custom filter builder stacks on small screens so the inputs stay usable.
 ### Fixed
 - Widget layout no longer falls back to defaults after clearing cookies; server-saved layout is applied on reload.
-- Balance tests re-enabled and passing under 0.5.3 with corrected DOM structure and emits.
+- Balance tests re-enabled and passing under 0.5.4 with corrected DOM structure and emits.
 - Show title toggle now works across all widget types, including notes/text widgets.
 - Notes editor title prefix now updates live from the toolbar.
 

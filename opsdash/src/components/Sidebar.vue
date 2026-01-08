@@ -50,67 +50,67 @@
         Revisit the setup wizard to adjust your dashboard step by step.
       </div>
       <ol class="onboarding-jumps">
-        <li><button type="button" class="link" @click="$emit('rerun-onboarding', 'dashboard')">Dashboard</button></li>
-        <li><button type="button" class="link" @click="$emit('rerun-onboarding', 'calendars')">Calendars</button></li>
-        <li><button type="button" class="link" @click="$emit('rerun-onboarding', 'categories')">Targets</button></li>
-        <li><button type="button" class="link" @click="$emit('rerun-onboarding', 'preferences')">Preferences</button></li>
-        <li><button type="button" class="link" @click="$emit('rerun-onboarding', 'review')">Review</button></li>
+        <li>
+          <button type="button" class="link" @click="$emit('rerun-onboarding', 'dashboard')">Dashboard</button>
+          <div v-if="guidedHints?.dashboard" class="onboarding-hint">{{ guidedHints.dashboard }}</div>
+        </li>
+        <li>
+          <button type="button" class="link" @click="$emit('rerun-onboarding', 'calendars')">Calendars</button>
+          <div v-if="guidedHints?.calendars" class="onboarding-hint">{{ guidedHints.calendars }}</div>
+        </li>
+        <li>
+          <button type="button" class="link" @click="$emit('rerun-onboarding', 'categories')">Targets</button>
+          <div v-if="guidedHints?.categories" class="onboarding-hint">{{ guidedHints.categories }}</div>
+        </li>
+        <li>
+          <button type="button" class="link" @click="$emit('rerun-onboarding', 'preferences')">Preferences</button>
+          <div v-if="guidedHints?.preferences" class="onboarding-hint">{{ guidedHints.preferences }}</div>
+        </li>
+        <li>
+          <button type="button" class="link" @click="$emit('rerun-onboarding', 'review')">Review</button>
+          <div v-if="guidedHints?.review" class="onboarding-hint">{{ guidedHints.review }}</div>
+        </li>
       </ol>
     </div>
 
-    <div class="sidebar-block sidebar-block--framed" v-if="props.dashboardMode !== 'quick'">
-      <SidebarProfilesPane
-        :presets="presetsList"
-        :is-loading="props.presetsLoading"
-        :is-saving="props.presetSaving"
-        :is-applying="props.presetApplying"
-        :warnings="props.presetWarnings"
-        @save="(name: string) => emit('save-preset', name)"
-        @load="(name: string) => emit('load-preset', name)"
-        @delete="(name: string) => emit('delete-preset', name)"
-        @refresh="() => emit('refresh-presets')"
-        @clear-warnings="() => emit('clear-preset-warnings')"
-        @export-config="() => emit('export-config')"
-        @import-config="(file: File) => emit('import-config', file)"
-      />
-    </div>
-
     <div class="sidebar-shortcuts sidebar-shortcuts--bottom">
-      <NcButton
-        type="tertiary"
-        size="small"
-        class="shortcuts-btn"
-        @click="shortcutsOpen = !shortcutsOpen"
-      >
-        Keyboard shortcuts
-      </NcButton>
-      <div v-if="shortcutsOpen" class="shortcuts-box" role="region" aria-label="Keyboard shortcuts">
-        <div class="shortcuts-box__header">
-          <span>Keyboard shortcuts</span>
-          <button type="button" class="ghost sm" @click="shortcutsOpen = false">✕</button>
-        </div>
-        <div class="shortcuts-box__body">
-          <div v-for="group in shortcutGroups" :key="group.id" class="shortcuts-box__group">
-            <div class="shortcuts-box__title">{{ group.title }}</div>
-            <ul>
-              <li v-for="item in group.items" :key="item.id">
-                <span class="label">{{ item.label }}</span>
-                <span class="combo">{{ item.combo.join(' + ') }}</span>
-                <span v-if="item.description" class="desc">{{ item.description }}</span>
-              </li>
-            </ul>
-          </div>
-        </div>
+      <div class="sidebar-icon-row">
+        <button
+          type="button"
+          class="sidebar-icon-btn"
+          title="Keyboard shortcuts"
+          aria-label="Keyboard shortcuts"
+          @click="emit('open-shortcuts', $event.currentTarget as HTMLElement)"
+        >
+          <svg class="sidebar-icon" viewBox="0 0 24 24" aria-hidden="true">
+            <path
+              fill="currentColor"
+              d="M4.25 6.5A2.75 2.75 0 0 1 7 3.75h10a2.75 2.75 0 0 1 2.75 2.75v10.5A2.75 2.75 0 0 1 17 19.75H7A2.75 2.75 0 0 1 4.25 17V6.5zm2.75-.75a.75.75 0 0 0-.75.75V17c0 .41.34.75.75.75h10a.75.75 0 0 0 .75-.75V6.5a.75.75 0 0 0-.75-.75H7zm1.5 2.25h2v2h-2v-2zm3 0h2v2h-2v-2zm3 0h2v2h-2v-2zm-6 3h7v2h-7v-2z"
+            />
+          </svg>
+        </button>
+        <button
+          v-if="props.dashboardMode !== 'quick'"
+          type="button"
+          class="sidebar-icon-btn sidebar-icon-btn--profile"
+          title="Profiles"
+          aria-label="Profiles"
+          @click="emit('open-profiles')"
+        >
+          <svg class="sidebar-icon sidebar-icon--profile" viewBox="0 0 24 24" aria-hidden="true">
+            <path
+              fill="currentColor"
+              d="M12 4.25a4 4 0 1 1 0 8 4 4 0 0 1 0-8zm0 1.5a2.5 2.5 0 1 0 0 5 2.5 2.5 0 0 0 0-5zm0 7.5c3.18 0 5.75 1.57 5.75 3.5v1.5c0 .41-.34.75-.75.75H7a.75.75 0 0 1-.75-.75v-1.5c0-1.93 2.57-3.5 5.75-3.5zm0 1.5c-2.44 0-4.25 1.05-4.25 2v.75h8.5V16.75c0-.95-1.81-2-4.25-2z"
+            />
+          </svg>
+        </button>
       </div>
     </div>
   </NcAppNavigation>
 </template>
 
 <script setup lang="ts">
-import { computed, ref } from 'vue'
 import { NcAppNavigation, NcButton, NcCheckboxRadioSwitch } from '@nextcloud/vue'
-import SidebarProfilesPane from './sidebar/SidebarProfilesPane.vue'
-import { KEYBOARD_SHORTCUT_GROUPS } from '../services/shortcuts'
 
 const props = defineProps<{
   isLoading: boolean
@@ -120,12 +120,8 @@ const props = defineProps<{
   to: string
   navToggleLabel: string
   navToggleIcon: string
-  presets: Array<{ name: string; createdAt?: string | null; updatedAt?: string | null; selectedCount: number; calendarCount: number }>
-  presetsLoading: boolean
-  presetSaving: boolean
-  presetApplying: boolean
-  presetWarnings: string[]
   dashboardMode?: 'quick' | 'standard' | 'pro'
+  guidedHints?: Partial<Record<'dashboard' | 'calendars' | 'categories' | 'preferences' | 'review', string>>
 }>()
 
 const emit = defineEmits([
@@ -133,19 +129,10 @@ const emit = defineEmits([
   'update:range',
   'update:offset',
   'toggle-nav',
-  'save-preset',
-  'load-preset',
-  'delete-preset',
-  'refresh-presets',
-  'clear-preset-warnings',
+  'open-profiles',
+  'open-shortcuts',
   'rerun-onboarding',
-  'export-config',
-  'import-config',
 ])
-
-const presetsList = computed(() => props.presets ?? [])
-const shortcutsOpen = ref(false)
-const shortcutGroups = KEYBOARD_SHORTCUT_GROUPS
 </script>
 
 <style scoped>
@@ -178,10 +165,36 @@ const shortcutGroups = KEYBOARD_SHORTCUT_GROUPS
 :global(.app-opsdash #app-navigation),
 :global(.app-opsdash .app-navigation){
   position:relative;
+  display:flex;
+  flex-direction:column;
+  height:100%;
+  overflow:visible !important;
+}
+
+:global(.app-opsdash .app-content){
+  padding-left:0 !important;
+  padding-top:0 !important;
+}
+
+:global(.app-opsdash .app-content__navigation){
+  padding-left:0 !important;
+  padding-top:0 !important;
+  margin-left:-4px;
+  overflow:visible !important;
+}
+
+:global(.app-opsdash .app-navigation__content){
+  display:flex;
+  flex-direction:column;
+  flex:1;
+  min-height:100%;
+  overflow:visible !important;
+  max-height:none !important;
 }
 
 .rangebar{
-  margin-top:12px;
+  margin-top:0 !important;
+  padding-top:0 !important;
 }
 
 .sidebar-toggle-btn--corner{
@@ -201,15 +214,72 @@ const shortcutGroups = KEYBOARD_SHORTCUT_GROUPS
   display:flex;
   flex-direction:column;
   align-items:center;
-  margin-top:12px;
+  margin-top:auto;
+  padding-bottom:10px;
+  gap:8px;
 }
 
-.sidebar-shortcuts--bottom .shortcuts-btn{
-  margin:0 auto;
+.onboarding-hint{
+  margin:1px 0 4px;
+  font-size:11px;
+  line-height:1.2;
+  color:color-mix(in oklab, var(--text), transparent 40%);
+  white-space:nowrap;
+  overflow:hidden;
+  text-overflow:ellipsis;
 }
 
-.sidebar-shortcuts--bottom .shortcuts-box{
-  width:100%;
+.sidebar-icon-row{
+  display:flex;
+  gap:10px;
+  align-items:center;
+  justify-content:center;
+}
+
+.sidebar-icon-btn{
+  appearance:none;
+  border-radius:999px;
+  border:1px solid color-mix(in oklab, var(--brand), var(--line) 70%);
+  background:color-mix(in oklab, var(--brand), var(--card) 90%);
+  color:var(--brand);
+  width:40px;
+  height:40px;
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  box-shadow:0 6px 14px rgba(15,23,42,0.12);
+  cursor:pointer;
+}
+
+.sidebar-icon-btn:hover{
+  background:color-mix(in oklab, var(--brand), var(--card) 80%);
+  border-color:color-mix(in oklab, var(--brand), var(--line) 50%);
+}
+
+.sidebar-icon-btn.active{
+  background:color-mix(in oklab, var(--brand), var(--card) 70%);
+  border-color:color-mix(in oklab, var(--brand), var(--line) 40%);
+  box-shadow:0 8px 16px rgba(15,23,42,0.16);
+}
+
+.sidebar-icon-btn:focus-visible{
+  outline:2px solid color-mix(in oklab, var(--brand), transparent 40%);
+  outline-offset:2px;
+}
+
+.sidebar-icon{
+  width:20px;
+  height:20px;
+}
+
+.sidebar-icon-btn--profile{
+  width:46px;
+  height:46px;
+}
+
+.sidebar-icon--profile{
+  width:24px;
+  height:24px;
 }
 
 .sidebar-block{
@@ -233,14 +303,15 @@ const shortcutGroups = KEYBOARD_SHORTCUT_GROUPS
 
 .onboarding-jumps{
   display:grid;
-  gap:4px;
-  margin:6px 0 4px;
+  gap:2px;
+  margin:4px 0 2px;
   padding-left:18px;
   font-size:12px;
   color: var(--muted, #6b7280);
   list-style: decimal;
   list-style-position: inside;
 }
+
 
 .onboarding-jumps .link{
   background: transparent;
@@ -262,75 +333,6 @@ const shortcutGroups = KEYBOARD_SHORTCUT_GROUPS
   color: var(--muted, #6b7280);
   margin-top:2px;
   margin-bottom:4px;
-}
-
-.shortcuts-box{
-  margin:8px 0 12px;
-  background:color-mix(in oklab, #111827, #1f2937 60%);
-  border:1px solid color-mix(in oklab, #4b5563, transparent 20%);
-  border-radius:10px;
-  box-shadow:0 10px 18px rgba(0,0,0,0.18);
-  padding:10px;
-}
-
-.shortcuts-box__header{
-  display:flex;
-  align-items:center;
-  justify-content:space-between;
-  font-size:12px;
-  font-weight:700;
-  text-transform:uppercase;
-  letter-spacing:0.04em;
-  color:#cbd5f5;
-  margin-bottom:8px;
-}
-
-.shortcuts-box__body{
-  display:flex;
-  flex-direction:column;
-  gap:10px;
-}
-
-.shortcuts-box__title{
-  font-size:11px;
-  font-weight:700;
-  color:#9ca3af;
-  text-transform:uppercase;
-  letter-spacing:0.04em;
-  margin-bottom:4px;
-}
-
-.shortcuts-box__group ul{
-  list-style:none;
-  padding:0;
-  margin:0;
-  display:flex;
-  flex-direction:column;
-  gap:6px;
-}
-
-.shortcuts-box__group li{
-  display:grid;
-  grid-template-columns: 1fr auto;
-  gap:6px 10px;
-  align-items:center;
-  color:#e5e7eb;
-  font-size:12px;
-}
-
-.shortcuts-box__group .combo{
-  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
-  font-size:11px;
-  background:rgba(15, 23, 42, 0.8);
-  border-radius:6px;
-  padding:2px 6px;
-  color:#f8fafc;
-}
-
-.shortcuts-box__group .desc{
-  grid-column: 1 / -1;
-  color:#94a3b8;
-  font-size:11px;
 }
 
 </style>

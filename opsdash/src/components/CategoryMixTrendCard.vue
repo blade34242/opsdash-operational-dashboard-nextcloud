@@ -516,18 +516,28 @@ function clamp(v: number, min: number, max: number) {
   padding:var(--mix-cell-padding);
   background: linear-gradient(
     135deg,
-    color-mix(in oklab, var(--mix-bg), white 12%),
-    var(--mix-bg)
+    color-mix(in oklab, var(--mix-bg), var(--brand) 18%),
+    color-mix(in oklab, var(--mix-bg), var(--card) 10%)
   );
   color: var(--mix-fg, var(--fg));
   text-align:center;
   font-size:var(--mix-cell-font);
-  border: 1px solid color-mix(in oklab, var(--mix-bg), var(--fg) 12%);
-  box-shadow: inset 0 0 0 1px color-mix(in oklab, var(--mix-bg), transparent 60%);
+  border: 1px solid color-mix(in oklab, var(--mix-bg), var(--brand) 22%);
+  box-shadow: inset 0 0 0 1px color-mix(in oklab, var(--mix-bg), transparent 55%);
   min-height:var(--mix-cell-min);
   display:flex;
   align-items:center;
   justify-content:center;
+}
+:global(#opsdash.opsdash-theme-dark .mix-cell){
+  background: linear-gradient(
+    135deg,
+    color-mix(in oklab, var(--mix-bg), #0b1220 78%),
+    color-mix(in oklab, var(--mix-bg), #0b1220 90%)
+  );
+  border-color: color-mix(in oklab, var(--mix-bg), #0b1220 45%);
+  color: color-mix(in oklab, var(--mix-fg), #e2e8f0 80%);
+  box-shadow: inset 0 0 0 1px color-mix(in oklab, var(--mix-bg), transparent 72%);
 }
 .mix-cell--current{
   outline: 1px solid color-mix(in oklab, var(--brand), transparent 35%);
