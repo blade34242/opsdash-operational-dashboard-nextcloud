@@ -19,6 +19,8 @@ opsdash/node_modules/
 opsdash/.vite/
 opsdash/dist/
 opsdash/tests/.phpunit.result.cache
+opsdash/test-results/
+opsdash/playwright-report/
 build/
 docs-private/*
 !docs-private/opsdash-docs/
