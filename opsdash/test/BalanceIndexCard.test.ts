@@ -1,6 +1,6 @@
 import { mount } from '@vue/test-utils'
 import { describe, it, expect } from 'vitest'
-import BalanceIndexCard from '../src/components/BalanceIndexCard.vue'
+import BalanceIndexCard from '../src/components/widgets/cards/BalanceIndexCard.vue'
 
 const overview = {
   index: 0.72,

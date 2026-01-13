@@ -9,7 +9,7 @@ import {
 } from './chartHelpers'
 
 const ChartStackedWidget = defineAsyncComponent(() =>
-  import('../../../components/widgets/ChartStackedWidget.vue').then((m) => m.default),
+  import('../../../components/widgets/charts/ChartStackedWidget.vue').then((m) => m.default),
 )
 
 const baseTitle = 'Stacked Chart'

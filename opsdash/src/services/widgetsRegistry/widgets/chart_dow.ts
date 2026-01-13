@@ -14,7 +14,7 @@ import {
 } from './chartHelpers'
 
 const ChartDowWidget = defineAsyncComponent(() =>
-  import('../../../components/widgets/ChartDowWidget.vue').then((m) => m.default),
+  import('../../../components/widgets/charts/ChartDowWidget.vue').then((m) => m.default),
 )
 
 const baseTitle = 'Day-of-Week Chart'

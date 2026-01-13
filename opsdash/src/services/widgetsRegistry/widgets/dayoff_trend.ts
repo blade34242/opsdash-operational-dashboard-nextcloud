@@ -1,7 +1,7 @@
 import { defineAsyncComponent } from 'vue'
 
 const DayOffTrendCard = defineAsyncComponent(() =>
-  import('../../../components/DayOffTrendCard.vue').then((m) => m.default),
+  import('../../../components/widgets/cards/DayOffTrendCard.vue').then((m) => m.default),
 )
 
 import { buildTitle } from '../helpers'

@@ -265,10 +265,10 @@
 
 <script setup lang="ts">
 import { NcAppContent, NcLoadingIcon } from '@nextcloud/vue'
-import Sidebar from './components/Sidebar.vue'
-import OnboardingWizard from './components/OnboardingWizard.vue'
-import ProfilesOverlay from './components/ProfilesOverlay.vue'
-import KeyboardShortcutsModal from './components/KeyboardShortcutsModal.vue'
+import Sidebar from './components/sidebar/Sidebar.vue'
+import OnboardingWizard from './components/onboarding/OnboardingWizard.vue'
+import ProfilesOverlay from './components/overlays/ProfilesOverlay.vue'
+import KeyboardShortcutsModal from './components/modals/KeyboardShortcutsModal.vue'
 import DashboardLayout from './components/layout/DashboardLayout.vue'
 import { buildTargetsSummary, normalizeTargetsConfig, createEmptyTargetsSummary, createDefaultActivityCardConfig, createDefaultBalanceConfig, cloneTargetsConfig, convertWeekToMonth, type ActivityCardConfig, type BalanceConfig, type TargetsConfig } from './services/targets'
 import { normalizeReportingConfig, normalizeDeckSettings, type DeckFilterMode } from './services/reporting'

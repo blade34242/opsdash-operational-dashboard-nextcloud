@@ -1,6 +1,6 @@
 import { mount } from '@vue/test-utils'
 import { describe, it, expect } from 'vitest'
-import DeckCardsWidget from '../src/components/DeckCardsWidget.vue'
+import DeckCardsWidget from '../src/components/widgets/deck/DeckCardsWidget.vue'
 
 const stubs = {
   NcEmptyContent: { template: '<div class="stub-empty"></div>' },

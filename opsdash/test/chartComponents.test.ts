@@ -2,9 +2,9 @@ import { beforeEach, afterEach, describe, expect, it, vi } from 'vitest'
 import { mount } from '@vue/test-utils'
 import { nextTick } from 'vue'
 
-import PieChart from '../src/components/PieChart.vue'
-import StackedBars from '../src/components/StackedBars.vue'
-import ChartStackedWidget from '../src/components/widgets/ChartStackedWidget.vue'
+import PieChart from '../src/components/charts/PieChart.vue'
+import StackedBars from '../src/components/charts/StackedBars.vue'
+import ChartStackedWidget from '../src/components/widgets/charts/ChartStackedWidget.vue'
 
 type StubContext = ReturnType<typeof createStubContext>
 

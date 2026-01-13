@@ -13,7 +13,7 @@ import {
 } from './chartHelpers'
 
 const ChartPerDayWidget = defineAsyncComponent(() =>
-  import('../../../components/widgets/ChartPerDayWidget.vue').then((m) => m.default),
+  import('../../../components/widgets/charts/ChartPerDayWidget.vue').then((m) => m.default),
 )
 
 const baseTitle = 'Daily Chart'

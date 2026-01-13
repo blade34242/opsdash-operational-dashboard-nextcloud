@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest'
 import { mount } from '@vue/test-utils'
 
-import NoteSnippetWidget from '../src/components/NoteSnippetWidget.vue'
+import NoteSnippetWidget from '../src/components/widgets/notes/NoteSnippetWidget.vue'
 
 describe('NoteSnippetWidget', () => {
   it('hides the header when showHeader is false', () => {

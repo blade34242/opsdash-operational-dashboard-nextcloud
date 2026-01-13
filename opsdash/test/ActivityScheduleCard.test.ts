@@ -1,7 +1,7 @@
 import { mount } from '@vue/test-utils'
 import { describe, it, expect } from 'vitest'
 
-import ActivityScheduleCard from '../src/components/ActivityScheduleCard.vue'
+import ActivityScheduleCard from '../src/components/widgets/cards/ActivityScheduleCard.vue'
 
 const baseSummary = {
   rangeLabel: 'Week 45',

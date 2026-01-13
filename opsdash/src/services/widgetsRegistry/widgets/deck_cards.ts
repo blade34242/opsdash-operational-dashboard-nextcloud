@@ -1,7 +1,7 @@
 import { defineAsyncComponent } from 'vue'
 
 const DeckCardsWidget = defineAsyncComponent(() =>
-  import('../../../components/DeckCardsWidget.vue').then((m) => m.default),
+  import('../../../components/widgets/deck/DeckCardsWidget.vue').then((m) => m.default),
 )
 
 import { buildDeckTagOptions } from '../../deckTags'

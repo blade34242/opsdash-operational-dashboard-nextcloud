@@ -1,7 +1,7 @@
 import { defineAsyncComponent } from 'vue'
 
 const CategoryMixTrendCard = defineAsyncComponent(() =>
-  import('../../../components/CategoryMixTrendCard.vue').then((m) => m.default),
+  import('../../../components/widgets/cards/CategoryMixTrendCard.vue').then((m) => m.default),
 )
 
 import { buildTitle } from '../helpers'

@@ -1,7 +1,7 @@
 import { defineAsyncComponent } from 'vue'
 
 const TimeSummaryCard = defineAsyncComponent(() =>
-  import('../../../components/TimeSummaryCard.vue').then((m) => m.default),
+  import('../../../components/widgets/cards/TimeSummaryCard.vue').then((m) => m.default),
 )
 
 import { buildTitle } from '../helpers'

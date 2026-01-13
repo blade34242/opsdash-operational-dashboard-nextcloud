@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest'
 import { mount } from '@vue/test-utils'
 import { h } from 'vue'
-import Sidebar from '../src/components/Sidebar.vue'
+import Sidebar from '../src/components/sidebar/Sidebar.vue'
 
 vi.mock('@nextcloud/vue', () => {
   const buttonStub = {

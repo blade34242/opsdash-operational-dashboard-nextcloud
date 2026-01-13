@@ -1,7 +1,7 @@
 import { mount } from '@vue/test-utils'
 import { describe, it, expect } from 'vitest'
 
-import TimeSummaryCard from '../src/components/TimeSummaryCard.vue'
+import TimeSummaryCard from '../src/components/widgets/cards/TimeSummaryCard.vue'
 
 const baseSummary = {
   rangeLabel: 'Week 10',

@@ -1,7 +1,7 @@
 import { defineAsyncComponent } from 'vue'
 
 const TimeTargetsCard = defineAsyncComponent(() =>
-  import('../../../components/TimeTargetsCard.vue').then((m) => m.default),
+  import('../../../components/widgets/cards/TimeTargetsCard.vue').then((m) => m.default),
 )
 
 import { attachUi, buildTitle, copyConfigForRange, safeBuildTargetsSummary } from '../helpers'

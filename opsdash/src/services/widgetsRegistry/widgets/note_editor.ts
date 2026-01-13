@@ -1,7 +1,7 @@
 import { defineAsyncComponent } from 'vue'
 
 const NoteEditorWidget = defineAsyncComponent(() =>
-  import('../../../components/NoteEditorWidget.vue').then((m) => m.default),
+  import('../../../components/widgets/notes/NoteEditorWidget.vue').then((m) => m.default),
 )
 
 import { buildTitle } from '../helpers'

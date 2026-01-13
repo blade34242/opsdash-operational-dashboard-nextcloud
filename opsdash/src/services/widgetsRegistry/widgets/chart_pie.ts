@@ -4,7 +4,7 @@ import { buildTitle } from '../helpers'
 import { buildCategoryPie, filterPieByIds, parseIdList } from './chartHelpers'
 
 const ChartPieWidget = defineAsyncComponent(() =>
-  import('../../../components/widgets/ChartPieWidget.vue').then((m) => m.default),
+  import('../../../components/widgets/charts/ChartPieWidget.vue').then((m) => m.default),
 )
 
 const baseTitle = 'Pie Chart'

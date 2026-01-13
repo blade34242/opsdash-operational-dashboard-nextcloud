@@ -1,7 +1,7 @@
 import { defineAsyncComponent } from 'vue'
 
 const BalanceIndexCard = defineAsyncComponent(() =>
-  import('../../../components/BalanceIndexCard.vue').then((m) => m.default),
+  import('../../../components/widgets/cards/BalanceIndexCard.vue').then((m) => m.default),
 )
 
 import { buildTitle, numberOr } from '../helpers'

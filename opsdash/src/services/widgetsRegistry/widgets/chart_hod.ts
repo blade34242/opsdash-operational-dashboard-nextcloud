@@ -4,7 +4,7 @@ import { buildTitle } from '../helpers'
 import { formatLookbackLabel, getLookbackColor, parseIdList, sortLookbackOffsets } from './chartHelpers'
 
 const ChartHodWidget = defineAsyncComponent(() =>
-  import('../../../components/widgets/ChartHodWidget.vue').then((m) => m.default),
+  import('../../../components/widgets/charts/ChartHodWidget.vue').then((m) => m.default),
 )
 
 const baseTitle = 'Time-of-Day Chart'

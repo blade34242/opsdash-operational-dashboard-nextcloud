@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { mount } from '@vue/test-utils'
-import TimeTargetsCard from '../src/components/TimeTargetsCard.vue'
+import TimeTargetsCard from '../src/components/widgets/cards/TimeTargetsCard.vue'
 import { createDefaultTargetsConfig } from '../src/services/targets'
 
 describe('TimeTargetsCard', () => {

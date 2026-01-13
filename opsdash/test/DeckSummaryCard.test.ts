@@ -1,7 +1,7 @@
 import { mount } from '@vue/test-utils'
 import { describe, it, expect, vi } from 'vitest'
 
-import DeckSummaryCard from '../src/components/DeckSummaryCard.vue'
+import DeckSummaryCard from '../src/components/widgets/deck/DeckSummaryCard.vue'
 
 const buckets = [
   { key: 'open_all', label: 'Open · All', titles: ['Card A', 'Card B'], count: 2, board: { title: 'Opsdash Board', color: '#2563EB' } },

@@ -1,7 +1,7 @@
 import { mount } from '@vue/test-utils'
 import { describe, it, expect, vi } from 'vitest'
 
-import DeckCardsPanel from '../src/components/DeckCardsPanel.vue'
+import DeckCardsPanel from '../src/components/panels/DeckCardsPanel.vue'
 
 const cards = [
   {

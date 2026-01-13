@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest'
 import { mount } from '@vue/test-utils'
 
-import NotesPanel from '../src/components/NotesPanel.vue'
+import NotesPanel from '../src/components/panels/NotesPanel.vue'
 
 describe('NotesPanel', () => {
   it('renders read-only previous notes and editable current notes', async () => {

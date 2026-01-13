@@ -1,6 +1,6 @@
 import { mount } from '@vue/test-utils'
 import { describe, it, expect } from 'vitest'
-import CategoryMixTrendCard from '../src/components/CategoryMixTrendCard.vue'
+import CategoryMixTrendCard from '../src/components/widgets/cards/CategoryMixTrendCard.vue'
 
 describe('CategoryMixTrendCard', () => {
   it('applies custom tone colors', () => {

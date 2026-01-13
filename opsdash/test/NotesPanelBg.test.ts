@@ -1,6 +1,6 @@
 import { mount } from '@vue/test-utils'
 import { describe, it, expect } from 'vitest'
-import NotesPanel from '../src/components/NotesPanel.vue'
+import NotesPanel from '../src/components/panels/NotesPanel.vue'
 
 describe('NotesPanel background', () => {
   it('applies background color', () => {

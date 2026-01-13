@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest'
 import { mount } from '@vue/test-utils'
 
-import NoteEditorWidget from '../src/components/NoteEditorWidget.vue'
+import NoteEditorWidget from '../src/components/widgets/notes/NoteEditorWidget.vue'
 
 describe('NoteEditorWidget', () => {
   it('hides the title when showHeader is false', () => {

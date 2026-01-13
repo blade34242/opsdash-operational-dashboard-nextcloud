@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { mount } from '@vue/test-utils'
-import ByCalendarTable from '../src/components/ByCalendarTable.vue'
+import ByCalendarTable from '../src/components/tables/ByCalendarTable.vue'
 
 const n2 = (v: any) => Number(v ?? 0).toFixed(2)
 

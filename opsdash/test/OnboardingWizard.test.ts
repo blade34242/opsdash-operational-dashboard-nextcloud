@@ -1,7 +1,7 @@
 import { mount } from '@vue/test-utils'
 import { describe, it, expect } from 'vitest'
 
-import OnboardingWizard from '../src/components/OnboardingWizard.vue'
+import OnboardingWizard from '../src/components/onboarding/OnboardingWizard.vue'
 
 function mountWizard(overrides: Record<string, any> = {}) {
   return mount(OnboardingWizard, {

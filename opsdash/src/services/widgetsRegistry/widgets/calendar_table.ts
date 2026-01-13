@@ -4,7 +4,7 @@ import { buildTitle } from '../helpers'
 import { parseIdList } from './chartHelpers'
 
 const CalendarTableWidget = defineAsyncComponent(() =>
-  import('../../../components/widgets/CalendarTableWidget.vue').then((m) => m.default),
+  import('../../../components/widgets/tables/CalendarTableWidget.vue').then((m) => m.default),
 )
 
 const baseTitle = 'Calendar Table'

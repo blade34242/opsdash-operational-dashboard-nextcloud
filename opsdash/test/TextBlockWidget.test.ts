@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest'
 import { mount } from '@vue/test-utils'
 
-import TextBlockWidget from '../src/components/TextBlockWidget.vue'
+import TextBlockWidget from '../src/components/widgets/text/TextBlockWidget.vue'
 
 describe('TextBlockWidget', () => {
   it('hides the header when showHeader is false', () => {

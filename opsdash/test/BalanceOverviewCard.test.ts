@@ -1,7 +1,7 @@
 import { mount } from '@vue/test-utils'
 import { describe, it, expect } from 'vitest'
 
-import BalanceOverviewCard from '../src/components/BalanceOverviewCard.vue'
+import BalanceOverviewCard from '../src/components/widgets/cards/BalanceOverviewCard.vue'
 
 function rowValues(wrapper: ReturnType<typeof mount>, rowIndex = 0) {
   const row = wrapper.findAll('.mix-row')[rowIndex]

@@ -1,7 +1,7 @@
 import { defineAsyncComponent } from 'vue'
 
 const NoteSnippetWidget = defineAsyncComponent(() =>
-  import('../../../components/NoteSnippetWidget.vue').then((m) => m.default),
+  import('../../../components/widgets/notes/NoteSnippetWidget.vue').then((m) => m.default),
 )
 
 import { buildTitle } from '../helpers'

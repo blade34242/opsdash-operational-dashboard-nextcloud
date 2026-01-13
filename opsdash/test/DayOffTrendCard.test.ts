@@ -1,6 +1,6 @@
 import { mount } from '@vue/test-utils'
 import { describe, it, expect } from 'vitest'
-import DayOffTrendCard from '../src/components/DayOffTrendCard.vue'
+import DayOffTrendCard from '../src/components/widgets/cards/DayOffTrendCard.vue'
 
 describe('DayOffTrendCard', () => {
   it('applies custom tone colors', () => {
