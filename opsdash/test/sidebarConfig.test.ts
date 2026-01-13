@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest'
 import { sanitiseSidebarPayload, ALLOWED_CONFIG_KEYS } from '../src/utils/sidebarConfig'
-import presetFixture from './fixtures/preset-export.json'
-import onboardingFixture from './fixtures/onboarding-export.json'
+import presetFixture from './fixtures-v2/preset-export.json'
+import onboardingFixture from './fixtures-v2/onboarding-export.json'
 
 describe('sidebar config sanitiser', () => {
   it('keeps only allowed keys', () => {

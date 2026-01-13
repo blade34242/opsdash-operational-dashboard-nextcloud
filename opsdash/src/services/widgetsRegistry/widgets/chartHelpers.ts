@@ -1,4 +1,5 @@
 import { createDefaultTargetsConfig, type ActivityForecastMode, type TargetsConfig } from '../../targets'
+import { formatDateKey, getWeekdayOrder, parseDateKey } from '../../dateTime'
 
 type PieData = { ids: string[]; labels: string[]; data: number[]; colors?: string[] }
 type StackedData = { labels: string[]; series: Array<{ id: string; name?: string; label?: string; color?: string; data?: number[]; forecast?: number[] }> }
@@ -109,7 +110,7 @@ export function buildPerDayFromStacked(stacked: StackedData | null | undefined):
 
 export function buildDowFromPerDay(perDay: { labels: string[]; data: number[] } | null): { labels: string[]; data: number[] } | null {
   if (!perDay) return null
-  const order = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']
+  const order = getWeekdayOrder()
   const buckets = new Map<string, number>()
   order.forEach((day) => buckets.set(day, 0))
   perDay.labels.forEach((label, idx) => {
@@ -300,12 +301,10 @@ export function buildStackedWithForecast(input: {
 }
 
 function dayOfWeek(label: string): string | null {
-  const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(String(label))
-  if (!m) return null
-  const d = new Date(`${m[1]}-${m[2]}-${m[3]}T00:00:00`)
-  if (Number.isNaN(d.getTime())) return null
+  const d = parseDateKey(String(label))
+  if (!d) return null
   const names = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat']
-  const name = names[d.getDay()]
+  const name = names[d.getUTCDay()]
   if (!name) return null
   if (name === 'Sun') return 'Sun'
   return name
@@ -319,13 +318,6 @@ function normalizeMode(mode: ActivityForecastMode | undefined): ActivityForecast
     return mode
   }
   return 'total'
-}
-
-function formatDateKey(date: Date): string {
-  const year = date.getFullYear()
-  const month = `${date.getMonth() + 1}`.padStart(2, '0')
-  const day = `${date.getDate()}`.padStart(2, '0')
-  return `${year}-${month}-${day}`
 }
 
 function makeZeroArray(length: number): number[] {

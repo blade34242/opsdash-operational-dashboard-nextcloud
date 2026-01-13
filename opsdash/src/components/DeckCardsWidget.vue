@@ -32,6 +32,7 @@ import DeckCardsPanel from './DeckCardsPanel.vue'
 import type { DeckCardSummary } from '../services/deck'
 import { buildDeckTagOptions, cardHasTag } from '../services/deckTags'
 import type { DeckFilterMode, DeckMineMode } from '../services/reporting'
+import { formatDateKey, parseDateTime } from '../services/dateTime'
 
 const props = withDefaults(defineProps<{
   cards: DeckCardSummary[]
@@ -288,38 +289,47 @@ function deckStatusMatches(
   return false
 }
 
+const DATE_KEY_RX = /^\d{4}-\d{2}-\d{2}$/
+
+function normalizeDateKey(value?: string | null): string | null {
+  if (!value) return null
+  const trimmed = value.trim()
+  if (DATE_KEY_RX.test(trimmed)) return trimmed
+  const parsed = parseDateTime(trimmed)
+  return parsed ? formatDateKey(parsed) : null
+}
+
+function dateKeyForTs(ts?: number | null): string | null {
+  if (ts == null) return null
+  return formatDateKey(new Date(ts))
+}
+
 function isCreatedToday(card: DeckCardSummary) {
-  if (!card.createdTs) return false
-  const now = new Date()
-  const start = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime()
-  const end = start + 24 * 60 * 60 * 1000
-  return card.createdTs >= start && card.createdTs < end
+  const key = dateKeyForTs(card.createdTs)
+  if (!key) return false
+  return key === formatDateKey(new Date())
 }
 
 function isCreatedInRange(card: DeckCardSummary, from?: string, to?: string) {
-  if (!card.createdTs || !from || !to) return false
-  const fromTs = Date.parse(from)
-  const toTs = Date.parse(to)
-  if (!Number.isFinite(fromTs) || !Number.isFinite(toTs)) return false
-  return card.createdTs >= fromTs && card.createdTs <= toTs
+  const cardKey = dateKeyForTs(card.createdTs)
+  const fromKey = normalizeDateKey(from || null)
+  const toKey = normalizeDateKey(to || null)
+  if (!cardKey || !fromKey || !toKey) return false
+  return cardKey >= fromKey && cardKey <= toKey
 }
 
 function isDueInRange(card: DeckCardSummary, from?: string, to?: string) {
-  if (!from || !to) return false
-  const fromTs = Date.parse(from)
-  const toTs = Date.parse(to)
-  if (!Number.isFinite(fromTs) || !Number.isFinite(toTs)) return false
-  const dueTs = card.dueTs ?? null
-  return dueTs != null && dueTs >= fromTs && dueTs <= toTs
+  const dueKey = dateKeyForTs(card.dueTs ?? null)
+  const fromKey = normalizeDateKey(from || null)
+  const toKey = normalizeDateKey(to || null)
+  if (!dueKey || !fromKey || !toKey) return false
+  return dueKey >= fromKey && dueKey <= toKey
 }
 
 function isDueToday(card: DeckCardSummary) {
-  const dueTs = card.dueTs ?? null
-  if (dueTs == null) return false
-  const now = new Date()
-  const start = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime()
-  const end = start + 24 * 60 * 60 * 1000
-  return dueTs >= start && dueTs < end
+  const dueKey = dateKeyForTs(card.dueTs ?? null)
+  if (!dueKey) return false
+  return dueKey === formatDateKey(new Date())
 }
 
 function filterCardsForMode(mode: DeckFilterMode, cleaned: DeckCardSummary[], allowArchived: boolean) {

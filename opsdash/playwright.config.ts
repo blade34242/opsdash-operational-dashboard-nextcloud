@@ -8,6 +8,10 @@ export default defineConfig({
   testDir: './tests/e2e',
   use: {
     baseURL: baseUrl,
+    launchOptions: {
+      args: ['--no-sandbox', '--disable-setuid-sandbox'],
+      chromiumSandbox: false,
+    },
     extraHTTPHeaders: {
       Authorization: 'Basic ' + Buffer.from(`${username}:${password}`).toString('base64'),
       'OCS-APIREQUEST': 'true',

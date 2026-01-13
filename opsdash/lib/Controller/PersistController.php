@@ -3,7 +3,7 @@ declare(strict_types=1);
 
 namespace OCA\Opsdash\Controller;
 
-use OCA\Opsdash\Service\CalendarService;
+use OCA\Opsdash\Service\CalendarAccessService;
 use OCA\Opsdash\Service\PersistSanitizer;
 use OCA\Opsdash\Service\UserConfigService;
 use OCP\AppFramework\Controller;
@@ -17,8 +17,10 @@ use Psr\Log\LoggerInterface;
 
 final class PersistController extends Controller {
     use CsrfEnforcerTrait;
+    use RequestGuardTrait;
 
     private const CONFIG_ONBOARDING = 'onboarding_state';
+    private const MAX_CONFIG_BYTES = 65535;
 
     public function __construct(
         string $appName,
@@ -26,7 +28,7 @@ final class PersistController extends Controller {
         private IUserSession $userSession,
         protected LoggerInterface $logger,
         private IConfig $config,
-        private CalendarService $calendarService,
+        private CalendarAccessService $calendarAccess,
         private PersistSanitizer $persistSanitizer,
         private UserConfigService $userConfigService,
     ) {
@@ -42,9 +44,10 @@ final class PersistController extends Controller {
         }
 
         // Read request
-        $raw  = file_get_contents('php://input') ?: '';
-        $data = json_decode($raw, true);
-        if (!is_array($data)) return new DataResponse(['message' => 'invalid json'], Http::STATUS_BAD_REQUEST);
+        $data = $this->readJsonBodyDefault();
+        if ($data instanceof DataResponse) {
+            return $data;
+        }
         $hasCals = array_key_exists('cals', $data);
         $reqOriginal = null;
         if ($hasCals) {
@@ -56,11 +59,8 @@ final class PersistController extends Controller {
         }
 
         // Intersect with user's calendars
-        $allowedIds = [];
-        foreach ($this->calendarService->getCalendarsFor($uid) as $cal) {
-            $allowedIds[] = (string)($cal->getUri() ?? spl_object_id($cal));
-        }
-        $allowed = array_flip($allowedIds);
+        $allowedIds = $this->calendarAccess->getCalendarIdsFor($uid);
+        $allowed = array_fill_keys($allowedIds, true);
 
         // Save
         $after = null;
@@ -75,7 +75,9 @@ final class PersistController extends Controller {
         $groupsSaved = null; $groupsRead = null;
         if (isset($data['groups']) && is_array($data['groups'])) {
             $gclean = $this->persistSanitizer->cleanGroups($data['groups'], $allowed, array_keys($allowed));
-            $this->config->setUserValue($uid, $this->appName, 'cal_groups', json_encode($gclean));
+            if ($resp = $this->writeUserJsonValue($uid, 'cal_groups', $gclean, 'groups')) {
+                return $resp;
+            }
             $groupsSaved = $gclean;
             try {
                 $gjson = (string)$this->config->getUserValue($uid, $this->appName, 'cal_groups', '');
@@ -94,7 +96,9 @@ final class PersistController extends Controller {
         $widgetsSaved = null; $widgetsRead = null;
         if (isset($data['targets_week'])) {
             $tw = $this->persistSanitizer->cleanTargets(is_array($data['targets_week']) ? $data['targets_week'] : [], $allowed);
-            $this->config->setUserValue($uid, $this->appName, 'cal_targets_week', json_encode($tw));
+            if ($resp = $this->writeUserJsonValue($uid, 'cal_targets_week', $tw, 'targets_week')) {
+                return $resp;
+            }
             $targetsWeekSaved = $tw;
             try {
                 $r = (string)$this->config->getUserValue($uid, $this->appName, 'cal_targets_week', '');
@@ -103,7 +107,9 @@ final class PersistController extends Controller {
         }
         if (isset($data['targets_config'])) {
             $cleanCfg = $this->persistSanitizer->cleanTargetsConfig($data['targets_config']);
-            $this->config->setUserValue($uid, $this->appName, 'targets_config', json_encode($cleanCfg));
+            if ($resp = $this->writeUserJsonValue($uid, 'targets_config', $cleanCfg, 'targets_config')) {
+                return $resp;
+            }
             $targetsConfigSaved = $cleanCfg;
             try {
                 $cfgJson = (string)$this->config->getUserValue($uid, $this->appName, 'targets_config', '');
@@ -117,7 +123,9 @@ final class PersistController extends Controller {
         }
         if (isset($data['targets_month'])) {
             $tm = $this->persistSanitizer->cleanTargets(is_array($data['targets_month']) ? $data['targets_month'] : [], $allowed);
-            $this->config->setUserValue($uid, $this->appName, 'cal_targets_month', json_encode($tm));
+            if ($resp = $this->writeUserJsonValue($uid, 'cal_targets_month', $tm, 'targets_month')) {
+                return $resp;
+            }
             $targetsMonthSaved = $tm;
             try {
                 $r = (string)$this->config->getUserValue($uid, $this->appName, 'cal_targets_month', '');
@@ -130,7 +138,9 @@ final class PersistController extends Controller {
             } catch (\Throwable) {}
         } elseif (array_key_exists('onboarding', $data)) {
             $cleanOnboarding = $this->persistSanitizer->cleanOnboardingState($data['onboarding']);
-            $this->config->setUserValue($uid, $this->appName, self::CONFIG_ONBOARDING, json_encode($cleanOnboarding));
+            if ($resp = $this->writeUserJsonValue($uid, self::CONFIG_ONBOARDING, $cleanOnboarding, 'onboarding')) {
+                return $resp;
+            }
             $onboardingSaved = $cleanOnboarding;
         }
         $onboardingRead = $this->userConfigService->readOnboardingState($this->appName, $uid);
@@ -146,7 +156,9 @@ final class PersistController extends Controller {
         }
         if (isset($data['reporting_config'])) {
             $cleanReporting = $this->persistSanitizer->sanitizeReportingConfig($data['reporting_config']);
-            $this->config->setUserValue($uid, $this->appName, 'reporting_config', json_encode($cleanReporting));
+            if ($resp = $this->writeUserJsonValue($uid, 'reporting_config', $cleanReporting, 'reporting_config')) {
+                return $resp;
+            }
             $reportingSaved = $cleanReporting;
         }
         $reportingRead = $this->userConfigService->readReportingConfig($this->appName, $uid);
@@ -159,7 +171,9 @@ final class PersistController extends Controller {
                         $currentCfg['activityCard'] = [];
                     }
                     $currentCfg['activityCard']['showDayOffTrend'] = $activity['showDayOffTrend'] !== false;
-                    $this->config->setUserValue($uid, $this->appName, 'targets_config', json_encode($currentCfg));
+                    if ($resp = $this->writeUserJsonValue($uid, 'targets_config', $currentCfg, 'targets_config')) {
+                        return $resp;
+                    }
                     $targetsConfigSaved = $currentCfg;
                     $targetsConfigRead = $currentCfg;
                 }
@@ -167,13 +181,17 @@ final class PersistController extends Controller {
         }
         if (isset($data['deck_settings'])) {
             $cleanDeck = $this->persistSanitizer->sanitizeDeckSettings($data['deck_settings']);
-            $this->config->setUserValue($uid, $this->appName, 'deck_settings', json_encode($cleanDeck));
+            if ($resp = $this->writeUserJsonValue($uid, 'deck_settings', $cleanDeck, 'deck_settings')) {
+                return $resp;
+            }
             $deckSaved = $cleanDeck;
         }
         $deckRead = $this->userConfigService->readDeckSettings($this->appName, $uid);
         if (isset($data['widgets'])) {
             $cleanWidgets = $this->persistSanitizer->sanitizeWidgets($data['widgets']);
-            $this->config->setUserValue($uid, $this->appName, 'widgets_layout', json_encode($cleanWidgets));
+            if ($resp = $this->writeUserJsonValue($uid, 'widgets_layout', $cleanWidgets, 'widgets')) {
+                return $resp;
+            }
             $widgetsSaved = $cleanWidgets;
         }
         try {
@@ -222,5 +240,35 @@ final class PersistController extends Controller {
             'widgets_saved' => $widgetsSaved,
             'widgets_read' => $widgetsRead,
         ], Http::STATUS_OK);
+    }
+
+    /**
+     * @param array<string,mixed> $payload
+     */
+    private function writeUserJsonValue(string $uid, string $key, array $payload, string $label): ?DataResponse {
+        try {
+            $json = $this->encodeConfigValue($payload, $label);
+            $this->config->setUserValue($uid, $this->appName, $key, $json);
+            return null;
+        } catch (\LengthException $e) {
+            return new DataResponse(['message' => $label . ' too large'], Http::STATUS_REQUEST_ENTITY_TOO_LARGE);
+        } catch (\Throwable $e) {
+            $this->logger->error('persist failed: ' . $e->getMessage(), ['app' => $this->appName]);
+            return new DataResponse(['message' => 'error'], Http::STATUS_INTERNAL_SERVER_ERROR);
+        }
+    }
+
+    /**
+     * @param array<string,mixed> $payload
+     */
+    private function encodeConfigValue(array $payload, string $label): string {
+        $json = json_encode($payload, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE);
+        if ($json === false) {
+            throw new \RuntimeException('json encode failed: ' . $label);
+        }
+        if (strlen($json) > self::MAX_CONFIG_BYTES) {
+            throw new \LengthException('payload too large: ' . $label);
+        }
+        return $json;
     }
 }

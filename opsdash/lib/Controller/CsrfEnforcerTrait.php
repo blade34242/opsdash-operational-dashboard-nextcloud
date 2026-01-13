@@ -23,6 +23,7 @@ trait CsrfEnforcerTrait {
                 if (!$this->request->passesCSRFCheck()) {
                     return new DataResponse(['message' => 'invalid requesttoken'], Http::STATUS_PRECONDITION_FAILED);
                 }
+                return null;
             } catch (\Throwable $e) {
                 $this->logger->warning('csrf check failed', [
                     'app' => $this->appName,
@@ -39,10 +40,10 @@ trait CsrfEnforcerTrait {
     private function isRequestTokenValid(string $token): bool {
         try {
             if (!class_exists(\OC::class) || !isset(\OC::$server)) {
-                return true;
+                return false;
             }
             if (!method_exists(\OC::$server, 'getCsrfTokenManager')) {
-                return true;
+                return false;
             }
             $manager = \OC::$server->getCsrfTokenManager();
             if (method_exists($manager, 'checkToken')) {
@@ -54,6 +55,6 @@ trait CsrfEnforcerTrait {
                 'exception' => $e,
             ]);
         }
-        return true;
+        return false;
     }
 }

@@ -5,7 +5,7 @@ import { useDashboardPresets } from '../composables/useDashboardPresets'
 import { createDefaultTargetsConfig } from '../src/services/targets'
 import { createDefaultDeckSettings, createDefaultReportingConfig } from '../src/services/reporting'
 import { createDefaultWidgetTabs } from '../src/services/widgetsRegistry'
-import presetFixture from './fixtures/preset-export.json'
+import presetFixture from './fixtures-v2/preset-export.json'
 
 function createPresetManager(overrides: Partial<Parameters<typeof useDashboardPresets>[0]> = {}) {
   const selected = ref<string[]>(['cal-1'])

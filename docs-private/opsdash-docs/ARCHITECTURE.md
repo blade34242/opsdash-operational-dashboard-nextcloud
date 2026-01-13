@@ -6,13 +6,46 @@ sanitisation, and persistence; the frontend renders widgets and drives configura
 ## Request Flow
 
 1. User opens the app navigation entry -> PHP controller loads CSS + JS and template.
-2. Frontend boots and calls `GET /overview/load` with `range` + `offset`.
-3. Server aggregates calendar stats and returns JSON with:
-   - `stats`, `byCal`, `byDay`, `longest`, `charts`
-   - `meta` with `from`, `to`, and optional `truncated` caps
-   - `colors` and `groups` (categories map to group ids internally; UI exposes category selectors)
-4. User adjusts selection/targets -> client POSTs to `persist` (CSRF); reloads data.
-5. Notes are fetched and saved per period via `GET/POST /notes`.
+2. Template bootstraps default widget presets + theme preference into `data-*` attributes so the layout renders immediately after mount.
+3. Frontend boots and calls `GET /overview/load?include=core` with `range` + `offset`.
+4. Server returns core payload (calendars/selection/config/theme/widgets/userSettings), enabling UI scaffolding.
+5. Frontend calls `POST /overview/load` with `include=data` (and `lookback` when needed) to fetch stats/charts.
+6. User adjusts selection/targets -> client POSTs to `persist` (CSRF); reloads data.
+7. Notes are fetched and saved per period via `GET/POST /notes`.
+
+## Calendar Colors (Source of Truth)
+
+The server is the single source of calendar colors. For compatibility across Nextcloud
+versions/backends, the server probes the public API and falls back to a deterministic palette.
+
+Server resolution (API-only):
+- `getDisplayColor`
+- fallback palette (deterministic, based on id/name)
+
+## Calendar Access Compatibility (NC 30-32)
+
+`CalendarAccessService::getCalendarsFor()` uses a fallback chain to keep the app compatible with
+multiple Nextcloud server versions and backends:
+
+1) `getCalendarsForPrincipal('principals/users/<uid>')` (preferred)
+2) `getCalendarsForUser('<uid>')` (legacy/optional if present)
+3) `getCalendars('<uid>')` (older public API)
+
+Nextcloud server `IManager` public API surface for 30-32 (source: `lib/public/Calendar/IManager.php`):
+
+| Nextcloud | getCalendarsForPrincipal | getCalendarsForUser | getCalendars |
+| --- | --- | --- | --- |
+| 30.0.0 | yes | no | yes |
+| 31.0.0 | yes | no | yes |
+| 32.0.0 | yes | no | yes |
+
+Note: some calendar backends or older versions can still expose `getCalendarsForUser`, so the
+fallback remains in place even though the public interface in 30-32 does not list it.
+
+## Date/Time & Locale
+
+- The server resolves the user timezone + first-day-of-week from Nextcloud core settings and uses them for range bounds and day bucketing.
+- The client formats dates using the user locale (Nextcloud `OC.getCanonicalLocale()` when available), the server-provided timezone, and the first-day-of-week from `userSettings`.
 
 ## Backend Modules
 
@@ -25,6 +58,16 @@ sanitisation, and persistence; the frontend renders widgets and drives configura
 - Services:
   - `PersistSanitizer`: sanitises targets/balance/reporting/deck/onboarding/theme payloads.
   - `UserConfigService`: centralises read-back + defaults for user config blobs (theme/reporting/deck/targets/onboarding).
+  - `OverviewLoadService`: orchestrates `/overview/load` core payload assembly, include filtering, and caching.
+    - `OverviewIncludeResolver`: canonicalises include lists + flags.
+    - `OverviewCorePayloadComposer`: composes core payload fragments.
+    - `OverviewLoadCacheService`: encapsulates cache keys + read/write logic.
+  - `OverviewDataService`: builds the heavy stats/aggregation/charts payload for `/overview/load`.
+  - `OverviewStatsService`: combines KPI, delta, and trend calculators for `/overview/load`.
+    - `OverviewStatsKpiService`: current-period KPIs + availability.
+    - `OverviewStatsDeltaService`: previous-period deltas.
+    - `OverviewStatsTrendService`: day-off trend + balance history.
+  - `CalendarAccessService`, `CalendarParsingService`, `CalendarColorService`: calendar access, parsing, and color normalization.
   - `OverviewEventsCollector`, `OverviewAggregationService`, `OverviewChartsBuilder`, `OverviewBalanceService`: read-path helpers used by `/overview/load`.
 
 Guiding principles:

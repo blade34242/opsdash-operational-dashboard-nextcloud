@@ -242,6 +242,31 @@ class PersistSanitizerTest extends TestCase {
     $this->assertSame(12.0, $result[2]['layout']['order']);
   }
 
+  public function testSanitizeWidgetsCapsTabsAndTotals(): void {
+    $widgets = [];
+    for ($i = 0; $i < 120; $i++) {
+      $widgets[] = ['type' => 'note_editor', 'id' => 'widget-' . $i];
+    }
+    $tabs = [];
+    for ($t = 0; $t < 12; $t++) {
+      $tabs[] = [
+        'id' => 'tab-' . $t,
+        'label' => 'Tab ' . $t,
+        'widgets' => $widgets,
+      ];
+    }
+
+    $result = $this->sanitizer->sanitizeWidgets(['tabs' => $tabs]);
+
+    $this->assertLessThanOrEqual(10, count($result['tabs']));
+    $total = 0;
+    foreach ($result['tabs'] as $tab) {
+      $this->assertLessThanOrEqual(50, count($tab['widgets']));
+      $total += count($tab['widgets']);
+    }
+    $this->assertLessThanOrEqual(100, $total);
+  }
+
   public function testCleanOnboardingState(): void {
     $default = $this->sanitizer->cleanOnboardingState(null);
     $this->assertFalse($default['completed']);

@@ -101,6 +101,7 @@
 
 <script setup lang="ts">
 import { computed, ref } from 'vue'
+import { formatDateTime } from '../../services/dateTime'
 import { NcButton } from '@nextcloud/vue'
 
 const props = defineProps<{
@@ -186,7 +187,7 @@ function formatRelative(value?: string | null): string {
   if (diffDays < 7) return `${diffDays}d ago`
   const diffWeeks = Math.round(diffDays / 7)
   if (diffWeeks < 5) return `${diffWeeks}w ago`
-  return date.toLocaleDateString()
+  return formatDateTime(value, { year: 'numeric', month: '2-digit', day: '2-digit' }) || value
 }
 </script>
 

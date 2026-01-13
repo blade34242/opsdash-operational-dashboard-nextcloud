@@ -274,6 +274,7 @@ import { buildTargetsSummary, normalizeTargetsConfig, createEmptyTargetsSummary,
 import { normalizeReportingConfig, normalizeDeckSettings, type DeckFilterMode } from './services/reporting'
 import { ONBOARDING_VERSION, getStrategyDefinitions } from './services/onboarding'
 import { createDashboardPreset, createDefaultWidgetTabs, normalizeWidgetTabs, widgetsRegistry } from './services/widgetsRegistry'
+import { formatDateKey, getWeekNumber, parseDateKey } from './services/dateTime'
 // Lightweight notifications without @nextcloud/dialogs
 function notifySuccess(msg: string){
   const w:any = window as any
@@ -381,10 +382,7 @@ const { scheduleDraw } = useChartScheduler()
 
 const { route, getJson, postJson, deleteJson, root } = useOcHttp()
 
-const { calendarDayLink, fetchDavColors } = useCalendarLinks({
-  root,
-  isDebug: isDbg,
-})
+const { calendarDayLink } = useCalendarLinks({ root })
 
 const notes = useNotes({
   range,
@@ -453,6 +451,21 @@ const widgetTabsRef = computed({
     setTabsFromPayload(value)
   },
 })
+
+const lookbackWidgetTypes = new Set(['chart_per_day', 'chart_dow', 'chart_hod', 'time_summary_v2'])
+const shouldIncludeLookback = () => {
+  if (trendLookbackWeeks.value <= 1) return false
+  for (const tab of layoutTabs.value || []) {
+    const widgets = tab?.widgets || []
+    for (const widget of widgets) {
+      const type = String(widget?.type ?? '')
+      if (!lookbackWidgetTypes.has(type)) continue
+      if (type === 'time_summary_v2' && widget?.options?.showHistory === false) continue
+      return true
+    }
+  }
+  return false
+}
 
 const tabLabelDraft = ref('')
 const tabEditingId = ref<string | null>(null)
@@ -634,12 +647,18 @@ const {
   userChangedSelection,
   route: (name) => route(name),
   getJson,
+  postJson,
   notifyError,
   scheduleDraw,
   fetchNotes,
   isDebug: isDbg,
-  fetchDavColors,
+  includeLookback: () => shouldIncludeLookback(),
   widgetTabs: widgetTabsRef,
+  onCoreLoaded: () => {
+    if (!hasInitialLoad.value) {
+      hasInitialLoad.value = true
+    }
+  },
 })
 
 function handleReportingConfigSave(value: any) {
@@ -928,21 +947,13 @@ const activeDayMode = ref<'active'|'all'>('active')
 const rangeLabel = computed(()=> range.value === 'month' ? 'Month' : 'Week')
 const layoutRef = ref<InstanceType<typeof DashboardLayout> | null>(null)
 
-function isoWeek(date: Date) {
-  const tmp = new Date(Date.UTC(date.getFullYear(), date.getMonth(), date.getDate()))
-  const day = tmp.getUTCDay() || 7
-  tmp.setUTCDate(tmp.getUTCDate() + 4 - day)
-  const yearStart = new Date(Date.UTC(tmp.getUTCFullYear(), 0, 1))
-  return Math.ceil((((tmp.getTime() - yearStart.getTime()) / 86400000) + 1) / 7)
-}
-
 const rangeBadgePrimary = computed(() => {
-  const date = new Date(from.value)
-  if (!Number.isFinite(date.getTime())) return range.value.toUpperCase()
+  const date = parseDateKey(from.value)
+  if (!date) return range.value.toUpperCase()
   if (range.value === 'month') {
-    return `MONTH ${date.getMonth() + 1}`
+    return `MONTH ${date.getUTCMonth() + 1}`
   }
-  return `WEEK ${isoWeek(date)}`
+  return `WEEK ${getWeekNumber(date)}`
 })
 
 const rangeBadgeSecondary = computed(() => rangeDateLabel.value)
@@ -1361,13 +1372,6 @@ const guidedHints = computed(() => ({
   preferences: preferencesHint.value,
   review: reviewHint.value,
 }))
-
-function formatDateKey(date: Date): string {
-  const year = date.getFullYear()
-  const month = `${date.getMonth() + 1}`.padStart(2, '0')
-  const day = `${date.getDate()}`.padStart(2, '0')
-  return `${year}-${month}-${day}`
-}
 
 useDashboardBoot({
   performLoad,

@@ -28,6 +28,8 @@ All notable changes to this project will be documented in this file.
 - Sidebar bottom icons now open the same keyboard shortcuts overlay as `?`, with updated iconography and sizing.
 - Sidebar navigation is now full-height (no internal scroll), keeping the bottom icon row pinned.
 - Category mix trend tiles use tone-aware gradients and contrast in light/dark themes.
+- Dashboard load uses core-first/data-second requests so layout renders before stats/charts.
+- Template bootstraps default widget presets to avoid a blank main area on hard reloads.
 
 ### Added
 - Onboarding wizard “Dashboard preset” step (Quick / Standard / Pro) that applies a preset widget layout and stores the chosen dashboard mode.

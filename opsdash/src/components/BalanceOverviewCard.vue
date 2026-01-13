@@ -109,6 +109,7 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 import { createDefaultActivityCardConfig, type ActivityCardConfig } from '../services/targets'
+import { formatDateOnly, formatTime } from '../services/dateTime'
 
 type BalanceCategory = {
   id: string
@@ -485,23 +486,15 @@ function typicalRange(start: string | null, end: string | null) {
 
 function timeOf(value: string | null | undefined) {
   if (!value) return ''
-  const date = new Date(value)
-  if (Number.isNaN(date.getTime())) return ''
-  return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+  const formatted = formatTime(value)
+  return formatted || ''
 }
 
 function shortDate(value: string): string {
   const str = value.trim()
   if (!str) return '—'
-  const parts = str.split('-')
-  if (parts.length >= 2) {
-    const date = new Date(str.length === 10 ? `${str}T00:00:00` : str)
-    if (!Number.isNaN(date.getTime())) {
-      const fmt = new Intl.DateTimeFormat(undefined, { weekday: 'short', month: 'short', day: 'numeric' })
-      return fmt.format(date)
-    }
-  }
-  return str
+  const formatted = formatDateOnly(str, { weekday: 'short', month: 'short', day: 'numeric' })
+  return formatted || str
 }
 
 function shareLabel(value: number) {

@@ -5,7 +5,7 @@ namespace OCA\Opsdash\Service;
 
 final class OverviewAggregationService {
     /**
-     * @param array<int, array<string, mixed>> $events Parsed CalendarService rows.
+     * @param array<int, array<string, mixed>> $events Parsed calendar rows.
      * @param array<string, string> $colorsById
      * @param array<string, array{id:string,label:string}> $categoryMeta
      * @param callable(string): string $mapCalToCategory
@@ -153,6 +153,9 @@ final class OverviewAggregationService {
             }
 
             $eventHours = $isAllDayEvent ? ($allDayHours * $daysSpanned) : $h;
+            if (!$isAllDayEvent && $eventHours <= 0 && $dtStartUser && $dtEndUser && $dtEndUser > $dtStartUser) {
+                $eventHours = ($dtEndUser->getTimestamp() - $dtStartUser->getTimestamp()) / 3600.0;
+            }
             $totalHours += $eventHours;
             $byCalMap[$calId]['events_count']++;
             $byCalMap[$calId]['total_hours'] += $eventHours;
@@ -347,4 +350,3 @@ final class OverviewAggregationService {
         ];
     }
 }
-

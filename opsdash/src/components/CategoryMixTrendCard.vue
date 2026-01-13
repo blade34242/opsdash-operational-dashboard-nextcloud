@@ -53,6 +53,7 @@
 
 <script setup lang="ts">
 import { computed } from 'vue'
+import { addDaysUtc, addMonthsUtc, endOfMonthUtc, formatDateKey, formatDateRange, getWeekNumber, parseDateKey } from '../services/dateTime'
 
 type TrendHistoryEntry = {
   offset: number
@@ -279,47 +280,26 @@ const lookbackLabel = computed(() => {
 
 const formatShare = (value: number) => `${Math.max(0, Math.round(value))}%`
 
-const dateFormatter = new Intl.DateTimeFormat(undefined, { day: '2-digit', month: '2-digit' })
-function addDays(base: Date, days: number) {
-  const next = new Date(base)
-  next.setDate(next.getDate() + days)
-  return next
-}
-function addMonths(base: Date, months: number) {
-  const next = new Date(base)
-  next.setMonth(next.getMonth() + months)
-  return next
-}
-function endOfMonth(date: Date) {
-  return new Date(date.getFullYear(), date.getMonth() + 1, 0)
-}
-function isoWeek(date: Date) {
-  const tmp = new Date(Date.UTC(date.getFullYear(), date.getMonth(), date.getDate()))
-  const dayNum = tmp.getUTCDay() || 7
-  tmp.setUTCDate(tmp.getUTCDate() + 4 - dayNum)
-  const yearStart = new Date(Date.UTC(tmp.getUTCFullYear(), 0, 1))
-  const weekNo = Math.ceil((((tmp.getTime() - yearStart.getTime()) / 86400000) + 1) / 7)
-  return weekNo
-}
+const dateRangeOptions = { day: '2-digit', month: '2-digit' }
 function formatRange(from?: Date, to?: Date) {
   if (!from || !to) return ''
-  const fromLabel = dateFormatter.format(from)
-  const toLabel = dateFormatter.format(to)
-  return fromLabel === toLabel ? fromLabel : `${fromLabel}–${toLabel}`
+  const fromKey = formatDateKey(from, 'UTC')
+  const toKey = formatDateKey(to, 'UTC')
+  return formatDateRange(fromKey, toKey, dateRangeOptions)
 }
 function computedRangeLabel(offset: number, entryLabel?: string) {
   if (!props.from || !props.to) return entryLabel || ''
   const mode = (props.rangeMode || '').toLowerCase()
-  const currentFrom = new Date(props.from)
-  const currentTo = new Date(props.to)
-  if (Number.isNaN(currentFrom.getTime()) || Number.isNaN(currentTo.getTime())) return entryLabel || ''
+  const currentFrom = parseDateKey(props.from)
+  const currentTo = parseDateKey(props.to)
+  if (!currentFrom || !currentTo) return entryLabel || ''
   if (mode === 'month') {
-    const start = addMonths(currentFrom, -offset)
-    const end = endOfMonth(start)
+    const start = addMonthsUtc(currentFrom, -offset)
+    const end = endOfMonthUtc(start)
     return formatRange(start, end)
   }
-  const start = addDays(currentFrom, -7 * offset)
-  const end = addDays(currentTo, -7 * offset)
+  const start = addDaysUtc(currentFrom, -7 * offset)
+  const end = addDaysUtc(currentTo, -7 * offset)
   return formatRange(start, end)
 }
 function computedPeriodLabel(offset: number) {
@@ -328,20 +308,23 @@ function computedPeriodLabel(offset: number) {
     if (offset === 0) return 'Current'
     return mode === 'month' ? `-${offset} mo` : `-${offset} wk`
   }
-  const start = mode === 'month'
-    ? addMonths(new Date(props.from), -offset)
-    : addDays(new Date(props.from), -7 * offset)
-  if (Number.isNaN(start.getTime())) {
+  const startBase = parseDateKey(props.from)
+  const start = startBase
+    ? (mode === 'month'
+      ? addMonthsUtc(startBase, -offset)
+      : addDaysUtc(startBase, -7 * offset))
+    : null
+  if (!start) {
     if (offset === 0) return 'Current'
     return mode === 'month' ? `-${offset} mo` : `-${offset} wk`
   }
   if (mode === 'month') {
-    const currentMonth = new Date(props.from).getMonth() + 1
-    const displayMonth = offset === 0 ? currentMonth : start.getMonth() + 1
+    const currentMonth = startBase ? startBase.getUTCMonth() + 1 : start.getUTCMonth() + 1
+    const displayMonth = offset === 0 ? currentMonth : start.getUTCMonth() + 1
     return `MONTH ${displayMonth}`
   }
-  const currentWeek = isoWeek(new Date(props.from))
-  const displayWeek = offset === 0 ? currentWeek : isoWeek(start)
+  const currentWeek = startBase ? getWeekNumber(startBase) : getWeekNumber(start)
+  const displayWeek = offset === 0 ? currentWeek : getWeekNumber(start)
   return `WEEK ${displayWeek}`
 }
 function formatCurrentLabel() {

@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace OCA\Opsdash\Tests\Service;
 
-use OCA\Opsdash\Service\CalendarService;
+use OCA\Opsdash\Service\CalendarAccessService;
 use OCA\Opsdash\Service\NotesService;
 use OCP\IConfig;
 use PHPUnit\Framework\TestCase;
@@ -13,7 +13,7 @@ use Psr\Log\LoggerInterface;
 class NotesServiceTest extends TestCase {
   public function testGetNotesBuildsHistoryAndFiltersEmpty(): void {
     $config = $this->createMock(IConfig::class);
-    $calendar = $this->createMock(CalendarService::class);
+    $calendar = $this->createMock(CalendarAccessService::class);
     $logger = $this->createMock(LoggerInterface::class);
 
     $dates = [
@@ -25,6 +25,8 @@ class NotesServiceTest extends TestCase {
       -4 => new \DateTimeImmutable('2025-02-03'),
     ];
 
+    $calendar->method('resolveUserTimezone')->willReturn(new \DateTimeZone('UTC'));
+    $calendar->method('resolveUserWeekStart')->willReturn(1);
     $calendar->method('rangeBounds')->willReturnCallback(
       fn (string $range, int $offset) => [$dates[$offset] ?? $dates[0], $dates[$offset] ?? $dates[0]]
     );
@@ -63,9 +65,11 @@ class NotesServiceTest extends TestCase {
 
   public function testSaveNotesTruncatesAndEscapes(): void {
     $config = $this->createMock(IConfig::class);
-    $calendar = $this->createMock(CalendarService::class);
+    $calendar = $this->createMock(CalendarAccessService::class);
     $logger = $this->createMock(LoggerInterface::class);
 
+    $calendar->method('resolveUserTimezone')->willReturn(new \DateTimeZone('UTC'));
+    $calendar->method('resolveUserWeekStart')->willReturn(1);
     $calendar->method('rangeBounds')->willReturn([new \DateTimeImmutable('2025-03-10'), new \DateTimeImmutable('2025-03-10')]);
     $calendar->method('notesKey')->willReturn('week-2025-03-10');
 
@@ -88,9 +92,11 @@ class NotesServiceTest extends TestCase {
 
   public function testSaveNotesReturnsFalseOnFailure(): void {
     $config = $this->createMock(IConfig::class);
-    $calendar = $this->createMock(CalendarService::class);
+    $calendar = $this->createMock(CalendarAccessService::class);
     $logger = $this->createMock(LoggerInterface::class);
 
+    $calendar->method('resolveUserTimezone')->willReturn(new \DateTimeZone('UTC'));
+    $calendar->method('resolveUserWeekStart')->willReturn(1);
     $calendar->method('rangeBounds')->willReturn([new \DateTimeImmutable('2025-03-10'), new \DateTimeImmutable('2025-03-10')]);
     $calendar->method('notesKey')->willReturn('week-2025-03-10');
 

@@ -4,18 +4,12 @@ declare(strict_types=1);
 
 namespace OCA\Opsdash\Tests\Service;
 
-use OCA\Opsdash\Service\CalendarService;
-use OCP\Calendar\IManager;
-use OCP\IConfig;
+use OCA\Opsdash\Service\CalendarParsingService;
 use PHPUnit\Framework\TestCase;
-use Psr\Log\LoggerInterface;
 
 final class CalendarServiceTest extends TestCase {
     public function testParseRowsStructuredObjects(): void {
-        $calendarManager = $this->createMock(IManager::class);
-        $config = $this->createMock(IConfig::class);
-        $logger = $this->createMock(LoggerInterface::class);
-        $service = new CalendarService($calendarManager, $config, $logger);
+        $service = new CalendarParsingService();
 
         $raw = [
             [
@@ -47,10 +41,30 @@ final class CalendarServiceTest extends TestCase {
         $rows = $service->parseRows($raw, 'opsdash-work', 'opsdash-work');
 
         $this->assertCount(1, $rows);
-        $this->assertSame('Team standup', $rows[0]['title']);
+        $this->assertSame('Team standup', $rows[0]['summary']);
         $this->assertSame('2025-12-15 09:00:00', $rows[0]['start']);
         $this->assertSame('2025-12-15 09:30:00', $rows[0]['end']);
-        $this->assertSame(0.5, $rows[0]['hours']);
+        $this->assertFalse($rows[0]['allday']);
+    }
+
+    public function testParseRowsTopLevelStartEnd(): void {
+        $service = new CalendarParsingService();
+
+        $raw = [
+            [
+                'summary' => 'Focus block',
+                'start' => '2026-01-08 16:00:00',
+                'end' => '2026-01-08 17:00:00',
+                'allday' => false,
+            ],
+        ];
+
+        $rows = $service->parseRows($raw, 'personal', 'personal');
+
+        $this->assertCount(1, $rows);
+        $this->assertSame('Focus block', $rows[0]['summary']);
+        $this->assertSame('2026-01-08 16:00:00', $rows[0]['start']);
+        $this->assertSame('2026-01-08 17:00:00', $rows[0]['end']);
         $this->assertFalse($rows[0]['allday']);
     }
 }

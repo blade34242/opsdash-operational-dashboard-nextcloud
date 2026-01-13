@@ -2,6 +2,7 @@ import { describe, it, expect, vi } from 'vitest'
 import { ref } from 'vue'
 
 import { useRangeToolbar } from '../composables/useRangeToolbar'
+import { formatDateRange } from '../src/services/dateTime'
 
 describe('useRangeToolbar', () => {
   it('computes labels and toggles range', async () => {
@@ -25,7 +26,8 @@ describe('useRangeToolbar', () => {
 
     expect(toolbar.showCollapsedRangeControls.value).toBe(true)
     expect(toolbar.rangeToggleLabel.value).toBe('Switch to month')
-    expect(toolbar.rangeDateLabel.value).toBe('2025-11-01 – 2025-11-07')
+    const expectedLabel = formatDateRange('2025-11-01', '2025-11-07', { year: 'numeric', month: '2-digit', day: '2-digit' })
+    expect(toolbar.rangeDateLabel.value).toBe(expectedLabel)
 
     toolbar.toggleRangeCollapsed()
     expect(range.value).toBe('month')

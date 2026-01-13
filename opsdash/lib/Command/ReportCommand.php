@@ -3,7 +3,7 @@ declare(strict_types=1);
 
 namespace OCA\Opsdash\Command;
 
-use OCA\Opsdash\Service\CalendarService;
+use OCA\Opsdash\Service\CalendarAccessService;
 use OCA\Opsdash\Service\OverviewAggregationService;
 use OCA\Opsdash\Service\OverviewEventsCollector;
 use OCA\Opsdash\Service\OverviewSelectionService;
@@ -25,7 +25,7 @@ class ReportCommand extends Command {
     protected static $defaultName = 'opsdash:report';
 
     public function __construct(
-        private CalendarService $calendarService,
+        private CalendarAccessService $calendarAccess,
         private OverviewEventsCollector $eventsCollector,
         private OverviewAggregationService $aggregationService,
         private OverviewSelectionService $selectionService,
@@ -73,7 +73,9 @@ class ReportCommand extends Command {
         $savedRaw = (string)$this->config->getUserValue($uid, 'opsdash', 'selected_cals', '__UNSET__');
         $selection = $this->selectionService->resolveInitialSelection($savedRaw, $provided, $requested);
 
-        [$from, $to] = $this->calendarService->rangeBounds($range, $offset);
+        $userTz = $this->calendarAccess->resolveUserTimezone($uid);
+        $weekStart = $this->calendarAccess->resolveUserWeekStart($uid);
+        [$from, $to] = $this->calendarAccess->rangeBounds($range, $offset, $userTz, $weekStart);
         $cals = $this->calendarService->getCalendarsFor($uid);
         $availableIds = [];
         foreach ($cals as $cal) {
@@ -130,13 +132,6 @@ class ReportCommand extends Command {
             }
         }
         $categoryMeta['__uncategorized__'] = ['id' => '__uncategorized__', 'label' => 'Unassigned'];
-
-        $userTzName = 'UTC';
-        try {
-            $tz = (string)$this->config->getUserValue($uid, 'core', 'timezone', '');
-            if ($tz !== '') $userTzName = $tz;
-        } catch (\Throwable) {}
-        try { $userTz = new \DateTimeZone($userTzName); } catch (\Throwable) { $userTz = new \DateTimeZone('UTC'); }
 
         $mapCalToCategory = function (string $calId) use ($groupsById, $groupToCategory) {
             $group = isset($groupsById[$calId]) ? (int)$groupsById[$calId] : 0;

@@ -1,63 +1,84 @@
-import { afterEach, describe, expect, it, vi } from 'vitest'
-import deckFixture from './fixtures/deck-week.json'
-import { fetchDeckCardsInRange } from '../src/services/deck'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+import { fetchDeckBoardsMeta, fetchDeckCardsInRange } from '../src/services/deck'
 
-function createResponse(payload: any, status = 200) {
-  return {
-    ok: status >= 200 && status < 300,
-    status,
-    text: async () => JSON.stringify(payload),
-  } as Response
-}
+const originalFetch = globalThis.fetch
+const originalOc = (window as any).OC
+
+beforeEach(() => {
+  ;(window as any).OC = {
+    generateUrl: (path: string) => `/index.php${path}`,
+    requestToken: 'token-123',
+  }
+})
+
+afterEach(() => {
+  if (originalFetch) {
+    globalThis.fetch = originalFetch
+  } else {
+    // @ts-expect-error cleanup
+    delete globalThis.fetch
+  }
+  ;(window as any).OC = originalOc
+  vi.restoreAllMocks()
+})
 
 describe('deck service', () => {
-  afterEach(() => {
-    vi.unstubAllGlobals()
+  it('fetches boards from opsdash endpoint', async () => {
+    const fetchSpy = vi.fn().mockResolvedValue({
+      ok: true,
+      text: async () =>
+        JSON.stringify({
+          ok: true,
+          boards: [{ id: 1, title: 'Ops', color: '#2563EB' }],
+        }),
+    })
+    globalThis.fetch = fetchSpy as any
+
+    const boards = await fetchDeckBoardsMeta()
+
+    expect(fetchSpy).toHaveBeenCalledWith(
+      '/index.php/apps/opsdash/overview/deck/boards',
+      expect.objectContaining({ credentials: 'same-origin' }),
+    )
+    expect(boards).toEqual([{ id: 1, title: 'Ops', color: '#2563EB' }])
   })
 
-  it('collects cards inside the requested range', async () => {
-    const fetchMock = vi.fn(async (url: RequestInfo | URL) => {
-      const target = String(url)
-      if (target.includes('/apps/deck/api/v1/boards?')) {
-        return createResponse(deckFixture.ocs)
-      }
-      if (target.includes('/apps/deck/api/v1/boards/10/stacks/archived')) {
-        return createResponse([])
-      }
-      if (target.includes('/apps/deck/api/v1/boards/10/stacks')) {
-        return createResponse(deckFixture.stacks['10'])
-      }
-      throw new Error(`Unexpected url ${target}`)
+  it('fetches cards with include flags', async () => {
+    const fetchSpy = vi.fn().mockResolvedValue({
+      ok: true,
+      text: async () =>
+        JSON.stringify({
+          ok: true,
+          cards: [{ id: 10, title: 'Card', boardId: 1, boardTitle: 'Ops', stackId: 2, stackTitle: 'Inbox', archived: false, status: 'active', labels: [], assignees: [], match: 'due' }],
+        }),
     })
-    vi.stubGlobal('fetch', fetchMock)
+    globalThis.fetch = fetchSpy as any
 
     const cards = await fetchDeckCardsInRange({
-      from: '2024-11-18T00:00:00.000Z',
-      to: '2024-11-25T00:00:00.000Z',
+      from: '2024-11-01T00:00:00.000Z',
+      to: '2024-11-30T23:59:59.000Z',
+      includeArchived: false,
+      includeCompleted: true,
     })
 
-    expect(cards).toHaveLength(4)
-    const dueCard = cards.find((card) => card.title === 'Prep sprint')
-    const blockers = cards.find((card) => card.title === 'Resolve Deck blockers')
-    const doneCard = cards.find((card) => card.title === 'Publish Ops report cards')
-    const archivedCard = cards.find((card) => card.title === 'Archive completed Ops tasks')
-
-    expect(dueCard).toMatchObject({ match: 'due', status: 'active', labels: [{ title: 'Ops' }] })
-    expect(blockers).toMatchObject({ status: 'active' })
-    expect(doneCard).toMatchObject({ match: 'completed', status: 'done' })
-    expect(archivedCard).toMatchObject({ match: 'completed', status: 'archived' })
-    expect(doneCard?.doneBy).toBeDefined()
+    expect(fetchSpy).toHaveBeenCalled()
+    const calledUrl = fetchSpy.mock.calls[0]?.[0] as string
+    expect(calledUrl).toContain('/index.php/apps/opsdash/overview/deck/cards')
+    expect(calledUrl).toContain('includeArchived=0')
+    expect(calledUrl).toContain('includeCompleted=1')
+    expect(cards.length).toBe(1)
   })
 
-  it('returns empty array when Deck endpoints are unavailable', async () => {
-    const fetchMock = vi.fn(async () => createResponse({ message: 'missing' }, 404))
-    vi.stubGlobal('fetch', fetchMock)
+  it('skips invalid ranges', async () => {
+    const fetchSpy = vi.fn()
+    globalThis.fetch = fetchSpy as any
 
     const cards = await fetchDeckCardsInRange({
-      from: '2024-11-18T00:00:00.000Z',
-      to: '2024-11-25T00:00:00.000Z',
+      from: 'invalid',
+      to: '2024-11-30T23:59:59.000Z',
     })
 
     expect(cards).toEqual([])
+    expect(fetchSpy).not.toHaveBeenCalled()
   })
 })

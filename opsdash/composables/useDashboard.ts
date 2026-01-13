@@ -12,8 +12,11 @@ import {
   type ReportingConfig,
   type DeckFeatureSettings,
 } from '../src/services/reporting'
-import { createDefaultWidgetTabs, normalizeWidgetTabs, type WidgetTabsState } from '../src/services/widgetsRegistry'
+import { normalizeWidgetTabs, type WidgetTabsState } from '../src/services/widgetsRegistry'
+import { createDefaultWidgetTabs, setWidgetPresets } from '../src/services/widgetDefaults'
 import { readBootstrapThemePreference } from '../src/services/theme'
+import { readCurrentUserId } from '../src/services/currentUser'
+import { setUserDateTimeConfig } from '../src/services/dateTime'
 
 export interface OnboardingState {
   completed: boolean
@@ -30,14 +33,16 @@ interface DashboardDeps {
   range: Ref<'week' | 'month'>
   offset: Ref<number>
   userChangedSelection: Ref<boolean>
-  route: (name: 'load') => string
+  route: (name: 'loadData') => string
   getJson: (url: string, params: Record<string, unknown>) => Promise<any>
+  postJson: (url: string, body: Record<string, unknown>) => Promise<any>
   notifyError: (message: string) => void
   scheduleDraw: () => void
   fetchNotes: () => Promise<void>
   isDebug?: () => boolean
-  fetchDavColors?: (uid: string, ids: string[]) => Promise<Record<string, string>>
+  includeLookback?: () => boolean
   widgetTabs?: Ref<WidgetTabsState>
+  onCoreLoaded?: (payload: any) => void
 }
 
 export function useDashboard(deps: DashboardDeps) {
@@ -77,22 +82,7 @@ export function useDashboard(deps: DashboardDeps) {
     const prevColorsByName: Record<string, string> = { ...colorsByName.value }
     let colorsAdjusted = false
     try {
-      const params = {
-        range: deps.range.value,
-        offset: deps.offset.value | 0,
-        save: false,
-      }
-      const json: any = await deps.getJson(deps.route('load'), params)
-      if (currentSeq !== loadSeq) {
-        if (deps.isDebug?.()) console.warn('discarding stale load response', { currentSeq, loadSeq })
-        return
-      }
-
-      uid.value = String(json.meta?.uid ?? '')
-      from.value = String(json.meta?.from ?? '')
-      to.value = String(json.meta?.to ?? '')
-      isTruncated.value = Boolean(json.meta?.truncated)
-      truncLimits.value = json.meta?.limits ?? null
+      const debugEnabled = deps.isDebug?.() === true
 
       const cloneColorMap = (input: any): Record<string, string> => {
         const result: Record<string, string> = {}
@@ -104,62 +94,6 @@ export function useDashboard(deps: DashboardDeps) {
           })
         }
         return result
-      }
-
-      const rawCalendars = Array.isArray(json.calendars) ? json.calendars : []
-      const nextColorsById = cloneColorMap(json.colors?.byId)
-      const nextColorsByName = cloneColorMap(json.colors?.byName)
-      const normalizedCalendars = rawCalendars.map((raw: any) => {
-        if (!raw || typeof raw !== 'object') {
-          return raw
-        }
-
-        const cal: Record<string, any> = { ...raw }
-        const id = String(cal.id ?? '')
-        const name = String(cal.displayname ?? cal.name ?? cal.calendar ?? id)
-        const originalColor = typeof cal.color === 'string' ? cal.color : ''
-        const originalSrc = typeof cal.color_src === 'string' ? cal.color_src : ''
-        const serverColor = id ? nextColorsById[id] : ''
-        const nameColor = name ? nextColorsByName[name] : ''
-        const previousColorById = id ? prevColorsById[id] : ''
-        const previousColorByName = name ? prevColorsByName[name] : ''
-        const previousColor = previousColorById || previousColorByName
-
-        let resolvedColor = originalColor
-        if (!resolvedColor && serverColor) {
-          resolvedColor = serverColor
-        }
-        if (!resolvedColor && nameColor) {
-          resolvedColor = nameColor
-        }
-        if ((!resolvedColor || originalSrc === 'fallback') && previousColor) {
-          resolvedColor = previousColor
-        }
-        if (!resolvedColor && previousColor) {
-          resolvedColor = previousColor
-        }
-
-        if (resolvedColor) {
-          if (resolvedColor !== originalColor) {
-            colorsAdjusted = true
-          }
-          cal.color = resolvedColor
-          if (id) nextColorsById[id] = resolvedColor
-          if (name) nextColorsByName[name] = resolvedColor
-        }
-
-        return cal
-      })
-
-      calendars.value = normalizedCalendars
-      colorsByName.value = nextColorsByName
-      colorsById.value = nextColorsById
-      onboarding.value = json.onboarding ? { ...json.onboarding } : null
-      reportingConfig.value = normalizeReportingConfig(json.reportingConfig, reportingConfig.value)
-      deckSettings.value = normalizeDeckSettings(json.deckSettings, deckSettings.value)
-      if (deps.widgetTabs) {
-        const fallback = deps.widgetTabs.value || createDefaultWidgetTabs('standard')
-        deps.widgetTabs.value = normalizeWidgetTabs(json.widgets, fallback)
       }
 
       const applyPaletteToCharts = () => {
@@ -200,100 +134,194 @@ export function useDashboard(deps: DashboardDeps) {
         return changed
       }
 
-      const groupSource = json.groups?.byId ?? json.groups?.byID ?? json.groups?.ids ?? {}
-      const mappedGroups: Record<string, number> = {}
-      calendars.value.forEach((cal: any) => {
-        const id = String(cal?.id ?? '')
-        const raw = Number(groupSource?.[id] ?? 0)
-        mappedGroups[id] = Number.isFinite(raw) ? Math.max(0, Math.min(9, Math.trunc(raw))) : 0
-      })
-      groupsById.value = mappedGroups
+      const applyCorePayload = (json: any) => {
+        const localUid = readCurrentUserId()
+        uid.value = localUid || String(json.meta?.uid ?? '')
+        from.value = String(json.meta?.from ?? '')
+        to.value = String(json.meta?.to ?? '')
+        isTruncated.value = Boolean(json.meta?.truncated)
+        truncLimits.value = json.meta?.limits ?? null
 
-      const tw = json.targets?.week ?? {}
-      const tm = json.targets?.month ?? {}
-      targetsWeek.value = tw && typeof tw === 'object' ? tw : {}
-      targetsMonth.value = tm && typeof tm === 'object' ? tm : {}
-      targetsConfig.value = normalizeTargetsConfig(json.targetsConfig ?? createDefaultTargetsConfig())
-      const themeRaw = typeof json.themePreference === 'string' ? json.themePreference : ''
-      themePreference.value = themeRaw === 'light' || themeRaw === 'dark' ? (themeRaw as 'light' | 'dark') : 'auto'
-
-      if (deps.isDebug?.()) {
-        console.group('[opsdash] calendars/colors')
-        console.table((calendars.value || []).map((c: any) => ({
-          id: c.id,
-          name: c.displayname,
-          color: c.color,
-          raw: (c as any).color_raw,
-          src: (c as any).color_src,
-        })))
-        console.log('colors.byId', colorsById.value)
-        console.log('colors.byName', colorsByName.value)
-        if ((json as any).calDebug) console.log('server calDebug', (json as any).calDebug)
-        if ((json as any).debug) {
-          console.group('[opsdash] server query debug')
-          console.log((json as any).debug)
-          console.groupEnd()
+        const settingsRaw = json.userSettings && typeof json.userSettings === 'object' ? json.userSettings : null
+        if (settingsRaw) {
+          const timezone = typeof settingsRaw.timezone === 'string' ? settingsRaw.timezone : ''
+          const locale = typeof settingsRaw.locale === 'string' ? settingsRaw.locale : ''
+          const firstDay = typeof settingsRaw.firstDayOfWeek === 'number' ? settingsRaw.firstDayOfWeek : undefined
+          setUserDateTimeConfig({
+            timeZone: timezone || undefined,
+            locale: locale || undefined,
+            firstDayOfWeek: firstDay,
+          })
         }
-        console.groupEnd()
-      }
 
-      if (calendars.value.length && deps.fetchDavColors) {
-        const missing = calendars.value.filter((c: any) => !c.color || (c as any).color_src === 'fallback')
-        if (missing.length) {
-          try {
-            const dav = await deps.fetchDavColors(uid.value, calendars.value.map((c: any) => String(c.id)))
-            let updated = false
-            calendars.value = calendars.value.map((c: any) => {
-              const col = dav[c.id]
-              if (col && col !== c.color) {
-                (c as any).color_src = 'dav'
-                (c as any).color_raw = col
-                c.color = col
-                updated = true
-              }
-              return c
-            })
-            Object.entries(dav).forEach(([id, col]) => {
-              if (col) {
-                const stringColor = String(col)
-                colorsById.value[id] = stringColor
-                const cal = calendars.value.find((c: any) => String(c?.id ?? '') === id)
-                if (cal) cal.color = stringColor
-                const calName = cal ? String(cal.displayname ?? cal.name ?? '') : ''
-                if (calName) colorsByName.value[calName] = stringColor
-              }
-            })
-            if (updated) {
-              if (deps.isDebug?.()) console.log('[opsdash] dav colors applied', dav)
+        const rawCalendars = Array.isArray(json.calendars) ? json.calendars : []
+        const nextColorsById = cloneColorMap(json.colors?.byId)
+        const nextColorsByName = cloneColorMap(json.colors?.byName)
+        const normalizedCalendars = rawCalendars.map((raw: any) => {
+          if (!raw || typeof raw !== 'object') {
+            return raw
+          }
+
+          const cal: Record<string, any> = { ...raw }
+          const id = String(cal.id ?? '')
+          const name = String(cal.displayname ?? cal.name ?? cal.calendar ?? id)
+          const originalColor = typeof cal.color === 'string' ? cal.color : ''
+          const originalSrc = typeof cal.color_src === 'string' ? cal.color_src : ''
+          const serverColor = id ? nextColorsById[id] : ''
+          const nameColor = name ? nextColorsByName[name] : ''
+          const previousColorById = id ? prevColorsById[id] : ''
+          const previousColorByName = name ? prevColorsByName[name] : ''
+          const previousColor = previousColorById || previousColorByName
+
+          let resolvedColor = originalColor
+          if (!resolvedColor && serverColor) {
+            resolvedColor = serverColor
+          }
+          if (!resolvedColor && nameColor) {
+            resolvedColor = nameColor
+          }
+          if ((!resolvedColor || originalSrc === 'fallback') && previousColor) {
+            resolvedColor = previousColor
+          }
+          if (!resolvedColor && previousColor) {
+            resolvedColor = previousColor
+          }
+
+          if (resolvedColor) {
+            if (resolvedColor !== originalColor) {
               colorsAdjusted = true
             }
-          } catch (error) {
-            if (deps.isDebug?.()) console.warn('dav colors failed', error)
+            cal.color = resolvedColor
+            if (id) nextColorsById[id] = resolvedColor
+            if (name) nextColorsByName[name] = resolvedColor
           }
+
+          return cal
+        })
+
+        calendars.value = normalizedCalendars
+        colorsByName.value = nextColorsByName
+        colorsById.value = nextColorsById
+        onboarding.value = json.onboarding ? { ...json.onboarding } : null
+        reportingConfig.value = normalizeReportingConfig(json.reportingConfig, reportingConfig.value)
+        deckSettings.value = normalizeDeckSettings(json.deckSettings, deckSettings.value)
+        if (json.widgetPresets) {
+          setWidgetPresets(json.widgetPresets)
+        }
+        if (deps.widgetTabs) {
+          const mode = json.onboarding?.dashboardMode
+          const fallback = deps.widgetTabs.value || createDefaultWidgetTabs(
+            mode === 'quick' || mode === 'pro' ? mode : 'standard',
+          )
+          deps.widgetTabs.value = normalizeWidgetTabs(json.widgets, fallback)
+        }
+
+        const groupSource = json.groups?.byId ?? json.groups?.byID ?? json.groups?.ids ?? {}
+        const mappedGroups: Record<string, number> = {}
+        calendars.value.forEach((cal: any) => {
+          const id = String(cal?.id ?? '')
+          const raw = Number(groupSource?.[id] ?? 0)
+          mappedGroups[id] = Number.isFinite(raw) ? Math.max(0, Math.min(9, Math.trunc(raw))) : 0
+        })
+        groupsById.value = mappedGroups
+
+        const tw = json.targets?.week ?? {}
+        const tm = json.targets?.month ?? {}
+        targetsWeek.value = tw && typeof tw === 'object' ? tw : {}
+        targetsMonth.value = tm && typeof tm === 'object' ? tm : {}
+        targetsConfig.value = normalizeTargetsConfig(json.targetsConfig ?? createDefaultTargetsConfig())
+        const themeRaw = typeof json.themePreference === 'string' ? json.themePreference : ''
+        themePreference.value = themeRaw === 'light' || themeRaw === 'dark' ? (themeRaw as 'light' | 'dark') : 'auto'
+
+        if (deps.isDebug?.()) {
+          console.group('[opsdash] calendars/colors')
+          console.table((calendars.value || []).map((c: any) => ({
+            id: c.id,
+            name: c.displayname,
+            color: c.color,
+            raw: (c as any).color_raw,
+            src: (c as any).color_src,
+          })))
+          console.log('colors.byId', colorsById.value)
+          console.log('colors.byName', colorsByName.value)
+          if ((json as any).calDebug) console.log('server calDebug', (json as any).calDebug)
+          if ((json as any).debug) {
+            console.group('[opsdash] server query debug')
+            console.log((json as any).debug)
+            console.groupEnd()
+          }
+          console.groupEnd()
+        }
+
+        // Normalize to string IDs to keep UI selection reactive and consistent
+        selected.value = Array.isArray(json.selected)
+          ? (json.selected as any[]).map((id) => String(id))
+          : Array.isArray(json.saved)
+            ? (json.saved as any[]).map((id) => String(id))
+            : []
+        deps.userChangedSelection.value = false
+
+        if (colorsAdjusted) {
+          applyPaletteToCharts()
         }
       }
 
-      // Normalize to string IDs to keep UI selection reactive and consistent
-      selected.value = Array.isArray(json.selected)
-        ? (json.selected as any[]).map((id) => String(id))
-        : Array.isArray(json.saved)
-          ? (json.saved as any[]).map((id) => String(id))
-          : []
-      deps.userChangedSelection.value = false
+      const applyDataPayload = async (json: any) => {
+        from.value = String(json.meta?.from ?? from.value)
+        to.value = String(json.meta?.to ?? to.value)
+        isTruncated.value = Boolean(json.meta?.truncated)
+        truncLimits.value = json.meta?.limits ?? null
 
-      Object.assign(stats, json.stats ?? {})
-      byCal.value = Array.isArray(json.byCal) ? json.byCal : []
-      byDay.value = Array.isArray(json.byDay) ? json.byDay : []
-      longest.value = Array.isArray(json.longest) ? json.longest : []
-      charts.value = json.charts ?? {}
-      if (colorsAdjusted) {
-        applyPaletteToCharts()
+        Object.assign(stats, json.stats ?? {})
+        byCal.value = Array.isArray(json.byCal) ? json.byCal : []
+        byDay.value = Array.isArray(json.byDay) ? json.byDay : []
+        longest.value = Array.isArray(json.longest) ? json.longest : []
+        charts.value = json.charts ?? {}
+        if (colorsAdjusted) {
+          applyPaletteToCharts()
+        }
+
+        await nextTick()
+        deps.scheduleDraw()
+
+        await deps.fetchNotes().catch(() => {})
       }
 
-      await nextTick()
-      deps.scheduleDraw()
+      const coreParams: Record<string, unknown> = {
+        range: deps.range.value,
+        offset: deps.offset.value | 0,
+        include: ['core'],
+      }
+      if (debugEnabled) {
+        coreParams.include = ['core', 'debug']
+        coreParams.debug = true
+      }
+      const coreJson: any = await deps.getJson(deps.route('loadData'), coreParams)
+      if (currentSeq !== loadSeq) {
+        if (deps.isDebug?.()) console.warn('discarding stale core response', { currentSeq, loadSeq })
+        return
+      }
+      applyCorePayload(coreJson)
+      deps.onCoreLoaded?.(coreJson)
 
-      await deps.fetchNotes().catch(() => {})
+      const includeLookback = deps.includeLookback?.() === true
+      const dataInclude = ['data']
+      if (includeLookback) dataInclude.push('lookback')
+      if (debugEnabled) dataInclude.push('debug')
+      const dataParams: Record<string, unknown> = {
+        range: deps.range.value,
+        offset: deps.offset.value | 0,
+        include: dataInclude,
+      }
+      if (debugEnabled) {
+        dataParams.debug = true
+      }
+      const dataJson: any = await deps.postJson(deps.route('loadData'), dataParams)
+      if (currentSeq !== loadSeq) {
+        if (deps.isDebug?.()) console.warn('discarding stale data response', { currentSeq, loadSeq })
+        return
+      }
+      await applyDataPayload(dataJson)
     } catch (error) {
       console.error(error)
       deps.notifyError('Failed to load data')

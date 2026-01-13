@@ -41,8 +41,7 @@ foreach ($calendars as $calendar) {
 
 if (!$existing) {
     $calendarManager->createCalendar($principal, $calendarId, [
-        '{DAV:}displayname' => 'Opsdash Focus',
-        '{http://apple.com/ns/ical/}calendar-color' => '#2563EB',
+        'displayname' => 'Opsdash Focus',
     ]);
     echo "Created calendar $calendarId for $uid" . PHP_EOL;
 }

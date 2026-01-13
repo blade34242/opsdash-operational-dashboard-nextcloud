@@ -8,6 +8,7 @@ import { buildTitle } from '../helpers'
 import { createDefaultTargetsConfig, convertWeekToMonth } from '../../targets'
 import type { TargetsConfig } from '../../targets'
 import { computeIndexForShares } from '../../balanceIndex'
+import { parseDateKey } from '../../dateTime'
 import type { RegistryEntry } from '../types'
 import { formatLookbackLabel, sortLookbackOffsets } from './chartHelpers'
 
@@ -499,9 +500,9 @@ function median(values: number[]): number {
 
 function dayOfWeek(label: string): number | null {
   if (!label) return null
-  const date = new Date(`${label}T00:00:00`)
-  if (Number.isNaN(date.getTime())) return null
-  return date.getDay()
+  const date = parseDateKey(label)
+  if (!date) return null
+  return date.getUTCDay()
 }
 
 function findLastDayOff(labels: string[], totals: number[]) {

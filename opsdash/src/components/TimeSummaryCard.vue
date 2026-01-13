@@ -103,6 +103,7 @@
 
 <script setup lang="ts">
 import { computed } from 'vue'
+import { formatDateOnly, formatDateRange, formatDateKey, formatTime, parseDateKey, addDaysUtc, addMonthsUtc } from '../services/dateTime'
 
 type Mode = 'active' | 'all'
 
@@ -470,13 +471,7 @@ const rangeSpanLabel = computed(() => {
   const from = props.summary.rangeStart || props.rangeStart
   const to = props.summary.rangeEnd || props.rangeEnd
   if (!from || !to) return ''
-  const start = parseDate(from)
-  const end = parseDate(to)
-  if (!start || !end) return ''
-  const fmt = new Intl.DateTimeFormat(undefined, { month: 'short', day: 'numeric' })
-  const startLabel = fmt.format(start)
-  const endLabel = fmt.format(end)
-  return startLabel === endLabel ? startLabel : `${startLabel}–${endLabel}`
+  return formatDateRange(from, to, { month: 'short', day: 'numeric' })
 })
 
 const deltaLine = computed(() => {
@@ -504,9 +499,7 @@ function n2(v: unknown) {
 function timeOf(value: string | null | undefined) {
   if (!value) return ''
   if (/^\d{2}:\d{2}$/.test(value)) return value
-  const date = new Date(value)
-  if (Number.isNaN(date.getTime())) return ''
-  return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+  return formatTime(value)
 }
 
 function statusClass(status: 'on_track' | 'at_risk' | 'behind' | 'done' | 'none' | string | undefined): string {
@@ -525,34 +518,22 @@ function pct(value: number | null | undefined) {
   return `${num.toFixed(1)}%`
 }
 
-function parseDate(value: string) {
-  const trimmed = value.trim()
-  if (!trimmed) return null
-  const date = new Date(trimmed.length === 10 ? `${trimmed}T00:00:00` : trimmed)
-  return Number.isNaN(date.getTime()) ? null : date
-}
-
-function shiftRange(date: Date, mode: string, offset: number) {
-  const next = new Date(date)
-  if (mode === 'month') {
-    next.setMonth(next.getMonth() + offset)
-  } else {
-    next.setDate(next.getDate() + offset * 7)
-  }
-  return next
+function shiftDateKey(baseKey: string, mode: string, offset: number): string | null {
+  const date = parseDateKey(baseKey)
+  if (!date) return null
+  const next = mode === 'month' ? addMonthsUtc(date, offset) : addDaysUtc(date, offset * 7)
+  return formatDateKey(next, 'UTC')
 }
 
 function comparisonRangeLabel(shift: number) {
   const mode = (props.rangeMode || 'week').toString().toLowerCase()
-  const from = parseDate(props.summary.rangeStart || props.rangeStart || '')
-  const to = parseDate(props.summary.rangeEnd || props.rangeEnd || '')
-  if (!from || !to) return ''
-  const start = shiftRange(from, mode, shift)
-  const end = shiftRange(to, mode, shift)
-  const fmt = new Intl.DateTimeFormat(undefined, { month: 'short', day: 'numeric' })
-  const startLabel = fmt.format(start)
-  const endLabel = fmt.format(end)
-  return startLabel === endLabel ? startLabel : `${startLabel}–${endLabel}`
+  const baseFrom = props.summary.rangeStart || props.rangeStart || ''
+  const baseTo = props.summary.rangeEnd || props.rangeEnd || ''
+  if (!baseFrom || !baseTo) return ''
+  const startKey = shiftDateKey(baseFrom, mode, shift)
+  const endKey = shiftDateKey(baseTo, mode, shift)
+  if (!startKey || !endKey) return ''
+  return formatDateRange(startKey, endKey, { month: 'short', day: 'numeric' })
 }
 
 function formatOffset(offset: number) {
@@ -561,19 +542,15 @@ function formatOffset(offset: number) {
 }
 
 function formatRangeSpan(startValue?: string, endValue?: string) {
-  const start = startValue ? parseDate(startValue) : null
-  const end = endValue ? parseDate(endValue) : null
-  if (!start || !end) return ''
-  const fmt = new Intl.DateTimeFormat(undefined, { month: 'short', day: 'numeric' })
-  const startLabel = fmt.format(start)
-  const endLabel = fmt.format(end)
-  return startLabel === endLabel ? startLabel : `${startLabel}–${endLabel}`
+  if (!startValue || !endValue) return ''
+  return formatDateRange(startValue, endValue, { month: 'short', day: 'numeric' })
 }
 
 function formatBusiest(busiest: { date?: string; hours?: number } | null) {
   if (!busiest?.date) return '—'
   const hours = Number(busiest?.hours ?? 0)
-  return `${busiest.date} · ${n2(hours)} h`
+  const label = formatDateOnly(busiest.date, { month: 'short', day: 'numeric' }) || busiest.date
+  return `${label} · ${n2(hours)} h`
 }
 
 function formatTopCategory(cat: HistoryEntry['topCategory']) {

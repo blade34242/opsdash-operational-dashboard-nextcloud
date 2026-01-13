@@ -1,4 +1,5 @@
 import { computed, type Ref } from 'vue'
+import { formatDateRange } from '../src/services/dateTime'
 
 type RangeMode = 'week' | 'month'
 
@@ -19,7 +20,7 @@ export function useRangeToolbar(deps: RangeToolbarDeps) {
   )
   const rangeDateLabel = computed(() => {
     if (!deps.from.value || !deps.to.value) return ''
-    return `${deps.from.value} – ${deps.to.value}`
+    return formatDateRange(deps.from.value, deps.to.value, { year: 'numeric', month: '2-digit', day: '2-digit' })
   })
 
   function safeLoad() {

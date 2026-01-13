@@ -7,7 +7,7 @@ final class OverviewHistoryService {
     private const MAX_LOOKBACK = 6;
 
     public function __construct(
-        private CalendarService $calendarService,
+        private CalendarAccessService $calendarAccess,
         private OverviewEventsCollector $eventsCollector,
     ) {
     }
@@ -27,6 +27,7 @@ final class OverviewHistoryService {
      * @param \DateTimeZone $userTz
      * @param float $allDayHours
      * @param array<string,array{id:string,label:string}> $categoryMeta
+     * @param int $weekStart
      * @return array<int, array{offset:int,label:string,categories:array<int,array{id:string,label:string,share:float}>}>
      */
     public function buildBalanceHistory(
@@ -41,13 +42,14 @@ final class OverviewHistoryService {
         \DateTimeZone $userTz,
         float $allDayHours,
         array $categoryMeta,
+        int $weekStart = 1,
     ): array {
         $history = [];
         $lookback = max(1, min(self::MAX_LOOKBACK, $lookback));
 
         for ($i = 1; $i <= $lookback; $i++) {
             $offset = $currentOffset - $i;
-            [$from, $to] = $this->calendarService->rangeBounds($range, $offset);
+            [$from, $to] = $this->calendarAccess->rangeBounds($range, $offset, $userTz, $weekStart);
             $rangeTotals = $this->collectRangeCategoryTotals(
                 from: $from,
                 to: $to,
@@ -91,6 +93,7 @@ final class OverviewHistoryService {
         string $principal,
         \DateTimeZone $userTz,
         int $lookbackWeeks,
+        int $weekStart = 1,
         array $precomputedDaysWorked = [],
     ): array {
         $maxLookback = max(1, min(self::MAX_LOOKBACK, $lookbackWeeks ?: 3));
@@ -112,7 +115,7 @@ final class OverviewHistoryService {
         $trend[] = $this->summarizeCurrentDayOff($dayMap, $currentFrom, $currentTo, $range);
 
         for ($step = 1; $step <= $maxLookback; $step++) {
-            [$lookFrom, $lookTo] = $this->calendarService->rangeBounds($range, $offset - $step);
+            [$lookFrom, $lookTo] = $this->calendarAccess->rangeBounds($range, $offset - $step, $userTz, $weekStart);
             $workedDays = $precomputedDaysWorked[$step] ?? $this->countWorkedDaysForRange(
                 calendars: $calendars,
                 includeAll: $includeAll,

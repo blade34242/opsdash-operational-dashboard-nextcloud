@@ -22,18 +22,19 @@ interface IntegrationHarness {
   currentTargets: ReturnType<typeof computed>
   route: ReturnType<typeof vi.fn>
   getJson: ReturnType<typeof vi.fn>
+  postJson: ReturnType<typeof vi.fn>
   scheduleDraw: ReturnType<typeof vi.fn>
   fetchNotes: ReturnType<typeof vi.fn>
 }
 
 function loadFixture(name: string) {
-  const file = path.join(__dirname, 'fixtures', name)
+  const file = path.join(__dirname, 'fixtures-v2', name)
   const json = readFileSync(file, 'utf-8')
   return JSON.parse(json)
 }
 
 function fixtureExists(name: string) {
-  return existsSync(path.join(__dirname, 'fixtures', name))
+  return existsSync(path.join(__dirname, 'fixtures-v2', name))
 }
 
 function offsetFixtureName(range: 'week' | 'month', offset: number) {
@@ -43,14 +44,23 @@ function offsetFixtureName(range: 'week' | 'month', offset: number) {
   return fixtureExists(trend) ? trend : base
 }
 
-async function createIntegrationHarness(options: { fixture: string; range: 'week' | 'month'; offset?: number }): Promise<IntegrationHarness> {
+async function createIntegrationHarness(options: {
+  fixture: string
+  range: 'week' | 'month'
+  offset?: number
+  userId?: string
+}): Promise<IntegrationHarness> {
   const fixture = loadFixture(options.fixture)
   const range = ref<'week' | 'month'>(options.range)
   const offset = ref(options.offset ?? 0)
   const userChangedSelection = ref(false)
+  if (typeof window !== 'undefined') {
+    ;(window as any).OC = { currentUser: options.userId || 'admin' }
+  }
 
-  const route = vi.fn<(name: 'load') => string>().mockReturnValue('/overview/load')
+  const route = vi.fn<(name: 'loadData') => string>().mockReturnValue('/overview/load')
   const getJson = vi.fn().mockImplementation(async () => JSON.parse(JSON.stringify(fixture)))
+  const postJson = vi.fn().mockImplementation(async () => JSON.parse(JSON.stringify(fixture)))
   const notifyError = vi.fn()
   const scheduleDraw = vi.fn()
   const fetchNotes = vi.fn().mockResolvedValue(undefined)
@@ -61,6 +71,7 @@ async function createIntegrationHarness(options: { fixture: string; range: 'week
     userChangedSelection,
     route,
     getJson,
+    postJson,
     notifyError,
     scheduleDraw,
     fetchNotes,
@@ -119,6 +130,7 @@ async function createIntegrationHarness(options: { fixture: string; range: 'week
     currentTargets,
     route,
     getJson,
+    postJson,
     scheduleDraw,
     fetchNotes,
   }
@@ -137,10 +149,11 @@ describe('Dashboard integration fixtures', () => {
   it('replays week payload and produces forecast for remaining days', async () => {
     vi.setSystemTime(new Date('2025-10-29T12:00:00Z'))
 
-    const harness = await createIntegrationHarness({ range: 'week', fixture: 'load-week.json' })
+    const harness = await createIntegrationHarness({ range: 'week', fixture: 'load-week.json', userId: 'admin' })
 
-    expect(harness.route).toHaveBeenCalledWith('load')
+    expect(harness.route).toHaveBeenCalledWith('loadData')
     expect(harness.getJson).toHaveBeenCalledTimes(1)
+    expect(harness.postJson).toHaveBeenCalledTimes(1)
     expect(harness.scheduleDraw).toHaveBeenCalledTimes(1)
     expect(harness.fetchNotes).toHaveBeenCalledTimes(1)
 
@@ -194,7 +207,7 @@ describe('Dashboard integration fixtures', () => {
   it('replays month payload and keeps category mapping + forecast data stable', async () => {
     vi.setSystemTime(new Date('2025-10-05T12:00:00Z'))
 
-    const harness = await createIntegrationHarness({ range: 'month', fixture: 'load-month.json' })
+    const harness = await createIntegrationHarness({ range: 'month', fixture: 'load-month.json', userId: 'admin' })
 
     expect(harness.dashboard.uid.value).toBe('admin')
     expect(harness.dashboard.targetsConfig.value.totalHours).toBe(48)
@@ -219,7 +232,7 @@ describe('Dashboard integration fixtures', () => {
     }
     const fixture = loadFixture(fixtureName)
     vi.setSystemTime(new Date(`${fixture.meta.from}T12:00:00Z`))
-    const harness = await createIntegrationHarness({ range: 'week', fixture: fixtureName, offset: -1 })
+    const harness = await createIntegrationHarness({ range: 'week', fixture: fixtureName, offset: -1, userId: 'admin' })
     expect(harness.fixture.meta.offset).toBe(-1)
     expect(harness.dashboard.from.value).toBe(harness.fixture.meta.from)
     expect(harness.dashboard.to.value).toBe(harness.fixture.meta.to)
@@ -228,7 +241,7 @@ describe('Dashboard integration fixtures', () => {
 
   it('handles future-week offset fixtures with multiple calendars', async () => {
     vi.setSystemTime(new Date('2025-11-12T12:00:00Z'))
-    const harness = await createIntegrationHarness({ range: 'week', fixture: 'load-week-offset2.json', offset: 2 })
+    const harness = await createIntegrationHarness({ range: 'week', fixture: 'load-week-offset2.json', offset: 2, userId: 'admin' })
     expect(harness.fixture.meta.offset).toBe(2)
     expect(harness.dashboard.from.value).toBe('2025-11-10')
     expect(harness.dashboard.to.value).toBe('2025-11-16')
@@ -237,7 +250,7 @@ describe('Dashboard integration fixtures', () => {
 
   it('handles next-month offset fixtures', async () => {
     vi.setSystemTime(new Date('2025-11-28T12:00:00Z'))
-    const harness = await createIntegrationHarness({ range: 'month', fixture: 'load-month-offset1.json', offset: 1 })
+    const harness = await createIntegrationHarness({ range: 'month', fixture: 'load-month-offset1.json', offset: 1, userId: 'admin' })
     expect(harness.fixture.meta.offset).toBe(1)
     expect(harness.dashboard.from.value).toBe('2025-11-03')
     expect(harness.dashboard.to.value).toBe('2025-11-30')
@@ -249,7 +262,7 @@ describe('Dashboard integration fixtures', () => {
 
   it('handles month fixtures with multiple calendars selected', async () => {
     vi.setSystemTime(new Date('2025-10-15T12:00:00Z'))
-    const harness = await createIntegrationHarness({ range: 'month', fixture: 'load-month-multiuser.json', offset: 0 })
+    const harness = await createIntegrationHarness({ range: 'month', fixture: 'load-month-multiuser.json', offset: 0, userId: 'admin' })
     expect(harness.dashboard.selected.value).toEqual(['personal', 'opsdash-focus'])
     const calendars = harness.dashboard.calendars.value
     expect(calendars.filter((cal: any) => cal.checked === false).map((cal: any) => cal.id)).toContain('asdsad')
@@ -259,7 +272,7 @@ describe('Dashboard integration fixtures', () => {
 
   it('replays QA month payload with limit metadata intact', async () => {
     vi.setSystemTime(new Date('2025-11-12T12:00:00Z'))
-    const harness = await createIntegrationHarness({ range: 'month', fixture: 'load-month-qa.json', offset: 0 })
+    const harness = await createIntegrationHarness({ range: 'month', fixture: 'load-month-qa.json', offset: 0, userId: 'admin' })
     expect(harness.dashboard.uid.value).toBe('admin')
     expect(harness.dashboard.colorsById.value.personal).toBe('#0be5a6')
     expect(harness.dashboard.truncLimits.value?.totalProcessed).toBe(3)
@@ -269,7 +282,7 @@ describe('Dashboard integration fixtures', () => {
 
   it('replays QA week payload with independent selection', async () => {
     vi.setSystemTime(new Date('2025-11-14T12:00:00Z'))
-    const harness = await createIntegrationHarness({ range: 'week', fixture: 'load-week-qa.json', offset: 0 })
+    const harness = await createIntegrationHarness({ range: 'week', fixture: 'load-week-qa.json', offset: 0, userId: 'qa' })
     expect(harness.dashboard.uid.value).toBe('qa')
     expect(harness.dashboard.selected.value).toEqual(['opsdash-focus'])
     expect(harness.dashboard.colorsById.value['opsdash-focus']).toBe('#2563EB')
@@ -283,7 +296,7 @@ describe('Dashboard integration fixtures', () => {
     }
     const fixture = loadFixture(fixtureName)
     vi.setSystemTime(new Date(`${fixture.meta.from}T12:00:00Z`))
-    const harness = await createIntegrationHarness({ range: 'week', fixture: fixtureName, offset: -2 })
+    const harness = await createIntegrationHarness({ range: 'week', fixture: fixtureName, offset: -2, userId: 'admin' })
     expect(harness.fixture.meta.offset).toBe(-2)
     expect(harness.dashboard.from.value).toBe(harness.fixture.meta.from)
     expect(harness.dashboard.to.value).toBe(harness.fixture.meta.to)
@@ -297,7 +310,7 @@ describe('Dashboard integration fixtures', () => {
     }
     const fixture = loadFixture(fixtureName)
     vi.setSystemTime(new Date(`${fixture.meta.from}T12:00:00Z`))
-    const harness = await createIntegrationHarness({ range: 'week', fixture: fixtureName, offset: 3 })
+    const harness = await createIntegrationHarness({ range: 'week', fixture: fixtureName, offset: 3, userId: 'admin' })
     expect(harness.fixture.meta.offset).toBe(3)
     expect(harness.dashboard.from.value).toBe(harness.fixture.meta.from)
     expect(harness.dashboard.to.value).toBe(harness.fixture.meta.to)
@@ -311,7 +324,7 @@ describe('Dashboard integration fixtures', () => {
     }
     const fixture = loadFixture(fixtureName)
     vi.setSystemTime(new Date(`${fixture.meta.from}T12:00:00Z`))
-    const harness = await createIntegrationHarness({ range: 'month', fixture: fixtureName, offset: -2 })
+    const harness = await createIntegrationHarness({ range: 'month', fixture: fixtureName, offset: -2, userId: 'admin' })
     expect(harness.fixture.meta.offset).toBe(-2)
     expect(harness.dashboard.from.value).toBe(harness.fixture.meta.from)
     expect(harness.dashboard.to.value).toBe(harness.fixture.meta.to)
@@ -325,7 +338,7 @@ describe('Dashboard integration fixtures', () => {
     }
     const fixture = loadFixture(fixtureName)
     vi.setSystemTime(new Date(`${fixture.meta.from}T12:00:00Z`))
-    const harness = await createIntegrationHarness({ range: 'month', fixture: fixtureName, offset: 2 })
+    const harness = await createIntegrationHarness({ range: 'month', fixture: fixtureName, offset: 2, userId: 'admin' })
     expect(harness.fixture.meta.offset).toBe(2)
     expect(harness.dashboard.from.value).toBe(harness.fixture.meta.from)
     expect(harness.dashboard.to.value).toBe(harness.fixture.meta.to)
@@ -346,7 +359,7 @@ describe('Dashboard integration fixtures', () => {
       it(testName, async () => {
         const fixture = loadFixture(fixtureName)
         vi.setSystemTime(new Date(`${fixture.meta.from}T12:00:00Z`))
-        const harness = await createIntegrationHarness({ range: 'week', fixture: fixtureName, offset })
+        const harness = await createIntegrationHarness({ range: 'week', fixture: fixtureName, offset, userId: 'admin' })
         expect(harness.fixture.meta.offset).toBe(offset)
         expect(harness.dashboard.from.value).toBe(harness.fixture.meta.from)
         expect(harness.dashboard.to.value).toBe(harness.fixture.meta.to)
@@ -364,7 +377,7 @@ describe('Dashboard integration fixtures', () => {
       it(testName, async () => {
         const fixture = loadFixture(fixtureName)
         vi.setSystemTime(new Date(`${fixture.meta.from}T12:00:00Z`))
-        const harness = await createIntegrationHarness({ range: 'month', fixture: fixtureName, offset })
+        const harness = await createIntegrationHarness({ range: 'month', fixture: fixtureName, offset, userId: 'admin' })
         expect(harness.fixture.meta.offset).toBe(offset)
         expect(harness.dashboard.from.value).toBe(harness.fixture.meta.from)
         expect(harness.dashboard.to.value).toBe(harness.fixture.meta.to)
@@ -378,7 +391,7 @@ describe('Dashboard integration fixtures', () => {
     if (fixtureExists(weekFixture)) {
       const fixture = loadFixture(weekFixture)
       vi.setSystemTime(new Date(`${fixture.meta.from}T12:00:00Z`))
-      const harness = await createIntegrationHarness({ range: 'week', fixture: weekFixture, offset: 3 })
+      const harness = await createIntegrationHarness({ range: 'week', fixture: weekFixture, offset: 3, userId: 'admin' })
       expect(Array.isArray(harness.dashboard.stats.day_off_trend)).toBe(true)
       expect(harness.dashboard.stats.day_off_trend.length).toBeGreaterThan(1)
       expect(Array.isArray(harness.dashboard.stats.balance_overview?.trend?.history)).toBe(true)
@@ -389,7 +402,7 @@ describe('Dashboard integration fixtures', () => {
     if (fixtureExists(monthFixture)) {
       const fixture = loadFixture(monthFixture)
       vi.setSystemTime(new Date(`${fixture.meta.from}T12:00:00Z`))
-      const harness = await createIntegrationHarness({ range: 'month', fixture: monthFixture, offset: -3 })
+      const harness = await createIntegrationHarness({ range: 'month', fixture: monthFixture, offset: -3, userId: 'admin' })
       expect(Array.isArray(harness.dashboard.stats.day_off_trend)).toBe(true)
       expect(harness.dashboard.stats.day_off_trend.length).toBeGreaterThan(1)
       expect(Array.isArray(harness.dashboard.stats.balance_overview?.trend?.history)).toBe(true)

@@ -67,6 +67,7 @@
 import { computed } from 'vue'
 import { createDefaultBalanceConfig } from '../services/targets/config'
 import { computeIndexForShares } from '../services/balanceIndex'
+import { addDaysUtc, addMonthsUtc, endOfMonthUtc, formatDateKey, formatDateRange, getWeekNumber, parseDateKey } from '../services/dateTime'
 
 const props = withDefaults(defineProps<{
   overview?: any
@@ -304,36 +305,14 @@ const displayRange = (idx: number) => {
   return ''
 }
 
-function isoWeek(date: Date) {
-  const tmp = new Date(Date.UTC(date.getFullYear(), date.getMonth(), date.getDate()))
-  const dayNum = tmp.getUTCDay() || 7
-  tmp.setUTCDate(tmp.getUTCDate() + 4 - dayNum)
-  const yearStart = new Date(Date.UTC(tmp.getUTCFullYear(), 0, 1))
-  const weekNo = Math.ceil((((tmp.getTime() - yearStart.getTime()) / 86400000) + 1) / 7)
-  return weekNo
-}
-const dateFormatter = new Intl.DateTimeFormat(undefined, { day: '2-digit', month: '2-digit' })
-function addDays(base: Date, days: number) {
-  const next = new Date(base)
-  next.setDate(next.getDate() + days)
-  return next
-}
-function addMonths(base: Date, months: number) {
-  const next = new Date(base)
-  next.setMonth(next.getMonth() + months)
-  return next
-}
-function endOfMonth(date: Date) {
-  return new Date(date.getFullYear(), date.getMonth() + 1, 0)
-}
 function isDefaultOffsetLabel(label: string | undefined) {
   return !label ? true : /^-\d+\s*(wk|mo)$/i.test(label.trim())
 }
 function formatRange(from?: Date, to?: Date) {
   if (!from || !to) return ''
-  const fromLabel = dateFormatter.format(from)
-  const toLabel = dateFormatter.format(to)
-  return fromLabel === toLabel ? fromLabel : `${fromLabel}–${toLabel}`
+  const fromKey = formatDateKey(from, 'UTC')
+  const toKey = formatDateKey(to, 'UTC')
+  return formatDateRange(fromKey, toKey, { day: '2-digit', month: '2-digit' })
 }
 function computedRange(idx: number) {
   const offsetFromCurrent = filteredPoints.value[idx]?.offset ?? idx
@@ -342,17 +321,17 @@ function computedRange(idx: number) {
     return isDefaultOffsetLabel(label) ? '' : (label || '')
   }
   const mode = (props.rangeMode || '').toLowerCase()
-  const currentFrom = new Date(props.from)
-  const currentTo = new Date(props.to)
-  if (Number.isNaN(currentFrom.getTime()) || Number.isNaN(currentTo.getTime())) return ''
+  const currentFrom = parseDateKey(props.from)
+  const currentTo = parseDateKey(props.to)
+  if (!currentFrom || !currentTo) return ''
   if (mode === 'month') {
-    const start = addMonths(currentFrom, -offsetFromCurrent)
-    const end = endOfMonth(start)
+    const start = addMonthsUtc(currentFrom, -offsetFromCurrent)
+    const end = endOfMonthUtc(start)
     return formatRange(start, end)
   }
   // default week
-  const start = addDays(currentFrom, -7 * offsetFromCurrent)
-  const end = addDays(currentTo, -7 * offsetFromCurrent)
+  const start = addDaysUtc(currentFrom, -7 * offsetFromCurrent)
+  const end = addDaysUtc(currentTo, -7 * offsetFromCurrent)
   return formatRange(start, end)
 }
 function computedPeriodTag(idx: number) {
@@ -361,21 +340,23 @@ function computedPeriodTag(idx: number) {
   if (!props.from) {
     return offsetFromCurrent === 0 ? 'Current' : `- ${offsetFromCurrent} wk`
   }
-  const start = mode === 'month'
-    ? addMonths(new Date(props.from), -offsetFromCurrent)
-    : addDays(new Date(props.from), -7 * offsetFromCurrent)
-  if (Number.isNaN(start.getTime())) {
+  const startBase = parseDateKey(props.from)
+  const start = startBase
+    ? (mode === 'month'
+      ? addMonthsUtc(startBase, -offsetFromCurrent)
+      : addDaysUtc(startBase, -7 * offsetFromCurrent))
+    : null
+  if (!start) {
     return offsetFromCurrent === 0 ? 'Current' : `- ${offsetFromCurrent} wk`
   }
   if (mode === 'month') {
-    const m = start.getMonth() + 1
-    const targetMonth = new Date(start)
-    const currentMonth = new Date(props.from).getMonth() + 1
-    const displayMonth = offsetFromCurrent === 0 ? currentMonth : targetMonth.getMonth() + 1
+    const targetMonth = start.getUTCMonth() + 1
+    const currentMonth = startBase ? startBase.getUTCMonth() + 1 : targetMonth
+    const displayMonth = offsetFromCurrent === 0 ? currentMonth : targetMonth
     return `MONTH ${displayMonth}`
   }
-  const w = isoWeek(start)
-  const currentWeek = isoWeek(new Date(props.from))
+  const w = getWeekNumber(start)
+  const currentWeek = startBase ? getWeekNumber(startBase) : w
   const displayWeek = offsetFromCurrent === 0 ? currentWeek : w
   return `WEEK ${displayWeek}`
 }

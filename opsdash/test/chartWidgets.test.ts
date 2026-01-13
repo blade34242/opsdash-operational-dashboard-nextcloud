@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'vitest'
 import { widgetsRegistry } from '../src/services/widgetsRegistry'
+import { formatDateKey, getWeekdayOrder } from '../src/services/dateTime'
 
 describe('chart widgets', () => {
   it('filters pie chart by calendar selection', () => {
@@ -38,12 +39,6 @@ describe('chart widgets', () => {
     const today = new Date()
     const tomorrow = new Date(today)
     tomorrow.setDate(today.getDate() + 1)
-    const formatDateKey = (date: Date) => {
-      const year = date.getFullYear()
-      const month = `${date.getMonth() + 1}`.padStart(2, '0')
-      const day = `${date.getDate()}`.padStart(2, '0')
-      return `${year}-${month}-${day}`
-    }
     const def: any = {
       options: {
         scope: 'calendar',
@@ -54,7 +49,7 @@ describe('chart widgets', () => {
     const ctx: any = {
       charts: {
         perDaySeries: {
-          labels: [formatDateKey(today), formatDateKey(tomorrow)],
+          labels: [formatDateKey(today, 'UTC'), formatDateKey(tomorrow, 'UTC')],
           series: [{ id: 'cal-1', name: 'Cal 1', data: [1, 0] }],
         },
       },
@@ -88,8 +83,11 @@ describe('chart widgets', () => {
       categoryColorMap: {},
     }
     const props = entry.buildProps(def, ctx) as any
-    expect(props.groupedData.series[0].data[0]).toBe(5)
-    expect(props.groupedData.series[1].data[0]).toBe(3)
+    const order = getWeekdayOrder()
+    const monIdx = order.indexOf('Mon')
+    expect(monIdx).toBeGreaterThanOrEqual(0)
+    expect(props.groupedData.series[0].data[monIdx]).toBe(5)
+    expect(props.groupedData.series[1].data[monIdx]).toBe(3)
   })
 
   it('uses lookback heatmap data when available', () => {

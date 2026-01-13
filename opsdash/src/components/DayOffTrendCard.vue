@@ -29,6 +29,7 @@
 
 <script setup lang="ts">
 import { computed } from 'vue'
+import { formatDateRange, parseDateKey, getWeekNumber } from '../services/dateTime'
 
 type DayOffTrendEntry = {
   offset: number
@@ -167,31 +168,14 @@ function classifyTone(value: number): 'low' | 'mid' | 'high' {
   return 'low'
 }
 
-const dateFormatter = new Intl.DateTimeFormat(undefined, { day: '2-digit', month: '2-digit' })
-
 function parseDate(value?: string) {
   if (!value) return null
-  const date = new Date(value)
-  if (Number.isNaN(date.getTime())) return null
-  return date
-}
-
-function isoWeek(date: Date) {
-  const tmp = new Date(Date.UTC(date.getFullYear(), date.getMonth(), date.getDate()))
-  const dayNum = tmp.getUTCDay() || 7
-  tmp.setUTCDate(tmp.getUTCDate() + 4 - dayNum)
-  const yearStart = new Date(Date.UTC(tmp.getUTCFullYear(), 0, 1))
-  const weekNo = Math.ceil((((tmp.getTime() - yearStart.getTime()) / 86400000) + 1) / 7)
-  return weekNo
+  return parseDateKey(value)
 }
 
 function formatRange(from?: string, to?: string) {
-  const start = parseDate(from)
-  const end = parseDate(to)
-  if (!start || !end) return ''
-  const fromLabel = dateFormatter.format(start)
-  const toLabel = dateFormatter.format(end)
-  return fromLabel === toLabel ? fromLabel : `${fromLabel}–${toLabel}`
+  if (!from || !to) return ''
+  return formatDateRange(from, to, { day: '2-digit', month: '2-digit' })
 }
 
 function fallbackLabel(offset: number, label?: string) {
@@ -206,9 +190,9 @@ function formatPeriodLabel(entry: DayOffTrendEntry) {
     return fallbackLabel(entry.offset, entry.label)
   }
   if (historyUnit.value === 'mo') {
-    return `MONTH ${baseDate.getMonth() + 1}`
+    return `MONTH ${baseDate.getUTCMonth() + 1}`
   }
-  return `WEEK ${isoWeek(baseDate)}`
+  return `WEEK ${getWeekNumber(baseDate)}`
 }
 
 function formatLabel(entry: DayOffTrendEntry) {

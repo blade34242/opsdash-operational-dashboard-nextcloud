@@ -5,6 +5,7 @@ import {
   type ActivityForecastMode,
   type TargetsConfig,
 } from '../src/services/targets'
+import { formatDateKey } from '../src/services/dateTime'
 
 interface UseChartsInput {
   charts: Ref<any>
@@ -277,13 +278,6 @@ function normalizeMode(mode: ActivityForecastMode | undefined): ActivityForecast
     return mode
   }
   return 'total'
-}
-
-function formatDateKey(date: Date): string {
-  const year = date.getFullYear()
-  const month = `${date.getMonth() + 1}`.padStart(2, '0')
-  const day = `${date.getDate()}`.padStart(2, '0')
-  return `${year}-${month}-${day}`
 }
 
 function makeZeroArray(length: number): number[] {

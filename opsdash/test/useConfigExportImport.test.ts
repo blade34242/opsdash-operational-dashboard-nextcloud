@@ -4,8 +4,8 @@ import { ref } from 'vue'
 import { useConfigExportImport } from '../composables/useConfigExportImport'
 import { createDefaultTargetsConfig } from '../src/services/targets'
 import { createDefaultWidgetTabs } from '../src/services/widgetsRegistry'
-import presetFixture from './fixtures/preset-export.json'
-import onboardingFixture from './fixtures/onboarding-export.json'
+import presetFixture from './fixtures-v2/preset-export.json'
+import onboardingFixture from './fixtures-v2/onboarding-export.json'
 
 function setup(overrides: Record<string, any> = {}) {
   const selected = ref<string[]>(['personal'])

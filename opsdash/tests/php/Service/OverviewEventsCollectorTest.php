@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace OCA\Opsdash\Tests\Service;
 
 use DateTimeImmutable;
-use OCA\Opsdash\Service\CalendarService;
+use OCA\Opsdash\Service\CalendarParsingService;
 use OCA\Opsdash\Service\OverviewEventsCollector;
 use OCP\Calendar\IManager;
 use PHPUnit\Framework\TestCase;
@@ -33,8 +33,7 @@ class OverviewEventsCollectorTest extends TestCase {
       'cal-b' => [['id' => 2]],
     ];
 
-    $calendarService = new class() extends CalendarService {
-      public function __construct() {}
+    $calendarService = new class() extends CalendarParsingService {
       public function parseRows(array $raw, string $calendarName, ?string $calendarId = null): array {
         return array_map(
           fn ($row) => ['calendar' => $calendarName, 'calendar_id' => $calendarId, 'hours' => 1, 'allday' => false],
@@ -95,8 +94,7 @@ class OverviewEventsCollectorTest extends TestCase {
       'cal-b' => array_fill(0, 10, ['id' => 2]),
     ];
 
-    $calendarService = new class() extends CalendarService {
-      public function __construct() {}
+    $calendarService = new class() extends CalendarParsingService {
       public function parseRows(array $raw, string $calendarName, ?string $calendarId = null): array {
         return array_map(
           fn ($row) => ['calendar' => $calendarName, 'calendar_id' => $calendarId, 'hours' => 1, 'allday' => false],
@@ -135,4 +133,3 @@ class OverviewEventsCollectorTest extends TestCase {
     $this->assertSame('cal-b', $res['events'][4]['calendar_id']);
   }
 }
-

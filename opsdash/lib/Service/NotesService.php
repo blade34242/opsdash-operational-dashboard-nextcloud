@@ -11,24 +11,26 @@ class NotesService {
 
     public function __construct(
         private IConfig $config,
-        private CalendarService $calendarService,
+        private CalendarAccessService $calendarAccess,
         private LoggerInterface $logger,
     ) {
     }
 
     public function getNotes(string $uid, string $range, int $offset): array {
-        [$fromCur] = $this->calendarService->rangeBounds($range, $offset);
-        [$fromPrev] = $this->calendarService->rangeBounds($range, $offset - 1);
+        $userTz = $this->calendarAccess->resolveUserTimezone($uid);
+        $weekStart = $this->calendarAccess->resolveUserWeekStart($uid);
+        [$fromCur] = $this->calendarAccess->rangeBounds($range, $offset, $userTz, $weekStart);
+        [$fromPrev] = $this->calendarAccess->rangeBounds($range, $offset - 1, $userTz, $weekStart);
 
-        $keyCurrent = $this->calendarService->notesKey($range, $fromCur);
-        $keyPrevious = $this->calendarService->notesKey($range, $fromPrev);
+        $keyCurrent = $this->calendarAccess->notesKey($range, $fromCur);
+        $keyPrevious = $this->calendarAccess->notesKey($range, $fromPrev);
 
         $current = (string)$this->config->getUserValue($uid, self::APP_NAME, $keyCurrent, '');
         $previous = (string)$this->config->getUserValue($uid, self::APP_NAME, $keyPrevious, '');
         $history = [];
         for ($i = 1; $i <= 4; $i++) {
-            [$fromHistory] = $this->calendarService->rangeBounds($range, $offset - $i);
-            $keyHistory = $this->calendarService->notesKey($range, $fromHistory);
+            [$fromHistory] = $this->calendarAccess->rangeBounds($range, $offset - $i, $userTz, $weekStart);
+            $keyHistory = $this->calendarAccess->notesKey($range, $fromHistory);
             $content = (string)$this->config->getUserValue($uid, self::APP_NAME, $keyHistory, '');
             if (trim($content) === '') {
                 continue;
@@ -60,8 +62,10 @@ class NotesService {
         }
         $content = htmlspecialchars($content, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
 
-        [$fromCur] = $this->calendarService->rangeBounds($range, $offset);
-        $key = $this->calendarService->notesKey($range, $fromCur);
+        $userTz = $this->calendarAccess->resolveUserTimezone($uid);
+        $weekStart = $this->calendarAccess->resolveUserWeekStart($uid);
+        [$fromCur] = $this->calendarAccess->rangeBounds($range, $offset, $userTz, $weekStart);
+        $key = $this->calendarAccess->notesKey($range, $fromCur);
 
         try {
             $this->config->setUserValue($uid, self::APP_NAME, $key, $content);

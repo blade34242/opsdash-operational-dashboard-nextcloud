@@ -16,6 +16,7 @@ import { noteEditorEntry } from './widgets/note_editor'
 import { noteSnippetEntry } from './widgets/note_snippet'
 import { targetsV2Entry } from './widgets/targets_v2'
 import { timeSummaryV2Entry } from './widgets/time_summary_v2'
+import { createDefaultWidgetTabs as createDefaultWidgetTabsFromDefaults, getWidgetPreset } from '../widgetDefaults'
 
 export const widgetsRegistry: Record<string, RegistryEntry> = {
   time_summary_v2: timeSummaryV2Entry,
@@ -77,14 +78,7 @@ export function createDefaultWidgets(): WidgetDefinition[] {
 }
 
 export function createDefaultWidgetTabs(mode: DashboardMode): WidgetTabsState {
-  const tabs: WidgetTab[] = [
-    {
-      id: 'tab-1',
-      label: 'Overview',
-      widgets: createDashboardPreset(mode),
-    },
-  ]
-  return { tabs, defaultTabId: tabs[0].id }
+  return createDefaultWidgetTabsFromDefaults(mode)
 }
 
 export function normalizeWidgetTabs(raw: any, fallback: WidgetTabsState): WidgetTabsState {
@@ -133,204 +127,6 @@ export function mapWidgetToComponent(def: WidgetDefinition, ctx: WidgetRenderCon
   return { component: entry.component, props, loading }
 }
 
-function cloneWidget(type: string, options: Record<string, any> = {}, layout?: Partial<WidgetDefinition['layout']>): WidgetDefinition {
-  const entry = widgetsRegistry[type]
-  const defaultLayout = entry?.defaultLayout ?? { width: 'half', height: 's', order: 50 }
-  const defaultOptions = entry?.defaultOptions || {}
-  return {
-    id: `widget-${type}-${Math.random().toString(36).slice(2, 8)}`,
-    type,
-    options: { ...defaultOptions, ...(options || {}) },
-    layout: { ...defaultLayout, ...(layout || {}) },
-    version: 1,
-  }
-}
-
 export function createDashboardPreset(mode: DashboardMode): WidgetDefinition[] {
-  if (mode === 'quick') {
-    return [
-      cloneWidget('time_summary_v2', {
-        showTotal: true,
-        showAverage: true,
-        showMedian: true,
-        showBusiest: true,
-        showWorkday: true,
-        showWeekend: true,
-        showWeekendShare: true,
-        showCalendarSummary: true,
-        showTopCategory: true,
-        showBalance: true,
-        mode: 'active',
-        scale: 'xl',
-      }, { width: 'full', height: 'xl', order: 5 }),
-      cloneWidget('targets_v2', {
-        showForecast: true,
-        showHeader: false,
-        showLegend: true,
-        showDelta: true,
-        showPace: true,
-        showToday: true,
-        scale: 'lg',
-      }, { width: 'full', height: 'xl', order: 10 }),
-      cloneWidget('balance_index', {
-        showTrend: true,
-        showMessages: true,
-        showConfig: false,
-        indexBasis: 'category',
-        noticeAbove: 0.15,
-        noticeBelow: 0.15,
-        warnAbove: 0.3,
-        warnBelow: 0.3,
-        warnIndex: 0.6,
-        lookbackWeeks: 3,
-        messageDensity: 'normal',
-        trendColor: '#2563EB',
-        showCurrent: true,
-        labelMode: 'period',
-        reverseTrend: false,
-      }, { width: 'full', height: 'm', order: 20 }),
-      cloneWidget('dayoff_trend', {}, { width: 'full', height: 's', order: 30 }),
-    ]
-  }
-  if (mode === 'pro') {
-    return [
-      cloneWidget('targets_v2', {
-        showForecast: true,
-        showPace: true,
-        useLocalConfig: false,
-        localConfig: null,
-        showCategoryBlocks: true,
-      }, { width: 'half', height: 'xl', order: 10 }),
-      cloneWidget('time_summary_v2', {
-        showTotal: true,
-        showAverage: true,
-        showMedian: true,
-        showBusiest: true,
-        showWorkday: true,
-        showWeekend: true,
-        showWeekendShare: true,
-        showCalendarSummary: true,
-        showTopCategory: true,
-        showBalance: true,
-        mode: 'active',
-        scale: 'md',
-      }, { width: 'half', height: 'xl', order: 30 }),
-      cloneWidget('balance_index', {
-        showTrend: true,
-        showMessages: true,
-        showConfig: false,
-        indexBasis: 'category',
-        noticeAbove: 0.15,
-        noticeBelow: 0.15,
-        warnAbove: 0.3,
-        warnBelow: 0.3,
-        warnIndex: 0.6,
-        lookbackWeeks: 3,
-        messageDensity: 'normal',
-        trendColor: '#2563EB',
-        showCurrent: true,
-        labelMode: 'period',
-        reverseTrend: false,
-      }, { width: 'half', height: 'm', order: 40 }),
-      cloneWidget('dayoff_trend', {}, { width: 'half', height: 's', order: 50 }),
-      cloneWidget('category_mix_trend', {
-        lookbackWeeks: 3,
-        density: 'normal',
-        labelMode: 'period',
-        colorMode: 'hybrid',
-        squareCells: false,
-        showHeader: true,
-        showBadge: true,
-      }, { width: 'full', height: 'l', order: 55 }),
-      cloneWidget('calendar_table', {}, { width: 'full', height: 'l', order: 56 }),
-      cloneWidget('chart_pie', { scope: 'calendar', showLegend: true, showLabels: true }, { width: 'half', height: 'm', order: 57 }),
-      cloneWidget('chart_stacked', { scope: 'calendar', showLegend: true, showLabels: false }, { width: 'full', height: 'l', order: 58 }),
-      cloneWidget('chart_per_day', { scope: 'calendar', showLabels: false }, { width: 'half', height: 'm', order: 59 }),
-      cloneWidget('chart_dow', { scope: 'calendar', showLabels: true }, { width: 'half', height: 'm', order: 59.5 }),
-      cloneWidget('chart_hod', { showHint: false }, { width: 'full', height: 'l', order: 59.8 }),
-      cloneWidget('deck_cards', {
-        allowMine: true,
-        includeArchived: true,
-        includeCompleted: true,
-        autoScroll: true,
-        intervalSeconds: 5,
-        showCount: true,
-        filters: [
-          'open_all',
-          'open_mine',
-          'done_all',
-          'done_mine',
-          'archived_all',
-          'archived_mine',
-          'due_all',
-          'due_mine',
-          'due_today_all',
-          'due_today_mine',
-          'created_today_all',
-          'created_today_mine',
-        ],
-        defaultFilter: 'open_all',
-        mineMode: 'assignee',
-      }, { width: 'half', height: 'xl', order: 60 }),
-      cloneWidget('note_editor', {}, { width: 'half', height: 'l', order: 70 }),
-    ]
-  }
-  return [
-    cloneWidget('targets_v2', {
-      showForecast: true,
-      showHeader: false,
-      showLegend: true,
-      showDelta: true,
-      showPace: true,
-      showToday: true,
-      scale: 'lg',
-    }, { width: 'half', height: 'l', order: 10 }),
-    cloneWidget('time_summary_v2', {
-      showTotal: true,
-      showAverage: true,
-      showMedian: true,
-      showBusiest: true,
-      showWorkday: true,
-      showWeekend: true,
-      showWeekendShare: true,
-      showCalendarSummary: true,
-      showTopCategory: true,
-      showBalance: true,
-      mode: 'active',
-      scale: 'md',
-    }, { width: 'half', height: 'xl', order: 20 }),
-    cloneWidget('balance_index', {
-      showTrend: true,
-      showMessages: true,
-      showConfig: false,
-      indexBasis: 'category',
-      noticeAbove: 0.15,
-      noticeBelow: 0.15,
-      warnAbove: 0.3,
-      warnBelow: 0.3,
-      warnIndex: 0.6,
-      lookbackWeeks: 3,
-      messageDensity: 'normal',
-      trendColor: '#2563EB',
-      showCurrent: true,
-      labelMode: 'period',
-      reverseTrend: false,
-    }, { width: 'half', height: 'm', order: 30 }),
-    cloneWidget('dayoff_trend', {}, { width: 'half', height: 's', order: 40 }),
-    cloneWidget('category_mix_trend', {
-      lookbackWeeks: 3,
-      density: 'normal',
-      labelMode: 'period',
-      colorMode: 'hybrid',
-      squareCells: false,
-      showHeader: true,
-      showBadge: true,
-    }, { width: 'full', height: 'l', order: 50 }),
-    cloneWidget('calendar_table', {}, { width: 'full', height: 'l', order: 55 }),
-    cloneWidget('chart_pie', { scope: 'calendar', showLegend: true, showLabels: true }, { width: 'half', height: 'm', order: 56 }),
-    cloneWidget('chart_stacked', { scope: 'calendar', showLegend: true, showLabels: false }, { width: 'full', height: 'l', order: 57 }),
-    cloneWidget('chart_per_day', { scope: 'calendar', showLabels: false }, { width: 'half', height: 'm', order: 58 }),
-    cloneWidget('chart_dow', { scope: 'calendar', showLabels: true }, { width: 'half', height: 'm', order: 58.5 }),
-    cloneWidget('chart_hod', { showHint: false }, { width: 'full', height: 'l', order: 59 }),
-  ]
+  return getWidgetPreset(mode)
 }

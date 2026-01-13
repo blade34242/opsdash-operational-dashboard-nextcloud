@@ -2,6 +2,7 @@ import { computed } from 'vue'
 
 interface RouteMap {
   load: string
+  loadData: string
   persist: string
   notes: string
   notesSave: string
@@ -14,6 +15,7 @@ interface RouteMap {
 
 const ROUTES: RouteMap = {
   load: '/apps/opsdash/overview/load',
+  loadData: '/apps/opsdash/overview/load',
   persist: '/apps/opsdash/overview/persist',
   notes: '/apps/opsdash/overview/notes',
   notesSave: '/apps/opsdash/overview/notes',

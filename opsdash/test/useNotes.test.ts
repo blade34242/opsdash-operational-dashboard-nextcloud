@@ -2,9 +2,9 @@ import { describe, it, expect, vi } from 'vitest'
 import { ref } from 'vue'
 
 import { useNotes } from '../composables/useNotes'
-import notesFixture from './fixtures/notes-week.json'
-import notesMonthQa from './fixtures/notes-month-qa.json'
-import notesWeekOffset from './fixtures/notes-week-offset1.json'
+import notesFixture from './fixtures-v2/notes-week.json'
+import notesMonthQa from './fixtures-v2/notes-month-qa.json'
+import notesWeekOffset from './fixtures-v2/notes-week-offset1.json'
 
 describe('useNotes', () => {
   it('fetches and saves notes', async () => {

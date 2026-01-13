@@ -32,18 +32,5 @@ describe('useCalendarLinks', () => {
     ;(global as any).OC = originalOc
   })
 
-  it('fetches DAV colours', async () => {
-    const xml = `<?xml version="1.0"?>\n<d:multistatus xmlns:d="DAV:" xmlns:ical="http://apple.com/ns/ical/">\n  <d:response>\n    <d:propstat>\n      <d:prop><ical:calendar-color>#ff00aa</ical:calendar-color></d:prop>\n    </d:propstat>\n  </d:response>\n</d:multistatus>`
-    const fetchMock = vi.fn().mockResolvedValue({ ok: true, text: () => Promise.resolve(xml) })
-    const originalFetch = global.fetch
-    ;(global as any).fetch = fetchMock
-
-    const { fetchDavColors } = useCalendarLinks({ root: computed(() => root.value) })
-    const colors = await fetchDavColors('user', ['cal-1'])
-
-    expect(fetchMock).toHaveBeenCalled()
-    expect(colors['cal-1']).toBe('#ff00aa')
-
-    global.fetch = originalFetch
-  })
+ 
 })

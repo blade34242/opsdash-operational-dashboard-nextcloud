@@ -9,6 +9,9 @@ final class PersistSanitizer {
     private const MAX_DECK_BOARD_ID = 100000;
     private const PRESET_NAME_MAX_LEN = 80;
     private const RATIO_DECIMALS = 1;
+    private const MAX_WIDGET_TABS = 10;
+    private const MAX_WIDGETS_PER_TAB = 50;
+    private const MAX_WIDGETS_TOTAL = 100;
 
     /**
      * @param array<string,mixed> $targets
@@ -442,7 +445,11 @@ final class PersistSanitizer {
             $tabsRaw = $value['tabs'];
             if (!is_array($tabsRaw)) return [];
             $tabs = [];
+            $totalWidgets = 0;
             foreach ($tabsRaw as $idx => $tab) {
+                if (count($tabs) >= self::MAX_WIDGET_TABS) {
+                    break;
+                }
                 if (!is_array($tab)) continue;
                 $id = substr(trim((string)($tab['id'] ?? '')), 0, 48);
                 if ($id === '') {
@@ -450,7 +457,7 @@ final class PersistSanitizer {
                 }
                 $labelRaw = trim((string)($tab['label'] ?? ''));
                 $label = $labelRaw !== '' ? substr($labelRaw, 0, 48) : sprintf('Tab %d', count($tabs) + 1);
-                $widgets = $this->sanitizeWidgetList($tab['widgets'] ?? []);
+                $widgets = $this->sanitizeWidgetList($tab['widgets'] ?? [], self::MAX_WIDGETS_PER_TAB, $totalWidgets);
                 $tabs[] = [
                     'id' => $id,
                     'label' => $label,
@@ -474,17 +481,21 @@ final class PersistSanitizer {
                 'defaultTabId' => $defaultTabId,
             ];
         }
-        return $this->sanitizeWidgetList($value);
+        $totalWidgets = 0;
+        return $this->sanitizeWidgetList($value, self::MAX_WIDGETS_TOTAL, $totalWidgets);
     }
 
     /**
      * @param mixed $value
      * @return array<int,array<string,mixed>>
      */
-    private function sanitizeWidgetList($value): array {
+    private function sanitizeWidgetList($value, int $limit, int &$totalWidgets): array {
         if (!is_array($value)) return [];
         $cleaned = [];
         foreach ($value as $idx => $item) {
+            if ($totalWidgets >= self::MAX_WIDGETS_TOTAL || count($cleaned) >= $limit) {
+                break;
+            }
             if (!is_array($item)) continue;
             $type = substr(trim((string)($item['type'] ?? '')), 0, 64);
             if ($type === '') continue;
@@ -507,6 +518,7 @@ final class PersistSanitizer {
                 ],
                 'version' => (int)($item['version'] ?? 1) ?: 1,
             ];
+            $totalWidgets += 1;
         }
         return $cleaned;
     }

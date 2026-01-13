@@ -12,11 +12,11 @@
   - Offset clamped to +/-24 weeks/months.
 - Output encoding: Vue escapes all text fields; no HTML rendering from user input.
 - Colors: normalized to `#RRGGBB` to avoid CSS injection.
-- DAV: same-origin WebDAV only for `calendar-color` discovery.
 - Logging: Debug logs avoid sensitive data; no raw request parameters echoed.
 
 ## DoS Mitigations
 - Aggregation caps per calendar and per request; `meta.truncated` indicates partial results.
+- Request limits: JSON bodies capped at 256 KB with depth 16; GET query strings capped at 4096 bytes.
 - Drawing throttled on the client; no `ResizeObserver` feedback on `body`.
 
 ## CSP

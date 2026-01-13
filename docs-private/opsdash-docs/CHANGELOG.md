@@ -11,6 +11,8 @@ This file is a short internal log. Full release notes live in the repo root `CHA
 - Sidebar: guided steps include compact per-step hints (strategy/calendars/targets).
 - Sidebar: keyboard shortcuts icon opens the same overlay as `?`, and the icon row is pinned to the bottom (no scroll).
 - UI: onboarding panel adopts the rangebar-style frame.
+- Load flow: core-first/data-second requests to render layout before stats/charts.
+- Boot: server passes default widget presets into the template to avoid a blank main area on hard reloads.
 
 ## 0.5.x (current line)
 - Widget-driven dashboard with tabbed layouts.

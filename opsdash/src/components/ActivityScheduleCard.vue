@@ -54,6 +54,7 @@
 
 <script setup lang="ts">
 import { computed } from 'vue'
+import { formatDateOnly, formatTime } from '../services/dateTime'
 import { createDefaultActivityCardConfig, type ActivityCardConfig } from '../services/targets'
 
 type ActivitySummary = {
@@ -239,27 +240,15 @@ function pct(value: number): string {
 
 function timeOf(value: string | null): string | null {
   if (!value) return null
-  if (value.length >= 16) {
-    return value.slice(11, 16)
-  }
-  if (value.length >= 5) {
-    return value.slice(0, 5)
-  }
-  return null
+  const formatted = formatTime(value)
+  return formatted || null
 }
 
 function shortDate(value: string): string {
   const str = value.trim()
   if (!str) return '—'
-  const parts = str.split('-')
-  if (parts.length >= 2) {
-    const date = new Date(str.length === 10 ? `${str}T00:00:00` : str)
-    if (!Number.isNaN(date.getTime())) {
-      const fmt = new Intl.DateTimeFormat(undefined, { weekday: 'short', month: 'short', day: 'numeric' })
-      return fmt.format(date)
-    }
-  }
-  return str
+  const formatted = formatDateOnly(str, { weekday: 'short', month: 'short', day: 'numeric' })
+  return formatted || str
 }
 
 function shareLabel(value: number) {

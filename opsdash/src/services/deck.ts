@@ -4,57 +4,6 @@ interface DeckBoardMeta {
   color?: string
 }
 
-interface DeckApiBoard {
-  id?: number
-  title?: string
-  color?: string
-}
-
-interface DeckApiStack {
-  id?: number
-  title?: string
-  cards?: DeckApiCard[]
-}
-
-interface DeckApiCard {
-  id?: number
-  title?: string
-  description?: string
-  duedate?: string | number | null
-  done?: string | null
-  archived?: boolean
-  created?: string | number | null
-  createdAt?: string | number | null
-  stackId?: number
-  labels?: DeckApiLabel[]
-  assignedUsers?: DeckApiAssignee[]
-  owner?: DeckApiParticipant | string
-  createdBy?: DeckApiParticipant | string
-  creator?: DeckApiParticipant | string
-  doneBy?: DeckApiParticipant | string
-  completedBy?: DeckApiParticipant | string
-  lastEditor?: DeckApiParticipant | string
-}
-
-interface DeckApiLabel {
-  id?: number
-  title?: string
-  color?: string
-}
-
-interface DeckApiAssignee {
-  id?: number
-  type?: number | string
-  participant?: DeckApiParticipant
-}
-
-interface DeckApiParticipant {
-  uid?: string
-  displayname?: string
-  participant?: string
-  id?: string | number
-}
-
 export type DeckCardMatch = 'due' | 'completed'
 export type DeckCardStatus = 'active' | 'done' | 'archived'
 
@@ -91,14 +40,15 @@ export interface DeckRangeRequest {
   includeCompleted?: boolean
 }
 
-class DeckHttpError extends Error {
-  constructor(
-    message: string,
-    public readonly status: number,
-    public readonly body: string,
-  ) {
-    super(message)
-  }
+interface DeckBoardsResponse {
+  ok?: boolean
+  boards?: DeckBoardMeta[]
+}
+
+interface DeckCardsResponse {
+  ok?: boolean
+  cards?: DeckCardSummary[]
+  message?: string
 }
 
 export async function fetchDeckCardsInRange(request: DeckRangeRequest): Promise<DeckCardSummary[]> {
@@ -110,282 +60,34 @@ export async function fetchDeckCardsInRange(request: DeckRangeRequest): Promise<
   const includeCompleted = request.includeCompleted !== false
   const includeArchived = request.includeArchived !== false
 
-  const boards = await fetchDeckBoardsMeta()
-  if (boards.length === 0) {
+  const payload = await requestJson(
+    buildOpsdashUrl('/apps/opsdash/overview/deck/cards', {
+      from: request.from,
+      to: request.to,
+      includeArchived: includeArchived ? 1 : 0,
+      includeCompleted: includeCompleted ? 1 : 0,
+    }),
+  )
+  const response = payload as DeckCardsResponse
+  if (response && response.ok === false) {
+    throw new Error(response.message || 'deck_fetch_failed')
+  }
+  const cards = Array.isArray(response?.cards) ? response.cards : []
+  return cards
+}
+
+export async function fetchDeckBoardsMeta(): Promise<DeckBoardMeta[]> {
+  const payload = await requestJson(buildOpsdashUrl('/apps/opsdash/overview/deck/boards'))
+  const response = payload as DeckBoardsResponse
+  if (response && response.ok === false) {
     return []
   }
-
-  const boardMeta = new Map<number, DeckBoardMeta>()
-  boards.forEach((board) => {
-    if (board.id == null) return
-    boardMeta.set(board.id, {
-      id: board.id,
-      title: board.title || `Board ${board.id}`,
-      color: normalizeColor(board.color),
-    })
-  })
-
-  const cards: DeckCardSummary[] = []
-  for (const board of boards) {
-    if (board.id == null) continue
-    let stacksPayload: any
-    const stackParams = includeArchived
-      ? { details: 1, archived: 1, includeArchived: 1 }
-      : { details: 1 }
-    try {
-      stacksPayload = await requestJson(
-        buildDeckUrl(`/apps/deck/api/v1/boards/${board.id}/stacks`, stackParams),
-      )
-    } catch (error) {
-      if (isDeckUnavailable(error)) {
-        continue
-      }
-      if (error instanceof DeckHttpError && error.status === 400) {
-        // Older Deck versions do not support ?details=1; retry without it.
-        const fallbackParams = includeArchived ? { archived: 1, includeArchived: 1 } : undefined
-        stacksPayload = await requestJson(
-          buildDeckUrl(`/apps/deck/api/v1/boards/${board.id}/stacks`, fallbackParams),
-        )
-      } else {
-        throw error
-      }
-    }
-    const stacks = normalizeStacks(stacksPayload)
-    let archivedStacks: DeckApiStack[] = []
-    if (includeArchived) {
-      try {
-        const archivedPayload = await requestJson(
-          buildDeckUrl(`/apps/deck/api/v1/boards/${board.id}/stacks/archived`),
-        )
-        archivedStacks = normalizeStacks(archivedPayload)
-      } catch (error) {
-        // Older Deck versions may not expose archived stacks; ignore when unavailable.
-      }
-    }
-    const stackSources = [
-      ...stacks.map((stack) => ({ stack, forceArchived: false })),
-      ...archivedStacks.map((stack) => ({ stack, forceArchived: true })),
-    ]
-    for (const { stack, forceArchived } of stackSources) {
-      if (stack.cards == null || stack.id == null) continue
-      const stackTitle = stack.title || `Stack ${stack.id}`
-      for (const rawCard of stack.cards) {
-        const normalized = normalizeCard(rawCard, boardMeta.get(board.id), {
-          stackId: stack.id,
-          stackTitle,
-        }, { forceArchived })
-        if (!normalized) continue
-        const hasDate = normalized.dueTs != null || normalized.doneTs != null
-        if (!hasDate) {
-          // Include undated cards so manually created items still surface.
-          if (normalized.status === 'archived' && !includeArchived) continue
-          cards.push({ ...normalized, match: 'due' })
-          continue
-        }
-        if (normalized.status === 'archived' && !includeArchived) continue
-
-        const dueOk = normalized.dueTs != null && inRange(normalized.dueTs, fromTs, toTs)
-        const doneOk =
-          includeCompleted && normalized.doneTs != null && inRange(normalized.doneTs, fromTs, toTs)
-        const isCompleted = normalized.status !== 'active'
-        const completionMatch = includeCompleted && (doneOk || (isCompleted && dueOk))
-        const dueMatch = dueOk && !completionMatch
-        if (!dueMatch && !completionMatch) continue
-        cards.push({ ...normalized, match: completionMatch ? 'completed' : 'due' })
-      }
-    }
-  }
-
-  return cards.sort((a, b) => {
-    const maxTs = Number.MAX_SAFE_INTEGER
-    const aTs = a.match === 'due' ? a.dueTs ?? a.doneTs ?? maxTs : a.doneTs ?? a.dueTs ?? maxTs
-    const bTs = b.match === 'due' ? b.dueTs ?? b.doneTs ?? maxTs : b.doneTs ?? b.dueTs ?? maxTs
-    if (aTs !== bTs) return aTs - bTs
-    if (a.boardId !== b.boardId) return a.boardId - b.boardId
-    return a.id - b.id
-  })
-}
-
-export async function fetchDeckBoardsMeta(): Promise<DeckApiBoard[]> {
-  let boardsPayload: any
-  try {
-    boardsPayload = await requestJson(buildDeckUrl('/apps/deck/api/v1/boards', { details: 0 }))
-  } catch (error) {
-    if (isDeckUnavailable(error)) {
-      return []
-    }
-    throw error
-  }
-  return normalizeBoards(boardsPayload)
-}
-
-function normalizeBoards(payload: any): DeckApiBoard[] {
-  if (Array.isArray(payload)) {
-    return payload
-  }
-  if (payload && typeof payload === 'object') {
-    if (Array.isArray(payload.data)) {
-      return payload.data
-    }
-    if (payload.ocs && Array.isArray(payload.ocs.data)) {
-      return payload.ocs.data
-    }
-  }
-  return []
-}
-
-function normalizeStacks(payload: any): DeckApiStack[] {
-  if (Array.isArray(payload)) {
-    return payload
-  }
-  if (payload && typeof payload === 'object') {
-    if (Array.isArray(payload.data)) {
-      return payload.data
-    }
-    if (payload.ocs && Array.isArray(payload.ocs.data)) {
-      return payload.ocs.data
-    }
-  }
-  return []
-}
-
-function normalizeCard(
-  card: DeckApiCard,
-  board?: DeckBoardMeta,
-  stack?: { stackId: number; stackTitle: string },
-  opts?: { forceArchived?: boolean },
-): DeckCardSummary | null {
-  if (!card || typeof card !== 'object' || card.id == null || !stack) {
-    return null
-  }
-  const dueTs = toTimestamp(card.duedate)
-  const doneTs = toTimestamp(card.done)
-  const createdTs = toTimestamp(card.createdAt ?? card.created)
-  const boardId = card.boardId || board?.id
-  if (boardId == null) {
-    return null
-  }
-  const isArchived = Boolean(card.archived) || Boolean(opts?.forceArchived)
-  const status: DeckCardStatus = isArchived ? 'archived' : doneTs != null ? 'done' : 'active'
-  const boardTitle = board?.title || `Board ${boardId}`
-
-  return {
-    id: card.id,
-    title: card.title || `Card ${card.id}`,
-    description: card.description || '',
-    boardId,
-    boardTitle,
-    boardColor: board?.color,
-    stackTitle: stack.stackTitle,
-    stackId: stack.stackId,
-    due: dueTs != null ? new Date(dueTs).toISOString() : undefined,
-    dueTs: dueTs ?? undefined,
-    done: doneTs != null ? new Date(doneTs).toISOString() : undefined,
-    doneTs: doneTs ?? undefined,
-    archived: isArchived,
-    status,
-    created: createdTs != null ? new Date(createdTs).toISOString() : undefined,
-    createdTs: createdTs ?? undefined,
-    createdBy: normalizeParticipant(card.owner ?? card.createdBy ?? card.creator)?.uid,
-    createdByDisplay: normalizeParticipant(card.owner ?? card.createdBy ?? card.creator)?.displayName,
-    doneBy: normalizeParticipant(card.doneBy ?? card.completedBy ?? card.lastEditor)?.uid,
-    doneByDisplay: normalizeParticipant(card.doneBy ?? card.completedBy ?? card.lastEditor)?.displayName,
-    labels: Array.isArray(card.labels)
-      ? card.labels
-          .filter((label): label is DeckApiLabel => Boolean(label && typeof label === 'object'))
-          .map((label) => ({
-            id: label.id,
-            title: label.title || `Label ${label.id ?? ''}`.trim(),
-            color: normalizeColor(label.color),
-          }))
-      : [],
-    assignees: Array.isArray(card.assignedUsers)
-      ? card.assignedUsers.map((user) => normalizeAssignee(user)).filter(Boolean)
-      : [],
-    match: 'due',
-  }
-}
-
-function normalizeAssignee(
-  user: DeckApiAssignee | undefined | null,
-): { id?: number; uid?: string; displayName?: string } | null {
-  if (!user) return null
-  const participant = user.participant
-  if (participant && typeof participant === 'object') {
-    const uid = typeof participant.uid === 'string' ? participant.uid : undefined
-    const displayName =
-      typeof participant.displayname === 'string' ? participant.displayname : undefined
-    if (uid || displayName) {
-      return { id: user.id, uid, displayName }
-    }
-  }
-  if (typeof participant === 'string') {
-    return { id: user.id, uid: participant }
-  }
-  return null
-}
-
-function normalizeParticipant(
-  participant: DeckApiParticipant | string | undefined | null,
-): { uid?: string; displayName?: string } | null {
-  if (!participant) return null
-  if (typeof participant === 'string') {
-    const uid = participant.trim()
-    return uid ? { uid } : null
-  }
-  if (typeof participant === 'object') {
-    const uid =
-      typeof participant.uid === 'string'
-        ? participant.uid
-        : typeof participant.participant === 'string'
-          ? participant.participant
-          : undefined
-    const displayName =
-      typeof participant.displayname === 'string'
-        ? participant.displayname
-        : typeof participant.id === 'string' || typeof participant.id === 'number'
-          ? String(participant.id)
-          : undefined
-    if (uid || displayName) {
-      return { uid, displayName }
-    }
-  }
-  return null
-}
-
-function toTimestamp(input: unknown): number | null {
-  if (typeof input === 'number' && Number.isFinite(input)) {
-    if (input > 1e12) {
-      return Math.trunc(input)
-    }
-    return input * 1000
-  }
-  if (typeof input === 'string' && input.trim() !== '') {
-    const parsed = Date.parse(input)
-    return Number.isFinite(parsed) ? parsed : null
-  }
-  return null
-}
-
-function inRange(value: number, from: number, to: number): boolean {
-  return value >= from && value <= to
-}
-
-function normalizeColor(color?: string): string | undefined {
-  if (!color || typeof color !== 'string') {
-    return undefined
-  }
-  const trimmed = color.trim()
-  if (trimmed === '') {
-    return undefined
-  }
-  return trimmed.startsWith('#') ? trimmed : `#${trimmed}`
+  return Array.isArray(response?.boards) ? response.boards : []
 }
 
 async function requestJson(url: string): Promise<any> {
   const headers: Record<string, string> = {
     Accept: 'application/json',
-    'OCS-APIREQUEST': 'true',
   }
   const rt = getRequestToken()
   if (rt) {
@@ -394,12 +96,12 @@ async function requestJson(url: string): Promise<any> {
   const res = await fetch(url, { credentials: 'same-origin', headers })
   const text = await res.text()
   if (!res.ok) {
-    throw new DeckHttpError(`Deck request failed (${res.status})`, res.status, text)
+    throw new Error(`Deck request failed (${res.status})`)
   }
   return text ? JSON.parse(text) : null
 }
 
-function buildDeckUrl(path: string, params?: Record<string, any>): string {
+function buildOpsdashUrl(path: string, params?: Record<string, any>): string {
   const relative = path.startsWith('/') ? path : `/${path}`
   const query = params ? qs(params) : ''
   const w: any = typeof window !== 'undefined' ? window : {}
@@ -432,8 +134,4 @@ function getRequestToken(): string | undefined {
   const w: any = typeof window !== 'undefined' ? window : {}
   const token = w.OC?.requestToken || w.oc_requesttoken
   return typeof token === 'string' ? token : undefined
-}
-
-function isDeckUnavailable(error: unknown): boolean {
-  return error instanceof DeckHttpError && (error.status === 404 || error.status === 401 || error.status === 503)
 }

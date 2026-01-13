@@ -5,7 +5,7 @@ namespace OCA\Opsdash\Controller;
 
 use DateTimeImmutable;
 use DateTimeInterface;
-use OCA\Opsdash\Service\CalendarService;
+use OCA\Opsdash\Service\CalendarAccessService;
 use OCA\Opsdash\Service\PersistSanitizer;
 use OCA\Opsdash\Service\UserPresetsService;
 use OCP\AppFramework\Controller;
@@ -18,6 +18,8 @@ use OCP\IUserSession;
 use Psr\Log\LoggerInterface;
 
 final class PresetsController extends Controller {
+    use CsrfEnforcerTrait;
+    use RequestGuardTrait;
     private const MAX_PRESETS = 20;
     private const PRESETS_KEY = 'targets_presets';
 
@@ -26,7 +28,7 @@ final class PresetsController extends Controller {
         IRequest $request,
         private IUserSession $userSession,
         private LoggerInterface $logger,
-        private CalendarService $calendarService,
+        private CalendarAccessService $calendarAccess,
         private PersistSanitizer $persistSanitizer,
         private UserPresetsService $userPresetsService,
     ) {
@@ -48,27 +50,24 @@ final class PresetsController extends Controller {
     }
 
     #[NoAdminRequired]
-    #[NoCSRFRequired]
     public function presetsSave(): DataResponse {
         $uid = (string)($this->userSession->getUser()?->getUID() ?? '');
         if ($uid === '') {
             return new DataResponse(['message' => 'unauthorized'], Http::STATUS_UNAUTHORIZED);
         }
-        $raw = file_get_contents('php://input') ?: '';
-        $data = json_decode($raw, true);
-        if (!is_array($data)) {
-            return new DataResponse(['message' => 'invalid json'], Http::STATUS_BAD_REQUEST);
+        if ($csrf = $this->enforceCsrf()) {
+            return $csrf;
+        }
+        $data = $this->readJsonBodyDefault();
+        if ($data instanceof DataResponse) {
+            return $data;
         }
         $name = $this->persistSanitizer->sanitizePresetName((string)($data['name'] ?? ''));
         if ($name === '') {
             return new DataResponse(['message' => 'missing name'], Http::STATUS_BAD_REQUEST);
         }
-        $calendars = $this->calendarService->getCalendarsFor($uid);
-        $allowedIds = [];
-        foreach ($calendars as $cal) {
-            $allowedIds[] = (string)($cal->getUri() ?? spl_object_id($cal));
-        }
-        $allowedSet = array_flip($allowedIds);
+        $allowedIds = $this->calendarAccess->getCalendarIdsFor($uid);
+        $allowedSet = array_fill_keys($allowedIds, true);
         $sanitized = $this->sanitizePresetPayload($data, $allowedSet, $allowedIds);
         $payload = $sanitized['payload'];
         $warnings = $sanitized['warnings'];
@@ -84,7 +83,9 @@ final class PresetsController extends Controller {
         if (count($presets) > self::MAX_PRESETS) {
             $presets = $this->trimPresets($presets);
         }
-        $this->userPresetsService->write($this->appName, self::PRESETS_KEY, $uid, $presets);
+        if ($resp = $this->writePresets($uid, $presets)) {
+            return $resp;
+        }
 
         return new DataResponse([
             'ok' => true,
@@ -116,19 +117,12 @@ final class PresetsController extends Controller {
         $entry = $presets[$decodedName];
         $storedPayload = is_array($entry['payload'] ?? null) ? $entry['payload'] : [];
 
-        $calendars = $this->calendarService->getCalendarsFor($uid);
-        $allowedIds = [];
-        foreach ($calendars as $cal) {
-            $allowedIds[] = (string)($cal->getUri() ?? spl_object_id($cal));
-        }
-        $allowedSet = array_flip($allowedIds);
+        $allowedIds = $this->calendarAccess->getCalendarIdsFor($uid);
+        $allowedSet = array_fill_keys($allowedIds, true);
 
         $sanitized = $this->sanitizePresetPayload($storedPayload, $allowedSet, $allowedIds);
         $payload = $sanitized['payload'];
         $warnings = $sanitized['warnings'];
-
-        $presets[$decodedName]['payload'] = $payload;
-        $this->userPresetsService->write($this->appName, self::PRESETS_KEY, $uid, $presets);
 
         return new DataResponse([
             'ok' => true,
@@ -143,11 +137,13 @@ final class PresetsController extends Controller {
     }
 
     #[NoAdminRequired]
-    #[NoCSRFRequired]
     public function presetsDelete(string $name): DataResponse {
         $uid = (string)($this->userSession->getUser()?->getUID() ?? '');
         if ($uid === '') {
             return new DataResponse(['message' => 'unauthorized'], Http::STATUS_UNAUTHORIZED);
+        }
+        if ($csrf = $this->enforceCsrf()) {
+            return $csrf;
         }
         $decodedName = $this->persistSanitizer->sanitizePresetName(urldecode($name));
         if ($decodedName === '') {
@@ -158,7 +154,9 @@ final class PresetsController extends Controller {
             return new DataResponse(['message' => 'not found'], Http::STATUS_NOT_FOUND);
         }
         unset($presets[$decodedName]);
-        $this->userPresetsService->write($this->appName, self::PRESETS_KEY, $uid, $presets);
+        if ($resp = $this->writePresets($uid, $presets)) {
+            return $resp;
+        }
         return new DataResponse([
             'ok' => true,
             'presets' => $this->userPresetsService->formatList($presets),
@@ -179,6 +177,21 @@ final class PresetsController extends Controller {
             return strcmp($bt, $at);
         });
         return array_slice($presets, 0, self::MAX_PRESETS, true);
+    }
+
+    /**
+     * @param array<string,array<string,mixed>> $presets
+     */
+    private function writePresets(string $uid, array $presets): ?DataResponse {
+        try {
+            $this->userPresetsService->write($this->appName, self::PRESETS_KEY, $uid, $presets);
+            return null;
+        } catch (\LengthException $e) {
+            return new DataResponse(['message' => 'presets too large'], Http::STATUS_REQUEST_ENTITY_TOO_LARGE);
+        } catch (\Throwable $e) {
+            $this->logger->error('write presets failed: ' . $e->getMessage(), ['app' => $this->appName]);
+            return new DataResponse(['message' => 'error'], Http::STATUS_INTERNAL_SERVER_ERROR);
+        }
     }
 
     /**
@@ -278,4 +291,3 @@ final class PresetsController extends Controller {
         return $out;
     }
 }
-

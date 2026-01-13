@@ -5,40 +5,48 @@ declare(strict_types=1);
 namespace OCA\Opsdash\Tests\Controller;
 
 use OCA\Opsdash\Controller\PresetsController;
-use OCA\Opsdash\Service\CalendarService;
+use OCA\Opsdash\Service\CalendarAccessService;
 use OCA\Opsdash\Service\PersistSanitizer;
 use OCA\Opsdash\Service\UserPresetsService;
+use OCP\AppFramework\Http;
 use OCP\IConfig;
 use OCP\IRequest;
+use OCP\IUser;
 use OCP\IUserSession;
 use PHPUnit\Framework\TestCase;
 use Psr\Log\LoggerInterface;
 
 class PresetsControllerTest extends TestCase {
   private PresetsController $controller;
+  private IRequest $request;
+  private IUserSession $userSession;
+  private IConfig $config;
+  private CalendarAccessService $calendarAccess;
 
   protected function setUp(): void {
     parent::setUp();
 
     $logger = $this->createMock(LoggerInterface::class);
-    $userPresetsService = new UserPresetsService(
-      $this->createMock(IConfig::class),
-      $logger,
-    );
+    $this->config = $this->createMock(IConfig::class);
+    $userPresetsService = new UserPresetsService($this->config, $logger);
+
+    $this->request = $this->createMock(IRequest::class);
+    $this->userSession = $this->createMock(IUserSession::class);
+    $this->calendarAccess = $this->createMock(CalendarAccessService::class);
 
     $this->controller = new PresetsController(
       'opsdash',
-      $this->createMock(IRequest::class),
-      $this->createMock(IUserSession::class),
+      $this->request,
+      $this->userSession,
       $logger,
-      $this->createMock(CalendarService::class),
+      $this->calendarAccess,
       new PersistSanitizer(),
       $userPresetsService,
     );
   }
 
   public function testPresetExportFixtureSanitisesWithoutWarnings(): void {
-    $fixturePath = dirname(__DIR__, 3) . '/test/fixtures/preset-export.json';
+    $fixturePath = dirname(__DIR__, 3) . '/test/fixtures-v2/preset-export.json';
     $fixture = json_decode((string)file_get_contents($fixturePath), true, 512, JSON_THROW_ON_ERROR);
     $payload = is_array($fixture['payload'] ?? null) ? $fixture['payload'] : [];
 
@@ -129,5 +137,267 @@ class PresetsControllerTest extends TestCase {
     $this->assertArrayHasKey('preset-24', $trimmed);
     $this->assertArrayHasKey('preset-5', $trimmed);
     $this->assertArrayNotHasKey('preset-0', $trimmed);
+  }
+
+  public function testPresetsSaveRejectsMissingRequestToken(): void {
+    $user = $this->createMock(IUser::class);
+    $user->method('getUID')->willReturn('admin');
+    $this->userSession->method('getUser')->willReturn($user);
+
+    $this->request->method('getHeader')->willReturn('');
+    $this->request->method('getParam')->willReturn('');
+
+    $response = $this->controller->presetsSave();
+    $this->assertSame(Http::STATUS_PRECONDITION_FAILED, $response->getStatus());
+    $this->assertSame(['message' => 'missing requesttoken'], $response->getData());
+  }
+
+  public function testPresetsSaveRejectsInvalidRequestToken(): void {
+    $user = $this->createMock(IUser::class);
+    $user->method('getUID')->willReturn('admin');
+    $this->userSession->method('getUser')->willReturn($user);
+
+    $this->request->method('getHeader')->willReturn('token');
+    $this->request->method('passesCSRFCheck')->willReturn(false);
+
+    $response = $this->controller->presetsSave();
+    $this->assertSame(Http::STATUS_PRECONDITION_FAILED, $response->getStatus());
+    $this->assertSame(['message' => 'invalid requesttoken'], $response->getData());
+  }
+
+  public function testPresetsDeleteRejectsMissingRequestToken(): void {
+    $user = $this->createMock(IUser::class);
+    $user->method('getUID')->willReturn('admin');
+    $this->userSession->method('getUser')->willReturn($user);
+
+    $this->request->method('getHeader')->willReturn('');
+    $this->request->method('getParam')->willReturn('');
+
+    $response = $this->controller->presetsDelete('sample');
+    $this->assertSame(Http::STATUS_PRECONDITION_FAILED, $response->getStatus());
+    $this->assertSame(['message' => 'missing requesttoken'], $response->getData());
+  }
+
+  public function testPresetsDeleteRejectsInvalidRequestToken(): void {
+    $user = $this->createMock(IUser::class);
+    $user->method('getUID')->willReturn('admin');
+    $this->userSession->method('getUser')->willReturn($user);
+
+    $this->request->method('getHeader')->willReturn('token');
+    $this->request->method('passesCSRFCheck')->willReturn(false);
+
+    $response = $this->controller->presetsDelete('sample');
+    $this->assertSame(Http::STATUS_PRECONDITION_FAILED, $response->getStatus());
+    $this->assertSame(['message' => 'invalid requesttoken'], $response->getData());
+  }
+
+  public function testPresetsDeleteRejectsInvalidName(): void {
+    $user = $this->createMock(IUser::class);
+    $user->method('getUID')->willReturn('admin');
+    $this->userSession->method('getUser')->willReturn($user);
+
+    $this->request->method('getHeader')->willReturn('token');
+    $this->request->method('passesCSRFCheck')->willReturn(true);
+
+    $response = $this->controller->presetsDelete('%25');
+    $this->assertSame(Http::STATUS_NOT_FOUND, $response->getStatus());
+    $this->assertSame(['message' => 'not found'], $response->getData());
+  }
+
+  public function testPresetsDeleteReturnsNotFoundWhenMissing(): void {
+    $user = $this->createMock(IUser::class);
+    $user->method('getUID')->willReturn('admin');
+    $this->userSession->method('getUser')->willReturn($user);
+
+    $this->request->method('getHeader')->willReturn('token');
+    $this->request->method('passesCSRFCheck')->willReturn(true);
+
+    $stored = json_encode([
+      'Other' => [
+        'created_at' => '2025-01-01T00:00:00Z',
+        'updated_at' => '2025-01-01T00:00:00Z',
+        'payload' => [],
+      ],
+    ]);
+    $this->config
+      ->method('getUserValue')
+      ->with('admin', 'opsdash', 'targets_presets', '')
+      ->willReturn($stored);
+
+    $response = $this->controller->presetsDelete('Weekly');
+    $this->assertSame(Http::STATUS_NOT_FOUND, $response->getStatus());
+    $this->assertSame(['message' => 'not found'], $response->getData());
+  }
+
+  public function testPresetsLoadRejectsInvalidName(): void {
+    $user = $this->createMock(IUser::class);
+    $user->method('getUID')->willReturn('admin');
+    $this->userSession->method('getUser')->willReturn($user);
+
+    $response = $this->controller->presetsLoad('%25');
+    $this->assertSame(Http::STATUS_NOT_FOUND, $response->getStatus());
+    $this->assertSame(['message' => 'not found'], $response->getData());
+  }
+
+  public function testPresetsLoadReturnsNotFoundWhenMissing(): void {
+    $user = $this->createMock(IUser::class);
+    $user->method('getUID')->willReturn('admin');
+    $this->userSession->method('getUser')->willReturn($user);
+
+    $stored = json_encode([
+      'Other' => [
+        'created_at' => '2025-01-01T00:00:00Z',
+        'updated_at' => '2025-01-01T00:00:00Z',
+        'payload' => [],
+      ],
+    ]);
+    $this->config
+      ->method('getUserValue')
+      ->with('admin', 'opsdash', 'targets_presets', '')
+      ->willReturn($stored);
+
+    $response = $this->controller->presetsLoad('Weekly');
+    $this->assertSame(Http::STATUS_NOT_FOUND, $response->getStatus());
+    $this->assertSame(['message' => 'not found'], $response->getData());
+  }
+
+  public function testPresetsLoadReturnsWarningsForUnknownCalendars(): void {
+    $user = $this->createMock(IUser::class);
+    $user->method('getUID')->willReturn('admin');
+    $this->userSession->method('getUser')->willReturn($user);
+
+    $this->calendarAccess
+      ->method('getCalendarIdsFor')
+      ->with('admin')
+      ->willReturn(['personal', 'opsdash-focus']);
+
+    $stored = json_encode([
+      'Weekly' => [
+        'created_at' => '2025-01-01T00:00:00Z',
+        'updated_at' => '2025-01-02T00:00:00Z',
+        'payload' => [
+          'selected' => ['personal', 'unknown', 'opsdash-focus'],
+          'groups' => [
+            'personal' => 0,
+            'unknown' => 2,
+          ],
+          'targets_week' => [
+            'unknown' => 4,
+            'opsdash-focus' => 8,
+          ],
+          'targets_month' => [
+            'personal' => 12,
+            'unknown' => 77,
+          ],
+          'targets_config' => [
+            'totalHours' => 20,
+            'categories' => [
+              ['id' => 'focus', 'label' => 'Focus', 'targetHours' => 12, 'includeWeekend' => false, 'paceMode' => 'days_only'],
+            ],
+          ],
+        ],
+      ],
+    ]);
+    $this->config
+      ->method('getUserValue')
+      ->with('admin', 'opsdash', 'targets_presets', '')
+      ->willReturn($stored);
+
+    $response = $this->controller->presetsLoad('Weekly');
+    $this->assertSame(Http::STATUS_OK, $response->getStatus());
+
+    $data = $response->getData();
+    $this->assertTrue($data['ok']);
+    $this->assertSame(['personal', 'opsdash-focus'], $data['preset']['selected']);
+    $this->assertSame($data['warnings'], $data['preset']['warnings']);
+    $this->assertNotEmpty($data['warnings']);
+    $warnings = implode(' | ', $data['warnings']);
+    $this->assertStringContainsString('Skipped unknown calendars', $warnings);
+    $this->assertStringContainsString('Removed calendar mappings for unknown calendars', $warnings);
+    $this->assertStringContainsString('Removed weekly targets for unknown calendars', $warnings);
+    $this->assertStringContainsString('Removed monthly targets for unknown calendars', $warnings);
+  }
+
+  public function testPresetsListRejectsUnauthorized(): void {
+    $this->userSession->method('getUser')->willReturn(null);
+
+    $response = $this->controller->presetsList();
+    $this->assertSame(Http::STATUS_UNAUTHORIZED, $response->getStatus());
+    $this->assertSame(['message' => 'unauthorized'], $response->getData());
+  }
+
+  public function testPresetsListReturnsFormattedList(): void {
+    $user = $this->createMock(IUser::class);
+    $user->method('getUID')->willReturn('admin');
+    $this->userSession->method('getUser')->willReturn($user);
+
+    $stored = json_encode([
+      'Weekly' => [
+        'created_at' => '2025-01-01T00:00:00Z',
+        'updated_at' => '2025-01-03T00:00:00Z',
+        'payload' => [
+          'selected' => ['personal'],
+          'groups' => ['personal' => 0],
+        ],
+      ],
+      'Monthly' => [
+        'created_at' => '2025-01-02T00:00:00Z',
+        'updated_at' => '2025-01-02T00:00:00Z',
+        'payload' => [
+          'selected' => ['personal', 'opsdash-focus'],
+          'groups' => ['personal' => 0, 'opsdash-focus' => 1],
+        ],
+      ],
+    ]);
+    $this->config
+      ->method('getUserValue')
+      ->with('admin', 'opsdash', 'targets_presets', '')
+      ->willReturn($stored);
+
+    $response = $this->controller->presetsList();
+    $this->assertSame(Http::STATUS_OK, $response->getStatus());
+    $data = $response->getData();
+    $this->assertTrue($data['ok']);
+    $this->assertCount(2, $data['presets']);
+    $this->assertSame('Weekly', $data['presets'][0]['name']);
+    $this->assertSame(1, $data['presets'][0]['selectedCount']);
+    $this->assertSame(1, $data['presets'][0]['calendarCount']);
+    $this->assertSame('Monthly', $data['presets'][1]['name']);
+  }
+
+  public function testPresetsListReturnsEmptyForInvalidStoredJson(): void {
+    $user = $this->createMock(IUser::class);
+    $user->method('getUID')->willReturn('admin');
+    $this->userSession->method('getUser')->willReturn($user);
+
+    $this->config
+      ->method('getUserValue')
+      ->with('admin', 'opsdash', 'targets_presets', '')
+      ->willReturn('not-json');
+
+    $response = $this->controller->presetsList();
+    $this->assertSame(Http::STATUS_OK, $response->getStatus());
+    $data = $response->getData();
+    $this->assertTrue($data['ok']);
+    $this->assertSame([], $data['presets']);
+  }
+
+  public function testWritePresetsRejectsOversizePayload(): void {
+    $method = new \ReflectionMethod(PresetsController::class, 'writePresets');
+    $method->setAccessible(true);
+
+    $presets = [
+      'Huge' => [
+        'created_at' => '2025-01-01T00:00:00Z',
+        'updated_at' => '2025-01-01T00:00:00Z',
+        'payload' => [
+          'notes' => str_repeat('x', 70000),
+        ],
+      ],
+    ];
+
+    $response = $method->invoke($this->controller, 'admin', $presets);
+    $this->assertSame(Http::STATUS_REQUEST_ENTITY_TOO_LARGE, $response->getStatus());
+    $this->assertSame(['message' => 'presets too large'], $response->getData());
   }
 }

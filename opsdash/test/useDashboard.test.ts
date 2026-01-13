@@ -1,5 +1,5 @@
 import { ref } from 'vue'
-import { describe, it, expect, vi } from 'vitest'
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 
 import { useDashboard } from '../composables/useDashboard'
 import { createDefaultTargetsConfig } from '../src/services/targets'
@@ -9,8 +9,9 @@ function createDashboard(overrides: Partial<Parameters<typeof useDashboard>[0]> 
   const offset = ref(0)
   const userChangedSelection = ref(false)
 
-  const route = vi.fn<(name: 'load') => string>().mockImplementation(() => '/load')
+  const route = vi.fn<(name: 'loadData') => string>().mockImplementation(() => '/load')
   const getJson = vi.fn()
+  const postJson = vi.fn()
   const notifyError = vi.fn()
   const scheduleDraw = vi.fn()
   const fetchNotes = vi.fn().mockResolvedValue(undefined)
@@ -21,6 +22,7 @@ function createDashboard(overrides: Partial<Parameters<typeof useDashboard>[0]> 
     userChangedSelection,
     route,
     getJson,
+    postJson,
     notifyError,
     scheduleDraw,
     fetchNotes,
@@ -34,6 +36,7 @@ function createDashboard(overrides: Partial<Parameters<typeof useDashboard>[0]> 
     userChangedSelection,
     route,
     getJson,
+    postJson,
     notifyError,
     scheduleDraw,
     fetchNotes,
@@ -42,13 +45,26 @@ function createDashboard(overrides: Partial<Parameters<typeof useDashboard>[0]> 
 }
 
 describe('useDashboard load', () => {
+  const originalOc = (globalThis as any).OC
+
+  beforeEach(() => {
+    ;(window as any).OC = { currentUser: 'user-123' }
+  })
+
+  afterEach(() => {
+    if (originalOc === undefined) {
+      delete (window as any).OC
+    } else {
+      ;(window as any).OC = originalOc
+    }
+  })
+
   it('populates reactive state from the load response', async () => {
     const config = createDefaultTargetsConfig()
     config.totalHours = 123
 
     const response = {
       meta: {
-        uid: 'user-123',
         from: '2024-01-01',
         to: '2024-01-07',
         truncated: true,
@@ -107,12 +123,14 @@ describe('useDashboard load', () => {
     }
 
     const getJson = vi.fn().mockResolvedValue(response)
+    const postJson = vi.fn().mockResolvedValue(response)
     const fetchNotes = vi.fn().mockResolvedValue(undefined)
     const notifyError = vi.fn()
     const scheduleDraw = vi.fn()
 
     const dashboard = createDashboard({
       getJson,
+      postJson,
       fetchNotes,
       notifyError,
       scheduleDraw,
@@ -121,11 +139,16 @@ describe('useDashboard load', () => {
     expect(dashboard.isLoading.value).toBe(false)
     await dashboard.load()
 
-    expect(dashboard.route).toHaveBeenCalledWith('load')
+    expect(dashboard.route).toHaveBeenCalledWith('loadData')
     expect(getJson).toHaveBeenCalledWith('/load', {
       range: 'week',
       offset: 0,
-      save: false,
+      include: ['core'],
+    })
+    expect(postJson).toHaveBeenCalledWith('/load', {
+      range: 'week',
+      offset: 0,
+      include: ['data'],
     })
 
     expect(dashboard.isLoading.value).toBe(false)
@@ -147,14 +170,14 @@ describe('useDashboard load', () => {
     expect(dashboard.stats.totalHours).toBe(12)
     expect(dashboard.reportingConfig.value.schedule).toBe('week')
     expect(dashboard.deckSettings.value.filtersEnabled).toBe(false)
-  expect(dashboard.byCal.value).toEqual(response.byCal)
-  expect(dashboard.byDay.value).toEqual(response.byDay)
-  expect(dashboard.charts.value).toEqual(response.charts)
+    expect(dashboard.byCal.value).toEqual(response.byCal)
+    expect(dashboard.byDay.value).toEqual(response.byDay)
+    expect(dashboard.charts.value).toEqual(response.charts)
 
-  expect(scheduleDraw).toHaveBeenCalledTimes(1)
-  expect(fetchNotes).toHaveBeenCalledTimes(1)
-  expect(notifyError).not.toHaveBeenCalled()
-  expect(dashboard.userChangedSelection.value).toBe(false)
+    expect(scheduleDraw).toHaveBeenCalledTimes(1)
+    expect(fetchNotes).toHaveBeenCalledTimes(1)
+    expect(notifyError).not.toHaveBeenCalled()
+    expect(dashboard.userChangedSelection.value).toBe(false)
   })
 
   it('preserves existing palette when the server falls back to hashed colors', async () => {
@@ -163,7 +186,6 @@ describe('useDashboard load', () => {
 
     const firstResponse = {
       meta: {
-        uid: 'user-123',
         from: '2024-02-01',
         to: '2024-02-07',
       },
@@ -199,7 +221,6 @@ describe('useDashboard load', () => {
 
     const secondResponse = {
       meta: {
-        uid: 'user-123',
         from: '2024-02-08',
         to: '2024-02-14',
       },
@@ -233,13 +254,15 @@ describe('useDashboard load', () => {
       },
     }
 
-    const responses = [firstResponse, secondResponse]
+    const responses = [firstResponse, firstResponse, secondResponse, secondResponse]
     const getJson = vi.fn().mockImplementation(() => Promise.resolve(responses.shift()))
+    const postJson = vi.fn().mockImplementation(() => Promise.resolve(responses.shift()))
     const fetchNotes = vi.fn().mockResolvedValue(undefined)
     const scheduleDraw = vi.fn()
 
     const dashboard = createDashboard({
       getJson,
+      postJson,
       fetchNotes,
       scheduleDraw,
     })

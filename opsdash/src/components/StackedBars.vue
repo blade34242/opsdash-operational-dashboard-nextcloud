@@ -6,6 +6,7 @@
 <script setup lang="ts">
 import { onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { ctxFor, themeVar } from '../services/charts'
+import { formatDateOnly, getFirstDayOfWeek, parseDateKey } from '../services/dateTime'
 
 const props = defineProps<{ stacked?: any, colorsById: Record<string,string>, showLabels?: boolean, highlightId?: string | null }>()
 const cv = ref<HTMLCanvasElement|null>(null)
@@ -130,8 +131,8 @@ function draw(){
     const segments: Array<{ x: number; y: number; width: number; height: number; id: string }> = []
     let labels:string[] = stacked.labels||[]
     let series:any[] = stacked.series||[]
-    // Reorder to start with Monday if labels represent a 7-day week
-    const reordered = reorderToMonday(labels, series)
+    // Reorder to start with the user's week start if labels represent a 7-day week
+    const reordered = reorderToWeekStart(labels, series)
     labels = reordered.labels
     series = reordered.series
     const seriesIds = series.map((entry) => String(entry?.id ?? ''))
@@ -409,18 +410,23 @@ watch(
   { immediate: true },
 )
 
-// Convert a YYYY-MM-DD label to German weekday short name; otherwise keep as-is
-// If labels represent 7 dates, reorder so Monday comes first; reorder series.data accordingly
-function reorderToMonday(labels: string[], series: any[]): { labels: string[]; series: any[] } {
+// Convert a YYYY-MM-DD label to localized weekday short name; otherwise keep as-is
+// If labels represent 7 dates, reorder so week start comes first; reorder series.data accordingly
+function reorderToWeekStart(labels: string[], series: any[]): { labels: string[]; series: any[] } {
   if (!Array.isArray(labels) || labels.length !== 7) return { labels, series }
   const dates = labels.map(s=> parseDate(s))
   if (dates.some(d=> !d)) return { labels, series }
   // Build mapping from original index to ISO day (Mon=1..Sun=7)
   const iso = dates.map(d=> isoDay(d!))
-  // If already Monday-first sequence, keep as-is
-  const want = [1,2,3,4,5,6,7]
+  // If already week-start sequence, keep as-is
+  const firstDay = getFirstDayOfWeek()
+  const want: number[] = []
+  for (let i = 0; i < 7; i += 1) {
+    const dow = (firstDay + i) % 7
+    want.push(dow === 0 ? 7 : dow)
+  }
   if (iso.join(',') === want.join(',')) return { labels, series }
-  // Compute permutation indices for Monday-first
+  // Compute permutation indices for week-start order
   // Find indices for each iso day 1..7
   const idxByIso: Record<number, number> = {}
   iso.forEach((v,i)=>{ idxByIso[v] = i })
@@ -443,23 +449,17 @@ function reorderToMonday(labels: string[], series: any[]): { labels: string[]; s
 
 // Convert a YYYY-MM-DD label to German weekday short name; otherwise keep as-is
 function weekday(s: string): string {
-  const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(s)
-  if (!m) return s
-  const d = new Date(`${m[1]}-${m[2]}-${m[3]}T00:00:00`)
-  const names = ['So','Mo','Di','Mi','Do','Fr','Sa']
-  return names[d.getDay()] || s
+  const formatted = formatDateOnly(s, { weekday: 'short' })
+  return formatted || s
 }
 
-function parseDate(s:string): Date | null {
-  const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(s)
-  if (!m) return null
-  const d = new Date(`${m[1]}-${m[2]}-${m[3]}T00:00:00`)
-  return isNaN(d.getTime()) ? null : d
+function parseDate(s: string): Date | null {
+  return parseDateKey(s)
 }
 
 function isoDay(d: Date): number {
   // JS: 0=Sun..6=Sat -> ISO: 1=Mon..7=Sun
-  const n = d.getDay()
+  const n = d.getUTCDay()
   return n === 0 ? 7 : n
 }
 </script>

@@ -170,6 +170,7 @@ import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { NcEmptyContent, NcLoadingIcon } from '@nextcloud/vue'
 import type { DeckCardSummary } from '../services/deck'
 import type { DeckFilterMode } from '../services/reporting'
+import { formatDateTime, parseDateTime } from '../services/dateTime'
 
 const props = defineProps<{
   cards: DeckCardSummary[]
@@ -339,27 +340,15 @@ function scrollToIndex(idx: number) {
   bodyEl.value.scrollTo({ top, behavior: 'smooth' })
 }
 
-const formatter = new Intl.DateTimeFormat(undefined, {
-  weekday: 'short',
-  month: 'short',
-  day: 'numeric',
-})
-
 const lastFetchedLabel = computed(() => {
   if (!props.lastFetchedAt) return ''
-  try {
-    return formatter.format(new Date(props.lastFetchedAt))
-  } catch {
-    return ''
-  }
+  const parsed = parseDateTime(props.lastFetchedAt)
+  if (!parsed) return ''
+  return formatDateTime(parsed, { weekday: 'short', month: 'short', day: 'numeric' })
 })
 
 function formatDate(iso: string) {
-  try {
-    return formatter.format(new Date(iso))
-  } catch {
-    return iso
-  }
+  return formatDateTime(iso, { weekday: 'short', month: 'short', day: 'numeric' }) || iso
 }
 
 function statusLabel(status: DeckCardSummary['status']) {

@@ -7,6 +7,8 @@ use OCP\IConfig;
 use Psr\Log\LoggerInterface;
 
 final class UserPresetsService {
+    private const MAX_PRESETS_BYTES = 65535;
+
     public function __construct(
         private IConfig $config,
         private LoggerInterface $logger,
@@ -44,6 +46,9 @@ final class UserPresetsService {
             if ($encoded === false) {
                 throw new \RuntimeException('json encode failed');
             }
+            if (strlen($encoded) > self::MAX_PRESETS_BYTES) {
+                throw new \LengthException('presets payload too large');
+            }
             $this->config->setUserValue($uid, $appName, $key, $encoded);
         } catch (\Throwable $e) {
             $this->logger->error('write presets failed: ' . $e->getMessage(), ['app' => $appName]);
@@ -80,4 +85,3 @@ final class UserPresetsService {
         return $list;
     }
 }
-

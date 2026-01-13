@@ -15,8 +15,10 @@ use Psr\Log\LoggerInterface;
 
 final class NotesController extends Controller {
     use CsrfEnforcerTrait;
+    use RequestGuardTrait;
 
     private const MAX_OFFSET = 24;
+    private const MAX_QUERY_BYTES = 4096;
 
     public function __construct(
         string $appName,
@@ -34,6 +36,9 @@ final class NotesController extends Controller {
         $uid = (string)($this->userSession->getUser()?->getUID() ?? '');
         if ($uid === '') {
             return new DataResponse(['message' => 'unauthorized'], Http::STATUS_UNAUTHORIZED);
+        }
+        if ($guard = $this->enforceQueryLength(self::MAX_QUERY_BYTES)) {
+            return $guard;
         }
 
         $range = strtolower((string)$this->request->getParam('range', 'week'));
@@ -56,10 +61,9 @@ final class NotesController extends Controller {
             return $csrf;
         }
 
-        $raw = file_get_contents('php://input') ?: '';
-        $data = json_decode($raw, true);
-        if (!is_array($data)) {
-            return new DataResponse(['message' => 'invalid json'], Http::STATUS_BAD_REQUEST);
+        $data = $this->readJsonBodyDefault();
+        if ($data instanceof DataResponse) {
+            return $data;
         }
 
         $range = strtolower((string)($data['range'] ?? 'week'));
@@ -75,4 +79,3 @@ final class NotesController extends Controller {
         return new DataResponse(['message' => 'error'], Http::STATUS_INTERNAL_SERVER_ERROR);
     }
 }
-

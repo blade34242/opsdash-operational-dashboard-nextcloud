@@ -1,12 +1,21 @@
 import { createApp } from 'vue'
 import App from './App.vue'
 import { installThemeBootloader } from './services/theme'
+import { setWidgetPresets } from './services/widgetDefaults'
 
 function mountWhenReady(){
   const el = document.getElementById('app')
   if (el) {
     try {
       console.log('[opsdash] booting')
+      const bootstrapWidgets = (el as HTMLElement).dataset?.opsdashDefaultWidgets
+      if (bootstrapWidgets) {
+        try {
+          setWidgetPresets(JSON.parse(bootstrapWidgets))
+        } catch (err) {
+          console.warn('[opsdash] failed to parse bootstrap widgets', err)
+        }
+      }
       const app = createApp(App)
       app.config.errorHandler = (err, instance, info) => {
         const name = instance?.type && (instance.type as any).name ? (instance.type as any).name : ''

@@ -111,26 +111,6 @@ async function persistSelection(page: Page, calendars: string[]) {
   }, calendars)
 }
 
-async function expectCalDavColor(page: Page, baseURL: string, calendar = 'personal') {
-  const root = baseURL.replace(/\/$/, '')
-  const body =
-    '<?xml version="1.0"?><d:propfind xmlns:d="DAV:" xmlns:ical="http://apple.com/ns/ical/"><d:prop><ical:calendar-color/></d:prop></d:propfind>'
-  const response = await page.request.fetch(
-    `${root}/remote.php/dav/calendars/${PRIMARY_USER}/${encodeURIComponent(calendar)}/`,
-    {
-      method: 'PROPFIND',
-      headers: {
-        Depth: '0',
-        'Content-Type': 'application/xml',
-      },
-      body,
-    },
-  )
-  expect(response.status(), 'CalDAV response should be successful').toBeLessThan(400)
-  const text = await response.text()
-  expect(text).toMatch(/calendar-color/i)
-}
-
 test('Operational Dashboard loads without console errors', async ({ page, baseURL }) => {
   if (!baseURL) {
     test.skip()
@@ -173,19 +153,6 @@ test('Offset navigation keeps day-off trend visible', async ({ page, baseURL }) 
   await expect(trend).toBeVisible({ timeout: 15000 })
   const tiles = page.locator('.dayoff-tile')
   expect(await tiles.count()).toBeGreaterThan(1)
-})
-
-test('CalDAV calendar exposes color metadata', async ({ page, baseURL }) => {
-  if (!baseURL) {
-    test.skip()
-    return
-  }
-
-  await page.goto(baseURL + '/index.php/apps/opsdash/overview')
-  await dismissOnboardingIfVisible(page)
-  await expect(page.locator('#app')).toBeVisible()
-
-  await expectCalDavColor(page, baseURL)
 })
 
 test('Onboarding wizard can be re-run from Config & Setup', async ({ page, baseURL }) => {

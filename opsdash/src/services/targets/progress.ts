@@ -8,6 +8,7 @@ import {
   type TargetCategoryConfig,
   type TargetsMode,
 } from './config'
+import { formatDateKey, parseDateKey, startOfDayUtc, listDaysUtc, isWeekendUtc } from '../dateTime'
 
 export interface TargetsProgress {
   id: string
@@ -197,10 +198,10 @@ export function computePaceInfo(opts: {
   if (!start || !end) {
     return { totalEligible: 0, elapsedEligible: 0, daysLeft: 0, calendarPercent: 0 }
   }
-  const today = truncateDay(new Date())
+  const today = startOfDayUtc(new Date())
   const startKey = dayKey(start)
   const endKey = dayKey(end)
-  const totalEligibleDates = listDates(start, end).filter((date) => opts.includeWeekend || !isWeekend(date))
+  const totalEligibleDates = listDaysUtc(start, end).filter((date) => opts.includeWeekend || !isWeekendUtc(date))
   const totalEligible = totalEligibleDates.length
 
   if (totalEligible === 0) {
@@ -325,37 +326,12 @@ export function buildDailyMap(rows: any[]): Map<string, number> {
   return map
 }
 
-function listDates(start: Date, end: Date): Date[] {
-  const out: Date[] = []
-  let cur = truncateDay(start)
-  const endTime = truncateDay(end).getTime()
-  while (cur.getTime() <= endTime) {
-    out.push(new Date(cur))
-    cur = new Date(cur.getTime() + DAY_MS)
-  }
-  return out
-}
-
 function parseDate(str: string): Date | null {
   if (!str) return null
-  const parts = str.split('-').map((n) => Number(n))
-  if (parts.length !== 3 || parts.some((n) => !Number.isInteger(n))) return null
-  const date = new Date(Date.UTC(parts[0], parts[1] - 1, parts[2]))
-  if (Number.isNaN(date.getTime())) return null
-  return truncateDay(date)
-}
-
-function truncateDay(date: Date): Date {
-  const d = new Date(date)
-  d.setUTCHours(0, 0, 0, 0)
-  return d
+  const parsed = parseDateKey(str)
+  return parsed ? startOfDayUtc(parsed) : null
 }
 
 function dayKey(date: Date): string {
-  return date.toISOString().slice(0, 10)
-}
-
-function isWeekend(date: Date): boolean {
-  const day = date.getUTCDay()
-  return day === 0 || day === 6
+  return formatDateKey(date, 'UTC')
 }

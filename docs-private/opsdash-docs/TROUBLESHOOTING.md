@@ -7,13 +7,17 @@
 - Check browser console for CSP violations.
 
 ## No colors for calendars
-- Ensure DAV endpoints are reachable.
 - Check server logs for color discovery diagnostics.
 
 ## Charts not visible
 - Confirm data exists for the selected range.
 - Try changing the range to week.
 - Check for `meta.truncated` banner; results may be partial.
+
+## Main content shows only the footer on hard reload
+- Confirm `#app` includes `data-opsdash-default-widgets` (template bootstrap).
+- Check that `js/.vite/manifest.json` points to the built asset hash and the browser loads it.
+- Look for JavaScript errors before Vue mount (console).
 
 ## Notes not saved
 - Ensure CSRF token is present (Nextcloud page context) and POST requests are not blocked.

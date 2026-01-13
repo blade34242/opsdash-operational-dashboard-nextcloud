@@ -12,7 +12,7 @@ final class OverviewEventsCollector {
 
     public function __construct(
         private IManager $calendarManager,
-        private CalendarService $calendarService,
+        private CalendarParsingService $calendarParsing,
         private LoggerInterface $logger,
     ) {
     }
@@ -72,17 +72,24 @@ final class OverviewEventsCollector {
             $used = 'none';
             try {
                 if (method_exists($this->calendarManager, 'newQuery') && method_exists($this->calendarManager, 'searchForPrincipal')) {
-                    $q = $this->calendarManager->newQuery($principal);
+                    $q = $this->buildQuery($principal);
+                    $calendarKey = (string)($cal->getUri() ?? $cid);
                     if (method_exists($q, 'addSearchCalendar')) {
-                        $q->addSearchCalendar((string)($cal->getUri() ?? $cid));
+                        $q->addSearchCalendar($calendarKey);
+                    } elseif (method_exists($q, 'addCalendar')) {
+                        $q->addCalendar($calendarKey);
                     }
                     if (method_exists($q, 'setTimerangeStart')) {
                         $q->setTimerangeStart($from);
+                    } elseif (method_exists($q, 'setTimeRangeStart')) {
+                        $q->setTimeRangeStart($from);
                     }
                     if (method_exists($q, 'setTimerangeEnd')) {
                         $q->setTimerangeEnd($to);
+                    } elseif (method_exists($q, 'setTimeRangeEnd')) {
+                        $q->setTimeRangeEnd($to);
                     }
-                    $res = $this->calendarManager->searchForPrincipal($q);
+                    $res = $this->runSearchForPrincipal($principal, $q);
                     if (is_array($res)) {
                         $rawRows = $res;
                     }
@@ -102,7 +109,7 @@ final class OverviewEventsCollector {
                 $mode = 'ics';
             }
 
-            $rows = $this->calendarService->parseRows($rawRows, $calName, $cid);
+            $rows = $this->calendarParsing->parseRows($rawRows, $calName, $cid);
 
             if (count($rows) > $maxPerCal) {
                 $rows = array_slice($rows, 0, $maxPerCal);
@@ -213,5 +220,54 @@ final class OverviewEventsCollector {
         $details['reason'] = $reason;
         return $details;
     }
-}
 
+    private function buildQuery(string $principal): object {
+        $ref = new \ReflectionMethod($this->calendarManager, 'newQuery');
+        if ($ref->getNumberOfParameters() >= 1) {
+            return $this->calendarManager->newQuery($principal);
+        }
+        $q = $this->calendarManager->newQuery();
+        if (method_exists($q, 'setPrincipal')) {
+            $q->setPrincipal($principal);
+        }
+        if (method_exists($q, 'setUserId')) {
+            $uid = self::principalToUserId($principal);
+            if ($uid !== '') {
+                $q->setUserId($uid);
+            }
+        }
+        return $q;
+    }
+
+    private function runSearchForPrincipal(string $principal, object $query): array {
+        $ref = new \ReflectionMethod($this->calendarManager, 'searchForPrincipal');
+        $search = function(string $principalValue) use ($ref, $query): array {
+            if ($ref->getNumberOfParameters() >= 2) {
+                return $this->calendarManager->searchForPrincipal($principalValue, $query);
+            }
+            return $this->calendarManager->searchForPrincipal($query);
+        };
+        $result = $search($principal);
+        if (!empty($result)) {
+            return $result;
+        }
+        $alternate = str_ends_with($principal, '/')
+            ? rtrim($principal, '/')
+            : ($principal . '/');
+        if ($alternate !== $principal) {
+            $fallback = $search($alternate);
+            if (!empty($fallback)) {
+                return $fallback;
+            }
+        }
+        return $result;
+    }
+
+    private static function principalToUserId(string $principal): string {
+        $prefix = 'principals/users/';
+        if (str_starts_with($principal, $prefix)) {
+            return trim(substr($principal, strlen($prefix)), '/');
+        }
+        return trim($principal, '/');
+    }
+}

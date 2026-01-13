@@ -5,7 +5,8 @@ declare(strict_types=1);
 namespace OCA\Opsdash\Tests\Service;
 
 use DateTimeImmutable;
-use OCA\Opsdash\Service\CalendarService;
+use OCA\Opsdash\Service\CalendarAccessService;
+use OCA\Opsdash\Service\CalendarParsingService;
 use OCA\Opsdash\Service\OverviewEventsCollector;
 use OCA\Opsdash\Service\OverviewHistoryService;
 use OCP\Calendar\IManager;
@@ -14,9 +15,9 @@ use Psr\Log\LoggerInterface;
 
 class OverviewHistoryServiceTest extends TestCase {
   public function testBuildDayOffTrendUsesCurrentByDayAndPrecomputedHistory(): void {
-    $calendarService = new class() extends CalendarService {
+    $calendarService = new class() extends CalendarAccessService {
       public function __construct() {}
-      public function rangeBounds(string $range, int $offset): array {
+      public function rangeBounds(string $range, int $offset, ?\DateTimeZone $tz = null, ?int $weekStart = null): array {
         if ($range === 'week' && $offset === -1) {
           return [
             new DateTimeImmutable('2024-12-30T00:00:00Z'),
@@ -32,7 +33,7 @@ class OverviewHistoryServiceTest extends TestCase {
 
     $manager = $this->createMock(IManager::class);
     $logger = $this->createMock(LoggerInterface::class);
-    $collector = new OverviewEventsCollector($manager, $calendarService, $logger);
+    $collector = new OverviewEventsCollector($manager, new CalendarParsingService(), $logger);
     $service = new OverviewHistoryService($calendarService, $collector);
 
     $currentByDay = [
@@ -90,8 +91,10 @@ class OverviewHistoryServiceTest extends TestCase {
       'cal-b' => array_fill(0, 3, ['id' => 2]),
     ];
 
-    $calendarService = new class() extends CalendarService {
+    $calendarService = new class() extends CalendarAccessService {
       public function __construct() {}
+    };
+    $calendarParsing = new class() extends CalendarParsingService {
       public function parseRows(array $raw, string $calendarName, ?string $calendarId = null): array {
         return array_map(
           fn ($row) => [
@@ -107,7 +110,7 @@ class OverviewHistoryServiceTest extends TestCase {
     };
 
     $logger = $this->createMock(LoggerInterface::class);
-    $collector = new OverviewEventsCollector($manager, $calendarService, $logger);
+    $collector = new OverviewEventsCollector($manager, $calendarParsing, $logger);
     $service = new OverviewHistoryService($calendarService, $collector);
 
     $calA = new class() {
@@ -146,4 +149,3 @@ class OverviewHistoryServiceTest extends TestCase {
     $this->assertSame(['2025-01-01'], $res['daysSeen']);
   }
 }
-
