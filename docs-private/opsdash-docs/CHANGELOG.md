@@ -13,6 +13,7 @@ This file is a short internal log. Full release notes live in the repo root `CHA
 - UI: onboarding panel adopts the rangebar-style frame.
 - Load flow: core-first/data-second requests to render layout before stats/charts.
 - Boot: server passes default widget presets into the template to avoid a blank main area on hard reloads.
+- Frontend: component tree grouped into feature folders (widgets/charts/tables/panels) and unused sidebar panes removed.
 
 ## 0.5.x (current line)
 - Widget-driven dashboard with tabbed layouts.

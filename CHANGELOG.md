@@ -30,6 +30,7 @@ All notable changes to this project will be documented in this file.
 - Category mix trend tiles use tone-aware gradients and contrast in light/dark themes.
 - Dashboard load uses core-first/data-second requests so layout renders before stats/charts.
 - Template bootstraps default widget presets to avoid a blank main area on hard reloads.
+- Frontend component tree regrouped into feature folders (widgets/charts/tables/panels), with unused sidebar panes removed.
 
 ### Added
 - Onboarding wizard “Dashboard preset” step (Quick / Standard / Pro) that applies a preset widget layout and stores the chosen dashboard mode.

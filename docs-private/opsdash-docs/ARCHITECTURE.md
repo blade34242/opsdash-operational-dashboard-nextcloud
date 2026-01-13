@@ -78,7 +78,9 @@ Guiding principles:
 ## Frontend Modules (current)
 
 - `src/App.vue`: root orchestrator (load, persist, widget layout, sidebar wiring).
-- `src/components/Sidebar.vue`: sidebar shell; panes under `src/components/sidebar/`.
+- `src/components/sidebar/Sidebar.vue`: sidebar shell; panes live under `src/components/sidebar/`.
+- `src/components/widgets/`: widget cards, chart widgets, notes/deck widgets.
+- `src/components/charts/`, `src/components/tables/`, `src/components/panels/`: shared primitives and panels.
 - `composables/useDashboard*`: load/persist/selection/profile orchestration helpers.
 - `composables/useCategories.ts`, `useCharts.ts`, `useSummaries.ts`, `useBalance.ts`: shared data shaping for cards/widgets.
 - `src/services/widgetsRegistry/`: widget definitions + default layout/options.

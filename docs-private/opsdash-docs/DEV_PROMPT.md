@@ -8,8 +8,9 @@ You are working in the Nextcloud Opsdash app located at /home/thewestboi/Documen
 Core context:
 - SPA entry: `opsdash/src/App.vue`
 - Composables: `opsdash/composables/*` (dashboard load/persist/selection/profiles, notes, charts, summaries)
-- Sidebar panes: `opsdash/src/components/sidebar/*`
-- Widgets: `opsdash/src/services/widgetsRegistry/*` and `opsdash/src/components/widgets/*`
+- Sidebar shell: `opsdash/src/components/sidebar/Sidebar.vue` (panes under `opsdash/src/components/sidebar/`).
+- Widgets: `opsdash/src/services/widgetsRegistry/*` and `opsdash/src/components/widgets/*` (cards/charts/notes/deck/text).
+- Chart primitives: `opsdash/src/components/charts/*`; tables/panels in `opsdash/src/components/tables/*` and `opsdash/src/components/panels/*`.
 - Backend: `opsdash/lib/Controller/*`, helpers in `opsdash/lib/Service/*`
 - Routes: `opsdash/appinfo/routes.php`, assets built with Vite.
 
