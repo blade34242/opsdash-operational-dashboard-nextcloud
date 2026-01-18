@@ -120,11 +120,13 @@ function widgetVars(options?: { scale?: string; textSize?: string; dense?: boole
   const scale = size === 'sm' ? 0.85 : size === 'lg' ? 1.35 : size === 'xl' ? 1.6 : 1.1
   const density = options?.dense ? 0.72 : 1
   const space = scale * density
-  const titleSize = 18 * scale
+  const textScale = scale * density
+  const titleSize = 18 * textScale
   return {
     '--widget-scale': String(scale),
     '--widget-space': String(space),
     '--widget-density': String(density),
+    '--widget-text-scale': String(textScale),
     '--widget-title-size': `${titleSize}px`,
   } as Record<string, string>
 }
@@ -281,7 +283,7 @@ function onDragEnd() {
   --widget-pad: calc(12px * var(--widget-space));
   --widget-gap: calc(8px * var(--widget-space));
   --widget-gap-tight: calc(6px * var(--widget-space));
-  --widget-font: calc(14px * var(--widget-scale));
+  --widget-font: calc(14px * var(--widget-text-scale, var(--widget-scale)));
 }
 .layout-item > *{
   flex:1 1 auto;

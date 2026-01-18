@@ -16,7 +16,7 @@
 
 ## Rules
 - Calendar targets only show in Power mode.
-- Category assignment is mandatory; Unassigned blocks continue.
+- Category assignment is optional; Unassigned calendars are allowed.
 - Quick category presets seed common defaults.
 - Wizard can save per step without finishing.
 

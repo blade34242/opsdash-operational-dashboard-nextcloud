@@ -35,6 +35,8 @@ interface DashboardPersistenceDeps {
 export function useDashboardPersistence(deps: DashboardPersistenceDeps) {
   const isSaving = ref(false)
   let saveTimer: ReturnType<typeof setTimeout> | null = null
+  let saveSequence = 0
+  let latestRequestId = 0
 
   function queueSave(reload = true) {
     if (saveTimer) {
@@ -42,6 +44,8 @@ export function useDashboardPersistence(deps: DashboardPersistenceDeps) {
     }
     saveTimer = setTimeout(async () => {
       saveTimer = null
+      const requestId = ++saveSequence
+      latestRequestId = requestId
       try {
         isSaving.value = true
         const previousConfig = cloneTargetsConfig(deps.targetsConfig.value)
@@ -65,6 +69,9 @@ export function useDashboardPersistence(deps: DashboardPersistenceDeps) {
           payload.widgets = deps.widgetTabs.value
         }
         const result = await deps.postJson(deps.route('persist'), payload)
+        if (requestId !== latestRequestId) {
+          return
+        }
 
         if (Array.isArray(result.read)) {
           deps.selected.value = result.read.map((id: any) => String(id))
@@ -117,10 +124,15 @@ export function useDashboardPersistence(deps: DashboardPersistenceDeps) {
 
         deps.notifySuccess('Selection saved')
       } catch (error) {
+        if (requestId !== latestRequestId) {
+          return
+        }
         console.error(error)
         deps.notifyError('Failed to save selection')
       } finally {
-        isSaving.value = false
+        if (requestId === latestRequestId) {
+          isSaving.value = false
+        }
       }
     }, 250)
   }

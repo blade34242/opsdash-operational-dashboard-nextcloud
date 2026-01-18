@@ -35,9 +35,10 @@ function draw() {
   const widgetSpace = Math.max(0.5, Number.parseFloat(styles.getPropertyValue('--widget-space')) || widgetScale)
   const widgetDensity = Math.max(0.5, Number.parseFloat(styles.getPropertyValue('--widget-density')) || 1)
   const textScale = widgetScale * widgetDensity
+  const padSpace = widgetDensity < 1 ? widgetSpace / widgetDensity : widgetSpace
   const W = cvEl.clientWidth
   const H = cvEl.clientHeight
-  const pad = 28 * widgetSpace
+  const pad = 28 * padSpace
   const x0 = pad * 1.4
   const y0 = H - pad
   const x1 = W - pad
@@ -62,7 +63,7 @@ function draw() {
   }
   const yLabel = String(props.yLabel ?? '').trim()
   if (yLabel) {
-    ctx.fillText(yLabel, 6 * widgetSpace, pad * 0.8)
+    ctx.fillText(yLabel, 6 * padSpace, pad * 0.8)
   }
 
   const labels = (props.data.labels || []).map((label) => String(label ?? ''))

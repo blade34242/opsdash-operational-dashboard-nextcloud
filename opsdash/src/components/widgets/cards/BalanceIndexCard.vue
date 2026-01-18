@@ -448,7 +448,7 @@ function computedPeriodTag(idx: number) {
   font-weight:700;
   font-size:calc(14px * var(--widget-scale, 1));
   font-variant-numeric:tabular-nums;
-  color:var(--fg,#0f172a);
+  color:var(--index-color, #2563eb);
 }
 .index-badge__meta{
   display:flex;

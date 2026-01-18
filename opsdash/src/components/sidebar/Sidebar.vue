@@ -192,11 +192,6 @@ const emit = defineEmits([
   max-height:none !important;
 }
 
-.rangebar{
-  margin-top:0 !important;
-  padding-top:0 !important;
-}
-
 .sidebar-toggle-btn--corner{
   position:absolute;
   top:-10px;

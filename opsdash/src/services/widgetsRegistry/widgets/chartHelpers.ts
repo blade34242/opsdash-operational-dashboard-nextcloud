@@ -3,6 +3,7 @@ import { formatDateKey, getWeekdayOrder, parseDateKey } from '../../dateTime'
 
 type PieData = { ids: string[]; labels: string[]; data: number[]; colors?: string[] }
 type StackedData = { labels: string[]; series: Array<{ id: string; name?: string; label?: string; color?: string; data?: number[]; forecast?: number[] }> }
+type ChartFilterMode = 'category' | 'calendar'
 
 const LOOKBACK_PALETTE = ['#2563eb', '#f97316', '#10b981', '#a855f7', '#ec4899', '#14b8a6']
 
@@ -37,6 +38,33 @@ export function parseIdList(input: any): string[] {
     return input.split(',').map((val) => val.trim()).filter(Boolean)
   }
   return []
+}
+
+export function normalizeChartFilterMode(input: any): ChartFilterMode {
+  return input === 'calendar' ? 'calendar' : 'category'
+}
+
+export function buildChartFilterControls(options: any, ctx: any) {
+  const mode = normalizeChartFilterMode(options?.filterMode)
+  const calOptions = Array.isArray(ctx?.calendars)
+    ? ctx.calendars.map((cal: any) => ({ value: cal.id, label: cal.displayname || cal.name || cal.id }))
+    : []
+  const catOptions = Array.isArray(ctx?.calendarGroups)
+    ? ctx.calendarGroups.map((cat: any) => ({ value: cat.id, label: cat.label || cat.id }))
+    : []
+  const list = mode === 'calendar' ? calOptions : catOptions
+  return [
+    { key: 'filterMode', label: 'Filter by', type: 'select', options: [
+      { value: 'category', label: 'Category' },
+      { value: 'calendar', label: 'Calendar' },
+    ] },
+    { key: 'filterIds', label: mode === 'calendar' ? 'Calendars' : 'Categories', type: 'multiselect', options: list, defaultAll: true },
+  ]
+}
+
+export function resolveChartFilter(options: Record<string, any> | undefined): { mode: ChartFilterMode; ids: Set<string> } {
+  const mode = normalizeChartFilterMode(options?.filterMode)
+  return { mode, ids: new Set(parseIdList(options?.filterIds)) }
 }
 
 export function filterPieByIds(pie: PieData | null | undefined, allow: Set<string>): PieData | null {

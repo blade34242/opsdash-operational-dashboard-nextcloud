@@ -304,4 +304,70 @@ describe('useDashboardPersistence', () => {
     expect(widgetTabs.value.tabs).toHaveLength(1)
     expect(widgetTabs.value.tabs[0].widgets).toEqual(initialTabs.tabs[0].widgets)
   })
+
+  it('keeps empty tab widgets from persistence payloads', async () => {
+    const initialTabs = createDefaultWidgetTabs('standard')
+    const widgetTabs = ref(initialTabs)
+
+    const postJson = vi.fn().mockResolvedValue({
+      widgets_read: {
+        tabs: [
+          { id: 'tab-empty', label: 'Empty', widgets: [] },
+          { id: 'tab-full', label: 'Full', widgets: [
+            { type: 'note_editor', layout: { width: 'half', height: 'm', order: 1 }, options: {} },
+          ] },
+        ],
+        defaultTabId: 'tab-empty',
+      },
+    })
+
+    const { queueSave } = createPersistence({
+      postJson,
+      widgetTabs,
+    })
+
+    queueSave(false)
+    await vi.runOnlyPendingTimersAsync()
+
+    expect(widgetTabs.value.tabs).toHaveLength(2)
+    expect(widgetTabs.value.defaultTabId).toBe('tab-empty')
+    expect(widgetTabs.value.tabs[0].widgets).toEqual([])
+    expect(widgetTabs.value.tabs[1].widgets[0].type).toBe('note_editor')
+  })
+
+  it('migrates chart filters from persisted widget tabs', async () => {
+    const initialTabs = createDefaultWidgetTabs('standard')
+    const widgetTabs = ref(initialTabs)
+
+    const postJson = vi.fn().mockResolvedValue({
+      widgets_read: {
+        tabs: [
+          {
+            id: 'tab-a',
+            label: 'Alpha',
+            widgets: [
+              {
+                type: 'chart_pie',
+                layout: { width: 'half', height: 'm', order: 1 },
+                options: { scope: 'calendar', calendarFilter: ['cal-1'] },
+              },
+            ],
+          },
+        ],
+        defaultTabId: 'tab-a',
+      },
+    })
+
+    const { queueSave } = createPersistence({
+      postJson,
+      widgetTabs,
+    })
+
+    queueSave(false)
+    await vi.runOnlyPendingTimersAsync()
+
+    const widget = widgetTabs.value.tabs[0].widgets[0]
+    expect(widget.options.filterMode).toBe('calendar')
+    expect(widget.options.filterIds).toEqual(['cal-1'])
+  })
 })

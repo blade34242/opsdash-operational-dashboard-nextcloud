@@ -81,6 +81,7 @@ export interface WidgetRenderContext {
   calendarChartData?: any
   categoryChartsById?: Record<string, { pie: any | null; stacked: any | null }>
   calendarGroups?: any[]
+  calendars?: any[]
   calendarCategoryMap?: Record<string, string>
   categoryColorMap?: Record<string, string>
   colorsById?: Record<string, string>
@@ -102,16 +103,20 @@ export interface RegistryEntry {
   dynamicControls?: (options: Record<string, any>) => Array<{
     key: string
     label: string
-    type: 'select' | 'number' | 'toggle' | 'text' | 'textarea' | 'color' | 'multiselect'
-    options?: Array<{ value: any; label: string }>
+    type: 'select' | 'number' | 'toggle' | 'text' | 'textarea' | 'color' | 'multiselect' | 'taglist' | 'filterbuilder' | 'colorlist'
+    options?: Array<{ value: any; label: string; count?: number }>
+    defaultAll?: boolean
+    hint?: string
   }>
   controls?: Array<{
     key: string
     label: string
-    type: 'select' | 'number' | 'toggle' | 'text' | 'textarea' | 'color' | 'multiselect'
+    type: 'select' | 'number' | 'toggle' | 'text' | 'textarea' | 'color' | 'multiselect' | 'taglist' | 'filterbuilder' | 'colorlist'
     min?: number
     max?: number
     step?: number
-    options?: Array<{ value: any; label: string }>
+    options?: Array<{ value: any; label: string; count?: number }>
+    defaultAll?: boolean
+    hint?: string
   }>
 }

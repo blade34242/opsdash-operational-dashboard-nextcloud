@@ -5,7 +5,7 @@ import { formatDateKey, getWeekdayOrder } from '../src/services/dateTime'
 describe('chart widgets', () => {
   it('filters pie chart by calendar selection', () => {
     const entry = widgetsRegistry.chart_pie
-    const def: any = { options: { scope: 'calendar', calendarFilter: ['cal-1'] } }
+    const def: any = { options: { filterMode: 'calendar', filterIds: ['cal-1'] } }
     const ctx: any = {
       calendarChartData: {
         pie: { ids: ['cal-1', 'cal-2'], labels: ['One', 'Two'], data: [10, 5], colors: ['#111111', '#222222'] },
@@ -41,8 +41,8 @@ describe('chart widgets', () => {
     tomorrow.setDate(today.getDate() + 1)
     const def: any = {
       options: {
-        scope: 'calendar',
-        calendarFilter: ['cal-1'],
+        filterMode: 'calendar',
+        filterIds: ['cal-1'],
         forecastMode: 'total',
       },
     }
@@ -65,7 +65,7 @@ describe('chart widgets', () => {
 
   it('uses lookback series for day-of-week when available', () => {
     const entry = widgetsRegistry.chart_dow
-    const def: any = { options: { scope: 'calendar', forecastMode: 'off' } }
+    const def: any = { options: { filterMode: 'calendar', filterIds: ['cal-1'], forecastMode: 'off' } }
     const ctx: any = {
       lookbackWeeks: 2,
       charts: {

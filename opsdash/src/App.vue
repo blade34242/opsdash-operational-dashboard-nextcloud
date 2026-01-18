@@ -1222,6 +1222,7 @@ const { widgetContext } = useWidgetRenderContext({
   calendarChartData,
   categoryChartsById,
   calendarGroups,
+  calendars,
   calendarCategoryMap,
   categoryColorMap,
   colorsById,

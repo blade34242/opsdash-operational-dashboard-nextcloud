@@ -134,15 +134,14 @@
     </div>
 
     <div v-if="selectedCalendars.length" class="calendar-assignments">
-      <h4>Assign calendars</h4>
-      <p class="hint">Every selected calendar must be assigned before you continue.</p>
-      <div v-for="cal in selectedCalendars" :key="cal.id" class="assignment-row" :class="{ 'is-unassigned': !assignments[cal.id] }">
+      <h4>Assign calendars (optional)</h4>
+      <p class="hint">Use assignments to group calendars in category charts.</p>
+      <div v-for="cal in selectedCalendars" :key="cal.id" class="assignment-row">
         <span class="cal-name">{{ cal.displayname }}</span>
         <select :value="assignments[cal.id]" @change="assignCalendar(cal.id, ($event.target as HTMLSelectElement).value)">
           <option value="">Unassigned</option>
           <option v-for="cat in categories" :key="cat.id" :value="cat.id">{{ cat.label }}</option>
         </select>
-        <span v-if="!assignments[cal.id]" class="assignment-warning">Required</span>
       </div>
       <p v-if="!categories.length" class="warning">Add at least one category to assign calendars.</p>
     </div>

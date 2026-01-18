@@ -85,6 +85,7 @@ function drawOverlay() {
   const widgetSpace = Math.max(0.5, Number.parseFloat(styles.getPropertyValue('--widget-space')) || widgetScale)
   const widgetDensity = Math.max(0.5, Number.parseFloat(styles.getPropertyValue('--widget-density')) || 1)
   const textScale = widgetScale * widgetDensity
+  const padSpace = widgetDensity < 1 ? widgetSpace / widgetDensity : widgetSpace
   const W = cvEl.clientWidth
   const H = cvEl.clientHeight
   const first = list[0]?.hod
@@ -102,7 +103,7 @@ function drawOverlay() {
   })
   if (vmax <= 0) vmax = 1
 
-  const pad = 36 * widgetSpace
+  const pad = 36 * padSpace
   const x0 = pad
   const y0 = pad
   const x1 = W - pad

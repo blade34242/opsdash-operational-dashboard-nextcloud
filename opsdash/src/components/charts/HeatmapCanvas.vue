@@ -26,10 +26,11 @@ function draw(){
   const widgetSpace = Math.max(0.5, Number.parseFloat(styles.getPropertyValue('--widget-space')) || widgetScale)
   const widgetDensity = Math.max(0.5, Number.parseFloat(styles.getPropertyValue('--widget-density')) || 1)
   const textScale = widgetScale * widgetDensity
+  const padSpace = widgetDensity < 1 ? widgetSpace / widgetDensity : widgetSpace
   const W=cvEl.clientWidth,H=cvEl.clientHeight
   const rows=data.dows||[], cols=data.hours||[], m=data.matrix||[]
   ctx.clearRect(0,0,W,H)
-  const pad=36*widgetSpace, x0=pad, y0=pad, x1=W-pad, y1=H-pad
+  const pad=36*padSpace, x0=pad, y0=pad, x1=W-pad, y1=H-pad
   const cw=(x1-x0)/Math.max(1,cols.length), rh=(y1-y0)/Math.max(1,rows.length)
   const vmax = Math.max(0, ...m.flat()) || 1
   const baseColor = typeof props.baseColor === 'string' ? props.baseColor.trim() : ''

@@ -23,6 +23,7 @@ export interface WizardCompletePayload {
   reportingConfig: ReportingConfig
   activityCard: Pick<ActivityCardConfig, 'showDayOffTrend'>
   dashboardMode: 'quick' | 'standard' | 'pro'
+  widgets?: any
   saveProfile?: boolean
   profileName?: string
 }
@@ -79,7 +80,7 @@ export function useOnboardingActions(deps: OnboardingActionDeps) {
       isOnboardingSaving.value = true
       snapshotNotice.value = null
       deps.setThemePreference(payload.themePreference, { persist: false })
-      await deps.postJson(deps.route('persist'), {
+      const body: Record<string, unknown> = {
         cals: payload.selected,
         groups: payload.groups,
         targets_week: payload.targetsWeek,
@@ -96,7 +97,11 @@ export function useOnboardingActions(deps: OnboardingActionDeps) {
           dashboardMode: payload.dashboardMode,
           completed_at: new Date().toISOString(),
         },
-      })
+      }
+      if (payload.widgets) {
+        body.widgets = payload.widgets
+      }
+      await deps.postJson(deps.route('persist'), body)
       // Optimistically update local state so sidebar/widgets reflect the new config immediately
       deps.setSelected(payload.selected)
       deps.setTargetsWeek(payload.targetsWeek)
@@ -104,6 +109,9 @@ export function useOnboardingActions(deps: OnboardingActionDeps) {
       deps.setTargetsConfig(payload.targetsConfig)
       deps.setGroupsById(payload.groups)
       deps.setDashboardMode?.(payload.dashboardMode)
+      if (payload.widgets) {
+        deps.setWidgetTabs?.(payload.widgets)
+      }
       deps.setOnboardingState?.({
         completed: true,
         version: ONBOARDING_VERSION,

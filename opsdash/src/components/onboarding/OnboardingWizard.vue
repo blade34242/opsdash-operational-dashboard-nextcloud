@@ -450,13 +450,34 @@ function emitSaveStep() {
 .onboarding-panel.theme-dark .mode-card,
 .onboarding-panel.theme-dark .input-unit,
 .onboarding-panel.theme-dark .empty-state {
-  background: #111827;
-  border-color: #1f2937;
+  background: linear-gradient(135deg, #0b1220 0%, #111827 70%);
+  border-color: #223046;
+}
+.onboarding-panel.theme-dark .mode-card {
+  color: #e5e7eb;
 }
 
 .onboarding-panel.theme-dark .mode-card.active {
-  border-color: rgba(96, 165, 250, 0.6);
-  box-shadow: 0 12px 24px rgba(0, 0, 0, 0.4);
+  border-color: rgba(96, 165, 250, 0.9);
+  box-shadow: 0 18px 32px rgba(0, 0, 0, 0.55);
+  background: linear-gradient(135deg, #0f172a 0%, #1f2937 70%);
+}
+
+.onboarding-panel.theme-dark .mode-card::before {
+  opacity: 0.6;
+}
+
+.onboarding-panel.theme-dark .mode-card span {
+  color: #cbd5f5;
+}
+
+.onboarding-panel.theme-dark .mode-card:hover {
+  border-color: rgba(96, 165, 250, 0.75);
+  box-shadow: 0 16px 30px rgba(0, 0, 0, 0.5);
+}
+
+.onboarding-panel.theme-light .mode-card span {
+  color: #475569;
 }
 
 .onboarding-panel.theme-dark .input-unit .unit {
@@ -733,15 +754,36 @@ function emitSaveStep() {
 }
 
 .onboarding-overlay .mode-card {
+  position: relative;
   border: 1px solid var(--color-border);
-  background: var(--color-background-contrast);
+  background: linear-gradient(
+    135deg,
+    color-mix(in oklab, var(--color-background-contrast, #ffffff), #ffffff 92%),
+    color-mix(in oklab, var(--color-background-contrast, #ffffff), var(--color-primary, #2563eb) 8%)
+  );
   border-radius: 10px;
   padding: 12px 14px;
   text-align: left;
   cursor: pointer;
   display: grid;
   gap: 6px;
+  overflow: hidden;
   transition: border-color 0.2s ease, box-shadow 0.2s ease, transform 0.2s ease;
+}
+
+.onboarding-overlay .mode-card::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 4px;
+  background: linear-gradient(
+    180deg,
+    color-mix(in oklab, var(--color-primary, #2563eb), #ffffff 35%),
+    color-mix(in oklab, var(--color-primary, #2563eb), #000000 15%)
+  );
+  opacity: 0.35;
 }
 
 .onboarding-overlay .mode-card strong {
@@ -750,13 +792,24 @@ function emitSaveStep() {
 
 .onboarding-overlay .mode-card span {
   font-size: 0.85rem;
-  color: var(--color-text-light);
+  color: var(--color-text-light, #475569);
+}
+
+.onboarding-overlay .mode-card:hover {
+  border-color: color-mix(in oklab, var(--color-primary, #2563eb), transparent 35%) !important;
+  box-shadow: 0 12px 24px rgba(15, 23, 42, 0.14);
+  transform: translateY(-1px);
 }
 
 .onboarding-overlay .mode-card.active {
-  border-color: color-mix(in oklab, var(--color-primary), transparent 35%);
+  border-color: var(--color-primary, #2563eb) !important;
   box-shadow: 0 12px 24px rgba(15, 23, 42, 0.15);
   transform: translateY(-1px);
+}
+
+.onboarding-overlay .mode-card.active::before {
+  opacity: 0.9;
+  width: 6px;
 }
 
 .onboarding-overlay .mode-card:focus-visible {

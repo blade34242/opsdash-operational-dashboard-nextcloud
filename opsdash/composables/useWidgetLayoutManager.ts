@@ -270,7 +270,7 @@ export function useWidgetLayoutManager(options: {
     const tab: WidgetTab = {
       id: nextId,
       label: baseLabel.slice(0, 48),
-      widgets: createDashboardPreset(dashboardMode.value),
+      widgets: [],
     }
     layoutTabs.value = [...layoutTabs.value, tab]
     activeTabId.value = tab.id

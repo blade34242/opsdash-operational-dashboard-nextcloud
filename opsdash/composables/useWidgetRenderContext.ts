@@ -54,6 +54,7 @@ interface WidgetRenderContextDeps {
   calendarChartData: ValueRef<any>
   categoryChartsById: ValueRef<Record<string, { pie: any | null; stacked: any | null }>>
   calendarGroups: ValueRef<any[]>
+  calendars: ValueRef<any[]>
   calendarCategoryMap: ValueRef<Record<string, string>>
   categoryColorMap: ValueRef<Record<string, string>>
   colorsById: ValueRef<Record<string, string>>
@@ -135,6 +136,7 @@ export function useWidgetRenderContext(deps: WidgetRenderContextDeps): {
     calendarChartData: deps.calendarChartData.value,
     categoryChartsById: deps.categoryChartsById.value,
     calendarGroups: deps.calendarGroups.value,
+    calendars: deps.calendars.value,
     calendarCategoryMap: deps.calendarCategoryMap.value,
     categoryColorMap: deps.categoryColorMap.value,
     colorsById: deps.colorsById.value,

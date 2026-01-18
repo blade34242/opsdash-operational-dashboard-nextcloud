@@ -5,6 +5,7 @@ import { useOnboardingActions } from '../composables/useOnboardingActions'
 import type { OnboardingState } from '../composables/useDashboard'
 import { createDefaultTargetsConfig } from '../src/services/targets'
 import { createDefaultDeckSettings, createDefaultReportingConfig } from '../src/services/reporting'
+import { createDefaultWidgetTabs } from '../src/services/widgetsRegistry'
 
 function setup(overrides: Partial<Parameters<typeof useOnboardingActions>[0]> = {}) {
   const onboardingState = ref<OnboardingState | null>({
@@ -26,6 +27,7 @@ function setup(overrides: Partial<Parameters<typeof useOnboardingActions>[0]> = 
   const setTargetsConfig = vi.fn()
   const setGroupsById = vi.fn()
   const setOnboardingState = vi.fn()
+  const setWidgetTabs = vi.fn()
 
   const actions = useOnboardingActions({
     onboardingState,
@@ -42,6 +44,7 @@ function setup(overrides: Partial<Parameters<typeof useOnboardingActions>[0]> = 
     setTargetsConfig,
     setGroupsById,
     setOnboardingState,
+    setWidgetTabs,
     ...overrides,
   })
 
@@ -54,6 +57,7 @@ function setup(overrides: Partial<Parameters<typeof useOnboardingActions>[0]> = 
     setThemePreference,
     savePreset,
     reloadAfterPersist,
+    setWidgetTabs,
     ...actions,
   }
 }
@@ -85,6 +89,30 @@ describe('useOnboardingActions', () => {
     }))
     expect(ctx.reloadAfterPersist).toHaveBeenCalledTimes(1)
     expect(ctx.notifySuccess).toHaveBeenCalledWith('Onboarding saved')
+  })
+
+  it('persists widgets when provided', async () => {
+    const ctx = setup()
+    const widgets = createDefaultWidgetTabs('standard')
+    await ctx.complete({
+      strategy: 'total_only',
+      selected: ['cal-1'],
+      targetsConfig: createDefaultTargetsConfig(),
+      groups: {},
+      targetsWeek: {},
+      targetsMonth: {},
+      themePreference: 'auto',
+      deckSettings: createDefaultDeckSettings(),
+      reportingConfig: createDefaultReportingConfig(),
+      activityCard: { showDayOffTrend: true },
+      dashboardMode: 'standard',
+      widgets,
+    })
+
+    expect(ctx.postJson).toHaveBeenCalledWith('/persist', expect.objectContaining({
+      widgets,
+    }))
+    expect(ctx.setWidgetTabs).toHaveBeenCalledWith(widgets)
   })
 
   it('saves a profile when requested', async () => {

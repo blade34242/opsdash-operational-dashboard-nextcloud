@@ -18,6 +18,7 @@ import {
   type ReportingConfig,
 } from '../src/services/reporting'
 import { clampTarget, convertWeekToMonth, type ActivityCardConfig } from '../src/services/targets'
+import { createDefaultWidgetTabs } from '../src/services/widgetsRegistry'
 import { fetchDeckBoardsMeta } from '../src/services/deck'
 
 type WizardProps = {
@@ -106,8 +107,8 @@ export function useOnboardingWizard(options: { props: WizardProps; emit: WizardE
       id: 'pro' as const,
       title: 'Pro',
       subtitle: 'Full layout with everything',
-      highlights: ['Everything in Standard', 'Deck cards + notes editor', 'Extended charts'],
-      widgets: '13 widgets',
+      highlights: ['Overview + balance stack', 'Dedicated tables + charts tabs', 'Notes + Deck workspace'],
+      widgets: '15 widgets',
     },
   ]
   const categoryPresets: CategoryPreset[] = [
@@ -218,6 +219,8 @@ export function useOnboardingWizard(options: { props: WizardProps; emit: WizardE
   const categoriesEnabled = computed(() => selectedStrategyDef.value.layers.categories)
   const calendarTargetsEnabled = computed(() => selectedStrategyDef.value.layers.calendars)
   const isClosable = computed(() => props.closable !== false)
+
+  const dashboardWidgets = computed(() => createDefaultWidgetTabs(dashboardMode.value))
 
   const enabledSteps = computed(() => stepOrder.filter((step) => (step === 'categories' ? categoriesEnabled.value : true)))
   const currentStep = computed<StepId>(() => enabledSteps.value[Math.min(stepIndex.value, enabledSteps.value.length - 1)])
@@ -369,7 +372,12 @@ export function useOnboardingWizard(options: { props: WizardProps; emit: WizardE
     assignments.value = next
   }
 
-  const selectedCalendars = computed(() => props.calendars.filter((cal) => localSelection.value.includes(cal.id)))
+  const calendarById = computed(() => new Map(props.calendars.map((cal) => [cal.id, cal])))
+  const selectedCalendars = computed(() =>
+    localSelection.value
+      .map((id) => calendarById.value.get(id))
+      .filter((cal): cal is CalendarSummary => Boolean(cal)),
+  )
 
   const draft = computed(() =>
     buildStrategyResult(
@@ -740,10 +748,6 @@ export function useOnboardingWizard(options: { props: WizardProps; emit: WizardE
     if (currentStep.value === 'categories' && categoriesEnabled.value) {
       if (!localSelection.value.length) return true
       if (!categories.value.length) return true
-      const available = new Set(categories.value.map((cat) => cat.id))
-      if (localSelection.value.some((id) => !available.has(assignments.value[id] || ''))) {
-        return true
-      }
     }
     if (currentStep.value === 'preferences') {
       if (!categoriesEnabled.value) {
@@ -824,6 +828,7 @@ export function useOnboardingWizard(options: { props: WizardProps; emit: WizardE
       reportingConfig: { ...reportingDraft.value },
       activityCard: { ...activityDraft.value },
       dashboardMode: dashboardMode.value,
+      widgets: dashboardWidgets.value,
       saveProfile: saveProfile.value,
       profileName: saveProfile.value ? profileName.value.trim() : '',
     })
@@ -897,7 +902,7 @@ export function useOnboardingWizard(options: { props: WizardProps; emit: WizardE
       }
     }
     if (step === 'dashboard') {
-      return { onboarding: onboardingDraft, dashboardMode: dashboardMode.value }
+      return { onboarding: onboardingDraft, dashboardMode: dashboardMode.value, widgets: dashboardWidgets.value }
     }
     if (step === 'calendars') {
       return { cals: targetsPayload.selected }

@@ -119,8 +119,8 @@
                 <input
                   type="checkbox"
                   :value="opt.value"
-                  :checked="Array.isArray(valueFor(control.key)) ? valueFor(control.key).includes(opt.value) : false"
-                  @change="onMulti(control.key, opt.value, $event)"
+                  :checked="multiSelected(control, opt.value)"
+                  @change="onMulti(control, opt.value, $event)"
                 />
                 <span>{{ opt.label }}</span>
               </label>
@@ -289,13 +289,26 @@ function onText(key: string, event: Event) {
   const value = (event.target as HTMLInputElement | HTMLTextAreaElement).value
   emit('change', key, value)
 }
-function onMulti(key: string, value: any, event: Event) {
+function multiOptionValues(control: any): any[] {
+  if (!Array.isArray(control?.options)) return []
+  return control.options.map((opt: any) => opt?.value)
+}
+function multiSelected(control: any, value: any): boolean {
+  const raw = valueFor(control.key)
+  if (Array.isArray(raw) && raw.length) return raw.includes(value)
+  if (control?.defaultAll) return true
+  return false
+}
+function onMulti(control: any, value: any, event: Event) {
   const checked = (event.target as HTMLInputElement).checked
-  const current = Array.isArray(local.value[key]) ? [...local.value[key]] : []
+  const raw = valueFor(control.key)
+  const current = Array.isArray(raw) && raw.length
+    ? [...raw]
+    : (control?.defaultAll ? multiOptionValues(control) : [])
   const next = new Set(current)
   if (checked) next.add(value)
   else next.delete(value)
-  emit('change', key, Array.from(next))
+  emit('change', control.key, Array.from(next))
 }
 function tagListOptionValues(control: any): string[] {
   if (!Array.isArray(control?.options)) return []

@@ -38,4 +38,20 @@ describe('ByCalendarTable', () => {
 
     expect(wrapper.find('.progress-today').exists()).toBe(false)
   })
+
+  it('renders empty row message when a group has no calendars', () => {
+    const wrapper = mount(ByCalendarTable, {
+      props: {
+        rows: [],
+        groups: [
+          { id: 'empty', label: 'Empty group', summary: null, rows: [] },
+        ],
+        n2,
+      },
+    })
+
+    const emptyRow = wrapper.find('.empty-row .empty')
+    expect(emptyRow.exists()).toBe(true)
+    expect(emptyRow.text()).toContain('No calendars assigned')
+  })
 })

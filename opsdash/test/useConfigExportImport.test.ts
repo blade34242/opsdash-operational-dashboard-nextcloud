@@ -117,6 +117,35 @@ describe('useConfigExportImport', () => {
     expect(ctx.widgetTabs.value.tabs[0].widgets[0].type).toBe('note_editor')
   })
 
+  it('migrates chart filters when importing widget tabs', async () => {
+    const widgetTabs = ref(createDefaultWidgetTabs('standard'))
+    const ctx = setup({ widgetTabs })
+    const payload = {
+      widgets: {
+        tabs: [
+          {
+            id: 'tab-a',
+            label: 'Alpha',
+            widgets: [
+              {
+                type: 'chart_pie',
+                layout: { width: 'half', height: 'm', order: 1 },
+                options: { scope: 'calendar', calendarFilter: ['cal-1'] },
+              },
+            ],
+          },
+        ],
+        defaultTabId: 'tab-a',
+      },
+    }
+
+    await ctx.applyConfigSource(payload)
+
+    const widget = ctx.widgetTabs.value.tabs[0].widgets[0]
+    expect(widget.options.filterMode).toBe('calendar')
+    expect(widget.options.filterIds).toEqual(['cal-1'])
+  })
+
   it('rejects payloads without recognized keys', async () => {
     const ctx = setup()
     await ctx.applyConfigSource({ foo: 'bar' })

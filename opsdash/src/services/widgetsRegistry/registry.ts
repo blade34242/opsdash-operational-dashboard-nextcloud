@@ -18,6 +18,43 @@ import { targetsV2Entry } from './widgets/targets_v2'
 import { timeSummaryV2Entry } from './widgets/time_summary_v2'
 import { createDefaultWidgetTabs as createDefaultWidgetTabsFromDefaults, getWidgetPreset } from '../widgetDefaults'
 
+const CHART_FILTER_WIDGETS = new Set(['chart_pie', 'chart_stacked', 'chart_per_day', 'chart_dow'])
+
+function parseIdList(input: any): string[] {
+  if (Array.isArray(input)) {
+    return input.map((val) => String(val ?? '').trim()).filter(Boolean)
+  }
+  if (typeof input === 'string') {
+    return input.split(',').map((val) => val.trim()).filter(Boolean)
+  }
+  return []
+}
+
+function migrateChartFilters(type: string, options: Record<string, any>): Record<string, any> {
+  if (!CHART_FILTER_WIDGETS.has(type)) return options
+  const hasOld =
+    options.scope != null ||
+    options.calendarFilter != null ||
+    options.categoryFilter != null
+  const hasNewMode = options.filterMode != null
+  const hasNewIds = options.filterIds != null
+  if (!hasOld && !hasNewMode && !hasNewIds) return options
+
+  const next = { ...options }
+  const mode = next.filterMode === 'calendar' || next.scope === 'calendar' ? 'calendar' : 'category'
+  if (!hasNewMode) {
+    next.filterMode = mode
+  }
+  if (!hasNewIds) {
+    const raw = mode === 'calendar' ? next.calendarFilter : next.categoryFilter
+    next.filterIds = parseIdList(raw)
+  }
+  delete next.scope
+  delete next.calendarFilter
+  delete next.categoryFilter
+  return next
+}
+
 export const widgetsRegistry: Record<string, RegistryEntry> = {
   time_summary_v2: timeSummaryV2Entry,
   targets_v2: targetsV2Entry,
@@ -38,7 +75,7 @@ export const widgetsRegistry: Record<string, RegistryEntry> = {
 /**
  * Normalizes a raw widgets payload coming from storage or server.
  */
-export function normalizeWidgetLayout(raw: any, fallback: WidgetDefinition[]): WidgetDefinition[] {
+export function normalizeWidgetLayout(raw: any, fallback: WidgetDefinition[], allowEmpty = false): WidgetDefinition[] {
   if (!Array.isArray(raw)) return fallback
   const cleaned: WidgetDefinition[] = []
   raw.forEach((item: any, idx: number) => {
@@ -54,7 +91,7 @@ export function normalizeWidgetLayout(raw: any, fallback: WidgetDefinition[]): W
       layout.height === 's' || layout.height === 'l' || layout.height === 'xl' ? layout.height : 'm'
     const order = Number(layout.order ?? 0)
     const baseOptions = entry.defaultOptions || {}
-    const options = {
+    let options = {
       ...baseOptions,
       ...(item?.options && typeof item.options === 'object' ? item.options : {}),
     }
@@ -62,6 +99,7 @@ export function normalizeWidgetLayout(raw: any, fallback: WidgetDefinition[]): W
       options.scale = options.textSize
       delete options.textSize
     }
+    options = migrateChartFilters(type, options)
     cleaned.push({
       id,
       type,
@@ -70,7 +108,8 @@ export function normalizeWidgetLayout(raw: any, fallback: WidgetDefinition[]): W
       version: Number(item?.version ?? 1) || 1,
     })
   })
-  return cleaned.length ? cleaned : fallback
+  if (cleaned.length) return cleaned
+  return allowEmpty ? [] : fallback
 }
 
 export function createDefaultWidgets(): WidgetDefinition[] {
@@ -99,7 +138,7 @@ export function normalizeWidgetTabs(raw: any, fallback: WidgetTabsState): Widget
     const labelRaw = String(tab?.label ?? '').trim()
     const label = labelRaw ? labelRaw.slice(0, 48) : `Tab ${idx + 1}`
     const fallbackWidgets = fallbackTabs[idx]?.widgets || fallbackTabs[0]?.widgets || createDefaultWidgets()
-    const widgets = normalizeWidgetLayout(tab?.widgets, fallbackWidgets)
+    const widgets = normalizeWidgetLayout(tab?.widgets, fallbackWidgets, true)
     return { id, label, widgets }
   })
 

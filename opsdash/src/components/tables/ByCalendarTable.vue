@@ -220,11 +220,17 @@ table{ width:100%; border-collapse:collapse; font-size:13px }
 thead th{ text-align:left; padding:6px 8px; font-weight:600; color:var(--muted); border-bottom:1px solid var(--line) }
 thead th.num{ text-align:right }
 tbody td{ padding:6px 8px; border-top:1px solid var(--line); vertical-align:top }
+tbody tr:not(.group-row):not(.empty-row):hover td{
+  background:color-mix(in oklab, var(--brand) 12%, var(--card) 88%);
+}
 .col-w-42{ width:42% }
 .col-w-12{ width:12% }
 .col-w-14{ width:14% }
 .col-w-18{ width:18% }
-.group-row td{ padding-top:12px; padding-bottom:8px; background:color-mix(in srgb, var(--muted) 6%, transparent) }
+.group-row td{ padding-top:12px; padding-bottom:8px; background:color-mix(in oklab, var(--muted) 12%, var(--card) 88%) }
+.group-row:hover td{
+  background:color-mix(in oklab, var(--brand) 12%, var(--card) 88%);
+}
 .group-header{ display:flex; justify-content:space-between; align-items:center; gap:12px; font-size:12px }
 .group-label{ display:flex; align-items:center; gap:8px; font-weight:600; color:var(--fg) }
 .group-label .dot{ width:10px; height:10px; border-radius:50%; background:var(--brand); box-shadow:0 0 0 1px color-mix(in srgb, var(--fg) 12%, transparent) }

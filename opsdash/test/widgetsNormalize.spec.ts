@@ -40,4 +40,48 @@ describe('normalizeWidgetTabs', () => {
     expect(result.tabs[0].id).toBe('tab-a')
     expect(result.tabs[0].widgets[0].type).toBe('note_editor')
   })
+
+  it('migrates chart filter options to the new selector', () => {
+    const fallback = createDefaultWidgetTabs('standard')
+    const result = normalizeWidgetTabs({
+      tabs: [
+        {
+          id: 'tab-a',
+          label: 'Alpha',
+          widgets: [
+            {
+              type: 'chart_pie',
+              layout: { width: 'half', height: 'm', order: 1 },
+              options: { scope: 'calendar', calendarFilter: ['cal-1'] },
+            },
+          ],
+        },
+      ],
+      defaultTabId: 'tab-a',
+    }, fallback)
+
+    const widget = result.tabs[0].widgets[0]
+    expect(widget.options.filterMode).toBe('calendar')
+    expect(widget.options.filterIds).toEqual(['cal-1'])
+    expect(widget.options.scope).toBeUndefined()
+  })
+
+  it('keeps empty tab widgets instead of falling back to presets', () => {
+    const fallback = createDefaultWidgetTabs('standard')
+    const result = normalizeWidgetTabs({
+      tabs: [
+        { id: 'tab-a', label: 'Alpha', widgets: [] },
+        { id: 'tab-b', label: 'Beta', widgets: [
+          { type: 'note_editor', layout: { width: 'half', height: 'm', order: 1 }, options: {} },
+        ] },
+      ],
+      defaultTabId: 'tab-a',
+    }, fallback)
+
+    expect(result.defaultTabId).toBe('tab-a')
+    expect(result.tabs).toHaveLength(2)
+    expect(result.tabs[0].id).toBe('tab-a')
+    expect(result.tabs[0].widgets).toEqual([])
+    expect(result.tabs[1].widgets[0].type).toBe('note_editor')
+  })
 })

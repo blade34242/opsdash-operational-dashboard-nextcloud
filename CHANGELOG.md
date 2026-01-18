@@ -22,6 +22,13 @@ All notable changes to this project will be documented in this file.
 - Sidebar scrolling now uses the outer navigation container (single scrollbar) with left-side scroll positioning.
 - Sidebar open/close state now persists locally (defaults to open if storage is missing or invalid).
 - Widget layout editing keeps the active tab selected after widget changes.
+- New dashboard tabs start empty instead of copying preset widgets.
+- Widget cards now share the Balance Index-style border treatment (including Deck cards).
+- Widget cards now use a deeper 3D border/shadow treatment for more depth in light/dark themes.
+- Cards toolbar now has top spacing so the border reads cleanly above the tabs/edit layout button.
+- Chart widgets now use a unified filter selector (category/calendar) with a single multiselect defaulting to all categories.
+- Notes editor widget adds a quick "Use previous" fill action and clearer saving state.
+- Onboarding assignments are optional and preserve the selection order for calendars.
 - Day-off trend widget uses the global range unit (week/month) and defaults color pickers to red/green tones.
 - Day-off trend widget adds Balance Index-style trend label options (date range, week/month, offset).
 - Sidebar guided steps now include compact per-step hints (strategy, calendars, targets, etc.) instead of a separate summary block.
@@ -31,6 +38,12 @@ All notable changes to this project will be documented in this file.
 - Dashboard load uses core-first/data-second requests so layout renders before stats/charts.
 - Template bootstraps default widget presets to avoid a blank main area on hard reloads.
 - Frontend component tree regrouped into feature folders (widgets/charts/tables/panels), with unused sidebar panes removed.
+
+### Fixed
+- Dense widget mode no longer inflates chart padding; compact mode keeps charts tight.
+- Rapid widget edits no longer revert due to out-of-order persist responses.
+- Balance Index current value now uses the same status color as the current indicator.
+- Calendar table hover now matches category/calendar rows and stays readable in dark mode.
 
 ### Added
 - Onboarding wizard “Dashboard preset” step (Quick / Standard / Pro) that applies a preset widget layout and stores the chosen dashboard mode.

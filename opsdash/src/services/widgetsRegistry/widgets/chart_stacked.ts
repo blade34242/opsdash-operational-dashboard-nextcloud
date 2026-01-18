@@ -4,8 +4,9 @@ import { buildTitle } from '../helpers'
 import {
   aggregateStackedByCategory,
   buildStackedWithForecast,
+  buildChartFilterControls,
   filterStackedByIds,
-  parseIdList,
+  resolveChartFilter,
 } from './chartHelpers'
 
 const ChartStackedWidget = defineAsyncComponent(() =>
@@ -21,28 +22,14 @@ export const chartStackedEntry: RegistryEntry = {
   baseTitle,
   configurable: true,
   defaultOptions: {
-    scope: 'calendar',
-    calendarFilter: [],
-    categoryFilter: [],
     showLegend: true,
     showLabels: false,
     compact: false,
     forecastMode: 'total',
   },
   dynamicControls: (options, ctx) => {
-    const calOptions = Array.isArray(ctx?.calendars)
-      ? ctx.calendars.map((cal: any) => ({ value: cal.id, label: cal.displayname || cal.name || cal.id }))
-      : []
-    const catOptions = Array.isArray(ctx?.calendarGroups)
-      ? ctx.calendarGroups.map((cat: any) => ({ value: cat.id, label: cat.label || cat.id }))
-      : []
     return [
-      { key: 'scope', label: 'Scope', type: 'select', options: [
-        { value: 'calendar', label: 'Calendar' },
-        { value: 'category', label: 'Category' },
-      ] },
-      { key: 'calendarFilter', label: 'Calendars', type: 'multiselect', options: calOptions },
-      { key: 'categoryFilter', label: 'Categories', type: 'multiselect', options: catOptions },
+      ...buildChartFilterControls(options, ctx),
       { key: 'forecastMode', label: 'Projection mode', type: 'select', options: [
         { value: 'off', label: 'No projection' },
         { value: 'total', label: 'Distribute remaining total target' },
@@ -55,9 +42,7 @@ export const chartStackedEntry: RegistryEntry = {
     ]
   },
   buildProps: (def, ctx) => {
-    const scope = def.options?.scope === 'category' ? 'category' : 'calendar'
-    const calendarFilter = new Set(parseIdList(def.options?.calendarFilter))
-    const categoryFilter = new Set(parseIdList(def.options?.categoryFilter))
+    const { mode, ids } = resolveChartFilter(def.options)
     const categoryColorMap = ctx.categoryColorMap || {}
     const baseStacked = buildStackedWithForecast({
       perDaySeries: ctx.charts?.perDaySeries,
@@ -67,12 +52,12 @@ export const chartStackedEntry: RegistryEntry = {
       calendarCategoryMap: ctx.calendarCategoryMap,
     })
     const stacked =
-      scope === 'category'
-        ? aggregateStackedByCategory(baseStacked, ctx.calendarCategoryMap || {}, categoryFilter, categoryColorMap)
-        : filterStackedByIds(baseStacked, calendarFilter)
+      mode === 'category'
+        ? aggregateStackedByCategory(baseStacked, ctx.calendarCategoryMap || {}, ids, categoryColorMap)
+        : filterStackedByIds(baseStacked, ids)
     return {
       title: buildTitle(baseTitle, def.options?.titlePrefix),
-      subtitle: scope === 'category' ? 'By category' : 'By calendar',
+      subtitle: mode === 'category' ? 'By category' : 'By calendar',
       cardBg: def.options?.cardBg,
       showHeader: def.options?.showHeader !== false,
       compact: def.options?.compact === true,

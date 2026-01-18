@@ -1,5 +1,5 @@
 <template>
-  <div class="deck-panel" :class="{ 'deck-panel--compact': props.compact }" :style="cardStyle">
+  <div class="card deck-panel" :class="{ 'deck-panel--compact': props.compact }" :style="cardStyle">
   <div class="deck-panel__header" v-if="showHeader">
     <div class="deck-panel__heading">
       <div class="deck-panel__title">{{ titleLabel }}</div>

@@ -117,8 +117,9 @@ function draw(){
   const widgetDensity = Math.max(0.5, Number.parseFloat(styles.getPropertyValue('--widget-density')) || 1)
   const stackedScale = Math.max(0.6, Number.parseFloat(styles.getPropertyValue('--stacked-scale')) || 0.85)
   const textScale = widgetScale * widgetDensity * stackedScale
+  const padSpace = widgetDensity < 1 ? widgetSpace / widgetDensity : widgetSpace
   const labelFont = `${11 * textScale}px ui-sans-serif,system-ui`
-  const W=cvEl.clientWidth,H=cvEl.clientHeight,pad=28*widgetSpace,x0=pad*1.4,y0=H-pad,x1=W-pad
+  const W=cvEl.clientWidth,H=cvEl.clientHeight,pad=28*padSpace,x0=pad*1.4,y0=H-pad,x1=W-pad
   const line=themeVar(cvEl, '--line', '#e5e7eb')
   const fg=themeVar(cvEl, '--fg', '#0f172a')
   const bg=themeVar(cvEl, '--bg', '#ffffff')

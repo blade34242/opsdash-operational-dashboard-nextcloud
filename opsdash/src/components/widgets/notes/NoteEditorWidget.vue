@@ -1,13 +1,15 @@
 <template>
   <div class="note-card" :style="cardStyle">
-    <div class="note-header">
-      <div v-if="showHeader" class="title">{{ title }}</div>
-      <button class="btn" type="button" :disabled="saving" @click="onSaveClick">Save</button>
-    </div>
-    <div class="field">
-      <div class="field-head">
-        <span class="label">{{ prevLabel }}</span>
-        <select
+  <div class="note-header">
+    <div v-if="showHeader" class="title">{{ title }}</div>
+    <button class="btn" type="button" :disabled="saving" @click="onSaveClick">
+      {{ saving ? 'Saving…' : 'Save' }}
+    </button>
+  </div>
+  <div class="field">
+    <div class="field-head">
+      <span class="label">{{ prevLabel }}</span>
+      <select
           v-if="historyOptions.length"
           v-model="selectedHistoryId"
           class="note-select"
@@ -15,6 +17,14 @@
         >
           <option v-for="opt in historyOptions" :key="opt.id" :value="opt.id">{{ opt.label }}</option>
         </select>
+        <button
+          class="btn btn--ghost"
+          type="button"
+          :disabled="!selectedHistoryContent || saving"
+          @click="usePrevious"
+        >
+          Use previous
+        </button>
       </div>
       <textarea class="note note--compact" :value="selectedHistoryContent" readonly />
     </div>
@@ -24,6 +34,7 @@
         class="note"
         :value="modelValue"
         :disabled="saving"
+        :placeholder="currentPlaceholder"
         @input="onInput"
       />
     </label>
@@ -53,6 +64,7 @@ const title = computed(() => props.title || 'Notes')
 const showHeader = computed(() => props.showHeader !== false)
 const prevLabel = props.prevLabel || 'Previous'
 const currLabel = props.currLabel || 'Current'
+const currentPlaceholder = computed(() => `Write ${String(currLabel).toLowerCase()} notes…`)
 const cardStyle = {
   background: props.cardBg || undefined,
 }
@@ -77,6 +89,11 @@ function onInput(event: Event) {
 }
 function onSaveClick() {
   emit('save')
+}
+
+function usePrevious() {
+  if (!selectedHistoryContent.value) return
+  emit('update:modelValue', selectedHistoryContent.value)
 }
 </script>
 
@@ -108,6 +125,11 @@ function onSaveClick() {
   background: var(--card,#fff);
   cursor:pointer;
   font-size:calc(12px * var(--widget-scale, 1));
+}
+.btn--ghost{
+  padding:calc(4px * var(--widget-space, 1)) calc(8px * var(--widget-space, 1));
+  font-size:calc(11px * var(--widget-scale, 1));
+  background:transparent;
 }
 .field{
   display:flex;
