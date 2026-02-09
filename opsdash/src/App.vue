@@ -1360,7 +1360,6 @@ const reviewHint = computed(() =>
   compactJoin(
     [
       reportingConfig.value?.enabled ? 'Recap on' : 'Recap off',
-      targetsConfig.value?.activityCard?.showDayOffTrend ? 'Heatmap on' : 'Heatmap off',
     ],
     2,
   ),

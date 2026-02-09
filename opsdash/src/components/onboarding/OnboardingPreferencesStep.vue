@@ -181,19 +181,6 @@
       </template>
     </article>
 
-    <article class="pref-card pref-card--activity">
-      <h4>Activity insights</h4>
-      <p class="pref-desc">Choose whether the Activity &amp; Schedule card shows the day-off heatmap.</p>
-      <label class="toggle-row">
-        <input
-          type="checkbox"
-          :checked="activityDraft.showDayOffTrend"
-          @change="setActivityDayOff(($event.target as HTMLInputElement).checked)"
-        />
-        <span>Show “Days off” trend heatmap</span>
-      </label>
-      <p class="pref-hint">Helps you compare recent weeks/months at a glance.</p>
-    </article>
   </div>
 </template>
 
@@ -225,7 +212,5 @@ defineProps<{
   setReportingSchedule: (schedule: ReportingConfig['schedule']) => void
   setReportingInterim: (interim: ReportingConfig['interim']) => void
   updateReporting: (patch: Partial<ReportingConfig>) => void
-  activityDraft: { showDayOffTrend: boolean }
-  setActivityDayOff: (enabled: boolean) => void
 }>()
 </script>

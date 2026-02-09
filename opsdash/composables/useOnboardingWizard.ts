@@ -17,7 +17,7 @@ import {
   type DeckFeatureSettings,
   type ReportingConfig,
 } from '../src/services/reporting'
-import { clampTarget, convertWeekToMonth, type ActivityCardConfig } from '../src/services/targets'
+import { clampTarget, convertWeekToMonth } from '../src/services/targets'
 import { createDefaultWidgetTabs } from '../src/services/widgetsRegistry'
 import { fetchDeckBoardsMeta } from '../src/services/deck'
 
@@ -43,9 +43,8 @@ type WizardProps = {
   initialTargetsWeek?: Record<string, number>
   snapshotSaving?: boolean
   snapshotNotice?: { type: 'success' | 'error'; message: string } | null
-  // legacy/optional: was referenced without being typed in the SFC
+  // legacy/optional
   initialTargetsConfig?: {
-    activityCard?: Pick<ActivityCardConfig, 'showDayOffTrend'>
     balanceTrendLookback?: number
   } | null
 }
@@ -82,9 +81,6 @@ export function useOnboardingWizard(options: { props: WizardProps; emit: WizardE
   const trendLookbackInput = ref(3)
   const deckSettingsDraft = ref<DeckFeatureSettings>(cloneDeckSettings(props.initialDeckSettings ?? createDefaultDeckSettings()))
   const reportingDraft = ref<ReportingConfig>({ ...(props.initialReportingConfig ?? createDefaultReportingConfig()) })
-  const activityDraft = ref<Pick<ActivityCardConfig, 'showDayOffTrend'>>({
-    showDayOffTrend: props.initialTargetsConfig?.activityCard?.showDayOffTrend ?? true,
-  })
   const deckBoards = ref<Array<{ id: number; title: string }>>([])
   const deckBoardsLoading = ref(false)
   const deckBoardsError = ref('')
@@ -299,9 +295,6 @@ export function useOnboardingWizard(options: { props: WizardProps; emit: WizardE
     )
     reportingDraft.value = {
       ...(useExisting ? (props.initialReportingConfig ?? createDefaultReportingConfig()) : createDefaultReportingConfig()),
-    }
-    activityDraft.value = {
-      showDayOffTrend: useExisting ? (props.initialTargetsConfig?.activityCard?.showDayOffTrend ?? true) : true,
     }
     if (props.hasExistingConfig) {
       saveProfile.value = resolvedMode === 'new'
@@ -731,10 +724,6 @@ export function useOnboardingWizard(options: { props: WizardProps; emit: WizardE
     reportingDraft.value = { ...reportingDraft.value, ...patch }
   }
 
-  function setActivityDayOff(enabled: boolean) {
-    activityDraft.value = { ...activityDraft.value, showDayOffTrend: enabled }
-  }
-
   const canGoBack = computed(() => stepIndex.value > 0)
   const canGoNext = computed(() => stepIndex.value < enabledSteps.value.length - 1)
 
@@ -826,7 +815,6 @@ export function useOnboardingWizard(options: { props: WizardProps; emit: WizardE
       themePreference: themePreference.value,
       deckSettings: cloneDeckSettings(deckSettingsDraft.value),
       reportingConfig: { ...reportingDraft.value },
-      activityCard: { ...activityDraft.value },
       dashboardMode: dashboardMode.value,
       widgets: dashboardWidgets.value,
       saveProfile: saveProfile.value,
@@ -921,7 +909,6 @@ export function useOnboardingWizard(options: { props: WizardProps; emit: WizardE
         theme_preference: themePreference.value,
         deck_settings: cloneDeckSettings(deckSettingsDraft.value),
         reporting_config: { ...reportingDraft.value },
-        targets_config_activity: { ...activityDraft.value },
       }
     }
     return {
@@ -933,7 +920,6 @@ export function useOnboardingWizard(options: { props: WizardProps; emit: WizardE
       theme_preference: themePreference.value,
       deck_settings: cloneDeckSettings(deckSettingsDraft.value),
       reporting_config: { ...reportingDraft.value },
-      targets_config_activity: { ...activityDraft.value },
       onboarding: onboardingDraft,
     }
   }
@@ -984,7 +970,6 @@ export function useOnboardingWizard(options: { props: WizardProps; emit: WizardE
     trendLookbackInput,
     deckSettingsDraft,
     reportingDraft,
-    activityDraft,
     deckBoards,
     deckBoardsLoading,
     deckBoardsError,
@@ -1043,7 +1028,6 @@ export function useOnboardingWizard(options: { props: WizardProps; emit: WizardE
     setReportingSchedule,
     setReportingInterim,
     updateReporting,
-    setActivityDayOff,
     canGoBack,
     canGoNext,
     nextDisabled,

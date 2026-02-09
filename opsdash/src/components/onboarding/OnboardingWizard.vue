@@ -76,8 +76,6 @@
             :set-reporting-schedule="setReportingSchedule"
             :set-reporting-interim="setReportingInterim"
             :update-reporting="updateReporting"
-            :activity-draft="activityDraft"
-            :set-activity-day-off="setActivityDayOff"
           />
         </section>
 
@@ -153,7 +151,6 @@
             :deck-visible-boards="deckVisibleBoards"
             :reporting-enabled="reportingDraft.enabled"
             :reporting-summary="reportingSummary"
-            :show-day-off-trend="activityDraft.showDayOffTrend"
             :theme-preference="themePreference"
             :dashboard-mode="dashboardMode"
             :save-profile="saveProfile"
@@ -194,7 +191,7 @@ import OnboardingCategoriesStep from './OnboardingCategoriesStep.vue'
 import OnboardingReviewStep from './OnboardingReviewStep.vue'
 import type { CalendarSummary, CategoryDraft, StrategyDefinition } from '../../services/onboarding'
 import type { DeckFeatureSettings, ReportingConfig } from '../../services/reporting'
-import type { ActivityCardConfig, TargetsConfig } from '../../services/targets'
+import type { TargetsConfig } from '../../services/targets'
 import { useOnboardingWizard } from '../../../composables/useOnboardingWizard'
 
 const props = defineProps<{
@@ -220,7 +217,6 @@ const props = defineProps<{
   initialDashboardMode?: 'quick' | 'standard' | 'pro'
   initialTargetsWeek?: Record<string, number>
   initialTargetsConfig?: {
-    activityCard?: Pick<ActivityCardConfig, 'showDayOffTrend'>
     balanceTrendLookback?: number
   } | null
 }>()
@@ -238,7 +234,6 @@ const emit = defineEmits<{
     themePreference: 'auto' | 'light' | 'dark'
     deckSettings: DeckFeatureSettings
     reportingConfig: ReportingConfig
-    activityCard: Pick<ActivityCardConfig, 'showDayOffTrend'>
     dashboardMode: 'quick' | 'standard' | 'pro'
     saveProfile?: boolean
     profileName?: string
@@ -291,8 +286,6 @@ const {
   setReportingSchedule,
   setReportingInterim,
   updateReporting,
-  activityDraft,
-  setActivityDayOff,
   dashboardMode,
   dashboardPresets,
   strategies,

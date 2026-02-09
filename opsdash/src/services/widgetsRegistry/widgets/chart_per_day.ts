@@ -79,11 +79,14 @@ export const chartPerDayEntry: RegistryEntry = {
         labels.push(...perDay.labels)
         data.push(...perDay.data)
         colors.push(...perDay.data.map(() => color))
-        legendItems.push({
-          id: `offset-${entry.offset ?? idx}`,
-          label: formatLookbackLabel(entry, ctx.rangeMode),
-          color,
-        })
+        const total = perDay.data.reduce((sum, value) => sum + Math.max(0, Number(value) || 0), 0)
+        if (total > 0) {
+          legendItems.push({
+            id: `offset-${entry.offset ?? idx}`,
+            label: formatLookbackLabel(entry, ctx.rangeMode),
+            color,
+          })
+        }
       })
       chartData = labels.length ? { labels, data, colors } : null
     } else {

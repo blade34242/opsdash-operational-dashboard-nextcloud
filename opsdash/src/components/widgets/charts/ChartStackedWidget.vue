@@ -42,7 +42,7 @@ const props = defineProps<{
   compact?: boolean
   showLegend?: boolean
   showLabels?: boolean
-  stacked?: { labels?: string[]; series?: Array<{ id: string; name?: string; label?: string; color?: string }> } | null
+  stacked?: { labels?: string[]; series?: Array<{ id: string; name?: string; label?: string; color?: string; data?: number[] }> } | null
   colorsById?: Record<string, string>
 }>()
 
@@ -54,12 +54,24 @@ const hoveredId = ref<string | null>(null)
 
 const legendItems = computed(() => {
   const series = props.stacked?.series || []
-  return series.map((entry: any) => {
-    const id = String(entry?.id ?? '')
-    const label = String(entry?.name ?? entry?.label ?? id)
-    const color = entry?.color || colorsById.value[id] || '#60a5fa'
-    return { id, label, color }
-  })
+  const totals = series.map((entry: any) =>
+    (Array.isArray(entry?.data) ? entry.data : []).reduce((sum: number, value: any) => {
+      const num = Number(value)
+      return sum + (Number.isFinite(num) ? Math.max(0, num) : 0)
+    }, 0),
+  )
+  const grandTotal = totals.reduce((sum, value) => sum + value, 0) || 1
+  return series
+    .map((entry: any, idx: number) => {
+      const id = String(entry?.id ?? '')
+      const label = String(entry?.name ?? entry?.label ?? id)
+      const color = entry?.color || colorsById.value[id] || '#60a5fa'
+      const total = totals[idx] || 0
+      const pctRounded = Math.round((total / grandTotal) * 100)
+      return { id, label, color, total, pctRounded }
+    })
+    .filter((entry) => entry.pctRounded > 0)
+    .sort((a, b) => b.total - a.total)
 })
 </script>
 

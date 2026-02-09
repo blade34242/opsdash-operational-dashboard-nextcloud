@@ -80,6 +80,7 @@ export const chartDowEntry: RegistryEntry = {
         if (!labels.length) labels.push(...(dow.labels || []))
         const color = getLookbackColor(idx)
         const label = formatLookbackLabel(entry, ctx.rangeMode)
+        const total = (dow.data || []).reduce((sum, value) => sum + Math.max(0, Number(value) || 0), 0)
         series.push({
           id: `offset-${entry.offset ?? idx}`,
           name: label,
@@ -87,7 +88,9 @@ export const chartDowEntry: RegistryEntry = {
           color,
           data: dow.data || [],
         })
-        legendItems.push({ id: `offset-${entry.offset ?? idx}`, label, color })
+        if (total > 0) {
+          legendItems.push({ id: `offset-${entry.offset ?? idx}`, label, color })
+        }
       })
       groupedData = labels.length && series.length ? { labels, series } : null
     } else {

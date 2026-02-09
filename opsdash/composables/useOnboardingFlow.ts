@@ -53,7 +53,6 @@ export function useOnboardingFlow(deps: OnboardingFlowDeps) {
   const wizardInitialAllDayHours = computed(() => deps.targetsConfig.value?.allDayHours ?? 8)
   const wizardInitialTotalHours = computed(() => deps.targetsConfig.value?.totalHours ?? 40)
   const wizardInitialTargetsConfig = computed(() => ({
-    activityCard: deps.targetsConfig.value?.activityCard,
     balanceTrendLookback: deps.targetsConfig.value?.balance?.trend?.lookbackWeeks ?? 3,
   }))
   const sanitizeHexColor = (value: unknown): string | null => {

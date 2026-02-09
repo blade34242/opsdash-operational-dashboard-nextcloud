@@ -2,7 +2,7 @@ import { ref, type Ref } from 'vue'
 
 import type { OnboardingState } from './useDashboard'
 import type { ThemePreference } from './useThemePreference'
-import type { TargetsConfig, ActivityCardConfig } from '../src/services/targets'
+import type { TargetsConfig } from '../src/services/targets'
 import type { DeckFeatureSettings, ReportingConfig } from '../src/services/reporting'
 import { ONBOARDING_VERSION, type StrategyDefinition } from '../src/services/onboarding'
 
@@ -21,7 +21,6 @@ export interface WizardCompletePayload {
   themePreference: ThemePreference
   deckSettings: DeckFeatureSettings
   reportingConfig: ReportingConfig
-  activityCard: Pick<ActivityCardConfig, 'showDayOffTrend'>
   dashboardMode: 'quick' | 'standard' | 'pro'
   widgets?: any
   saveProfile?: boolean
@@ -37,7 +36,6 @@ export interface WizardStepSavePayload {
   theme_preference?: ThemePreference
   deck_settings?: DeckFeatureSettings
   reporting_config?: ReportingConfig
-  targets_config_activity?: Pick<ActivityCardConfig, 'showDayOffTrend'>
   widgets?: any
   onboarding?: {
     completed?: boolean
@@ -89,7 +87,6 @@ export function useOnboardingActions(deps: OnboardingActionDeps) {
         theme_preference: payload.themePreference,
         deck_settings: payload.deckSettings,
         reporting_config: payload.reportingConfig,
-        targets_config_activity: payload.activityCard,
         onboarding: {
           completed: true,
           version: ONBOARDING_VERSION,

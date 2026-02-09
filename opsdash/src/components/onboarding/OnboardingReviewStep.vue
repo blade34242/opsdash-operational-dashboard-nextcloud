@@ -43,10 +43,6 @@
       <h5>Reporting</h5>
       <p>{{ reportingEnabled ? reportingSummary : 'Recap disabled' }}</p>
     </div>
-    <div>
-      <h5>Activity card</h5>
-      <p>{{ showDayOffTrend ? 'Days-off heatmap enabled' : 'Heatmap hidden' }}</p>
-    </div>
     <div v-if="showSaveProfile" class="review-profile">
       <h5>Save profile</h5>
       <label class="toggle-row">
@@ -88,7 +84,6 @@ const props = defineProps<{
   deckVisibleBoards: Array<{ id: number; title: string }>
   reportingEnabled: boolean
   reportingSummary: string
-  showDayOffTrend: boolean
   themePreference: 'auto' | 'light' | 'dark'
   dashboardMode: 'quick' | 'standard' | 'pro'
   saveProfile: boolean

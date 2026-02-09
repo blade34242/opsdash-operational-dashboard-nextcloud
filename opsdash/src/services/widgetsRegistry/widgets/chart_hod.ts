@@ -39,19 +39,29 @@ export const chartHodEntry: RegistryEntry = {
         ? ctx.charts.hodByOffset
         : null
     const sortedLookback = lookbackInput ? sortLookbackOffsets(lookbackInput) : []
-    const lookbackEntries = sortedLookback.map((entry, idx) => {
-      const color = getLookbackColor(idx)
-      return {
-        id: `offset-${entry.offset ?? idx}`,
-        label: formatLookbackLabel(entry, ctx.rangeMode),
-        color,
-        hod: {
-          dows: entry.dows || [],
-          hours: entry.hours || [],
-          matrix: entry.matrix || [],
-        },
-      }
-    })
+    const lookbackEntries = sortedLookback
+      .map((entry, idx) => {
+        const matrix = Array.isArray(entry.matrix) ? entry.matrix : []
+        const total = matrix.reduce((sum: number, row: any) => {
+          const rowTotal = Array.isArray(row)
+            ? row.reduce((acc: number, val: any) => acc + Math.max(0, Number(val) || 0), 0)
+            : 0
+          return sum + rowTotal
+        }, 0)
+        const color = getLookbackColor(idx)
+        return {
+          id: `offset-${entry.offset ?? idx}`,
+          label: formatLookbackLabel(entry, ctx.rangeMode),
+          color,
+          total,
+          hod: {
+            dows: entry.dows || [],
+            hours: entry.hours || [],
+            matrix,
+          },
+        }
+      })
+      .filter((entry) => entry.total > 0)
     const hodData =
       lookbackWeeks > 1 && ctx.charts?.hodLookback
         ? ctx.charts.hodLookback

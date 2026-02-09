@@ -62,14 +62,18 @@ const legendItems = computed(() => {
   const data = props.chartData
   if (!data || !Array.isArray(data.data)) return []
   const total = data.data.reduce((sum, val) => sum + Math.max(0, Number(val) || 0), 0) || 1
-  return data.data.map((val, idx) => {
-    const raw = Math.max(0, Number(val) || 0)
-    const label = String(data.labels?.[idx] ?? '')
-    const id = String(data.ids?.[idx] ?? label ?? idx)
-    const color = data.colors?.[idx] || colorsById.value[id] || colorsByName.value[label] || '#60a5fa'
-    const pct = (raw / total) * 100
-    return { id, label, color, value: `${raw.toFixed(1)}h · ${pct.toFixed(0)}%` }
-  })
+  return data.data
+    .map((val, idx) => {
+      const raw = Math.max(0, Number(val) || 0)
+      const label = String(data.labels?.[idx] ?? '')
+      const id = String(data.ids?.[idx] ?? label ?? idx)
+      const color = data.colors?.[idx] || colorsById.value[id] || colorsByName.value[label] || '#60a5fa'
+      const pct = (raw / total) * 100
+      const pctRounded = Math.round(pct)
+      return { id, label, color, raw, pctRounded, value: `${raw.toFixed(1)}h · ${pctRounded}%` }
+    })
+    .filter((entry) => entry.pctRounded > 0)
+    .sort((a, b) => b.raw - a.raw)
 })
 </script>
 
