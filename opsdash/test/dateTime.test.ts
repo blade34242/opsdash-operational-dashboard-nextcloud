@@ -2,6 +2,7 @@ import { afterEach, describe, expect, it } from 'vitest'
 import {
   dateTimeConfig,
   getFirstDayOfWeek,
+  getWeekNumber,
   getUserLocale,
   getUserTimeZone,
   getWeekdayOrder,
@@ -64,5 +65,20 @@ describe('dateTime config', () => {
     const order = getWeekdayOrder()
     expect(order[0]).toBe('Mon')
     expect(order[6]).toBe('Sun')
+  })
+
+  it('returns week 1 for the late-december week that belongs to next week-year', () => {
+    setUserDateTimeConfig({
+      locale: 'de-DE',
+      firstDayOfWeek: 1,
+    })
+
+    const dec22 = new Date(Date.UTC(2025, 11, 22))
+    const dec29 = new Date(Date.UTC(2025, 11, 29))
+    const jan5 = new Date(Date.UTC(2026, 0, 5))
+
+    expect(getWeekNumber(dec22)).toBe(52)
+    expect(getWeekNumber(dec29)).toBe(1)
+    expect(getWeekNumber(jan5)).toBe(2)
   })
 })

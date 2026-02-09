@@ -119,27 +119,39 @@ export function getWeekNumber(date: Date): number {
       }
     }
   } catch (_) {}
+  minimalDays = Math.max(1, Math.min(7, Math.trunc(minimalDays)))
 
   const firstDay = getFirstDayOfWeek()
   const target = new Date(Date.UTC(date.getUTCFullYear(), date.getUTCMonth(), date.getUTCDate()))
+  const weekMs = 7 * 86400000
+
+  const weekStartForYear = (year: number): Date => {
+    const jan1 = new Date(Date.UTC(year, 0, 1))
+    const jan1Dow = jan1.getUTCDay()
+    const diff = (jan1Dow - firstDay + 7) % 7
+    const start = new Date(jan1)
+    start.setUTCDate(jan1.getUTCDate() - diff)
+
+    const daysInFirstWeek = 7 - diff
+    if (daysInFirstWeek < minimalDays) {
+      start.setUTCDate(start.getUTCDate() + 7)
+    }
+    return start
+  }
+
   const year = target.getUTCFullYear()
-  const jan1 = new Date(Date.UTC(year, 0, 1))
-  const jan1Dow = jan1.getUTCDay()
-  const diff = (jan1Dow - firstDay + 7) % 7
-  let weekStart = new Date(jan1)
-  weekStart.setUTCDate(jan1.getUTCDate() - diff)
-
-  const daysInFirstWeek = 7 - diff
-  if (daysInFirstWeek < minimalDays) {
-    weekStart.setUTCDate(weekStart.getUTCDate() + 7)
+  const weekStart = weekStartForYear(year)
+  if (target.getTime() < weekStart.getTime()) {
+    const previousYearStart = weekStartForYear(year - 1)
+    return Math.floor((target.getTime() - previousYearStart.getTime()) / weekMs) + 1
   }
 
-  const diffDays = Math.floor((target.getTime() - weekStart.getTime()) / 86400000)
-  if (diffDays < 0) {
-    const lastYearDate = new Date(Date.UTC(year - 1, 11, 31))
-    return getWeekNumber(lastYearDate)
+  const nextYearStart = weekStartForYear(year + 1)
+  if (target.getTime() >= nextYearStart.getTime()) {
+    return Math.floor((target.getTime() - nextYearStart.getTime()) / weekMs) + 1
   }
-  return Math.floor(diffDays / 7) + 1
+
+  return Math.floor((target.getTime() - weekStart.getTime()) / weekMs) + 1
 }
 
 function getFormatter(
