@@ -111,8 +111,11 @@
   max-width:var(--opsdash-sidebar-width);
   height:100%;
   background:var(--card);
-  border:0;
-  border-radius:0;
+  border-width:1px;
+  border-style:solid;
+  border-color:var(--line);
+  border-color:color-mix(in oklab, var(--line), transparent 15%);
+  border-radius:calc(var(--opsdash-radius) - 2px);
   padding:0 !important;
   overflow-x:hidden !important;
   overflow-y:auto !important;
@@ -1573,8 +1576,8 @@
 }
 #opsdash.opsdash-theme-light .app-content__navigation{
   background:#edf3ff;
-  border:none !important;
-  border-radius:0;
+  border-color:var(--opsdash-border);
+  border-color:color-mix(in oklab, var(--opsdash-border), #ffffff 35%);
   box-shadow:none !important;
   outline:none;
 }

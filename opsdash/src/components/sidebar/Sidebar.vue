@@ -171,15 +171,7 @@ const emit = defineEmits([
   overflow:visible !important;
 }
 
-:global(.app-opsdash .app-content){
-  padding-left:0 !important;
-  padding-top:0 !important;
-}
-
 :global(.app-opsdash .app-content__navigation){
-  padding-left:0 !important;
-  padding-top:0 !important;
-  margin-left:-4px;
   overflow:visible !important;
 }
 
