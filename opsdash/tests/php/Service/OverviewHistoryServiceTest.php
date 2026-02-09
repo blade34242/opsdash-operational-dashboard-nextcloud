@@ -148,4 +148,72 @@ class OverviewHistoryServiceTest extends TestCase {
     $this->assertSame(0.0, $res['totals']['__uncategorized__']);
     $this->assertSame(['2025-01-01'], $res['daysSeen']);
   }
+
+  public function testCollectCategoryTotalsFallsBackToTimedDurationWhenHoursMissing(): void {
+    $manager = new class() implements IManager {
+      public function newQuery(string $principal): object {
+        return new class() {
+          public string $calendar = '';
+          public function addSearchCalendar(string $calendar): void { $this->calendar = $calendar; }
+          public function setTimerangeStart($from): void {}
+          public function setTimerangeEnd($to): void {}
+        };
+      }
+      public function searchForPrincipal(object $q): array {
+        return [['id' => 1]];
+      }
+    };
+
+    $calendarService = new class() extends CalendarAccessService {
+      public function __construct() {}
+    };
+    $calendarParsing = new class() extends CalendarParsingService {
+      public function parseRows(array $raw, string $calendarName, ?string $calendarId = null): array {
+        return [[
+          'calendar' => $calendarName,
+          'calendar_id' => $calendarId,
+          'hours' => 0.0,
+          'allday' => false,
+          'start' => '2025-01-01T09:00:00Z',
+          'end' => '2025-01-01T11:30:00Z',
+          'startTz' => 'UTC',
+          'endTz' => 'UTC',
+        ]];
+      }
+    };
+
+    $logger = $this->createMock(LoggerInterface::class);
+    $collector = new OverviewEventsCollector($manager, $calendarParsing, $logger);
+    $service = new OverviewHistoryService($calendarService, $collector);
+
+    $calA = new class() {
+      public function getUri(): string { return 'cal-a'; }
+      public function getDisplayName(): string { return 'A'; }
+    };
+
+    $categoryMeta = [
+      'work' => ['id' => 'work', 'label' => 'Work'],
+      '__uncategorized__' => ['id' => '__uncategorized__', 'label' => 'Unassigned'],
+    ];
+    $mapCalToCategory = fn (string $calId) => $calId === 'cal-a' ? 'work' : '__uncategorized__';
+
+    $res = $service->collectCategoryTotalsForRange(
+      from: new DateTimeImmutable('2025-01-01T00:00:00Z'),
+      to: new DateTimeImmutable('2025-01-08T00:00:00Z'),
+      categoryMeta: $categoryMeta,
+      calendars: [$calA],
+      includeAll: true,
+      selectedIds: [],
+      principal: 'principals/users/admin',
+      mapCalToCategory: $mapCalToCategory,
+      userTz: new \DateTimeZone('UTC'),
+      allDayHours: 8.0,
+      captureDays: false,
+    );
+
+    $this->assertSame(1, $res['events']);
+    $this->assertSame(2.5, $res['total']);
+    $this->assertSame(2.5, $res['totals']['work']);
+    $this->assertSame(0.0, $res['totals']['__uncategorized__']);
+  }
 }

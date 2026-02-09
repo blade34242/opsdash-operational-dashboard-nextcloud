@@ -331,6 +331,9 @@ final class OverviewHistoryService {
                 if ($captureDays && $daysRef !== null) {
                     $daysSeen = $daysRef;
                 }
+            } elseif ($eventHours <= 0) {
+                // Fallback for providers that omit parsed `hours` on timed events.
+                $eventHours = $this->normalizeTimedEventHours($row, $userTz);
             } elseif ($captureDays) {
                 $startStr = (string)($row['start'] ?? '');
                 $dayKey = substr($startStr, 0, 10);
@@ -408,6 +411,44 @@ final class OverviewHistoryService {
             }
         }
         return $allDayHours * $daysSpanned;
+    }
+
+    /**
+     * @param array<string,mixed> $row
+     */
+    private function normalizeTimedEventHours(array $row, \DateTimeZone $userTz): float {
+        $startStr = (string)($row['start'] ?? '');
+        $endStr   = (string)($row['end'] ?? '');
+        if ($startStr === '' || $endStr === '') {
+            return 0.0;
+        }
+
+        $startTzName = (string)($row['startTz'] ?? '');
+        $endTzName   = (string)($row['endTz'] ?? '');
+        try {
+            $srcTzStart = new \DateTimeZone($startTzName ?: 'UTC');
+        } catch (\Throwable) {
+            $srcTzStart = new \DateTimeZone('UTC');
+        }
+        try {
+            $srcTzEnd = new \DateTimeZone($endTzName ?: 'UTC');
+        } catch (\Throwable) {
+            $srcTzEnd = new \DateTimeZone('UTC');
+        }
+
+        try {
+            $dtStart = new \DateTimeImmutable($startStr, $srcTzStart);
+            $dtEnd = new \DateTimeImmutable($endStr, $srcTzEnd);
+        } catch (\Throwable) {
+            return 0.0;
+        }
+
+        $dtStartUser = $dtStart->setTimezone($userTz);
+        $dtEndUser = $dtEnd->setTimezone($userTz);
+        if ($dtEndUser <= $dtStartUser) {
+            return 0.0;
+        }
+        return ($dtEndUser->getTimestamp() - $dtStartUser->getTimestamp()) / 3600.0;
     }
 
     /**
