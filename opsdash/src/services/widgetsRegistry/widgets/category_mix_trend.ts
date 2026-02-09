@@ -15,7 +15,6 @@ export const categoryMixTrendEntry: RegistryEntry = {
   label: 'Category Mix Trend',
   baseTitle,
   defaultOptions: {
-    lookbackWeeks: 3,
     density: 'normal',
     labelMode: 'period',
     colorMode: 'hybrid',
@@ -25,7 +24,6 @@ export const categoryMixTrendEntry: RegistryEntry = {
   },
   configurable: true,
   controls: [
-    { key: 'lookbackWeeks', label: 'Lookback (weeks)', type: 'number', min: 1, max: 4, step: 1 },
     {
       key: 'density',
       label: 'Density',
@@ -70,7 +68,7 @@ export const categoryMixTrendEntry: RegistryEntry = {
     rangeLabel: ctx.rangeLabel,
     from: ctx.from,
     to: ctx.to,
-    lookbackWeeks: def.options?.lookbackWeeks ?? ctx.lookbackWeeks ?? 3,
+    lookbackWeeks: Math.max(1, Math.min(4, Number(ctx.lookbackWeeks) || 3)),
     showBadge: def.options?.showBadge ?? true,
     showHeader: def.options?.showHeader !== false,
     density: def.options?.density,

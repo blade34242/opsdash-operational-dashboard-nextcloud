@@ -155,19 +155,59 @@ describe('widgetsRegistry targets_v2', () => {
     expect(props.cardBg).toBe('#fafafa')
   })
 
+  it('trend widgets use global lookback and ignore per-widget lookback options', () => {
+    const balanceEntry = widgetsRegistry.balance_index
+    const balanceProps = balanceEntry.buildProps(
+      {
+        options: {
+          lookbackWeeks: 1,
+          loopbackCount: 1,
+        },
+        layout: {},
+        type: 'balance_index',
+        id: 'b1',
+        version: 1,
+      } as any,
+      {
+        lookbackWeeks: 4,
+        balanceOverview: { trend: { history: [], delta: [], badge: '' }, categories: [], relations: [], warnings: [], index: 0 },
+      } as any,
+    ) as any
+    expect(balanceProps.lookbackWeeks).toBe(4)
+    expect(balanceProps.loopbackCount).toBe(4)
+
+    const mixEntry = widgetsRegistry.category_mix_trend
+    const mixProps = mixEntry.buildProps(
+      {
+        options: { lookbackWeeks: 1 },
+        layout: {},
+        type: 'category_mix_trend',
+        id: 'c1',
+        version: 1,
+      } as any,
+      {
+        lookbackWeeks: 3,
+        balanceOverview: { trend: { history: [], delta: [], badge: '' }, categories: [], relations: [], warnings: [], index: 0 },
+      } as any,
+    ) as any
+    expect(mixProps.lookbackWeeks).toBe(3)
+  })
+
   it('dayoff_trend uses global unit and defaults tone colors', () => {
     const entry = widgetsRegistry.dayoff_trend
-    const def: any = { options: {}, layout: {}, type: 'dayoff_trend', id: 'd1', version: 1 }
+    const def: any = { options: { lookback: 1 }, layout: {}, type: 'dayoff_trend', id: 'd1', version: 1 }
     const ctx: any = { activityDayOffTrend: [], activityTrendUnit: 'mo', activityDayOffLookback: 2 }
     const props = entry.buildProps(def, ctx) as any
     const keys = (entry.controls || []).map((control: any) => control.key)
 
     expect(keys).not.toContain('unit')
+    expect(keys).not.toContain('lookback')
     expect(keys).toContain('labelMode')
     expect(entry.defaultOptions?.toneLowColor).toBe('#dc2626')
     expect(entry.defaultOptions?.toneHighColor).toBe('#16a34a')
     expect(entry.defaultOptions?.labelMode).toBe('period')
     expect(props.unit).toBe('mo')
+    expect(props.lookback).toBe(2)
   })
 
   it('common title prefix is applied when provided', () => {

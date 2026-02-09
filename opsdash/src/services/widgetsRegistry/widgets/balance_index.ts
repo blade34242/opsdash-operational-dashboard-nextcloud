@@ -29,7 +29,6 @@ export const balanceIndexEntry: RegistryEntry = {
       warnAbove: defaults.thresholds.warnAbove,
       warnBelow: defaults.thresholds.warnBelow,
       warnIndex: defaults.thresholds.warnIndex,
-      lookbackWeeks: defaults.trend.lookbackWeeks,
       messageDensity: 'normal',
       trendColor: '#2563EB',
       showCurrent: true,
@@ -41,7 +40,6 @@ export const balanceIndexEntry: RegistryEntry = {
     { key: 'showConfig', label: 'Show config summary', type: 'toggle' },
     { key: 'showTrend', label: 'Show trend', type: 'toggle' },
     { key: 'showMessages', label: 'Show messages', type: 'toggle' },
-    { key: 'lookbackWeeks', label: 'Trend lookback (weeks)', type: 'number', min: 1, max: 6, step: 1 },
     {
       key: 'messageDensity',
       label: 'Messages shown',
@@ -90,11 +88,9 @@ export const balanceIndexEntry: RegistryEntry = {
     const showMessages = def.options?.showMessages ?? cfg.ui?.showMessages ?? true
     const density = (def.options?.messageDensity as string) || 'normal'
     const messageLimit = density === 'few' ? 1 : density === 'many' ? Infinity : 3
-    const lookbackWeeks = Number.isFinite(def.options?.lookbackWeeks)
-      ? Number(def.options?.lookbackWeeks)
-      : Number.isFinite(ctx.lookbackWeeks)
-        ? Number(ctx.lookbackWeeks)
-        : defaults.trend?.lookbackWeeks ?? 3
+    const lookbackWeeks = Number.isFinite(ctx.lookbackWeeks)
+      ? Number(ctx.lookbackWeeks)
+      : defaults.trend?.lookbackWeeks ?? 3
     const thresholds = {
       noticeAbove: numberOr(cfg?.thresholds?.noticeAbove, def.options?.noticeAbove),
       noticeBelow: numberOr(cfg?.thresholds?.noticeBelow, def.options?.noticeBelow),
@@ -106,12 +102,10 @@ export const balanceIndexEntry: RegistryEntry = {
     const trendColor = typeof def.options?.trendColor === 'string' && def.options?.trendColor.trim()
       ? def.options.trendColor.trim()
       : '#2563EB'
-    const loopbackCount = Number.isFinite(def.options?.loopbackCount)
-      ? Number(def.options?.loopbackCount)
-      : undefined
-    const effectiveLookback = Number.isFinite(loopbackCount)
-      ? Number(loopbackCount)
-      : (Number.isFinite(lookbackWeeks) ? Number(lookbackWeeks) : defaults.trend?.lookbackWeeks ?? 4)
+    const effectiveLookback = Math.max(
+      1,
+      Math.min(6, Number.isFinite(lookbackWeeks) ? Number(lookbackWeeks) : defaults.trend?.lookbackWeeks ?? 4),
+    )
     return {
       overview: ctx.balanceOverview,
       targetsCategories: ctx.targetsConfig?.categories || [],
