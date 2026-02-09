@@ -452,7 +452,7 @@ const widgetTabsRef = computed({
   },
 })
 
-const lookbackWidgetTypes = new Set(['chart_per_day', 'chart_dow', 'chart_hod', 'time_summary_v2'])
+const lookbackWidgetTypes = new Set(['chart_per_day', 'chart_dow', 'chart_hod', 'time_summary_lookback', 'time_summary_v2'])
 const shouldIncludeLookback = () => {
   if (trendLookbackWeeks.value <= 1) return false
   for (const tab of layoutTabs.value || []) {

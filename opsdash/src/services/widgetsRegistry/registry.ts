@@ -15,7 +15,7 @@ import { deckCardsEntry } from './widgets/deck_cards'
 import { noteEditorEntry } from './widgets/note_editor'
 import { noteSnippetEntry } from './widgets/note_snippet'
 import { targetsV2Entry } from './widgets/targets_v2'
-import { timeSummaryV2Entry } from './widgets/time_summary_v2'
+import { timeSummaryLookbackEntry, timeSummaryOverviewEntry } from './widgets/time_summary_v2'
 import { createDefaultWidgetTabs as createDefaultWidgetTabsFromDefaults, getWidgetPreset } from '../widgetDefaults'
 
 const CHART_FILTER_WIDGETS = new Set(['chart_pie', 'chart_stacked', 'chart_per_day', 'chart_dow'])
@@ -56,7 +56,8 @@ function migrateChartFilters(type: string, options: Record<string, any>): Record
 }
 
 export const widgetsRegistry: Record<string, RegistryEntry> = {
-  time_summary_v2: timeSummaryV2Entry,
+  time_summary_overview: timeSummaryOverviewEntry,
+  time_summary_lookback: timeSummaryLookbackEntry,
   targets_v2: targetsV2Entry,
   balance_index: balanceIndexEntry,
   dayoff_trend: dayOffTrendEntry,
@@ -78,22 +79,23 @@ export const widgetsRegistry: Record<string, RegistryEntry> = {
 export function normalizeWidgetLayout(raw: any, fallback: WidgetDefinition[], allowEmpty = false): WidgetDefinition[] {
   if (!Array.isArray(raw)) return fallback
   const cleaned: WidgetDefinition[] = []
-  raw.forEach((item: any, idx: number) => {
-    const type = String(item?.type ?? '')
-    if (!type) return
+
+  const pushWidget = (type: string, source: any, idx: number, optionOverrides?: Record<string, any>, orderOverride?: number) => {
     const entry = widgetsRegistry[type]
     if (!entry) return
-    const id = String(item?.id ?? '') || `widget-${type}-${idx + 1}`
-    const layout = item?.layout ?? {}
+    const id = String(source?.id ?? '') || `widget-${type}-${idx + 1}`
+    const layout = source?.layout ?? {}
     const width: WidgetSize =
       layout.width === 'quarter' || layout.width === 'half' ? layout.width : 'full'
     const height: WidgetHeight =
       layout.height === 's' || layout.height === 'l' || layout.height === 'xl' ? layout.height : 'm'
-    const order = Number(layout.order ?? 0)
+    const orderRaw = orderOverride ?? Number(layout.order ?? 0)
+    const order = Number.isFinite(orderRaw) ? orderRaw : 0
     const baseOptions = entry.defaultOptions || {}
     let options = {
       ...baseOptions,
-      ...(item?.options && typeof item.options === 'object' ? item.options : {}),
+      ...(source?.options && typeof source.options === 'object' ? source.options : {}),
+      ...(optionOverrides && typeof optionOverrides === 'object' ? optionOverrides : {}),
     }
     if (options.scale == null && options.textSize != null) {
       options.scale = options.textSize
@@ -104,9 +106,30 @@ export function normalizeWidgetLayout(raw: any, fallback: WidgetDefinition[], al
       id,
       type,
       options,
-      layout: { width, height, order: Number.isFinite(order) ? order : 0 },
-      version: Number(item?.version ?? 1) || 1,
+      layout: { width, height, order },
+      version: Number(source?.version ?? 1) || 1,
     })
+  }
+
+  raw.forEach((item: any, idx: number) => {
+    const type = String(item?.type ?? '')
+    if (!type) return
+    if (type === 'time_summary_v2') {
+      const baseId = String(item?.id ?? '') || `widget-time_summary_overview-${idx + 1}`
+      const layout = item?.layout ?? {}
+      const baseOrder = Number(layout.order ?? 0)
+      const safeOrder = Number.isFinite(baseOrder) ? baseOrder : 0
+      pushWidget('time_summary_overview', { ...item, id: baseId }, idx)
+      pushWidget(
+        'time_summary_lookback',
+        { ...item, id: `${baseId}-lookback` },
+        idx,
+        undefined,
+        safeOrder + 0.1,
+      )
+      return
+    }
+    pushWidget(type, item, idx)
   })
   if (cleaned.length) return cleaned
   return allowEmpty ? [] : fallback

@@ -13,6 +13,181 @@ import type { RegistryEntry } from '../types'
 import { formatLookbackLabel, sortLookbackOffsets } from './chartHelpers'
 
 const baseTitle = 'Time Summary'
+const summaryToggleKeys: Array<keyof TargetsConfig['timeSummary']> = [
+  'showTotal',
+  'showAverage',
+  'showMedian',
+  'showBusiest',
+  'showWorkday',
+  'showWeekend',
+  'showWeekendShare',
+  'showCalendarSummary',
+  'showTopCategory',
+]
+
+const modeControl = {
+  key: 'mode',
+  label: 'Average mode',
+  type: 'select',
+  options: [
+    { value: 'active', label: 'Active days' },
+    { value: 'all', label: 'All days' },
+  ],
+} as const
+
+const summaryControls = [
+  { key: 'showTotal', label: 'Total hours', type: 'toggle' },
+  { key: 'showAverage', label: 'Average per day', type: 'toggle' },
+  { key: 'showMedian', label: 'Median per day', type: 'toggle' },
+  { key: 'showBusiest', label: 'Busiest day', type: 'toggle' },
+  { key: 'showWorkday', label: 'Workdays row', type: 'toggle' },
+  { key: 'showWeekend', label: 'Weekend row', type: 'toggle' },
+  { key: 'showWeekendShare', label: 'Weekend share', type: 'toggle' },
+  { key: 'showCalendarSummary', label: 'Top calendars', type: 'toggle' },
+  { key: 'showTopCategory', label: 'Top category', type: 'toggle' },
+] as const
+
+function buildDefaultOptions() {
+  const defaults = createDefaultTargetsConfig().timeSummary
+  return {
+    ...defaults,
+    mode: 'active',
+    showToday: true,
+    showActivity: true,
+    showHistoryCoreMetrics: true,
+    historyView: 'list',
+    showActivityDetails: true,
+    showDelta: true,
+  }
+}
+
+function buildTimeSummaryProps(
+  def: any,
+  ctx: any,
+  opts: {
+    title: string
+    includeHistory: boolean
+    showOverview: boolean
+    showLookback: boolean
+    showDelta: boolean
+  },
+) {
+  const baseConfig: TargetsConfig = ctx.targetsConfig ? JSON.parse(JSON.stringify(ctx.targetsConfig)) : createDefaultTargetsConfig()
+  const cfg = {
+    ...baseConfig,
+    timeSummary: { ...baseConfig.timeSummary },
+  }
+  const rangeMode = String(ctx.rangeMode || 'week').toLowerCase() === 'month' ? 'month' : 'week'
+  const mode = (def.options?.mode as 'active' | 'all' | undefined) ?? ctx.activeDayMode ?? 'active'
+  const showToday = opts.showOverview && def.options?.showToday !== false
+  const showActivity = opts.showOverview && def.options?.showActivity !== false
+  const showHistoryCoreMetrics = def.options?.showHistoryCoreMetrics !== false
+  const historyView = def.options?.historyView === 'pills' ? 'pills' : 'list'
+  const showActivityDetails = def.options?.showActivityDetails !== false
+  const showDelta = opts.showLookback && opts.showDelta && def.options?.showDelta !== false
+
+  summaryToggleKeys.forEach((key) => {
+    if (def.options?.[key] === undefined) return
+    cfg.timeSummary[key] = !!def.options[key]
+  })
+
+  const history =
+    opts.includeHistory && Number(ctx.lookbackWeeks) > 1
+      ? buildHistoryEntries({
+          mode,
+          rangeMode,
+          lookbackWeeks: Number(ctx.lookbackWeeks),
+          perDaySeriesByOffset: ctx.charts?.perDaySeriesByOffset,
+          hodByOffset: ctx.charts?.hodByOffset,
+          summaryByOffset: ctx.charts?.summaryByOffset,
+          targetsConfig: normalizeTargetsConfigForRange(cfg, rangeMode),
+          calendarCategoryMap: ctx.calendarCategoryMap || {},
+          calendarGroups: Array.isArray(ctx.calendarGroups) ? ctx.calendarGroups : [],
+          categoryColorMap: ctx.categoryColorMap || {},
+        })
+      : []
+
+  return {
+    summary: ctx.summary,
+    activitySummary: ctx.activitySummary,
+    mode,
+    config: cfg.timeSummary,
+    todayGroups: def.props?.todayGroups ?? ctx.groups,
+    title: buildTitle(opts.title, def.options?.titlePrefix),
+    cardBg: def.options?.cardBg,
+    rangeMode: ctx.rangeMode,
+    rangeStart: ctx.from,
+    rangeEnd: ctx.to,
+    offset: ctx.offset,
+    showHeader: def.options?.showHeader !== false,
+    showToday,
+    showActivity,
+    showHistoryCoreMetrics,
+    historyView,
+    showActivityDetails,
+    showOverview: opts.showOverview,
+    showLookback: opts.showLookback,
+    showDelta,
+    history,
+  }
+}
+
+export const timeSummaryOverviewEntry: RegistryEntry = {
+  component: TimeSummaryCard,
+  defaultLayout: { width: 'half', height: 'm', order: 9 },
+  label: 'Time Summary (Overview)',
+  baseTitle: `${baseTitle} (Overview)`,
+  configurable: true,
+  defaultOptions: buildDefaultOptions(),
+  controls: [
+    modeControl,
+    { key: 'showToday', label: 'Show today block', type: 'toggle' },
+    { key: 'showActivity', label: 'Show activity section', type: 'toggle' },
+    { key: 'showActivityDetails', label: 'Activity details', type: 'toggle' },
+    ...summaryControls,
+  ],
+  buildProps: (def, ctx) =>
+    buildTimeSummaryProps(def, ctx, {
+      title: `${baseTitle} (Overview)`,
+      includeHistory: false,
+      showOverview: true,
+      showLookback: false,
+      showDelta: false,
+    }),
+}
+
+export const timeSummaryLookbackEntry: RegistryEntry = {
+  component: TimeSummaryCard,
+  defaultLayout: { width: 'half', height: 'l', order: 19 },
+  label: 'Time Summary (Lookback)',
+  baseTitle: `${baseTitle} (Lookback)`,
+  configurable: true,
+  defaultOptions: buildDefaultOptions(),
+  controls: [
+    modeControl,
+    { key: 'showHistoryCoreMetrics', label: 'History core metrics', type: 'toggle' },
+    {
+      key: 'historyView',
+      label: 'History layout',
+      type: 'select',
+      options: [
+        { value: 'list', label: 'List' },
+        { value: 'pills', label: 'Pills' },
+      ],
+    },
+    { key: 'showActivityDetails', label: 'Activity details', type: 'toggle' },
+    { key: 'showDelta', label: 'Show delta line', type: 'toggle' },
+    ...summaryControls,
+  ],
+  buildProps: (def, ctx) =>
+    buildTimeSummaryProps(def, ctx, {
+      title: `${baseTitle} (Lookback)`,
+      includeHistory: true,
+      showOverview: false,
+      showLookback: true,
+      showDelta: true,
+    }),
+}
 
 export const timeSummaryV2Entry: RegistryEntry = {
   component: TimeSummaryCard,
@@ -20,102 +195,33 @@ export const timeSummaryV2Entry: RegistryEntry = {
   label: 'Time Summary',
   baseTitle,
   configurable: true,
-  defaultOptions: (() => {
-    const defaults = createDefaultTargetsConfig().timeSummary
-    return {
-      ...defaults,
-      mode: 'active',
-      showToday: true,
-      showActivity: true,
-      showHistoryCoreMetrics: true,
-      historyView: 'list',
-      showActivityDetails: true,
-    }
-  })(),
+  defaultOptions: buildDefaultOptions(),
   controls: [
-    {
-      key: 'mode',
-      label: 'Average mode',
-      type: 'select',
-      options: [
-        { value: 'active', label: 'Active days' },
-        { value: 'all', label: 'All days' },
-      ],
-    },
+    modeControl,
     { key: 'showToday', label: 'Show today block', type: 'toggle' },
     { key: 'showActivity', label: 'Show activity section', type: 'toggle' },
     { key: 'showHistoryCoreMetrics', label: 'History core metrics', type: 'toggle' },
-    { key: 'historyView', label: 'History layout', type: 'select', options: [
-      { value: 'list', label: 'List' },
-      { value: 'pills', label: 'Pills' },
-    ] },
+    {
+      key: 'historyView',
+      label: 'History layout',
+      type: 'select',
+      options: [
+        { value: 'list', label: 'List' },
+        { value: 'pills', label: 'Pills' },
+      ],
+    },
     { key: 'showActivityDetails', label: 'Activity details', type: 'toggle' },
-    { key: 'showTotal', label: 'Total hours', type: 'toggle' },
-    { key: 'showAverage', label: 'Average per day', type: 'toggle' },
-    { key: 'showMedian', label: 'Median per day', type: 'toggle' },
-    { key: 'showBusiest', label: 'Busiest day', type: 'toggle' },
-    { key: 'showWorkday', label: 'Workdays row', type: 'toggle' },
-    { key: 'showWeekend', label: 'Weekend row', type: 'toggle' },
-    { key: 'showWeekendShare', label: 'Weekend share', type: 'toggle' },
-    { key: 'showCalendarSummary', label: 'Top calendars', type: 'toggle' },
-    { key: 'showTopCategory', label: 'Top category', type: 'toggle' },
+    { key: 'showDelta', label: 'Show delta line', type: 'toggle' },
+    ...summaryControls,
   ],
-  buildProps: (def, ctx) => {
-    const baseConfig: TargetsConfig = ctx.targetsConfig ? JSON.parse(JSON.stringify(ctx.targetsConfig)) : createDefaultTargetsConfig()
-    const cfg = {
-      ...baseConfig,
-      timeSummary: { ...baseConfig.timeSummary },
-    }
-    const rangeMode = String(ctx.rangeMode || 'week').toLowerCase() === 'month' ? 'month' : 'week'
-    const mode = (def.options?.mode as 'active' | 'all' | undefined) ?? ctx.activeDayMode ?? 'active'
-    const showToday = def.options?.showToday !== false
-    const showActivity = def.options?.showActivity !== false
-    const showHistoryCoreMetrics = def.options?.showHistoryCoreMetrics !== false
-    const historyView = def.options?.historyView === 'pills' ? 'pills' : 'list'
-    const showActivityDetails = def.options?.showActivityDetails !== false
-    const applyToggle = (key: keyof TargetsConfig['timeSummary']) => {
-      if (def.options?.[key] === undefined) return
-      cfg.timeSummary[key] = !!def.options[key]
-    }
-    ;(['showTotal','showAverage','showMedian','showBusiest','showWorkday','showWeekend','showWeekendShare','showCalendarSummary','showTopCategory'] as Array<keyof TargetsConfig['timeSummary']>).forEach(applyToggle)
-
-    const history =
-      Number(ctx.lookbackWeeks) > 1
-        ? buildHistoryEntries({
-            mode,
-            rangeMode,
-            lookbackWeeks: Number(ctx.lookbackWeeks),
-            perDaySeriesByOffset: ctx.charts?.perDaySeriesByOffset,
-            hodByOffset: ctx.charts?.hodByOffset,
-            summaryByOffset: ctx.charts?.summaryByOffset,
-            targetsConfig: normalizeTargetsConfigForRange(cfg, rangeMode),
-            calendarCategoryMap: ctx.calendarCategoryMap || {},
-            calendarGroups: Array.isArray(ctx.calendarGroups) ? ctx.calendarGroups : [],
-            categoryColorMap: ctx.categoryColorMap || {},
-          })
-        : []
-
-    return {
-      summary: ctx.summary,
-      activitySummary: ctx.activitySummary,
-      mode,
-      config: cfg.timeSummary,
-      todayGroups: def.props?.todayGroups ?? ctx.groups,
-      title: buildTitle(baseTitle, def.options?.titlePrefix),
-      cardBg: def.options?.cardBg,
-      rangeMode: ctx.rangeMode,
-      rangeStart: ctx.from,
-      rangeEnd: ctx.to,
-      offset: ctx.offset,
-      showHeader: def.options?.showHeader !== false,
-      showToday,
-      showActivity,
-      showHistoryCoreMetrics,
-      historyView,
-      showActivityDetails,
-      history,
-    }
-  },
+  buildProps: (def, ctx) =>
+    buildTimeSummaryProps(def, ctx, {
+      title: baseTitle,
+      includeHistory: true,
+      showOverview: true,
+      showLookback: true,
+      showDelta: true,
+    }),
 }
 
 type HistoryEntry = {

@@ -3,6 +3,7 @@
       <div class="time-summary-firstline" v-if="showHeader">
       <span>{{ headerText }}</span>
       </div>
+    <div v-if="showOverviewPanel">
     <div class="today-highlight" v-if="showToday && todayTotal !== null">
       <div class="today-label">Total today</div>
       <div class="today-value">{{ n2(todayTotal) }} h</div>
@@ -64,7 +65,8 @@
         Last day off {{ lastDayOffLabel }}
       </div>
     </div>
-    <div class="time-summary-history" v-if="historyItems.length">
+    </div>
+    <div class="time-summary-history" v-if="showLookbackPanel && historyItems.length">
       <div class="time-summary-history__header">
         <div class="time-summary-history__title">Lookback</div>
         <div class="time-summary-history__mode">{{ historyViewLabel }}</div>
@@ -95,7 +97,7 @@
         </div>
       </div>
     </div>
-    <div class="time-summary-delta" v-if="deltaLine">
+    <div class="time-summary-delta" v-if="showLookbackPanel && showDelta && deltaLine">
       {{ deltaLine }}
     </div>
   </div>
@@ -243,12 +245,18 @@ const props = withDefaults(defineProps<{
   showHistoryCoreMetrics?: boolean
   historyView?: 'list' | 'pills'
   showActivityDetails?: boolean
+  showOverview?: boolean
+  showLookback?: boolean
+  showDelta?: boolean
 }>(), {
   showHeader: true,
   showToday: true,
   showActivity: true,
   showHistoryCoreMetrics: true,
   showActivityDetails: true,
+  showOverview: true,
+  showLookback: true,
+  showDelta: true,
 })
 
 const summaryConfig = computed<SummaryConfig>(() => Object.assign({}, defaultConfig, props.config ?? {}))
@@ -287,6 +295,9 @@ const showHistoryCoreMetrics = computed(() => props.showHistoryCoreMetrics)
 const historyView = computed(() => (props.historyView === 'pills' ? 'pills' : 'list'))
 const historyViewLabel = computed(() => (historyView.value === 'pills' ? 'Compact' : 'Detailed'))
 const showActivityDetails = computed(() => props.showActivityDetails)
+const showOverviewPanel = computed(() => props.showOverview !== false)
+const showLookbackPanel = computed(() => props.showLookback !== false)
+const showDelta = computed(() => props.showDelta !== false)
 const offsetBase = computed(() =>
   Number.isFinite(props.summary.offset) ? props.summary.offset : (props.offset ?? 0),
 )

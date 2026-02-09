@@ -95,16 +95,14 @@ describe('widgetsRegistry targets_v2', () => {
     expect(props.summary.categories[0].actualHours).toBe(5)
   })
 
-  it('time summary v2 applies overrides to config', () => {
-    const entry = widgetsRegistry.time_summary_v2
+  it('time summary overview applies overrides to config', () => {
+    const entry = widgetsRegistry.time_summary_overview
     const baseCfg = createDefaultTargetsConfig()
     const def: any = {
       options: {
         showTotal: false,
         showWeekendShare: false,
         showBalance: false,
-        showDelta: false,
-        showHistory: false,
         mode: 'all',
       },
     }
@@ -113,15 +111,17 @@ describe('widgetsRegistry targets_v2', () => {
     expect(props.config.showTotal).toBe(false)
     expect(props.config.showWeekendShare).toBe(false)
     expect(props.config.showBalance).toBe(true)
-    expect(props.showDelta).toBeUndefined()
-    expect(props.showHistory).toBeUndefined()
+    expect(props.showOverview).toBe(true)
+    expect(props.showLookback).toBe(false)
+    expect(props.showDelta).toBe(false)
     expect(props.mode).toBe('all')
   })
 
-  it('time summary v2 exposes defaults for options', () => {
-    const entry = widgetsRegistry.time_summary_v2
+  it('time summary lookback exposes defaults for options', () => {
+    const entry = widgetsRegistry.time_summary_lookback
     expect(entry.defaultOptions?.showTotal).toBe(true)
     expect(entry.defaultOptions?.mode).toBe('active')
+    expect(entry.defaultOptions?.showDelta).toBe(true)
   })
 
   it('balance_index uses defaults when options/context missing', () => {
@@ -198,7 +198,7 @@ describe('widgetsRegistry targets_v2', () => {
       summary: {},
       targetsConfig: {},
     }
-    const defSummary: any = { id: 's1', type: 'time_summary_v2', layout: { width: 'half', height: 'm', order: 1 }, options: {}, version: 1 }
+    const defSummary: any = { id: 's1', type: 'time_summary_overview', layout: { width: 'half', height: 'm', order: 1 }, options: {}, version: 1 }
     const defDeck: any = { id: 'd1', type: 'deck_cards', layout: { width: 'half', height: 'm', order: 1 }, options: {}, version: 1 }
 
     expect(mapWidgetToComponent(defSummary, { ...baseCtx, isLoading: true })?.loading).toBe(true)

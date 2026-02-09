@@ -47,7 +47,7 @@ final class DashboardDefaultsService {
     private function buildQuickPreset(): array {
         $widgets = [];
         $i = 0;
-        $widgets[] = $this->buildWidget('time_summary_v2', [
+        $widgets[] = $this->buildWidget('time_summary_overview', [
             'showTotal' => true,
             'showAverage' => true,
             'showMedian' => true,
@@ -61,6 +61,24 @@ final class DashboardDefaultsService {
             'mode' => 'active',
             'scale' => 'xl',
         ], ['width' => 'full', 'height' => 'xl', 'order' => 5], ++$i);
+        $widgets[] = $this->buildWidget('time_summary_lookback', [
+            'showTotal' => true,
+            'showAverage' => true,
+            'showMedian' => true,
+            'showBusiest' => true,
+            'showWorkday' => true,
+            'showWeekend' => true,
+            'showWeekendShare' => true,
+            'showCalendarSummary' => true,
+            'showTopCategory' => true,
+            'showBalance' => true,
+            'mode' => 'active',
+            'historyView' => 'pills',
+            'showHistoryCoreMetrics' => true,
+            'showActivityDetails' => true,
+            'showDelta' => true,
+            'scale' => 'md',
+        ], ['width' => 'full', 'height' => 'l', 'order' => 7], ++$i);
         $widgets[] = $this->buildWidget('targets_v2', [
             'showForecast' => true,
             'showHeader' => false,
@@ -316,7 +334,7 @@ final class DashboardDefaultsService {
             'showToday' => true,
             'scale' => 'lg',
         ], ['width' => 'half', 'height' => 'l', 'order' => 10], ++$i);
-        $widgets[] = $this->buildWidget('time_summary_v2', [
+        $widgets[] = $this->buildWidget('time_summary_overview', [
             'showTotal' => true,
             'showAverage' => true,
             'showMedian' => true,
@@ -329,7 +347,25 @@ final class DashboardDefaultsService {
             'showBalance' => true,
             'mode' => 'active',
             'scale' => 'md',
-        ], ['width' => 'half', 'height' => 'xl', 'order' => 20], ++$i);
+        ], ['width' => 'half', 'height' => 'l', 'order' => 20], ++$i);
+        $widgets[] = $this->buildWidget('time_summary_lookback', [
+            'showTotal' => true,
+            'showAverage' => true,
+            'showMedian' => true,
+            'showBusiest' => true,
+            'showWorkday' => true,
+            'showWeekend' => true,
+            'showWeekendShare' => true,
+            'showCalendarSummary' => true,
+            'showTopCategory' => true,
+            'showBalance' => true,
+            'mode' => 'active',
+            'historyView' => 'list',
+            'showHistoryCoreMetrics' => true,
+            'showActivityDetails' => true,
+            'showDelta' => true,
+            'scale' => 'md',
+        ], ['width' => 'half', 'height' => 'l', 'order' => 25], ++$i);
         $widgets[] = $this->buildWidget('balance_index', [
             'showTrend' => true,
             'showMessages' => true,
@@ -396,7 +432,7 @@ final class DashboardDefaultsService {
             'showCategoryBlocks' => true,
             'scale' => 'sm',
         ], ['width' => 'half', 'height' => 'xl', 'order' => 10], ++$i);
-        $widgets[] = $this->buildWidget('time_summary_v2', [
+        $widgets[] = $this->buildWidget('time_summary_overview', [
             'showTotal' => true,
             'showAverage' => true,
             'showMedian' => true,
@@ -408,11 +444,27 @@ final class DashboardDefaultsService {
             'showTopCategory' => true,
             'showBalance' => true,
             'mode' => 'active',
-            'showHistory' => true,
-            'historyView' => 'pills',
             'showActivityDetails' => true,
             'scale' => 'md',
-        ], ['width' => 'half', 'height' => 'xl', 'order' => 20], ++$i);
+        ], ['width' => 'half', 'height' => 'l', 'order' => 20], ++$i);
+        $widgets[] = $this->buildWidget('time_summary_lookback', [
+            'showTotal' => true,
+            'showAverage' => true,
+            'showMedian' => true,
+            'showBusiest' => true,
+            'showWorkday' => true,
+            'showWeekend' => true,
+            'showWeekendShare' => true,
+            'showCalendarSummary' => true,
+            'showTopCategory' => true,
+            'showBalance' => true,
+            'mode' => 'active',
+            'historyView' => 'pills',
+            'showHistoryCoreMetrics' => true,
+            'showActivityDetails' => true,
+            'showDelta' => true,
+            'scale' => 'md',
+        ], ['width' => 'half', 'height' => 'l', 'order' => 25], ++$i);
         $widgets[] = $this->buildWidget('balance_index', [
             'showTrend' => true,
             'showMessages' => true,
