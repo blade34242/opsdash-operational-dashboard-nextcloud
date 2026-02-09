@@ -103,6 +103,8 @@ describe('widgetsRegistry targets_v2', () => {
         showTotal: false,
         showWeekendShare: false,
         showBalance: false,
+        showDelta: false,
+        showHistory: false,
         mode: 'all',
       },
     }
@@ -110,7 +112,9 @@ describe('widgetsRegistry targets_v2', () => {
     const props = entry.buildProps(def, ctx) as any
     expect(props.config.showTotal).toBe(false)
     expect(props.config.showWeekendShare).toBe(false)
-    expect(props.config.showBalance).toBe(false)
+    expect(props.config.showBalance).toBe(true)
+    expect(props.showDelta).toBeUndefined()
+    expect(props.showHistory).toBeUndefined()
     expect(props.mode).toBe('all')
   })
 

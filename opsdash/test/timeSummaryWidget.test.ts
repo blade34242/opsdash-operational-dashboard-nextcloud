@@ -12,6 +12,9 @@ describe('time_summary_v2 widget', () => {
         showTotal: false,
         showWeekend: false,
         showBalance: false,
+        showToday: false,
+        showActivity: false,
+        showHistoryCoreMetrics: false,
         mode: 'all',
       },
     }
@@ -26,7 +29,12 @@ describe('time_summary_v2 widget', () => {
     expect(props.mode).toBe('all')
     expect(props.config.showTotal).toBe(false)
     expect(props.config.showWeekend).toBe(false)
-    expect(props.config.showBalance).toBe(false)
+    expect(props.config.showBalance).toBe(true)
+    expect(props.showToday).toBe(false)
+    expect(props.showActivity).toBe(false)
+    expect(props.showDelta).toBeUndefined()
+    expect(props.showHistory).toBeUndefined()
+    expect(props.showHistoryCoreMetrics).toBe(false)
     expect(props.summary.totalHours).toBe(10)
     expect(props.todayGroups?.[0]?.todayHours).toBe(2)
     expect(props.showHeader).toBe(true)
@@ -48,6 +56,11 @@ describe('time_summary_v2 widget', () => {
     expect(props.todayGroups?.length).toBe(1)
     expect(baseCfg.timeSummary.showTotal).toBe(true)
     expect(baseCfg.timeSummary.showWeekend).toBe(true)
+    expect(props.showToday).toBe(true)
+    expect(props.showActivity).toBe(true)
+    expect(props.showDelta).toBeUndefined()
+    expect(props.showHistory).toBeUndefined()
+    expect(props.showHistoryCoreMetrics).toBe(true)
     expect(props.showHeader).toBe(true)
   })
 

@@ -25,7 +25,9 @@ export const timeSummaryV2Entry: RegistryEntry = {
     return {
       ...defaults,
       mode: 'active',
-      showHistory: true,
+      showToday: true,
+      showActivity: true,
+      showHistoryCoreMetrics: true,
       historyView: 'list',
       showActivityDetails: true,
     }
@@ -40,7 +42,9 @@ export const timeSummaryV2Entry: RegistryEntry = {
         { value: 'all', label: 'All days' },
       ],
     },
-    { key: 'showHistory', label: 'Show history', type: 'toggle' },
+    { key: 'showToday', label: 'Show today block', type: 'toggle' },
+    { key: 'showActivity', label: 'Show activity section', type: 'toggle' },
+    { key: 'showHistoryCoreMetrics', label: 'History core metrics', type: 'toggle' },
     { key: 'historyView', label: 'History layout', type: 'select', options: [
       { value: 'list', label: 'List' },
       { value: 'pills', label: 'Pills' },
@@ -55,7 +59,6 @@ export const timeSummaryV2Entry: RegistryEntry = {
     { key: 'showWeekendShare', label: 'Weekend share', type: 'toggle' },
     { key: 'showCalendarSummary', label: 'Top calendars', type: 'toggle' },
     { key: 'showTopCategory', label: 'Top category', type: 'toggle' },
-    { key: 'showBalance', label: 'Balance index', type: 'toggle' },
   ],
   buildProps: (def, ctx) => {
     const baseConfig: TargetsConfig = ctx.targetsConfig ? JSON.parse(JSON.stringify(ctx.targetsConfig)) : createDefaultTargetsConfig()
@@ -65,17 +68,19 @@ export const timeSummaryV2Entry: RegistryEntry = {
     }
     const rangeMode = String(ctx.rangeMode || 'week').toLowerCase() === 'month' ? 'month' : 'week'
     const mode = (def.options?.mode as 'active' | 'all' | undefined) ?? ctx.activeDayMode ?? 'active'
-    const showHistory = def.options?.showHistory !== false
+    const showToday = def.options?.showToday !== false
+    const showActivity = def.options?.showActivity !== false
+    const showHistoryCoreMetrics = def.options?.showHistoryCoreMetrics !== false
     const historyView = def.options?.historyView === 'pills' ? 'pills' : 'list'
     const showActivityDetails = def.options?.showActivityDetails !== false
     const applyToggle = (key: keyof TargetsConfig['timeSummary']) => {
       if (def.options?.[key] === undefined) return
       cfg.timeSummary[key] = !!def.options[key]
     }
-    ;(['showTotal','showAverage','showMedian','showBusiest','showWorkday','showWeekend','showWeekendShare','showCalendarSummary','showTopCategory','showBalance'] as Array<keyof TargetsConfig['timeSummary']>).forEach(applyToggle)
+    ;(['showTotal','showAverage','showMedian','showBusiest','showWorkday','showWeekend','showWeekendShare','showCalendarSummary','showTopCategory'] as Array<keyof TargetsConfig['timeSummary']>).forEach(applyToggle)
 
     const history =
-      showHistory && Number(ctx.lookbackWeeks) > 1
+      Number(ctx.lookbackWeeks) > 1
         ? buildHistoryEntries({
             mode,
             rangeMode,
@@ -103,7 +108,9 @@ export const timeSummaryV2Entry: RegistryEntry = {
       rangeEnd: ctx.to,
       offset: ctx.offset,
       showHeader: def.options?.showHeader !== false,
-      showHistory,
+      showToday,
+      showActivity,
+      showHistoryCoreMetrics,
       historyView,
       showActivityDetails,
       history,

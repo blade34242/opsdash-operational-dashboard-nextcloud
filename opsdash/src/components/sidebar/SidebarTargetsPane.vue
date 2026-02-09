@@ -9,30 +9,36 @@
     <div class="target-config">
       <div class="field">
         <span class="label">Total target (h)</span>
-        <input
-          type="number"
-          :value="targets.totalHours"
-          min="0"
-          max="1000"
-          step="0.5"
-          :aria-invalid="!!totalTargetMessage"
-          @input="$emit('total-target-input', ($event.target as HTMLInputElement).value)"
-        />
+        <div class="input-unit">
+          <input
+            type="number"
+            :value="targets.totalHours"
+            min="0"
+            max="1000"
+            step="0.5"
+            :aria-invalid="!!totalTargetMessage"
+            @input="$emit('total-target-input', ($event.target as HTMLInputElement).value)"
+          />
+          <span class="unit">h / week</span>
+        </div>
         <div v-if="totalTargetMessage" :class="['input-message', totalTargetMessage?.tone]">
           {{ totalTargetMessage?.text }}
         </div>
       </div>
       <div class="field">
         <span class="label">All-day event (h per day)</span>
-        <input
-          type="number"
-          :value="targets.allDayHours"
-          min="0"
-          max="24"
-          step="0.25"
-          :aria-invalid="!!allDayHoursMessage"
-          @input="$emit('set-all-day-hours', ($event.target as HTMLInputElement).value)"
-        />
+        <div class="input-unit">
+          <input
+            type="number"
+            :value="targets.allDayHours"
+            min="0"
+            max="24"
+            step="0.25"
+            :aria-invalid="!!allDayHoursMessage"
+            @input="$emit('set-all-day-hours', ($event.target as HTMLInputElement).value)"
+          />
+          <span class="unit">h / day</span>
+        </div>
         <div v-if="allDayHoursMessage" :class="['input-message', allDayHoursMessage?.tone]">
           {{ allDayHoursMessage?.text }}
         </div>
@@ -64,15 +70,18 @@
         <div class="cat-fields">
           <label class="field">
             <span class="label">Target (h)</span>
-            <input
-              type="number"
-              :value="cat.targetHours"
-              min="0"
-              max="1000"
-              step="0.5"
-              :aria-invalid="!!categoryTargetMessages[cat.id]"
-              @input="$emit('set-category-target', { id: cat.id, value: ($event.target as HTMLInputElement).value })"
-            />
+            <div class="input-unit">
+              <input
+                type="number"
+                :value="cat.targetHours"
+                min="0"
+                max="1000"
+                step="0.5"
+                :aria-invalid="!!categoryTargetMessages[cat.id]"
+                @input="$emit('set-category-target', { id: cat.id, value: ($event.target as HTMLInputElement).value })"
+              />
+              <span class="unit">h / week</span>
+            </div>
             <div v-if="categoryTargetMessages[cat.id]" :class="['input-message', categoryTargetMessages[cat.id]?.tone]">
               {{ categoryTargetMessages[cat.id]?.text }}
             </div>
@@ -86,6 +95,7 @@
               <option value="days_only">Days only</option>
               <option value="time_aware">Time aware</option>
             </select>
+            <span class="field-hint">Time aware adjusts for time already logged.</span>
         </label>
         <label class="field checkbox">
           <input
@@ -103,12 +113,13 @@
           >
             <button
               type="button"
-              class="color-link"
+              class="color-button"
               :aria-expanded="openColorId === cat.id"
               :aria-label="`Choose color for ${cat.label}`"
               @click="toggleColorPopover(cat.id)"
             >
-              Color
+              <span class="cat-color-indicator" :style="{ backgroundColor: resolvedColor(cat) }" aria-hidden="true" />
+              <span>Color</span>
             </button>
             <div
               v-if="openColorId === cat.id"
@@ -420,19 +431,58 @@ function applyColor(id: string, value: string) {
   align-items: center;
 }
 
-.color-link {
-  border: none;
-  background: transparent;
-  padding: 0;
-  font-size: 12px;
-  color: var(--brand, #2563eb);
-  text-decoration: underline;
+.color-button{
+  display:inline-flex;
+  align-items:center;
+  gap:6px;
+  border:1px solid color-mix(in oklab, var(--line), transparent 20%);
+  background:var(--card, #fff);
+  border-radius:999px;
+  padding:4px 9px;
+  font-size:12px;
+  color:var(--fg);
   cursor: pointer;
 }
 
-.color-link:focus-visible {
+.color-button:hover{
+  border-color:color-mix(in oklab, var(--brand, #2563eb), transparent 40%);
+}
+
+.color-button:focus-visible {
   outline: 2px solid color-mix(in oklab, var(--brand, #2563eb), transparent 40%);
   outline-offset: 2px;
+}
+
+.input-unit{
+  display:grid;
+  grid-template-columns:1fr auto;
+  align-items:center;
+  border:1px solid color-mix(in oklab, var(--line), transparent 10%);
+  border-radius:8px;
+  overflow:hidden;
+  background:color-mix(in oklab, var(--card, #fff), transparent 8%);
+}
+
+.input-unit input{
+  border:none;
+  background:transparent;
+  padding:7px 10px;
+  color:var(--fg);
+}
+
+.input-unit .unit{
+  padding:6px 10px;
+  font-size:11px;
+  color:var(--muted);
+  white-space:nowrap;
+  background:color-mix(in oklab, var(--line), transparent 70%);
+}
+
+.field-hint{
+  display:block;
+  margin-top:4px;
+  font-size:11px;
+  color:var(--muted);
 }
 
 .swatch-grid {

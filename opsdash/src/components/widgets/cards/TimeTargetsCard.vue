@@ -42,23 +42,25 @@
         </div>
         <div class="cat-progress">
           <div class="bar">
-            <div class="fill" :style="{ width: cat.progress + '%', background: cat.color || 'var(--brand)' }"></div>
-            <div
-              v-if="cat.todayWidth > 0"
-              class="today-overlay"
-              :style="{
-                width: cat.todayWidth + '%',
-                right: cat.todayRight + '%',
-                background: cat.todayColor,
+            <div class="bar-track">
+              <div class="fill" :style="{ width: cat.progress + '%', background: cat.color || 'var(--brand)' }"></div>
+              <div
+                v-if="cat.todayWidth > 0"
+                class="today-overlay"
+                :style="{
+                  width: cat.todayWidth + '%',
+                  right: cat.todayRight + '%',
+                  background: cat.todayColor,
                 borderColor: cat.todayBorder,
               }"
-            ></div>
-            <div
-              v-if="cat.todayWidth > 0"
-              class="today-chip"
-              :style="{ left: cat.chipLeft + '%' , background: cat.todayColor, borderColor: cat.todayBorder }"
-            >
-              <span class="today-label">{{ cat.chipText }}</span>
+              ></div>
+              <div
+                v-if="cat.todayWidth > 0"
+                class="today-chip"
+                :style="{ left: cat.chipLeft + '%' , background: cat.todayColor, borderColor: cat.todayBorder }"
+              >
+                <span class="today-label">{{ cat.chipText }}</span>
+              </div>
             </div>
           </div>
         </div>
@@ -119,6 +121,7 @@ const categoryGroups = computed<CategoryGroup[]>(() => {
       summary: group.summary ?? fallbackProgress(group.id, group.label),
       color: group.color,
       rows: group.rows,
+      todayHours: group.todayHours,
     }))
   }
   const cats = props.summary?.categories ?? []
@@ -141,6 +144,7 @@ const categoryItems = computed(() => categoryGroups.value.map(group => {
   const targetHours = summary.targetHours
   const totalOver = Math.max(0, summary.actualHours - targetHours)
   const overToday = Math.min(totalOver, todayHours)
+  const hasTodayHours = todayHours > 0
   const todayPct = targetHours > 0 ? (todayHours / targetHours) * 100 : 0
   const progressPct = clamp(summary.percent, 0, 200)
   return {
@@ -161,9 +165,9 @@ const categoryItems = computed(() => categoryGroups.value.map(group => {
     progress: progressPct,
     todayHours,
     overToday,
-    todayWidth: targetHours > 0 ? clamp(todayPct, 2, 200) : 0,
+    todayWidth: hasTodayHours && targetHours > 0 ? clamp(todayPct, 2, 200) : 0,
     todayRight: Math.max(0, 100 - progressPct),
-    chipLeft: Math.min(100, progressPct),
+    chipLeft: clamp(progressPct, 12, 88),
     chipText: overToday > 0
       ? `Today ${formatHours(todayHours)} (+${formatHours(overToday)})`
       : `Today ${formatHours(todayHours)}`,
@@ -262,11 +266,12 @@ function colorMix(hex: string, factor = 0.5, darker = false): string {
 .category .cat-label .name{ color:var(--fg) }
 .category .cat-meta{ display:flex; align-items:center; gap:calc(6px * var(--widget-space, 1)); font-weight:600; color:var(--muted) }
 .category .cat-meta .percent{ font-variant-numeric:tabular-nums; color:var(--fg) }
-.cat-progress .bar{ position:relative; width:100%; height:calc(8px * var(--widget-space, 1)); border-radius:999px; background:color-mix(in srgb, var(--muted) 20%, transparent); overflow:hidden }
+.cat-progress .bar{ position:relative; width:100%; overflow:visible }
+.cat-progress .bar .bar-track{ position:relative; height:calc(14px * var(--widget-space, 1)); border-radius:999px; background:color-mix(in srgb, var(--muted) 20%, transparent); overflow:hidden }
 .cat-progress .bar .fill{ height:100%; border-radius:999px; transition:width .2s ease; max-width:100% }
-.cat-progress .bar .today-overlay{ position:absolute; top:calc(-2px * var(--widget-space, 1)); height:calc(12px * var(--widget-space, 1)); border-radius:calc(8px * var(--widget-space, 1)); opacity:0.85; border:1px solid transparent; pointer-events:none }
-.today-chip{ position:absolute; top:calc(-22px * var(--widget-space, 1)); transform:translateX(-50%); padding:calc(2px * var(--widget-space, 1)) calc(8px * var(--widget-space, 1)); border-radius:999px; font-size:calc(10px * var(--widget-scale, 1)); font-weight:700; color:#fff; border:1px solid transparent; white-space:nowrap; box-shadow:0 2px 6px rgba(0,0,0,0.12) }
-.today-label{ font-size:calc(10px * var(--widget-scale, 1)); line-height:1.2 }
+.cat-progress .bar .today-overlay{ position:absolute; top:0; height:100%; border-radius:999px; opacity:0.9; border:1px solid transparent; pointer-events:none }
+.today-chip{ position:absolute; top:50%; transform:translate(-50%, -50%); padding:0 calc(6px * var(--widget-space, 1)); border-radius:999px; font-size:calc(9px * var(--widget-scale, 1)); font-weight:700; color:#fff; border:1px solid transparent; white-space:nowrap; text-shadow:0 1px 1px rgba(0,0,0,0.35); z-index:1; max-width:calc(100% - 6px); overflow:hidden; text-overflow:ellipsis; line-height:1.2; height:calc(12px * var(--widget-space, 1)); display:flex; align-items:center; justify-content:center; pointer-events:none }
+.today-label{ font-size:calc(9px * var(--widget-scale, 1)); line-height:1.1 }
 .category .cat-metrics{ display:flex; flex-wrap:wrap; gap:calc(6px * var(--widget-space, 1)); align-items:center; color:var(--fg) }
 .cat-footer{ display:flex; justify-content:space-between; align-items:center }
 .hint{ color:var(--muted); font-size:calc(12px * var(--widget-scale, 1)) }

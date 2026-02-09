@@ -3,11 +3,11 @@
       <div class="time-summary-firstline" v-if="showHeader">
       <span>{{ headerText }}</span>
       </div>
-    <div class="today-highlight" v-if="todayTotal !== null">
+    <div class="today-highlight" v-if="showToday && todayTotal !== null">
       <div class="today-label">Total today</div>
       <div class="today-value">{{ n2(todayTotal) }} h</div>
     </div>
-    <div class="today-cats" v-if="todayItems.length">
+    <div class="today-cats" v-if="showToday && todayItems.length">
       <div class="today-cat" v-for="cat in todayItems" :key="cat.id">
         <span class="dot" :style="{ background: cat.color || 'var(--brand)' }"></span>
         <span class="name">{{ cat.label }}</span>
@@ -43,7 +43,7 @@
       <span class="text">{{ topCategoryInfo.text }}</span>
       <span v-if="topCategoryInfo.badge" class="summary-badge" :class="topCategoryInfo.badgeClass">{{ topCategoryInfo.badge }}</span>
     </div>
-    <div class="time-summary-activity" v-if="activity">
+    <div class="time-summary-activity" v-if="showActivity && activity">
       <div class="time-summary-activity__title">Activity &amp; Schedule</div>
       <div class="time-summary-activity__line">
         Events {{ activity.events }} • Active Days {{ activity.activeDays ?? 0 }} • Typical {{ typicalWindow }}{{ activityOffsetSuffix }}
@@ -64,7 +64,7 @@
         Last day off {{ lastDayOffLabel }}
       </div>
     </div>
-    <div class="time-summary-history" v-if="showHistory && historyItems.length">
+    <div class="time-summary-history" v-if="historyItems.length">
       <div class="time-summary-history__header">
         <div class="time-summary-history__title">Lookback</div>
         <div class="time-summary-history__mode">{{ historyViewLabel }}</div>
@@ -174,7 +174,7 @@ const defaultConfig: SummaryConfig = {
   showBalance: true,
 }
 
-const props = defineProps<{
+const props = withDefaults(defineProps<{
   summary: {
     rangeLabel: string
     rangeStart: string
@@ -237,11 +237,19 @@ const props = defineProps<{
   rangeEnd?: string
   offset?: number
   showHeader?: boolean
+  showToday?: boolean
+  showActivity?: boolean
   history?: HistoryEntry[]
-  showHistory?: boolean
+  showHistoryCoreMetrics?: boolean
   historyView?: 'list' | 'pills'
   showActivityDetails?: boolean
-}>()
+}>(), {
+  showHeader: true,
+  showToday: true,
+  showActivity: true,
+  showHistoryCoreMetrics: true,
+  showActivityDetails: true,
+})
 
 const summaryConfig = computed<SummaryConfig>(() => Object.assign({}, defaultConfig, props.config ?? {}))
 
@@ -272,11 +280,13 @@ const headerText = computed(() => {
   return range ? `${base} · ${range}` : base
 })
 const cardStyle = computed(() => ({ background: props.cardBg || undefined }))
-const showHeader = computed(() => props.showHeader !== false)
-const showHistory = computed(() => props.showHistory !== false)
+const showHeader = computed(() => props.showHeader)
+const showToday = computed(() => props.showToday)
+const showActivity = computed(() => props.showActivity)
+const showHistoryCoreMetrics = computed(() => props.showHistoryCoreMetrics)
 const historyView = computed(() => (props.historyView === 'pills' ? 'pills' : 'list'))
 const historyViewLabel = computed(() => (historyView.value === 'pills' ? 'Compact' : 'Detailed'))
-const showActivityDetails = computed(() => props.showActivityDetails !== false)
+const showActivityDetails = computed(() => props.showActivityDetails)
 const offsetBase = computed(() =>
   Number.isFinite(props.summary.offset) ? props.summary.offset : (props.offset ?? 0),
 )
@@ -362,7 +372,6 @@ const eveningDeltaLabel = computed(() => {
 })
 
 const historyItems = computed(() => {
-  if (!showHistory.value) return []
   const history = Array.isArray(props.history) ? props.history : []
   return history.map((entry) => {
     const metrics: HistoryMetric[] = []
@@ -417,9 +426,11 @@ const historyItems = computed(() => {
         value: entry.balanceIndex == null ? '—' : entry.balanceIndex.toFixed(2),
       })
     }
-    metrics.push({ key: 'events', label: 'Events', value: String(entry.activity?.events ?? 0) })
-    metrics.push({ key: 'active-days', label: 'Active days', value: String(entry.activity?.activeDays ?? 0) })
-    metrics.push({ key: 'typical', label: 'Typical', value: formatTypical(entry.activity?.typicalStart, entry.activity?.typicalEnd) })
+    if (showHistoryCoreMetrics.value) {
+      metrics.push({ key: 'events', label: 'Events', value: String(entry.activity?.events ?? 0) })
+      metrics.push({ key: 'active-days', label: 'Active days', value: String(entry.activity?.activeDays ?? 0) })
+      metrics.push({ key: 'typical', label: 'Typical', value: formatTypical(entry.activity?.typicalStart, entry.activity?.typicalEnd) })
+    }
     if (showActivityDetails.value) {
       metrics.push({
         key: 'weekend-share',

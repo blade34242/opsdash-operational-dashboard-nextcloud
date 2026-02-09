@@ -32,6 +32,41 @@ const baseSummary = {
   },
 }
 
+const baseHistoryEntry = {
+  offset: 1,
+  label: 'Week -1',
+  rangeStart: '2025-02-24',
+  rangeEnd: '2025-03-02',
+  totalHours: 9.5,
+  avgDay: 1.9,
+  avgEvent: 1.1,
+  medianDay: 1.7,
+  busiest: { date: '2025-02-26', hours: 3.5 },
+  workdayAvg: 2.1,
+  workdayMedian: 2.0,
+  weekendAvg: 1.2,
+  weekendMedian: 1.1,
+  weekendShare: 32,
+  activeCalendars: 2,
+  calendarSummary: 'Cal A 70%, Cal B 30%',
+  topCategory: null,
+  balanceIndex: 0.67,
+  activity: {
+    events: 8,
+    activeDays: 4,
+    typicalStart: '08:30',
+    typicalEnd: '16:30',
+    weekendShare: 32,
+    eveningShare: 21,
+    earliestStart: '07:45',
+    latestEnd: '19:20',
+    overlapEvents: 1,
+    longestSession: 2.8,
+    lastDayOff: '2025-02-23',
+    lastHalfDayOff: '2025-02-22',
+  },
+}
+
 describe('TimeSummaryCard', () => {
   it('renders today badge when provided', () => {
     const wrapper = mount(TimeSummaryCard, {
@@ -86,7 +121,6 @@ describe('TimeSummaryCard', () => {
         config: {
           showWeekendShare: false,
           showTopCategory: false,
-          showBalance: false,
           showBusiest: false,
         },
       },
@@ -99,7 +133,6 @@ describe('TimeSummaryCard', () => {
     expect(weekendRow?.text().replace(/\s+/g, ' ')).toBe('Weekend 1.00 h avg · 1.50 h median')
 
     expect(wrapper.find('.summary-badge').exists()).toBe(false)
-    expect(text).not.toContain('Balance')
     expect(text).not.toContain('Busiest')
   })
 
@@ -112,5 +145,51 @@ describe('TimeSummaryCard', () => {
       },
     })
     expect(wrapper.find('.time-summary-firstline').exists()).toBe(false)
+  })
+
+  it('supports new display toggles for today/activity/delta/history core metrics', () => {
+    const wrapper = mount(TimeSummaryCard, {
+      props: {
+        summary: {
+          ...baseSummary,
+          todayHours: 4,
+          delta: {
+            totalHours: 1.2,
+            avgPerDay: 0.2,
+            avgPerEvent: 0.1,
+            events: 1,
+          },
+        },
+        activitySummary: {
+          events: 10,
+          activeDays: 5,
+          typicalStart: '08:00',
+          typicalEnd: '17:00',
+          weekendShare: 40,
+          eveningShare: 25,
+          delta: null,
+          earliestStart: '07:30',
+          latestEnd: '19:00',
+          overlapEvents: 2,
+          longestSession: 3.2,
+          lastDayOff: '2025-03-01',
+          lastHalfDayOff: '2025-02-28',
+        },
+        mode: 'active',
+        showToday: false,
+        showActivity: false,
+        showHistoryCoreMetrics: false,
+        history: [baseHistoryEntry],
+      },
+    })
+
+    const text = wrapper.text().replace(/\s+/g, ' ')
+    expect(text).not.toContain('Total today')
+    expect(text).not.toContain('Activity & Schedule')
+    expect(text).toContain('Δ vs. offset')
+    expect(text).not.toContain('Events')
+    expect(text).not.toContain('Active days')
+    expect(text).not.toContain('Typical')
+    expect(text).toContain('Lookback')
   })
 })
