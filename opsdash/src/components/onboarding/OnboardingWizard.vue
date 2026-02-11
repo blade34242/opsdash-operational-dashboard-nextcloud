@@ -64,6 +64,16 @@
             :on-all-day-hours-change="onAllDayHoursChange"
             :trend-lookback-input="trendLookbackInput"
             :on-trend-lookback-change="onTrendLookbackChange"
+            :reporting-draft="reportingDraft"
+            :set-reporting-enabled="setReportingEnabled"
+            :set-reporting-schedule="setReportingSchedule"
+            :set-reporting-interim="setReportingInterim"
+            :update-reporting="updateReporting"
+          />
+        </section>
+
+        <section v-else-if="currentStep === 'deck'" class="onboarding-step">
+          <OnboardingDeckBoardsStep
             :deck-settings-draft="deckSettingsDraft"
             :set-deck-enabled="setDeckEnabled"
             :deck-boards="deckBoards"
@@ -71,11 +81,6 @@
             :deck-boards-error="deckBoardsError"
             :is-deck-board-visible="isDeckBoardVisible"
             :toggle-deck-board="toggleDeckBoard"
-            :reporting-draft="reportingDraft"
-            :set-reporting-enabled="setReportingEnabled"
-            :set-reporting-schedule="setReportingSchedule"
-            :set-reporting-interim="setReportingInterim"
-            :update-reporting="updateReporting"
           />
         </section>
 
@@ -184,6 +189,7 @@
 import { NcButton } from '@nextcloud/vue'
 import OnboardingIntroStep from './OnboardingIntroStep.vue'
 import OnboardingPreferencesStep from './OnboardingPreferencesStep.vue'
+import OnboardingDeckBoardsStep from './OnboardingDeckBoardsStep.vue'
 import OnboardingDashboardStep from './OnboardingDashboardStep.vue'
 import OnboardingStrategyStep from './OnboardingStrategyStep.vue'
 import OnboardingCalendarsStep from './OnboardingCalendarsStep.vue'
@@ -199,7 +205,7 @@ const props = defineProps<{
   calendars: CalendarSummary[]
   initialSelection: string[]
   initialStrategy?: StrategyDefinition['id']
-  startStep?: 'intro' | 'strategy' | 'dashboard' | 'calendars' | 'categories' | 'preferences' | 'review' | null
+  startStep?: 'intro' | 'strategy' | 'dashboard' | 'calendars' | 'categories' | 'preferences' | 'deck' | 'review' | null
   onboardingVersion: number
   saving?: boolean
   closable?: boolean

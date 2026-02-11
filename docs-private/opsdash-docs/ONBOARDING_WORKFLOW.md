@@ -11,8 +11,9 @@
 3. Dashboard layout (Quick/Standard/Pro).
 4. Calendars (no defaults; at least one required).
 5. Categories/Targets (only for Balanced/Power).
-6. Preferences (theme, all-day hours, reporting, Deck, activity day-off).
-7. Review (summary + optional "save as new profile").
+6. Preferences (theme, all-day hours, reporting, activity day-off).
+7. Deck boards (enable Deck + choose visible boards).
+8. Review (summary + optional "save as new profile").
 
 ## Rules
 - Calendar targets only show in Power mode.

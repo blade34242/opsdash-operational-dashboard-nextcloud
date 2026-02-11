@@ -80,4 +80,12 @@ describe('OnboardingWizard', () => {
     expect(lookbackInput).toBeDefined()
     expect(lookbackInput?.element.value).toBe('5')
   })
+
+  it('uses a dedicated deck boards step', () => {
+    const wrapper = mountWizard({
+      startStep: 'deck',
+    })
+    expect(wrapper.find('.step-pill.active').text()).toContain('Deck boards')
+    expect(wrapper.text()).toContain('Choose Deck boards')
+  })
 })

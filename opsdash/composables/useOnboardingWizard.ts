@@ -63,7 +63,7 @@ type CategoryPreset = {
 export function useOnboardingWizard(options: { props: WizardProps; emit: WizardEmit }) {
   const { props, emit } = options
 
-  const stepOrder = ['intro', 'strategy', 'dashboard', 'calendars', 'categories', 'preferences', 'review'] as const
+  const stepOrder = ['intro', 'strategy', 'dashboard', 'calendars', 'categories', 'preferences', 'deck', 'review'] as const
 
   const stepIndex = ref(0)
   const selectedStrategy = ref<StrategyDefinition['id']>('total_only')
@@ -425,6 +425,8 @@ export function useOnboardingWizard(options: { props: WizardProps; emit: WizardE
         return 'Targets'
       case 'preferences':
         return 'Preferences'
+      case 'deck':
+        return 'Deck boards'
       case 'review':
         return 'Review'
       default:
@@ -907,8 +909,12 @@ export function useOnboardingWizard(options: { props: WizardProps; emit: WizardE
       return {
         targets_config: targetsPayload.targetsConfig,
         theme_preference: themePreference.value,
-        deck_settings: cloneDeckSettings(deckSettingsDraft.value),
         reporting_config: { ...reportingDraft.value },
+      }
+    }
+    if (step === 'deck') {
+      return {
+        deck_settings: cloneDeckSettings(deckSettingsDraft.value),
       }
     }
     return {
