@@ -1,6 +1,6 @@
 # Opsdash — Operational Calendar Dashboard for Nextcloud
 
-![Nextcloud Server Tests](https://github.com/blade34242/nexcloud-operational-cal-deck-dashboard/actions/workflows/server-tests.yml/badge.svg)
+![Nextcloud Server Tests](https://github.com/blade34242/opsdash-operational-dashboard-nextcloud/actions/workflows/server-tests.yml/badge.svg)
 
 > ✨ *Your calendar time, but actually useful.* Opsdash aggregates events, compares them to your targets, keeps balance visible, and stays 100 % inside your Nextcloud instance.
 

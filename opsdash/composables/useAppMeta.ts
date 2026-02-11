@@ -4,6 +4,7 @@ interface AppMetaOptions {
   pingUrl: () => string
   getJson: (url: string, params: Record<string, unknown>) => Promise<any>
   pkgVersion?: string
+  fallbackChangelogUrl?: string
   root: ComputedRef<string>
 }
 
@@ -38,7 +39,7 @@ export function useAppMeta(options: AppMetaOptions) {
   }
 
   const appVersion = ref<string>(readDataAttr('opsdashVersion') || (options.pkgVersion ? String(options.pkgVersion) : ''))
-  const changelogUrl = ref<string>(readDataAttr('opsdashChangelog'))
+  const changelogUrl = ref<string>(readDataAttr('opsdashChangelog') || (options.fallbackChangelogUrl ? String(options.fallbackChangelogUrl) : ''))
 
   async function ensureMeta() {
     if (appVersion.value && changelogUrl.value) return
