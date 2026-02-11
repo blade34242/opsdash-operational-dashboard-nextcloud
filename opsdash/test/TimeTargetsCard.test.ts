@@ -40,7 +40,7 @@ describe('TimeTargetsCard', () => {
     expect(wrapper.text()).not.toContain('Forecast:')
   })
 
-  it('shows today overlay and chip on category bars', () => {
+  it('shows today overlay and inline today text on category bars', () => {
     const catSummary = {
       id: 'work',
       label: 'Work',
@@ -84,14 +84,15 @@ describe('TimeTargetsCard', () => {
       },
     })
 
-    const chip = wrapper.find('.today-chip')
-    expect(chip.exists()).toBe(true)
-    expect(chip.text()).toContain('Today')
+    const todayInline = wrapper.find('.today-inline')
+    expect(todayInline.exists()).toBe(true)
+    expect(todayInline.text()).toContain('Today')
     expect(wrapper.find('.bar-track').exists()).toBe(true)
-    expect(wrapper.find('.bar-track .today-chip').exists()).toBe(true)
+    expect(wrapper.find('.bar-track .today-overlay').exists()).toBe(true)
+    expect(wrapper.find('.bar-track .today-chip').exists()).toBe(false)
   })
 
-  it('clamps today chip position for extreme progress values', () => {
+  it('clamps today overlay placement for extreme progress values', () => {
     const catSummary = {
       id: 'work',
       label: 'Work',
@@ -133,12 +134,14 @@ describe('TimeTargetsCard', () => {
       },
     })
 
-    const chip = wrapper.find('.today-chip')
-    expect(chip.exists()).toBe(true)
-    expect(chip.attributes('style')).toContain('left: 88%')
+    const overlay = wrapper.find('.today-overlay')
+    expect(overlay.exists()).toBe(true)
+    expect(overlay.attributes('style')).toContain('right: 0%')
+    expect(overlay.attributes('style')).toContain('width: 15%')
+    expect(wrapper.find('.today-chip').exists()).toBe(false)
   })
 
-  it('hides today overlay and chip when todayHours is zero', () => {
+  it('hides today overlay and inline today text when todayHours is zero', () => {
     const catSummary = {
       id: 'work',
       label: 'Work',
@@ -180,6 +183,7 @@ describe('TimeTargetsCard', () => {
       },
     })
 
+    expect(wrapper.find('.today-inline').exists()).toBe(false)
     expect(wrapper.find('.today-chip').exists()).toBe(false)
     expect(wrapper.find('.today-overlay').exists()).toBe(false)
   })

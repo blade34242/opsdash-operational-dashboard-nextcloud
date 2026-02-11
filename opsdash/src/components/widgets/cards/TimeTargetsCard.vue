@@ -51,16 +51,8 @@
                   width: cat.todayWidth + '%',
                   right: cat.todayRight + '%',
                   background: cat.todayColor,
-                borderColor: cat.todayBorder,
               }"
               ></div>
-              <div
-                v-if="cat.todayWidth > 0"
-                class="today-chip"
-                :style="{ left: cat.chipLeft + '%' , background: cat.todayColor, borderColor: cat.todayBorder }"
-              >
-                <span class="today-label">{{ cat.chipText }}</span>
-              </div>
             </div>
           </div>
         </div>
@@ -69,6 +61,9 @@
           <span class="hint">/ {{ formatHours(cat.targetHours) }}h</span>
           <span v-if="cat.targetHours > 0" :class="['delta', cat.deltaHours >= 0 ? 'pos' : 'neg']">
             Δ {{ formatSigned(cat.deltaHours) }}h
+          </span>
+          <span v-if="cat.todayHours > 0" class="hint today-inline">
+            {{ cat.todayText }}
           </span>
           <span v-if="config.ui.showNeedPerDay && cat.targetHours > 0" class="hint">
             Need {{ formatHours(cat.needPerDay) }}h/day · {{ cat.daysLeft }} days left
@@ -167,12 +162,10 @@ const categoryItems = computed(() => categoryGroups.value.map(group => {
     overToday,
     todayWidth: hasTodayHours && targetHours > 0 ? clamp(todayPct, 2, 200) : 0,
     todayRight: Math.max(0, 100 - progressPct),
-    chipLeft: clamp(progressPct, 12, 88),
-    chipText: overToday > 0
+    todayText: overToday > 0
       ? `Today ${formatHours(todayHours)} (+${formatHours(overToday)})`
       : `Today ${formatHours(todayHours)}`,
     todayColor: group.color ? colorMix(group.color, 0.65) : 'var(--brand)',
-    todayBorder: group.color ? colorMix(group.color, 0.35, true) : 'var(--brand)',
     calendarLabel: Array.isArray(group.rows) && group.rows.length === 1 ? 'calendar' : 'calendars',
   }
 }).filter(item => item.targetHours > 0 || item.actualHours > 0 || item.calendarCount > 0))
@@ -231,18 +224,13 @@ function methodLabel(method: 'linear' | 'momentum'): string {
   return method === 'momentum' ? 'Momentum' : 'Linear'
 }
 
-function colorMix(hex: string, factor = 0.5, darker = false): string {
+function colorMix(hex: string, factor = 0.5): string {
   const m = /^#?([\da-f]{2})([\da-f]{2})([\da-f]{2})$/i.exec(hex || '')
   if (!m) return hex
   const r = parseInt(m[1], 16)
   const g = parseInt(m[2], 16)
   const b = parseInt(m[3], 16)
   const mix = Math.max(0, Math.min(1, factor))
-  if (darker) {
-    return `rgb(${Math.round(r * (1 - mix))},${Math.round(g * (1 - mix))},${Math.round(
-      b * (1 - mix),
-    )})`
-  }
   return `rgb(${Math.round(r + (255 - r) * mix)},${Math.round(g + (255 - g) * mix)},${Math.round(
     b + (255 - b) * mix,
   )})`
@@ -267,12 +255,11 @@ function colorMix(hex: string, factor = 0.5, darker = false): string {
 .category .cat-meta{ display:flex; align-items:center; gap:calc(6px * var(--widget-space, 1)); font-weight:600; color:var(--muted) }
 .category .cat-meta .percent{ font-variant-numeric:tabular-nums; color:var(--fg) }
 .cat-progress .bar{ position:relative; width:100%; overflow:visible }
-.cat-progress .bar .bar-track{ position:relative; height:calc(14px * var(--widget-space, 1)); border-radius:999px; background:color-mix(in srgb, var(--muted) 20%, transparent); overflow:hidden }
+.cat-progress .bar .bar-track{ position:relative; height:calc(16px * var(--widget-space, 1)); border-radius:999px; background:color-mix(in srgb, var(--muted) 20%, transparent); overflow:hidden }
 .cat-progress .bar .fill{ height:100%; border-radius:999px; transition:width .2s ease; max-width:100% }
-.cat-progress .bar .today-overlay{ position:absolute; top:0; height:100%; border-radius:999px; opacity:0.9; border:1px solid transparent; pointer-events:none }
-.today-chip{ position:absolute; top:50%; transform:translate(-50%, -50%); padding:0 calc(6px * var(--widget-space, 1)); border-radius:999px; font-size:calc(9px * var(--widget-scale, 1)); font-weight:700; color:#fff; border:1px solid transparent; white-space:nowrap; text-shadow:0 1px 1px rgba(0,0,0,0.35); z-index:1; max-width:calc(100% - 6px); overflow:hidden; text-overflow:ellipsis; line-height:1.2; height:calc(12px * var(--widget-space, 1)); display:flex; align-items:center; justify-content:center; pointer-events:none }
-.today-label{ font-size:calc(9px * var(--widget-scale, 1)); line-height:1.1 }
+.cat-progress .bar .today-overlay{ position:absolute; top:0; height:100%; border-radius:999px; opacity:0.45; border:0; pointer-events:none }
 .category .cat-metrics{ display:flex; flex-wrap:wrap; gap:calc(6px * var(--widget-space, 1)); align-items:center; color:var(--fg) }
+.cat-metrics .today-inline{ font-weight:600 }
 .cat-footer{ display:flex; justify-content:space-between; align-items:center }
 .hint{ color:var(--muted); font-size:calc(12px * var(--widget-scale, 1)) }
 .badge{ display:inline-flex; align-items:center; gap:calc(4px * var(--widget-space, 1)); padding:calc(2px * var(--widget-space, 1)) calc(8px * var(--widget-space, 1)); border-radius:999px; font-size:calc(11px * var(--widget-scale, 1)); font-weight:600; text-transform:uppercase; letter-spacing:.05em }
