@@ -120,7 +120,7 @@ const trendBadge = computed(() => (props.showBadge === false ? '' : props.overvi
 const historyUnit = computed(() => (props.rangeMode === 'month' ? 'MO' : 'WE'))
 const historyShortUnit = computed(() => (props.rangeMode === 'month' ? 'M' : 'W'))
 const currentColumnLabel = computed(() => formatCurrentLabel())
-const lookbackCount = computed(() => Math.max(1, Math.min(4, props.lookbackWeeks || 1)))
+const lookbackCount = computed(() => Math.max(1, Math.min(6, props.lookbackWeeks || 1)))
 const titleText = computed(() => props.title || 'Category mix trend')
 const cardStyle = computed(() => ({ background: props.cardBg || undefined }))
 

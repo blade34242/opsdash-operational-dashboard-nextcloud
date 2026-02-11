@@ -66,10 +66,10 @@ const labelMode = computed<LabelMode>(() => {
 const historyCount = computed(() => {
   const configured = typeof props.lookback === 'number' ? props.lookback : null
   if (configured != null) {
-    return Math.max(0, Math.min(12, Math.floor(configured)))
+    return Math.max(0, Math.min(6, Math.floor(configured)))
   }
   const historyEntries = (props.trend ?? []).filter((entry) => Number(entry?.offset ?? 0) > 0)
-  return Math.max(0, Math.min(12, historyEntries.length))
+  return Math.max(0, Math.min(6, historyEntries.length))
 })
 
 const normalized = computed<DayOffTrendEntry[]>(() => {
