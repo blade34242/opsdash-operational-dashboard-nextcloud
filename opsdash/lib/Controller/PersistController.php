@@ -4,6 +4,7 @@ declare(strict_types=1);
 namespace OCA\Opsdash\Controller;
 
 use OCA\Opsdash\Service\CalendarAccessService;
+use OCA\Opsdash\Service\OverviewLoadCacheService;
 use OCA\Opsdash\Service\PersistSanitizer;
 use OCA\Opsdash\Service\UserConfigService;
 use OCP\AppFramework\Controller;
@@ -31,6 +32,7 @@ final class PersistController extends Controller {
         private CalendarAccessService $calendarAccess,
         private PersistSanitizer $persistSanitizer,
         private UserConfigService $userConfigService,
+        private OverviewLoadCacheService $loadCacheService,
     ) {
         parent::__construct($appName, $request);
     }
@@ -63,12 +65,14 @@ final class PersistController extends Controller {
         $allowed = array_fill_keys($allowedIds, true);
 
         // Save
+        $didMutate = false;
         $after = null;
         $csv = null;
         if ($hasCals) {
             $after = array_values(array_unique(array_filter(array_map(fn($x) => substr((string)$x, 0, 128), $reqOriginal), fn($x) => isset($allowed[$x]))));
             $csv = implode(',', $after);
             $this->config->setUserValue($uid, $this->appName, 'selected_cals', $csv);
+            $didMutate = true;
         }
 
         // Optional: groups mapping
@@ -78,6 +82,7 @@ final class PersistController extends Controller {
             if ($resp = $this->writeUserJsonValue($uid, 'cal_groups', $gclean, 'groups')) {
                 return $resp;
             }
+            $didMutate = true;
             $groupsSaved = $gclean;
             try {
                 $gjson = (string)$this->config->getUserValue($uid, $this->appName, 'cal_groups', '');
@@ -99,6 +104,7 @@ final class PersistController extends Controller {
             if ($resp = $this->writeUserJsonValue($uid, 'cal_targets_week', $tw, 'targets_week')) {
                 return $resp;
             }
+            $didMutate = true;
             $targetsWeekSaved = $tw;
             try {
                 $r = (string)$this->config->getUserValue($uid, $this->appName, 'cal_targets_week', '');
@@ -110,6 +116,7 @@ final class PersistController extends Controller {
             if ($resp = $this->writeUserJsonValue($uid, 'targets_config', $cleanCfg, 'targets_config')) {
                 return $resp;
             }
+            $didMutate = true;
             $targetsConfigSaved = $cleanCfg;
             try {
                 $cfgJson = (string)$this->config->getUserValue($uid, $this->appName, 'targets_config', '');
@@ -126,6 +133,7 @@ final class PersistController extends Controller {
             if ($resp = $this->writeUserJsonValue($uid, 'cal_targets_month', $tm, 'targets_month')) {
                 return $resp;
             }
+            $didMutate = true;
             $targetsMonthSaved = $tm;
             try {
                 $r = (string)$this->config->getUserValue($uid, $this->appName, 'cal_targets_month', '');
@@ -136,11 +144,13 @@ final class PersistController extends Controller {
             try {
                 $this->config->deleteUserValue($uid, $this->appName, self::CONFIG_ONBOARDING);
             } catch (\Throwable) {}
+            $didMutate = true;
         } elseif (array_key_exists('onboarding', $data)) {
             $cleanOnboarding = $this->persistSanitizer->cleanOnboardingState($data['onboarding']);
             if ($resp = $this->writeUserJsonValue($uid, self::CONFIG_ONBOARDING, $cleanOnboarding, 'onboarding')) {
                 return $resp;
             }
+            $didMutate = true;
             $onboardingSaved = $cleanOnboarding;
         }
         $onboardingRead = $this->userConfigService->readOnboardingState($this->appName, $uid);
@@ -152,6 +162,7 @@ final class PersistController extends Controller {
                 $this->config->setUserValue($uid, $this->appName, 'theme_preference', $themeValue);
                 $themeSaved = $themeValue;
             }
+            $didMutate = true;
             $themeRead = $this->userConfigService->readThemePreference($this->appName, $uid);
         }
         if (isset($data['reporting_config'])) {
@@ -159,6 +170,7 @@ final class PersistController extends Controller {
             if ($resp = $this->writeUserJsonValue($uid, 'reporting_config', $cleanReporting, 'reporting_config')) {
                 return $resp;
             }
+            $didMutate = true;
             $reportingSaved = $cleanReporting;
         }
         $reportingRead = $this->userConfigService->readReportingConfig($this->appName, $uid);
@@ -174,6 +186,7 @@ final class PersistController extends Controller {
                     if ($resp = $this->writeUserJsonValue($uid, 'targets_config', $currentCfg, 'targets_config')) {
                         return $resp;
                     }
+                    $didMutate = true;
                     $targetsConfigSaved = $currentCfg;
                     $targetsConfigRead = $currentCfg;
                 }
@@ -184,6 +197,7 @@ final class PersistController extends Controller {
             if ($resp = $this->writeUserJsonValue($uid, 'deck_settings', $cleanDeck, 'deck_settings')) {
                 return $resp;
             }
+            $didMutate = true;
             $deckSaved = $cleanDeck;
         }
         $deckRead = $this->userConfigService->readDeckSettings($this->appName, $uid);
@@ -192,6 +206,7 @@ final class PersistController extends Controller {
             if ($resp = $this->writeUserJsonValue($uid, 'widgets_layout', $cleanWidgets, 'widgets')) {
                 return $resp;
             }
+            $didMutate = true;
             $widgetsSaved = $cleanWidgets;
         }
         try {
@@ -212,6 +227,9 @@ final class PersistController extends Controller {
         }
         if ($targetsConfigRead === null) {
             $targetsConfigRead = $this->userConfigService->readTargetsConfig($this->appName, $uid);
+        }
+        if ($didMutate) {
+            $this->loadCacheService->bumpUserCoreCacheVersion($this->appName, $uid);
         }
 
         return new DataResponse([

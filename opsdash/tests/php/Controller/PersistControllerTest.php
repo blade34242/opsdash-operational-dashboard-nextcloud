@@ -6,10 +6,13 @@ namespace OCA\Opsdash\Tests\Controller;
 
 use OCA\Opsdash\Controller\PersistController;
 use OCA\Opsdash\Service\CalendarAccessService;
+use OCA\Opsdash\Service\OverviewIncludeResolver;
+use OCA\Opsdash\Service\OverviewLoadCacheService;
 use OCA\Opsdash\Service\PersistSanitizer;
 use OCA\Opsdash\Service\UserConfigService;
 use OCP\AppFramework\Http;
 use OCP\Calendar\IManager;
+use OCP\ICacheFactory;
 use OCP\IConfig;
 use OCP\IRequest;
 use OCP\IUser;
@@ -39,6 +42,13 @@ class PersistControllerTest extends TestCase {
     $calendarService = new CalendarAccessService($calendarManager, $config, $logger);
     $sanitizer = new PersistSanitizer();
     $userConfigService = new UserConfigService($config, $sanitizer, $logger);
+    $cacheService = new OverviewLoadCacheService(
+      $this->createMock(ICacheFactory::class),
+      $config,
+      $userConfigService,
+      new OverviewIncludeResolver(),
+      $logger,
+    );
 
     $this->controller = new PersistController(
       'opsdash',
@@ -49,6 +59,7 @@ class PersistControllerTest extends TestCase {
       $calendarService,
       $sanitizer,
       $userConfigService,
+      $cacheService,
     );
   }
 

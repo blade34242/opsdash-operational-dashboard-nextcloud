@@ -75,6 +75,22 @@ final class OverviewLoadCacheServiceTest extends TestCase {
     $this->assertSame($storedAt, $cached['storedAt']);
   }
 
+  public function testCoreCacheVersionBumpInvalidatesPreviousCoreEntry(): void {
+    putenv('OPSDASH_CACHE_TTL=10');
+    $service = $this->buildService('10');
+    $includes = ['calendars' => true];
+    $payload = ['calendars' => [['id' => 'cal-1']]];
+
+    $service->writeCoreCache('opsdash', 'admin', $includes, 'UTC', 'en', 1, $payload);
+    $this->assertNotNull($service->readCoreCache('opsdash', 'admin', $includes, 'UTC', 'en', 1));
+
+    $service->bumpUserCoreCacheVersion('opsdash', 'admin');
+    $this->assertNull($service->readCoreCache('opsdash', 'admin', $includes, 'UTC', 'en', 1));
+
+    $service->writeCoreCache('opsdash', 'admin', $includes, 'UTC', 'en', 1, $payload);
+    $this->assertNotNull($service->readCoreCache('opsdash', 'admin', $includes, 'UTC', 'en', 1));
+  }
+
   public function testWriteAndReadDataCache(): void {
     putenv('OPSDASH_CACHE_TTL=10');
     $service = $this->buildService('10');
@@ -173,6 +189,9 @@ final class FakeCacheFactory implements ICacheFactory {
 }
 
 final class CacheConfigStub implements IConfig {
+  /** @var array<string,string> */
+  private array $userValues = [];
+
   public function __construct(private string $cacheEnabled) {}
 
   public function getAppValue(string $appName, string $key, string $default = ''): string {
@@ -183,10 +202,14 @@ final class CacheConfigStub implements IConfig {
   }
 
   public function getUserValue(string $userId, string $appName, string $key, string $default = ''): string {
-    return $default;
+    $idx = $userId . ':' . $appName . ':' . $key;
+    return $this->userValues[$idx] ?? $default;
   }
 
-  public function setUserValue(string $userId, string $appName, string $key, string $value): void {}
+  public function setUserValue(string $userId, string $appName, string $key, string $value): void {
+    $idx = $userId . ':' . $appName . ':' . $key;
+    $this->userValues[$idx] = $value;
+  }
 
   public function getSystemValue(string $key, $default = null): mixed {
     if ($key === 'loglevel') {

@@ -9,6 +9,7 @@ use Psr\Log\LoggerInterface;
 
 final class OverviewLoadCacheService {
     private const CORE_CACHE_TTL = 30;
+    private const CORE_CACHE_VERSION_KEY = 'core_cache_version';
 
     public function __construct(
         private ICacheFactory $cacheFactory,
@@ -69,9 +70,10 @@ final class OverviewLoadCacheService {
         int $userWeekStart,
     ): ?array {
         $coreIncludes = $this->includeResolver->normalizeForCache($includes, 'core');
+        $coreVersion = $this->readUserCoreCacheVersion($appName, $uid);
         try {
             $cache = $this->cacheFactory->createDistributed($appName);
-            $cacheKey = $this->buildCoreCacheKey($uid, $coreIncludes, $userTzName, $userLocale, $userWeekStart);
+            $cacheKey = $this->buildCoreCacheKey($uid, $coreIncludes, $userTzName, $userLocale, $userWeekStart, $coreVersion);
             $cached = $cacheKey ? $cache->get($cacheKey) : null;
             if (is_string($cached) && $cached !== '') {
                 $cachedPayload = json_decode($cached, true);
@@ -113,9 +115,10 @@ final class OverviewLoadCacheService {
             return null;
         }
         $coreIncludes = $this->includeResolver->normalizeForCache($includes, 'core');
+        $coreVersion = $this->readUserCoreCacheVersion($appName, $uid);
         try {
             $cache = $this->cacheFactory->createDistributed($appName);
-            $cacheKey = $this->buildCoreCacheKey($uid, $coreIncludes, $userTzName, $userLocale, $userWeekStart);
+            $cacheKey = $this->buildCoreCacheKey($uid, $coreIncludes, $userTzName, $userLocale, $userWeekStart, $coreVersion);
             $storedAt = time();
             $cache->set($cacheKey, json_encode(['payload' => $payload, 'storedAt' => $storedAt]), $ttl);
             return $storedAt;
@@ -128,6 +131,22 @@ final class OverviewLoadCacheService {
             }
         }
         return null;
+    }
+
+    public function bumpUserCoreCacheVersion(string $appName, string $uid): void {
+        $current = $this->readUserCoreCacheVersion($appName, $uid);
+        $next = $current + 1;
+        try {
+            $this->config->setUserValue($uid, $appName, self::CORE_CACHE_VERSION_KEY, (string)$next);
+        } catch (\Throwable $e) {
+            if ($this->userConfigService->isDebugEnabled()) {
+                $this->logger->debug('core cache version bump failed', [
+                    'app' => $appName,
+                    'uid' => $uid,
+                    'error' => $e->getMessage(),
+                ]);
+            }
+        }
     }
 
     /**
@@ -305,7 +324,7 @@ final class OverviewLoadCacheService {
     /**
      * @param array<string,bool> $includes
      */
-    private function buildCoreCacheKey(string $uid, array $includes, string $userTzName, string $userLocale, int $userWeekStart): string {
+    private function buildCoreCacheKey(string $uid, array $includes, string $userTzName, string $userLocale, int $userWeekStart, int $coreVersion): string {
         $includeKeys = array_keys($includes);
         sort($includeKeys);
         $includeHash = hash('sha256', json_encode([
@@ -313,7 +332,19 @@ final class OverviewLoadCacheService {
             'timezone' => $userTzName,
             'locale' => $userLocale,
             'weekStart' => $userWeekStart,
+            'coreVersion' => $coreVersion,
         ]) ?: '');
         return sprintf('opsdash:load:core:%s:%s', $uid, $includeHash);
+    }
+
+    private function readUserCoreCacheVersion(string $appName, string $uid): int {
+        try {
+            $raw = (string)$this->config->getUserValue($uid, $appName, self::CORE_CACHE_VERSION_KEY, '0');
+            if (is_numeric($raw)) {
+                $version = (int)$raw;
+                return $version < 0 ? 0 : $version;
+            }
+        } catch (\Throwable) {}
+        return 0;
     }
 }
