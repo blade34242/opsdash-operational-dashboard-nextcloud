@@ -3,7 +3,7 @@
     v-if="widgetId && config"
     class="advanced-overlay"
     role="dialog"
-    aria-modal="true"
+    aria-modal="false"
     aria-label="Targets configuration"
   >
     <div class="advanced-panel">
@@ -12,7 +12,7 @@
           <div class="overlay-title">Targets (this widget only)</div>
           <div class="overlay-subtitle">Starts from global targets; saving keeps a local copy for this widget.</div>
         </div>
-        <button type="button" class="ghost danger" @click="close" aria-label="Close">✕</button>
+        <button type="button" class="close-btn" @click="close" aria-label="Close">×</button>
       </div>
       <div class="overlay-metrics" v-if="config">
         <article class="metric-card">
@@ -361,107 +361,140 @@ function removeCategory(id: string) {
 
 <style scoped>
 .ghost{
-  border:1px solid var(--color-border, #d1d5db);
-  background:rgba(255,255,255,0.9);
+  border:1px solid var(--adv-button-border, var(--color-border, #d1d5db));
+  background:var(--adv-button-bg, color-mix(in oklab, #ffffff, #f8fafc 45%));
+  color:var(--adv-button-fg, var(--color-main-text, #0f172a));
   padding:2px 6px;
   border-radius:6px;
   font-size:12px;
   cursor:pointer;
+  transition: background 120ms ease, border-color 120ms ease, color 120ms ease;
+}
+.ghost:hover{
+  border-color:var(--adv-button-hover-border, color-mix(in oklab, var(--color-primary, #2563eb), transparent 45%));
+  background:var(--adv-button-hover-bg, color-mix(in oklab, #dbeafe, #ffffff 62%));
 }
 .ghost.primary{
-  border-color:var(--color-primary, #2563EB);
-  color:var(--color-primary, #2563EB);
+  border-color:var(--adv-primary-border, var(--color-primary, #2563EB));
+  color:var(--adv-primary-fg, var(--color-primary, #2563EB));
+  background:var(--adv-primary-bg, color-mix(in oklab, var(--color-primary, #2563eb), #ffffff 94%));
+}
+.ghost.primary:hover{
+  border-color:var(--adv-primary-hover-border, var(--color-primary, #2563EB));
+  background:var(--adv-primary-hover-bg, color-mix(in oklab, var(--color-primary, #2563eb), #ffffff 88%));
 }
 .advanced-overlay{
   position:fixed;
-  inset:0;
-  background:rgba(0,0,0,0.4);
+  inset:auto 24px 84px calc(24px + var(--opsdash-nav-offset, 0px));
   display:flex;
-  align-items:flex-start;
+  align-items:flex-end;
   justify-content:center;
-  padding:48px 16px;
-  z-index:50;
+  padding:0;
+  z-index:2147480002;
+  pointer-events:none;
 }
 .advanced-panel{
-  background:var(--color-main-background, #fff);
-  color:var(--color-main-text, #0f172a);
-  --adv-surface: var(--color-main-background, #fff);
+  --adv-surface: #ffffff;
+  --adv-text: #0f172a;
+  --adv-border-base: #e2e8f0;
   --adv-surface-alt: var(--color-background-hover, #f8fafc);
   --adv-surface-muted: var(--color-background-contrast, #f8fafc);
   --adv-border: color-mix(in oklab, var(--color-border, #d1d5db), transparent 20%);
   --adv-muted: var(--muted, #64748b);
-  --adv-header-top: color-mix(in oklab, var(--color-primary, #2563eb), #ffffff 95%);
-  --adv-header-bottom: color-mix(in oklab, var(--color-main-background, #fff), #f8fafc 85%);
   --adv-shadow: 0 6px 14px rgba(15, 23, 42, 0.08);
   --adv-warn-border: color-mix(in oklab, #dc2626, var(--color-border, #d1d5db) 45%);
   --adv-warn-bg: color-mix(in oklab, #fff1f2, var(--color-main-background, #fff) 40%);
-  width:min(960px, 100%);
-  max-height:calc(100vh - 96px);
-  border-radius:12px;
-  box-shadow:0 20px 60px rgba(0,0,0,0.25);
+  --adv-button-bg: color-mix(in oklab, #ffffff, #f8fafc 35%);
+  --adv-button-border: color-mix(in oklab, var(--color-border, #d1d5db), transparent 15%);
+  --adv-button-fg: var(--color-main-text, #0f172a);
+  --adv-button-hover-bg: color-mix(in oklab, #dbeafe, #ffffff 64%);
+  --adv-button-hover-border: color-mix(in oklab, var(--color-primary, #2563eb), transparent 46%);
+  --adv-primary-bg: color-mix(in oklab, var(--color-primary, #2563eb), #ffffff 92%);
+  --adv-primary-fg: var(--color-primary, #2563eb);
+  --adv-primary-border: color-mix(in oklab, var(--color-primary, #2563eb), transparent 24%);
+  --adv-primary-hover-bg: color-mix(in oklab, var(--color-primary, #2563eb), #ffffff 84%);
+  --adv-primary-hover-border: var(--color-primary, #2563eb);
+  background:var(--adv-surface);
+  color:var(--adv-text);
+  pointer-events:auto;
+  width:min(1080px, 100%);
+  max-height:min(78vh, 860px);
+  border-radius:14px;
+  box-shadow:
+    0 18px 48px rgba(15, 23, 42, 0.32),
+    inset 0 0 0 1px color-mix(in oklab, var(--color-primary, #2563eb), transparent 82%);
   overflow:hidden;
   display:flex;
   flex-direction:column;
-  border:1px solid var(--color-border, #e5e7eb);
+  border:1px solid color-mix(in oklab, var(--color-primary, #2563eb), var(--adv-border-base) 70%);
 }
 .advanced-panel > .sb-pane{
   flex:1 1 auto;
   overflow:auto;
-  padding:16px;
+  padding:16px 18px 18px;
 }
 .overlay-header{
   display:flex;
   align-items:center;
   justify-content:space-between;
-  padding:14px 16px;
+  padding:16px 18px 14px;
   border-bottom:1px solid var(--color-border, #e5e7eb);
-  background:linear-gradient(
-    180deg,
-    var(--adv-header-top),
-    var(--adv-header-bottom)
-  );
+  background:var(--adv-surface);
 }
 .overlay-title{
   font-weight:700;
-  font-size:17px;
+  font-size:1.35rem;
+  line-height:1.2;
 }
 .overlay-subtitle{
-  font-size:12px;
+  font-size:0.85rem;
   color:var(--adv-muted);
-  margin-top:2px;
+  margin-top:4px;
+}
+.close-btn{
+  background:none;
+  border:none;
+  font-size:1.35rem;
+  line-height:1;
+  cursor:pointer;
+  color:var(--adv-muted);
+  padding:0 2px;
+}
+.close-btn:hover{
+  color:var(--color-primary, #2563eb);
 }
 .overlay-metrics{
   display:grid;
   gap:12px;
   grid-template-columns:repeat(auto-fit, minmax(220px, 1fr));
-  padding:14px 16px 4px;
+  padding:14px 18px 6px;
 }
 .metric-card{
   border:1px solid var(--adv-border);
-  border-radius:12px;
-  padding:10px 12px;
+  border-radius:10px;
+  padding:10px 12px 11px;
   background:var(--adv-surface-muted);
-  box-shadow:var(--adv-shadow);
+  box-shadow:0 6px 16px rgba(15, 23, 42, 0.08);
   display:grid;
-  gap:2px;
+  gap:3px;
 }
 .metric-card.warn{
   border-color:var(--adv-warn-border);
   background:var(--adv-warn-bg);
 }
 .metric-card__label{
-  font-size:11px;
+  font-size:0.72rem;
   letter-spacing:0.04em;
   text-transform:uppercase;
   color:var(--adv-muted);
   font-weight:700;
 }
 .metric-card__value{
-  font-size:18px;
+  font-size:1.45rem;
   font-weight:700;
 }
 .metric-card__hint{
-  font-size:12px;
+  font-size:0.82rem;
   color:var(--adv-muted);
 }
 .overlay-actions{
@@ -469,7 +502,7 @@ function removeCategory(id: string) {
   justify-content:space-between;
   align-items:center;
   gap:8px;
-  padding:12px 16px;
+  padding:12px 18px 14px;
   border-top:1px solid var(--color-border, #e5e7eb);
   background:var(--adv-surface-alt);
 }
@@ -492,8 +525,8 @@ function removeCategory(id: string) {
 }
 .advanced-panel :deep(.target-config > .field){
   border:1px solid var(--adv-border);
-  border-radius:10px;
-  padding:10px 12px;
+  border-radius:8px;
+  padding:11px 12px;
   background:var(--adv-surface-muted);
 }
 .advanced-panel :deep(.target-config input[type='number']),
@@ -504,7 +537,7 @@ function removeCategory(id: string) {
   border-radius:8px;
   padding:7px 10px;
   background:var(--adv-surface);
-  color:var(--color-main-text, #0f172a);
+  color:var(--adv-text);
 }
 .advanced-panel :deep(.target-config .field .label){
   display:block;
@@ -515,11 +548,11 @@ function removeCategory(id: string) {
 }
 .advanced-panel :deep(.target-category){
   border:1px solid var(--adv-border);
-  border-radius:12px;
-  padding:12px;
+  border-radius:8px;
+  padding:14px 14px 13px;
   background:var(--adv-surface);
   display:grid;
-  gap:10px;
+  gap:12px;
 }
 .advanced-panel :deep(.target-category .cat-header){
   display:flex;
@@ -547,7 +580,7 @@ function removeCategory(id: string) {
 }
 .advanced-panel :deep(.target-section){
   border:1px solid var(--adv-border);
-  border-radius:12px;
+  border-radius:8px;
   padding:12px;
   background:var(--adv-surface);
   display:grid;
@@ -574,17 +607,42 @@ function removeCategory(id: string) {
   justify-self:flex-start;
 }
 :global(#opsdash.opsdash-theme-dark .advanced-panel){
-  --adv-surface: var(--color-main-background, #0f172a);
+  --adv-surface: #0f172a;
+  --adv-text: #e2e8f0;
+  --adv-border-base: #1f2937;
   --adv-surface-alt: color-mix(in oklab, var(--color-main-background, #0f172a), #1f2937 35%);
   --adv-surface-muted: color-mix(in oklab, var(--color-main-background, #0f172a), #111827 52%);
   --adv-border: color-mix(in oklab, var(--color-border, #334155), #000000 10%);
   --adv-muted: #94a3b8;
-  --adv-header-top: color-mix(in oklab, var(--color-main-background, #0f172a), #1d4ed8 18%);
-  --adv-header-bottom: color-mix(in oklab, var(--color-main-background, #0f172a), #111827 88%);
   --adv-shadow: 0 10px 22px rgba(0, 0, 0, 0.38);
   --adv-warn-border: color-mix(in oklab, #ef4444, var(--color-border, #334155) 58%);
   --adv-warn-bg: color-mix(in oklab, #7f1d1d, var(--color-main-background, #0f172a) 75%);
+  --adv-button-bg: color-mix(in oklab, #111827, #0b1220 68%);
+  --adv-button-border: color-mix(in oklab, #475569, transparent 22%);
+  --adv-button-fg: #e2e8f0;
+  --adv-button-hover-bg: color-mix(in oklab, #1e293b, #0b1220 62%);
+  --adv-button-hover-border: color-mix(in oklab, #3b82f6, transparent 32%);
+  --adv-primary-bg: color-mix(in oklab, #1d4ed8, #0b1220 78%);
+  --adv-primary-fg: #bfdbfe;
+  --adv-primary-border: color-mix(in oklab, #3b82f6, transparent 36%);
+  --adv-primary-hover-bg: color-mix(in oklab, #2563eb, #0b1220 70%);
+  --adv-primary-hover-border: color-mix(in oklab, #60a5fa, transparent 28%);
 }
+
+@media (max-width: 960px){
+  .advanced-overlay{
+    inset:0;
+    padding:16px;
+    background:rgba(15, 23, 42, 0.45);
+    pointer-events:auto;
+    align-items:center;
+  }
+  .advanced-panel{
+    width:min(960px, 100%);
+    max-height:calc(100vh - 32px);
+  }
+}
+
 @media (max-width: 640px){
   .advanced-overlay{
     padding:16px;

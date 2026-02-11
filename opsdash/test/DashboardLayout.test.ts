@@ -128,7 +128,11 @@ describe('DashboardLayout advanced targets overlay', () => {
     await onboardingBtn?.trigger('click')
     expect(wrapper.emitted('open:onboarding')?.[0]).toEqual(['categories'])
 
-    menu.vm.$emit('open-advanced')
+    await wrapper.find('.layout-item').trigger('click')
+    await wrapper.vm.$nextTick()
+    const menuAgain = wrapper.findComponent(stubMenu)
+    expect(menuAgain.exists()).toBe(true)
+    menuAgain.vm.$emit('open-advanced')
     await wrapper.vm.$nextTick()
     const resetBtn = wrapper.findAll('button').find((btn) => btn.text().includes('Use global targets'))
     await resetBtn?.trigger('click')
@@ -138,6 +142,50 @@ describe('DashboardLayout advanced targets overlay', () => {
     const resetConfig = edits.find((args) => args[1] === 'localConfig')
     expect(resetFlag).toEqual(['w1', 'useLocalConfig', false])
     expect(resetConfig).toEqual(['w1', 'localConfig', null])
+    wrapper.unmount()
+  })
+
+  it('closes widget options and hides toolbar while advanced targets is open', async () => {
+    const targetsConfig = createDefaultTargetsConfig()
+    const wrapper = mount(DashboardLayout, {
+      props: {
+        widgets: [
+          {
+            id: 'w1',
+            type: 'targets_v2',
+            layout: { width: 'full', height: 'm', order: 1 },
+            options: {},
+            version: 1,
+          },
+        ],
+        context: { targetsConfig },
+        editable: true,
+      },
+      global: {
+        stubs: {
+          SidebarTargetsPane: stubPane,
+          WidgetOptionsMenu: stubMenu,
+        },
+      },
+    })
+
+    await wrapper.find('.layout-item').trigger('click')
+    await nextTick()
+
+    let menu = wrapper.findComponent(stubMenu)
+    expect(menu.exists()).toBe(true)
+    menu.vm.$emit('toggle', true)
+    await nextTick()
+
+    menu = wrapper.findComponent(stubMenu)
+    expect(menu.exists()).toBe(true)
+    expect(menu.props('open')).toBe(true)
+
+    menu.vm.$emit('open-advanced')
+    await nextTick()
+
+    expect(wrapper.findComponent(stubMenu).exists()).toBe(false)
+    expect(wrapper.find('.advanced-panel').exists()).toBe(true)
     wrapper.unmount()
   })
 })

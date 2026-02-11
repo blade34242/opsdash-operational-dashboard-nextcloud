@@ -147,16 +147,28 @@ function heightLabel(height: string) {
 </script>
 
 <style scoped>
-.ghost{
-  border:1px solid var(--color-border, #d1d5db);
-  background:rgba(255,255,255,0.9);
-  padding:2px 6px;
-  border-radius:6px;
-  font-size:12px;
-  cursor:pointer;
+.ghost {
+  border: 1px solid var(--tb-btn-border, #cbd5e1);
+  background: var(--tb-btn-bg, #ffffff);
+  color: var(--tb-btn-fg, #0f172a);
+  padding: 2px 6px;
+  border-radius: 6px;
+  font-size: 12px;
+  cursor: pointer;
+  transition: background 140ms ease, border-color 140ms ease, color 140ms ease;
 }
-.ghost.danger{ color:#b91c1c; border-color:#fca5a5; }
-.widget-toolbar-layer{
+
+.ghost:hover {
+  background: var(--tb-btn-hover-bg, #f8fafc);
+  border-color: var(--tb-btn-hover-border, #94a3b8);
+}
+
+.ghost.danger {
+  color: var(--tb-danger, #b91c1c);
+  border-color: color-mix(in oklab, var(--tb-danger, #b91c1c), transparent 55%);
+}
+
+.widget-toolbar-layer {
   position:fixed;
   inset:auto 24px 10px calc(24px + var(--opsdash-nav-offset, 0px));
   pointer-events:none;
@@ -167,21 +179,34 @@ function heightLabel(height: string) {
   padding:0;
   background: none;
 }
-.widget-toolbar{
-  pointer-events:auto;
-  position:relative;
-  margin-top:0;
-  padding:7px 10px;
-  border:1px solid rgba(59,130,246,0.55);
-  background:#0b1222;
-  border:1px solid color-mix(in oklab, var(--color-primary,#2563eb), transparent 20%);
-  background:linear-gradient(180deg, rgba(15,23,42,0.98) 0%, rgba(2,6,23,0.98) 100%);
-  border-radius:8px;
-  display:flex;
-  align-items:center;
-  justify-content:space-between;
-  gap:6px;
-  box-shadow:0 8px 20px rgba(15,23,42,0.55), 0 0 0 1px rgba(59,130,246,0.18);
+.widget-toolbar {
+  --tb-bg: linear-gradient(180deg, rgba(255,255,255,0.97) 0%, rgba(248,250,252,0.97) 100%);
+  --tb-border: color-mix(in oklab, #2563eb, #cbd5e1 68%);
+  --tb-shadow: 0 10px 24px rgba(15, 23, 42, 0.2), 0 0 0 1px rgba(37, 99, 235, 0.12);
+  --tb-hover-bg: linear-gradient(180deg, rgba(255,255,255,0.99) 0%, rgba(241,245,249,0.99) 100%);
+  --tb-hover-shadow: 0 12px 28px rgba(15, 23, 42, 0.24), 0 0 0 1px rgba(37, 99, 235, 0.18);
+  --tb-fg: #0f172a;
+  --tb-muted: #475569;
+  --tb-input-bg: color-mix(in oklab, #ffffff, #f8fafc 70%);
+  --tb-input-border: color-mix(in oklab, #94a3b8, transparent 36%);
+  --tb-input-fg: #0f172a;
+  --tb-btn-bg: color-mix(in oklab, #ffffff, #f8fafc 48%);
+  --tb-btn-border: color-mix(in oklab, #94a3b8, transparent 30%);
+  --tb-btn-fg: #0f172a;
+  --tb-btn-hover-bg: color-mix(in oklab, #dbeafe, #ffffff 72%);
+  --tb-btn-hover-border: color-mix(in oklab, #2563eb, transparent 48%);
+  pointer-events: auto;
+  position: relative;
+  margin-top: 0;
+  padding: 7px 10px;
+  border: 1px solid var(--tb-border);
+  background: var(--tb-bg);
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px;
+  box-shadow: var(--tb-shadow);
   max-width:1200px;
   width:min(100%, 1200px);
   opacity:1;
@@ -189,71 +214,93 @@ function heightLabel(height: string) {
   backdrop-filter: blur(6px);
   transition: background 140ms ease, box-shadow 140ms ease, transform 140ms ease;
 }
-.widget-toolbar:hover{
-  background:linear-gradient(180deg, rgba(30,41,59,0.98) 0%, rgba(15,23,42,0.98) 100%);
-  box-shadow:0 10px 24px rgba(15,23,42,0.6), 0 0 0 1px rgba(59,130,246,0.25);
+
+:global(body.opsdash-theme-dark .widget-toolbar) {
+  --tb-bg: linear-gradient(180deg, rgba(15,23,42,0.98) 0%, rgba(2,6,23,0.98) 100%);
+  --tb-border: color-mix(in oklab, #2563eb, transparent 30%);
+  --tb-shadow: 0 10px 24px rgba(2, 6, 23, 0.62), 0 0 0 1px rgba(59, 130, 246, 0.2);
+  --tb-hover-bg: linear-gradient(180deg, rgba(30,41,59,0.98) 0%, rgba(15,23,42,0.98) 100%);
+  --tb-hover-shadow: 0 12px 28px rgba(2, 6, 23, 0.66), 0 0 0 1px rgba(59, 130, 246, 0.26);
+  --tb-fg: #e5e7eb;
+  --tb-muted: #94a3b8;
+  --tb-input-bg: color-mix(in oklab, #0f172a, #111827 70%);
+  --tb-input-border: color-mix(in oklab, #475569, transparent 28%);
+  --tb-input-fg: #e2e8f0;
+  --tb-btn-bg: color-mix(in oklab, #111827, #1f2937 80%);
+  --tb-btn-border: color-mix(in oklab, #4b5563, transparent 35%);
+  --tb-btn-fg: #f1f5f9;
+  --tb-btn-hover-bg: color-mix(in oklab, #2563EB, #111827 85%);
+  --tb-btn-hover-border: color-mix(in oklab, #2563EB, transparent 50%);
 }
-.toolbar-title{
+
+.widget-toolbar:hover {
+  background: var(--tb-hover-bg);
+  box-shadow: var(--tb-hover-shadow);
+}
+
+.toolbar-title {
   font-weight:600;
   font-size:13px;
-  color:#e5e7eb;
+  color: var(--tb-fg);
 }
-.toolbar-actions{
+
+.toolbar-actions {
   display:flex;
   gap:6px;
   flex-wrap:wrap;
   align-items:center;
 }
-.toolbar-quick{
+
+.toolbar-quick {
   display:flex;
   gap:6px;
   flex-wrap:wrap;
   align-items:center;
 }
-.toolbar-field{
+
+.toolbar-field {
   display:flex;
   align-items:center;
   gap:6px;
   font-size:12px;
-  color:#e5e7eb;
+  color: var(--tb-fg);
 }
-.toolbar-field span{
-  opacity:0.75;
+
+.toolbar-field span {
+  opacity: 0.82;
+  color: var(--tb-muted);
 }
 .toolbar-field input[type="text"],
-.toolbar-field select{
-  border-radius:6px;
-  border:1px solid color-mix(in oklab, #4b5563, transparent 35%);
-  background:color-mix(in oklab, #0f172a, #111827 70%);
-  color:#e2e8f0;
-  padding:3px 6px;
-  font-size:12px;
-  min-width:88px;
+.toolbar-field select {
+  border-radius: 6px;
+  border: 1px solid var(--tb-input-border);
+  background: var(--tb-input-bg);
+  color: var(--tb-input-fg);
+  padding: 3px 6px;
+  font-size: 12px;
+  min-width: 88px;
 }
-.toolbar-field input[type="color"]{
-  width:26px;
-  height:20px;
-  padding:0;
-  border:1px solid color-mix(in oklab, #4b5563, transparent 35%);
-  border-radius:6px;
-  background:transparent;
+
+.toolbar-field input[type="color"] {
+  width: 26px;
+  height: 20px;
+  padding: 0;
+  border: 1px solid var(--tb-input-border);
+  border-radius: 6px;
+  background: transparent;
 }
-.toolbar-field--toggle{
-  gap:4px;
+
+.toolbar-field--toggle {
+  gap: 4px;
 }
-.widget-toolbar .ghost{
-  padding:5px 8px;
-  font-size:12px;
-  background:#0f172a;
-  border-color:#4b5563;
-  background:color-mix(in oklab, #111827, #1f2937 80%);
-  border-color:color-mix(in oklab, #4b5563, transparent 35%);
-  color:#f1f5f9;
+
+.widget-toolbar .ghost {
+  padding: 5px 8px;
+  font-size: 12px;
 }
-.widget-toolbar .ghost:hover{
-  background:#1e3a8a;
-  border-color:#2563eb;
-  background:color-mix(in oklab, #2563EB, #111827 85%);
-  border-color:color-mix(in oklab, #2563EB, transparent 50%);
+
+.widget-toolbar .ghost:hover {
+  background: var(--tb-btn-hover-bg);
+  border-color: var(--tb-btn-hover-border);
 }
 </style>

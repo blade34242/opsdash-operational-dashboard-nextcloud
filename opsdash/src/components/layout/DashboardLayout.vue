@@ -12,7 +12,7 @@
     />
 
     <DashboardToolbar
-      :editable="editable"
+      :editable="editable && !advancedTargetsId"
       :selected-item="selectedItem"
       :open-options-id="openOptionsId"
       :preset-label="presetLabel"
@@ -157,7 +157,7 @@ function removeSelected() {
 
 function openAdvancedTargets(id: string) {
   selectedId.value = id
-  openOptionsId.value = id
+  openOptionsId.value = null
   advancedTargetsId.value = id
 }
 
