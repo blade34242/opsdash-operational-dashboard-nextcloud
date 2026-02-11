@@ -32,7 +32,7 @@ describe('DayOffTrendCard', () => {
     expect(wrapper.find('.dayoff-card__header').exists()).toBe(false)
   })
 
-  it('reverses tile order when reverseTrend is enabled', () => {
+  it('shows oldest-first by default and supports newest-first toggle', () => {
     const trend = [
       { offset: 0, label: 'This week', from: '', to: '', totalDays: 7, daysOff: 1, daysWorked: 6 },
       { offset: 1, label: '-1 wk', from: '', to: '', totalDays: 7, daysOff: 2, daysWorked: 5 },
@@ -48,7 +48,7 @@ describe('DayOffTrendCard', () => {
     ])
 
     const reversed = mount(DayOffTrendCard, {
-      props: { trend, lookback: 2, labelMode: 'offset', reverseTrend: true },
+      props: { trend, lookback: 2, labelMode: 'offset', newestFirst: true },
     })
     expect(reversed.findAll('.dayoff-tile__label').map((node) => node.text())).toEqual([
       '-2',

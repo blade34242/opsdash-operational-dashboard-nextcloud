@@ -63,9 +63,32 @@ describe('chart widgets', () => {
     expect(props.stacked.series[0].forecast?.[1]).toBe(2)
   })
 
-  it('uses lookback series for day-of-week when available', () => {
+  it('uses oldest-first ordering for daily lookback by default', () => {
+    const entry = widgetsRegistry.chart_per_day
+    const ctx: any = {
+      lookbackWeeks: 2,
+      rangeMode: 'week',
+      charts: {
+        perDaySeriesByOffset: [
+          { offset: 0, labels: ['2025-10-20'], series: [{ id: 'cal-1', name: 'Cal 1', data: [5] }] },
+          { offset: 1, labels: ['2025-10-20'], series: [{ id: 'cal-1', name: 'Cal 1', data: [3] }] },
+        ],
+      },
+      colorsById: { 'cal-1': '#111111' },
+      calendarCategoryMap: {},
+      categoryColorMap: {},
+    }
+    const defaultProps = entry.buildProps({ options: { filterMode: 'calendar', filterIds: ['cal-1'], forecastMode: 'off' } } as any, ctx) as any
+    expect(defaultProps.legendItems[0].label).toContain('Week -1')
+    expect(defaultProps.legendItems[1].label).toContain('Current week')
+
+    const newestProps = entry.buildProps({ options: { filterMode: 'calendar', filterIds: ['cal-1'], forecastMode: 'off', newestFirst: true } } as any, ctx) as any
+    expect(newestProps.legendItems[0].label).toContain('Current week')
+    expect(newestProps.legendItems[1].label).toContain('Week -1')
+  })
+
+  it('uses oldest-first ordering for day-of-week lookback by default', () => {
     const entry = widgetsRegistry.chart_dow
-    const def: any = { options: { filterMode: 'calendar', filterIds: ['cal-1'], forecastMode: 'off' } }
     const ctx: any = {
       lookbackWeeks: 2,
       charts: {
@@ -82,17 +105,20 @@ describe('chart widgets', () => {
       calendarCategoryMap: {},
       categoryColorMap: {},
     }
-    const props = entry.buildProps(def, ctx) as any
+    const props = entry.buildProps({ options: { filterMode: 'calendar', filterIds: ['cal-1'], forecastMode: 'off' } } as any, ctx) as any
     const order = getWeekdayOrder()
     const monIdx = order.indexOf('Mon')
     expect(monIdx).toBeGreaterThanOrEqual(0)
-    expect(props.groupedData.series[0].data[monIdx]).toBe(5)
-    expect(props.groupedData.series[1].data[monIdx]).toBe(3)
+    expect(props.groupedData.series[0].data[monIdx]).toBe(3)
+    expect(props.groupedData.series[1].data[monIdx]).toBe(5)
+
+    const newestProps = entry.buildProps({ options: { filterMode: 'calendar', filterIds: ['cal-1'], forecastMode: 'off', newestFirst: true } } as any, ctx) as any
+    expect(newestProps.groupedData.series[0].data[monIdx]).toBe(5)
+    expect(newestProps.groupedData.series[1].data[monIdx]).toBe(3)
   })
 
-  it('uses lookback heatmap data when available', () => {
+  it('uses oldest-first ordering for heatmap lookback by default', () => {
     const entry = widgetsRegistry.chart_hod
-    const def: any = { options: {} }
     const ctx: any = {
       lookbackWeeks: 2,
       rangeMode: 'week',
@@ -105,8 +131,14 @@ describe('chart widgets', () => {
         ],
       },
     }
-    const props = entry.buildProps(def, ctx) as any
+    const props = entry.buildProps({ options: {} } as any, ctx) as any
     expect(props.hodData).toEqual(ctx.charts.hodLookback)
     expect(props.lookbackEntries).toHaveLength(2)
+    expect(props.lookbackEntries[0].id).toBe('offset-1')
+    expect(props.lookbackEntries[1].id).toBe('offset-0')
+
+    const newestProps = entry.buildProps({ options: { newestFirst: true } } as any, ctx) as any
+    expect(newestProps.lookbackEntries[0].id).toBe('offset-0')
+    expect(newestProps.lookbackEntries[1].id).toBe('offset-1')
   })
 })

@@ -82,7 +82,7 @@ const props = withDefaults(defineProps<{
   indexBasis?: string
   showCurrent?: boolean
   labelMode?: 'date' | 'period' | 'offset'
-  reverseTrend?: boolean
+  newestFirst?: boolean
   from?: string
   to?: string
   rangeMode?: 'week' | 'month' | string
@@ -178,7 +178,7 @@ const filteredPoints = computed(() => {
   if (!showCurrentPoint.value) {
     pts = pts.filter((pt: any) => (pt?.offset ?? 0) !== 0)
   }
-  if (props.reverseTrend) {
+  if (props.newestFirst === true) {
     return pts.slice().reverse()
   }
   return pts

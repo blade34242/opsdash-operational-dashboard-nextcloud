@@ -111,4 +111,36 @@ describe('BalanceIndexCard', () => {
     const trendValues = wrapper.findAll('.trend-block .trend-value').map((n) => n.text())
     expect(trendValues.length).toBeGreaterThan(0)
   })
+
+  it('shows oldest-first by default and supports newest-first toggle', () => {
+    const baseProps = {
+      overview: {
+        index: 0.75,
+        trendHistory: [
+          { offset: 1, label: '-1 wk', categories: [{ id: 'work', share: 60 }] },
+          { offset: 2, label: '-2 wk', categories: [{ id: 'work', share: 40 }] },
+        ],
+      },
+      targetsCategories: [{ id: 'work', targetHours: 10 }],
+      showTrend: true,
+      showCurrent: true,
+      labelMode: 'offset' as const,
+      lookbackWeeks: 2,
+    }
+    const normal = mount(BalanceIndexCard, { props: baseProps })
+    expect(normal.findAll('.trend-offset').map((node) => node.text())).toEqual([
+      '-2',
+      '-1',
+      'Current',
+    ])
+
+    const newest = mount(BalanceIndexCard, {
+      props: { ...baseProps, newestFirst: true },
+    })
+    expect(newest.findAll('.trend-offset').map((node) => node.text())).toEqual([
+      'Current',
+      '-1',
+      '-2',
+    ])
+  })
 })

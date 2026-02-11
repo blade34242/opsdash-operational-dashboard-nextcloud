@@ -33,7 +33,7 @@ export const balanceIndexEntry: RegistryEntry = {
       trendColor: '#2563EB',
       showCurrent: true,
       labelMode: 'period',
-      reverseTrend: false,
+      newestFirst: false,
     }
   })(),
   controls: [
@@ -68,7 +68,7 @@ export const balanceIndexEntry: RegistryEntry = {
     { key: 'warnIndex', label: 'Warn index', type: 'number', min: 0, max: 1, step: 0.01 },
     { key: 'trendColor', label: 'Trend color', type: 'color' },
     { key: 'showCurrent', label: 'Show current period', type: 'toggle' },
-    { key: 'reverseTrend', label: 'Oldest first (reverse)', type: 'toggle' },
+    { key: 'newestFirst', label: 'Newest first', type: 'toggle' },
     {
       key: 'labelMode',
       label: 'Trend label',
@@ -120,7 +120,7 @@ export const balanceIndexEntry: RegistryEntry = {
       loopbackCount: effectiveLookback,
       showCurrent: def.options?.showCurrent !== false,
       labelMode: (def.options?.labelMode as any) || 'period',
-      reverseTrend: def.options?.reverseTrend === true,
+      newestFirst: def.options?.newestFirst === true,
       indexBasis,
       thresholds,
       title: buildTitle(baseTitle, def.options?.titlePrefix),

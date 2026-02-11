@@ -28,6 +28,7 @@ export const chartPerDayEntry: RegistryEntry = {
   defaultOptions: {
     showLabels: false,
     compact: false,
+    newestFirst: false,
     forecastMode: 'total',
   },
   dynamicControls: (options, ctx) => {
@@ -41,6 +42,7 @@ export const chartPerDayEntry: RegistryEntry = {
       ] },
       { key: 'showLabels', label: 'Show labels', type: 'toggle' },
       { key: 'compact', label: 'Compact', type: 'toggle' },
+      { key: 'newestFirst', label: 'Newest first', type: 'toggle' },
     ]
   },
   buildProps: (def, ctx) => {
@@ -51,16 +53,18 @@ export const chartPerDayEntry: RegistryEntry = {
       lookbackWeeks > 1 && Array.isArray(ctx.charts?.perDaySeriesByOffset)
         ? ctx.charts.perDaySeriesByOffset
         : null
+    const newestFirst = def.options?.newestFirst === true
     let chartData: { labels: string[]; data: number[]; colors?: string[] } | null = null
     let legendItems: Array<{ id: string; label: string; color: string }> = []
 
     if (lookbackInput && lookbackInput.length) {
       const sorted = sortLookbackOffsets(lookbackInput)
+      const ordered = newestFirst ? sorted : sorted.slice().reverse()
       const labels: string[] = []
       const data: number[] = []
       const colors: string[] = []
       legendItems = []
-      sorted.forEach((entry, idx) => {
+      ordered.forEach((entry, idx) => {
         const perDaySeries = { labels: entry.labels || [], series: entry.series || [] }
         const baseStacked = buildStackedWithForecast({
           perDaySeries,
