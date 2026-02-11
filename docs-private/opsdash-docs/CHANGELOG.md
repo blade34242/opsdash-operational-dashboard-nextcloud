@@ -5,6 +5,7 @@ This file is a short internal log. Full release notes live in the repo root `CHA
 ## Unreleased
 - Widgets: dense mode now keeps chart padding stable so compact mode doesn't inflate charts.
 - Widgets: new tabs start empty (no preset widgets) for a clean slate.
+- Widgets: trend/history widgets now default to oldest -> newest sequence with a shared `reverseOrder` toggle for newest-first.
 - Notes widget: add “Use previous” quick-fill and show saving state in the button.
 - Persistence: ignore stale save responses to prevent rapid edits from reverting.
 - Widgets: chart filters now use a single category/calendar selector with one multiselect (defaults to all categories).

@@ -83,6 +83,7 @@ Notes:
 - Method: POST `/overview/persist`
 - Body: JSON `{ cals: string[]; groups?: Record<string,number>; targets_week?: Record<string,number>; targets_month?: Record<string,number>; targets_config?: TargetsConfig; widgets?: WidgetTabsState; theme_preference?: 'auto'|'light'|'dark'; reporting_config?: ReportingConfig; deck_settings?: DeckFeatureSettings }`
 - Notes: `targets_config` mirrors `/load` (categories, pace, forecast, ui, timeSummary, activityCard, balance). Legacy balance precision fields are ignored server-side.
+- Notes: for trend/history widget options, `reverseOrder` controls visual sequence (`false` default = oldest -> newest; `true` = newest -> oldest).
 - CSRF: required (`window.oc_requesttoken`)
 - Payload size: individual stored blobs are capped (~64KB); oversized payloads return `413`.
 - Response (sanitised echo):

@@ -38,6 +38,7 @@ All notable changes to this project will be documented in this file.
 - Dashboard load uses core-first/data-second requests so layout renders before stats/charts.
 - Template bootstraps default widget presets to avoid a blank main area on hard reloads.
 - Frontend component tree regrouped into feature folders (widgets/charts/tables/panels), with unused sidebar panes removed.
+- Trend/history widgets now use a consistent default sequence of oldest -> newest (left to right), with a shared `reverseOrder` widget option to flip to newest-first.
 
 ### Fixed
 - Dense widget mode no longer inflates chart padding; compact mode keeps charts tight.
