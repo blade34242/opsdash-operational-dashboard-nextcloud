@@ -9,6 +9,17 @@ use Psr\Log\LoggerInterface;
 
 final class OverviewEventsCollector {
     private const APP_NAME = 'opsdash';
+    private const COLLECT_CACHE_LIMIT = 24;
+
+    /**
+     * Request-local cache for identical collect calls.
+     *
+     * @var array<string, array{events: array<int, array<string, mixed>>, truncated: bool, queryDbg: array<int, array<string, mixed>>}>
+     */
+    private array $collectCache = [];
+
+    /** @var string[] */
+    private array $collectCacheOrder = [];
 
     public function __construct(
         private IManager $calendarManager,
@@ -42,6 +53,21 @@ final class OverviewEventsCollector {
         int $maxTotal,
         bool $debug,
     ): array {
+        $cacheKey = $this->buildCollectCacheKey(
+            principal: $principal,
+            cals: $cals,
+            includeAll: $includeAll,
+            selectedIds: $selectedIds,
+            from: $from,
+            to: $to,
+            maxPerCal: $maxPerCal,
+            maxTotal: $maxTotal,
+            debug: $debug,
+        );
+        if (isset($this->collectCache[$cacheKey])) {
+            return $this->collectCache[$cacheKey];
+        }
+
         $events = [];
         $queryDbg = [];
         $totalAdded = 0;
@@ -142,11 +168,13 @@ final class OverviewEventsCollector {
             }
         }
 
-        return [
+        $result = [
             'events' => $events,
             'truncated' => $truncated,
             'queryDbg' => $queryDbg,
         ];
+        $this->writeCollectCache($cacheKey, $result);
+        return $result;
     }
 
     /**
@@ -269,5 +297,72 @@ final class OverviewEventsCollector {
             return trim(substr($principal, strlen($prefix)), '/');
         }
         return trim($principal, '/');
+    }
+
+    /**
+     * @param array<int, object> $cals
+     * @param string[] $selectedIds
+     */
+    private function buildCollectCacheKey(
+        string $principal,
+        array $cals,
+        bool $includeAll,
+        array $selectedIds,
+        DateTimeInterface $from,
+        DateTimeInterface $to,
+        int $maxPerCal,
+        int $maxTotal,
+        bool $debug,
+    ): string {
+        $calendarIds = [];
+        foreach ($cals as $cal) {
+            $cid = '';
+            try {
+                $cid = (string)($cal->getUri() ?? '');
+            } catch (\Throwable) {
+                $cid = '';
+            }
+            if ($cid === '') {
+                $cid = (string)spl_object_id($cal);
+            }
+            $calendarIds[] = $cid;
+        }
+        sort($calendarIds, SORT_STRING);
+
+        $selected = $selectedIds;
+        sort($selected, SORT_STRING);
+
+        return implode('|', [
+            $principal,
+            $includeAll ? '1' : '0',
+            implode(',', $calendarIds),
+            implode(',', $selected),
+            (string)$from->getTimestamp(),
+            (string)$to->getTimestamp(),
+            (string)$maxPerCal,
+            (string)$maxTotal,
+            $debug ? '1' : '0',
+        ]);
+    }
+
+    /**
+     * @param array{events: array<int, array<string, mixed>>, truncated: bool, queryDbg: array<int, array<string, mixed>>} $result
+     */
+    private function writeCollectCache(string $cacheKey, array $result): void {
+        if (isset($this->collectCache[$cacheKey])) {
+            $this->collectCache[$cacheKey] = $result;
+            return;
+        }
+
+        $this->collectCache[$cacheKey] = $result;
+        $this->collectCacheOrder[] = $cacheKey;
+        if (count($this->collectCacheOrder) <= self::COLLECT_CACHE_LIMIT) {
+            return;
+        }
+
+        $evict = array_shift($this->collectCacheOrder);
+        if ($evict !== null) {
+            unset($this->collectCache[$evict]);
+        }
     }
 }

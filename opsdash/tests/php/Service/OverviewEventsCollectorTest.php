@@ -132,4 +132,93 @@ class OverviewEventsCollectorTest extends TestCase {
     $this->assertSame('cal-a', $res['events'][0]['calendar_id']);
     $this->assertSame('cal-b', $res['events'][4]['calendar_id']);
   }
+
+  public function testCollectCachesIdenticalRequestsWithinInstance(): void {
+    $manager = new class() implements IManager {
+      public int $calls = 0;
+      public array $responses = [];
+      public function newQuery(string $principal): object {
+        return new class() {
+          public string $calendar = '';
+          public function addSearchCalendar(string $calendar): void { $this->calendar = $calendar; }
+          public function setTimerangeStart($from): void {}
+          public function setTimerangeEnd($to): void {}
+        };
+      }
+      public function searchForPrincipal(object $q): array {
+        $this->calls++;
+        return $this->responses[$q->calendar] ?? [];
+      }
+    };
+
+    $manager->responses = [
+      'cal-a' => [['id' => 1], ['id' => 2]],
+      'cal-b' => [['id' => 3]],
+    ];
+
+    $calendarService = new class() extends CalendarParsingService {
+      public function parseRows(array $raw, string $calendarName, ?string $calendarId = null): array {
+        return array_map(
+          fn ($row) => ['calendar' => $calendarName, 'calendar_id' => $calendarId, 'hours' => 1, 'allday' => false],
+          $raw,
+        );
+      }
+    };
+
+    $logger = $this->createMock(LoggerInterface::class);
+    $collector = new OverviewEventsCollector($manager, $calendarService, $logger);
+
+    $calA = new class() {
+      public function getUri(): string { return 'cal-a'; }
+      public function getDisplayName(): string { return 'A'; }
+    };
+    $calB = new class() {
+      public function getUri(): string { return 'cal-b'; }
+      public function getDisplayName(): string { return 'B'; }
+    };
+
+    $from = new DateTimeImmutable('2025-01-01T00:00:00Z');
+    $to = new DateTimeImmutable('2025-01-08T00:00:00Z');
+
+    $first = $collector->collect(
+      principal: 'principals/users/admin',
+      cals: [$calA, $calB],
+      includeAll: true,
+      selectedIds: [],
+      from: $from,
+      to: $to,
+      maxPerCal: 50,
+      maxTotal: 50,
+      debug: false,
+    );
+    $second = $collector->collect(
+      principal: 'principals/users/admin',
+      cals: [$calA, $calB],
+      includeAll: true,
+      selectedIds: [],
+      from: $from,
+      to: $to,
+      maxPerCal: 50,
+      maxTotal: 50,
+      debug: false,
+    );
+
+    $this->assertCount(3, $first['events']);
+    $this->assertCount(3, $second['events']);
+    $this->assertSame(2, $manager->calls, 'Second identical collect should be served from cache.');
+
+    // Debug mode keeps a separate cache entry.
+    $collector->collect(
+      principal: 'principals/users/admin',
+      cals: [$calA, $calB],
+      includeAll: true,
+      selectedIds: [],
+      from: $from,
+      to: $to,
+      maxPerCal: 50,
+      maxTotal: 50,
+      debug: true,
+    );
+    $this->assertSame(4, $manager->calls);
+  }
 }
