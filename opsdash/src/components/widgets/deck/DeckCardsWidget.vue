@@ -289,12 +289,10 @@ function deckStatusMatches(
   return false
 }
 
-const DATE_KEY_RX = /^\d{4}-\d{2}-\d{2}$/
-
 function normalizeDateKey(value?: string | null): string | null {
   if (!value) return null
   const trimmed = value.trim()
-  if (DATE_KEY_RX.test(trimmed)) return trimmed
+  if (/^\d{4}-\d{2}-\d{2}$/.test(trimmed)) return trimmed
   const parsed = parseDateTime(trimmed)
   return parsed ? formatDateKey(parsed) : null
 }

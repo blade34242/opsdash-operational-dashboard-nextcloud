@@ -356,4 +356,20 @@ describe('DeckCardsWidget', () => {
     expect(wrapper.find('.deck-panel--compact').exists()).toBe(true)
     expect(wrapper.find('.deck-card__row').exists()).toBe(true)
   })
+
+  it('hydrates created_range filters without runtime initialization errors', () => {
+    const wrapper = mount(DeckCardsWidget, {
+      props: {
+        cards,
+        rangeLabel: 'This week',
+        filters: ['created_range_all', 'all'],
+        defaultFilter: 'created_range_all',
+        from: '2026-02-01',
+        to: '2026-02-28',
+      },
+      global: { stubs },
+    })
+    expect(wrapper.exists()).toBe(true)
+    expect(wrapper.findAll('.deck-card').length).toBeGreaterThan(0)
+  })
 })
