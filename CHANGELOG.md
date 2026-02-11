@@ -43,6 +43,8 @@ All notable changes to this project will be documented in this file.
 - Trend/history widgets now use a consistent default sequence of oldest -> newest (left to right), with a shared `reverseOrder` widget option to flip to newest-first.
 - Widget loading overlays are now limited to first paint; refresh keeps existing widget content visible.
 - Notes fetching now runs non-blocking after main data payload application.
+- E2E coverage was simplified to stable dashboard-start flows; deck-tab specific assertions were removed from `dashboard.spec.ts` to reduce env-dependent skips/flakes.
+- Dashboard E2E selectors were aligned with the current UI (sidebar onboarding trigger + profiles overlay), keeping tests focused on startup/config smoke paths.
 
 ### Fixed
 - Dense widget mode no longer inflates chart padding; compact mode keeps charts tight.

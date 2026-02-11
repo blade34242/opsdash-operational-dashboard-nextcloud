@@ -12,8 +12,12 @@ cd opsdash
 npm ci
 npm run build
 npm run test:unit
-npm run test:e2e
+PLAYWRIGHT_BASE_URL=http://localhost:8088 npm run test:e2e
 composer run test:unit
+```
+- Fast smoke pass:
+```bash
+PLAYWRIGHT_BASE_URL=http://localhost:8088 npx playwright test tests/e2e/dashboard.spec.ts --grep "Operational Dashboard loads without console errors|Offset navigation keeps day-off trend visible|Activity day-off trend widget renders on overview"
 ```
 - Packaging: `make appstore VERSION=<x.y.z>` (see `RELEASE.md`).
 
