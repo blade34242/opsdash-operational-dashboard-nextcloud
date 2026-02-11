@@ -1,4 +1,4 @@
-import { nextTick, reactive, ref, type Ref } from 'vue'
+import { computed, nextTick, reactive, ref, type Ref } from 'vue'
 import {
   createDefaultTargetsConfig,
   normalizeTargetsConfig,
@@ -53,6 +53,9 @@ export function useDashboard(deps: DashboardDeps) {
   const selected = ref<string[]>([])
 
   const isLoading = ref(false)
+  const hasLoadedData = ref(false)
+  const isInitialLoading = computed(() => isLoading.value && !hasLoadedData.value)
+  const isRefreshing = computed(() => isLoading.value && hasLoadedData.value)
   const isTruncated = ref(false)
   const truncLimits = ref<any>(null)
   const uid = ref('')
@@ -277,6 +280,7 @@ export function useDashboard(deps: DashboardDeps) {
         byDay.value = Array.isArray(json.byDay) ? json.byDay : []
         longest.value = Array.isArray(json.longest) ? json.longest : []
         charts.value = json.charts ?? {}
+        hasLoadedData.value = true
         if (colorsAdjusted) {
           applyPaletteToCharts()
         }
@@ -338,6 +342,8 @@ export function useDashboard(deps: DashboardDeps) {
     groupsById,
     selected,
     isLoading,
+    isInitialLoading,
+    isRefreshing,
     isTruncated,
     truncLimits,
     uid,

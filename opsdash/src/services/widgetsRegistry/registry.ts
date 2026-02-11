@@ -174,11 +174,8 @@ export function normalizeWidgetTabs(raw: any, fallback: WidgetTabsState): Widget
 }
 
 function resolveWidgetLoading(def: WidgetDefinition, ctx: WidgetRenderContext) {
-  const baseLoading = ctx.hasInitialLoad === false || !!ctx.isLoading
-  if (def.type === 'deck_cards') {
-    return baseLoading || !!ctx.deckLoading
-  }
-  return baseLoading
+  // Keep full widget loading overlays for first paint only.
+  return !!ctx.isInitialLoading
 }
 
 export function mapWidgetToComponent(def: WidgetDefinition, ctx: WidgetRenderContext) {

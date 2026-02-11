@@ -51,7 +51,7 @@
       <template #navigation>
         <Sidebar
           id="opsdash-sidebar"
-          :is-loading="isLoading"
+          :is-loading="isInitialLoading"
           :range="range"
           :offset="offset"
           :from="from"
@@ -96,7 +96,7 @@
               <button
                 class="range-toolbar__btn range-toolbar__btn--pill"
                 type="button"
-                :disabled="isLoading"
+                :disabled="isInitialLoading"
                 @click="toggleRangeCollapsed"
                 :aria-pressed="range === 'month'"
               >
@@ -106,7 +106,7 @@
                 <button
                   class="range-toolbar__btn sidebar-action-btn--icon"
                   type="button"
-                  :disabled="isLoading"
+                  :disabled="isInitialLoading"
                   @click="goPrevious"
                 >
                   ◀
@@ -117,7 +117,7 @@
                 <button
                   class="range-toolbar__btn sidebar-action-btn--icon"
                   type="button"
-                  :disabled="isLoading"
+                  :disabled="isInitialLoading"
                   @click="goNext"
                 >
                   ▶
@@ -126,7 +126,7 @@
               <button
                 class="range-toolbar__btn range-toolbar__btn--refresh sidebar-action-btn"
                 type="button"
-                :disabled="isLoading"
+                :disabled="isInitialLoading"
                 @click="loadCurrent"
               >
                 Refresh
@@ -189,6 +189,9 @@
                 <span class="range-badge" aria-label="Active range">
                   <span class="range-badge__mode" v-text="rangeBadgePrimary" />
                   <span class="range-badge__span" v-text="rangeBadgeSecondary" />
+                </span>
+                <span v-if="isRefreshing" class="refresh-indicator" role="status" aria-live="polite">
+                  Updating...
                 </span>
                 <div v-if="isLayoutEditing" class="cards-toolbar__add">
                   <select v-model="newWidgetType" @change="handleAddWidget">
@@ -622,7 +625,8 @@ const {
   colorsById,
   groupsById,
   selected,
-  isLoading,
+  isInitialLoading,
+  isRefreshing,
   isTruncated,
   truncLimits,
   uid,
@@ -917,7 +921,7 @@ const {
   offset,
   from,
   to,
-  isLoading,
+  isLoading: isInitialLoading,
   performLoad: () => performLoad(),
 })
 
@@ -1214,7 +1218,9 @@ const { widgetContext } = useWidgetRenderContext({
   notesLabelCurrTitle,
   isSavingNote,
   saveNotes,
-  isLoading,
+  isLoading: isInitialLoading,
+  isInitialLoading,
+  isRefreshing,
   hasInitialLoad,
   isLayoutEditing,
   updateWidgetOptions,

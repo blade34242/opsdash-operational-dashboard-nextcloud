@@ -230,6 +230,8 @@ describe('widgetsRegistry targets_v2', () => {
     const baseCtx: any = {
       hasInitialLoad: true,
       isLoading: false,
+      isInitialLoading: false,
+      isRefreshing: false,
       deckLoading: false,
       rangeLabel: 'Week',
       rangeMode: 'week',
@@ -241,8 +243,8 @@ describe('widgetsRegistry targets_v2', () => {
     const defSummary: any = { id: 's1', type: 'time_summary_overview', layout: { width: 'half', height: 'm', order: 1 }, options: {}, version: 1 }
     const defDeck: any = { id: 'd1', type: 'deck_cards', layout: { width: 'half', height: 'm', order: 1 }, options: {}, version: 1 }
 
-    expect(mapWidgetToComponent(defSummary, { ...baseCtx, isLoading: true })?.loading).toBe(true)
-    expect(mapWidgetToComponent(defDeck, { ...baseCtx, deckLoading: true })?.loading).toBe(true)
+    expect(mapWidgetToComponent(defSummary, { ...baseCtx, isInitialLoading: true })?.loading).toBe(true)
+    expect(mapWidgetToComponent(defDeck, { ...baseCtx, deckLoading: true })?.loading).toBe(false)
     expect(mapWidgetToComponent({ ...defSummary, type: 'unknown' }, baseCtx)).toBeNull()
   })
 })

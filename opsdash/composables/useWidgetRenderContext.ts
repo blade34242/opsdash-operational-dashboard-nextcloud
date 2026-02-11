@@ -47,6 +47,8 @@ interface WidgetRenderContextDeps {
   isSavingNote: ValueRef<boolean>
   saveNotes: () => Promise<void>
   isLoading: ValueRef<boolean>
+  isInitialLoading: ValueRef<boolean>
+  isRefreshing: ValueRef<boolean>
   hasInitialLoad: ValueRef<boolean>
   isLayoutEditing: ValueRef<boolean>
   updateWidgetOptions: (id: string, key: string, value: any) => void
@@ -127,6 +129,8 @@ export function useWidgetRenderContext(deps: WidgetRenderContextDeps): {
       deps.notesCurrDraft.value = val
     },
     isLoading: deps.isLoading.value,
+    isInitialLoading: deps.isInitialLoading.value,
+    isRefreshing: deps.isRefreshing.value,
     hasInitialLoad: deps.hasInitialLoad.value,
     isLayoutEditing: deps.isLayoutEditing.value,
     onUpdateWidgetOptions: (id: string, key: string, value: any) => {

@@ -1301,6 +1301,43 @@
 #opsdash .cards-toolbar__center .range-badge{
   margin-left:auto;
 }
+#opsdash .refresh-indicator{
+  display:inline-flex;
+  align-items:center;
+  gap:6px;
+  padding:5px 10px;
+  border-radius:999px;
+  border:1px solid color-mix(in oklab, var(--line), transparent 18%);
+  background:color-mix(in oklab, var(--card), var(--soft) 24%);
+  color:var(--muted, #64748b);
+  font-size:12px;
+  font-weight:700;
+  letter-spacing:0.02em;
+  white-space:nowrap;
+}
+#opsdash .refresh-indicator::before{
+  content:'';
+  width:7px;
+  height:7px;
+  border-radius:50%;
+  background:var(--brand);
+  animation:opsdash-refresh-pulse 1.2s ease-in-out infinite;
+}
+@keyframes opsdash-refresh-pulse{
+  0%, 100%{
+    transform:scale(0.9);
+    opacity:0.55;
+  }
+  50%{
+    transform:scale(1.1);
+    opacity:1;
+  }
+}
+@media (prefers-reduced-motion: reduce){
+  #opsdash .refresh-indicator::before{
+    animation:none;
+  }
+}
 #opsdash .tab-btn{
   display:inline-flex;
   align-items:center;
@@ -1521,11 +1558,24 @@
   border-color:var(--opsdash-border);
   color:var(--opsdash-text);
 }
+#opsdash.opsdash-theme-light .refresh-indicator{
+  background:color-mix(in oklab, var(--opsdash-card), #f8fafc 40%);
+  border-color:var(--opsdash-border);
+  color:var(--opsdash-muted);
+}
 #opsdash.opsdash-theme-light .range-badge__mode{
   color:var(--opsdash-accent);
 }
 #opsdash.opsdash-theme-light .range-badge__span{
   color:var(--opsdash-muted);
+}
+#opsdash.opsdash-theme-dark .refresh-indicator{
+  background:#0f1a30;
+  border-color:var(--opsdash-border);
+  color:var(--opsdash-muted);
+}
+#opsdash.opsdash-theme-dark .refresh-indicator::before{
+  background:#60a5fa;
 }
 #opsdash.opsdash-theme-light .layout-item{
   background:var(--opsdash-card);

@@ -74,6 +74,8 @@ export interface WidgetRenderContext {
   onSaveNote?: () => void
   onUpdateNotes?: (val: string) => void
   isLoading?: boolean
+  isInitialLoading?: boolean
+  isRefreshing?: boolean
   hasInitialLoad?: boolean
   isLayoutEditing?: boolean
   onUpdateWidgetOptions?: (id: string, key: string, value: any) => void
