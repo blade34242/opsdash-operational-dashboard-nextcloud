@@ -3,6 +3,8 @@
 All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
+
+## [0.5.5] - 2026-02-11
 ### Added
 - Balance overview now surfaces a compact Balance index badge in the card header.
 - Sidebar navigation is explicitly registered so Opsdash appears in Nextcloud’s app menu (and NC max version extended to 32).
@@ -69,30 +71,6 @@ All notable changes to this project will be documented in this file.
 - Widget toolbar includes “Reset preset” to restore the current dashboard mode’s layout.
 - Widget layouts now persist as a tabbed payload (`{ tabs, defaultTabId }`), with legacy arrays normalized into a single tab.
 - Layout toolbar is left-aligned and tab visuals are more pronounced for quick scanning (dark theme contrast improved).
-
-## [0.5.5] - Unreleased
-### Added
-- Widget layout persistence now round-trips through `/overview/persist` and `/overview/load`, with sanitisation on the server and normalisation on the client (new `normalizeWidgetLayout`) plus Vitest/PHP coverage.
-- Balance/Activity controls restored: thresholds, index basis selector, display toggles, and activity card toggles with contextual help.
-- Onboarding wizard steps can now be saved individually without completing the full flow.
-- Deck cards widget: title prefix + card background controls now apply consistently (tab + widget).
-- Deck cards filters show per-filter counts; custom filters can be built via tags + assignees (no JSON).
-- Sidebar keyboard shortcuts button opens a compact popover list.
-### Changed
-- Dashboard save queue now records widget edits (add/remove/move/update/reset/preset apply) so layouts survive logouts and device changes.
-- Trend lookback controls are now global in the Calendars sidebar (default 3, clamped 1–6) with per-widget overrides for chart widgets.
-- Sidebar naming: “Config & Setup” is now “Theme”, and rerun onboarding + keyboard shortcuts moved to Calendars.
-- Removed sidebar All/None calendar shortcuts to keep selection explicit.
-- Widget layout and sidebar state no longer persist via localStorage (server persistence only).
-- Deck cards widget now scrolls inside its card (no main page scroll) so long lists stay contained.
-- Widget options menu is wider and uses a two-column layout for readability.
-- Layout toolbar spacing tightened to reduce height.
-- Deck custom filter builder stacks on small screens so the inputs stay usable.
-### Fixed
-- Widget layout no longer falls back to defaults after clearing cookies; server-saved layout is applied on reload.
-- Balance tests re-enabled and passing under 0.5.5 with corrected DOM structure and emits.
-- Show title toggle now works across all widget types, including notes/text widgets.
-- Notes editor title prefix now updates live from the toolbar.
 
 ## [0.4.7] - Unreleased
 ### Added

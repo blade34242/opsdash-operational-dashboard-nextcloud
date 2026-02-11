@@ -4,7 +4,7 @@
 
 > ✨ *Your calendar time, but actually useful.* Opsdash aggregates events, compares them to your targets, keeps balance visible, and stays 100 % inside your Nextcloud instance.
 
-## 📸 UI Preview *(placeholders for 0.4.x)*
+## 📸 UI Preview *(placeholders for 0.5.5)*
 | Overview | Theme |
 | --- | --- |
 | ![Overview](img/overview.png) | ![Config](img/config.png) |
@@ -22,9 +22,8 @@
 ## 🧭 Compatibility Matrix
 | Branch | NC support | Version |
 | --- | --- | --- |
-| `master` | NC 31 | 0.4.x (current) |
-| `release/0.4.x` | NC 31 | App Store-ready builds |
-| `feature/nc32` *(planned)* | NC 32 | 0.5.x once CI passes |
+| `master` | NC 30-32 | 0.5.5 (current) |
+| `release/0.5.x` | NC 30-32 | App Store-ready builds |
 
 Install via the Nextcloud App Store (once published) **or** drop the `opsdash` folder inside `custom_apps/` and enable it:
 ```bash
@@ -68,7 +67,7 @@ make smoke
 ### Packaging (App Store tarball)
 ```bash
 # from repo root
-make appstore VERSION=0.4.7
+make appstore VERSION=0.5.5
 ```
 This runs a clean copy into `build/opsdash`, installs deps, builds, strips dev files, and outputs `build/dist/opsdash-<version>.tar.gz`. If your environment blocks native binaries during `npm ci` (esbuild), rerun with sufficient permissions so the esbuild helper can execute.
 
@@ -88,7 +87,7 @@ Seeds the `opsdash-focus` calendar plus deterministic Deck boards/cards used by 
 The helper script now shells into your container and invokes `apps/opsdash/tools/seed_deck_boards.php` with the relevant `QA_*` env vars (`QA_DECK_BOARD_TITLE`, `QA_DECK_BOARD_COLOR`, `QA_DECK_KEEP_STACKS`).
 
 ## 📋 Roadmap Highlights
-- NC 31 releases in `0.4.x` stream; NC 32 (`0.5.x`) lands once CI matrices stabilize.
+- Current release line is `0.5.5` (NC 30-32).
 - Balance config simplified: server rounds ratios to 1 decimal, precision toggles are gone, and Balance lookback defaults to 3 weeks (clamped 1–6) to keep week/month history aligned.
 - Deck integration spike (see `docs-private/opsdash-docs/DECK_INTEGRATION.md`) and reporting concept for NC App Store metadata.
 - i18n workflow (`npm run i18n:scan` / `npm run i18n:extract`) ready — de/fr/es packs coming.
