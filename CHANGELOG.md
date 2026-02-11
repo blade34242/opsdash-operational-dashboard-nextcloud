@@ -16,6 +16,8 @@ All notable changes to this project will be documented in this file.
 - Day-of-week and hours-of-day charts now fold in the configured lookback window for history context.
 - Lookback charts now color weeks consistently in Per-day/Day-of-week, and Hours-of-day adds stacked/overlay lookback modes with a legend.
 - Profiles management is now available in an onboarding-style overlay triggered from the sidebar icon.
+- Cards toolbar now shows an `Updating...` refresh indicator during background data reloads.
+- Backend load path now reuses identical event collect calls within a single request (request-local collector cache).
 
 ### Changed
 - Sidebar layout: setup wizard block copy/numbered steps, framed sections, larger refresh button, and keyboard shortcuts moved to the bottom.
@@ -39,12 +41,16 @@ All notable changes to this project will be documented in this file.
 - Template bootstraps default widget presets to avoid a blank main area on hard reloads.
 - Frontend component tree regrouped into feature folders (widgets/charts/tables/panels), with unused sidebar panes removed.
 - Trend/history widgets now use a consistent default sequence of oldest -> newest (left to right), with a shared `reverseOrder` widget option to flip to newest-first.
+- Widget loading overlays are now limited to first paint; refresh keeps existing widget content visible.
+- Notes fetching now runs non-blocking after main data payload application.
 
 ### Fixed
 - Dense widget mode no longer inflates chart padding; compact mode keeps charts tight.
 - Rapid widget edits no longer revert due to out-of-order persist responses.
 - Balance Index current value now uses the same status color as the current indicator.
 - Calendar table hover now matches category/calendar rows and stays readable in dark mode.
+- Stale notes responses are ignored so quick range/offset switches cannot overwrite newer note state.
+- Core cache version is bumped after persist writes so updated config is reflected on the next core load.
 
 ### Added
 - Onboarding wizard “Dashboard preset” step (Quick / Standard / Pro) that applies a preset widget layout and stores the chosen dashboard mode.

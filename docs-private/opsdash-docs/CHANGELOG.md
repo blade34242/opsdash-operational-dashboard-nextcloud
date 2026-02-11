@@ -3,6 +3,10 @@
 This file is a short internal log. Full release notes live in the repo root `CHANGELOG.md`.
 
 ## Unreleased
+- Performance: `OverviewEventsCollector` now caches identical collect calls within one `/overview/load` request to reduce repeated calendar scans.
+- Loading UX: widget overlays now apply only on initial paint; refresh keeps existing cards visible and shows `Updating...` in the toolbar.
+- Notes load path: notes fetch is non-blocking after data hydrate, and stale responses are ignored on rapid range/offset changes.
+- Cache consistency: core cache version is bumped after `/overview/persist` writes so saved config is reflected immediately on subsequent core loads.
 - Widgets: dense mode now keeps chart padding stable so compact mode doesn't inflate charts.
 - Widgets: new tabs start empty (no preset widgets) for a clean slate.
 - Widgets: trend/history widgets now default to oldest -> newest sequence with a shared `reverseOrder` toggle for newest-first.
