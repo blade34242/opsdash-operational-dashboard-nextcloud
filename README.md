@@ -4,12 +4,13 @@
 
 > ✨ *Your calendar time, but actually useful.* Opsdash aggregates events, compares them to your targets, keeps balance visible, and stays 100 % inside your Nextcloud instance.
 
-## 📸 UI Preview *(placeholders for 0.5.5)*
-| Overview | Theme |
-| --- | --- |
-| ![Overview](img/overview.png) | ![Config](img/config.png) |
-| Targets | Balance |
-| ![Targets](img/targets.png) | ![Balance](img/balance.png) |
+## 📸 UI Preview
+| Screenshot 1 | Screenshot 2 | Screenshot 3 |
+| --- | --- | --- |
+| ![Opsdash Screenshot 1](img/picture1.png) | ![Opsdash Screenshot 2](img/picture2.png) | ![Opsdash Screenshot 3](img/picture3.png) |
+| ![Opsdash Screenshot 4](img/picture4.png) | ![Opsdash Screenshot 5](img/picture5.png) | ![Opsdash Screenshot 6](img/picture6.png) |
+
+![Opsdash Screenshot 7](img/picture7.png)
 
 ## 💡 Why teams install Opsdash
 - **Know where the week went** – totals, averages, busiest days, workday/weekend split, top categories, longest tasks.
