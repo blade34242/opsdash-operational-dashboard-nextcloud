@@ -8,6 +8,15 @@ interface AppMetaOptions {
   root: ComputedRef<string>
 }
 
+function normalizeChangelogUrl(value: unknown): string {
+  const raw = String(value ?? '').trim()
+  if (!raw) return ''
+  return raw.replace(
+    'github.com/blade34242/nexcloud-operational-cal-deck-dashboard',
+    'github.com/blade34242/opsdash-operational-dashboard-nextcloud',
+  )
+}
+
 function readDataAttr(name: string): string {
   const el = typeof document !== 'undefined' ? document.getElementById('app') : null
   if (!el || !(el as any).dataset) return ''
@@ -39,14 +48,18 @@ export function useAppMeta(options: AppMetaOptions) {
   }
 
   const appVersion = ref<string>(readDataAttr('opsdashVersion') || (options.pkgVersion ? String(options.pkgVersion) : ''))
-  const changelogUrl = ref<string>(readDataAttr('opsdashChangelog') || (options.fallbackChangelogUrl ? String(options.fallbackChangelogUrl) : ''))
+  const changelogUrl = ref<string>(
+    normalizeChangelogUrl(readDataAttr('opsdashChangelog'))
+      || normalizeChangelogUrl(options.fallbackChangelogUrl),
+  )
 
   async function ensureMeta() {
     if (appVersion.value && changelogUrl.value) return
     try {
       const res = await options.getJson(options.pingUrl(), {})
       if (!appVersion.value && typeof res?.version === 'string') appVersion.value = res.version
-      if (!changelogUrl.value && typeof res?.changelog === 'string') changelogUrl.value = res.changelog
+      const resolved = normalizeChangelogUrl(res?.changelog)
+      if (!changelogUrl.value && resolved) changelogUrl.value = resolved
     } catch {}
   }
 
