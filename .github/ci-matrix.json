@@ -2,6 +2,6 @@
   { "nextcloud_branch": "stable30", "php_version": "8.2", "enabled": true },
   { "nextcloud_branch": "stable31", "php_version": "8.2", "enabled": true },
   { "nextcloud_branch": "stable31", "php_version": "8.3", "enabled": true },
-  { "nextcloud_branch": "stable32", "php_version": "8.2", "enabled": false },
-  { "nextcloud_branch": "stable32", "php_version": "8.3", "enabled": false }
+  { "nextcloud_branch": "stable32", "php_version": "8.2", "enabled": true },
+  { "nextcloud_branch": "stable32", "php_version": "8.3", "enabled": true }
 ]
