@@ -14,10 +14,10 @@ describe('DayOffTrendCard', () => {
         toneHighColor: '#ffffff',
       },
     })
-    const tiles = wrapper.findAll('.dayoff-tile')
+    const tiles = wrapper.findAll('.dayoff-tile').map((node) => node.element as HTMLElement)
     expect(tiles.length).toBeGreaterThan(0)
-    expect((tiles[0].element as HTMLElement).style.background).toContain('rgb(0, 0, 0)')
-    expect((tiles[0].element as HTMLElement).style.color).toContain('rgb(255, 255, 255)')
+    expect(tiles.some((tile) => tile.style.background.includes('rgb(0, 0, 0)'))).toBe(true)
+    expect(tiles.some((tile) => tile.style.color.includes('rgb(255, 255, 255)'))).toBe(true)
   })
 
   it('hides the header when showHeader is false', () => {
@@ -32,7 +32,7 @@ describe('DayOffTrendCard', () => {
     expect(wrapper.find('.dayoff-card__header').exists()).toBe(false)
   })
 
-  it('shows oldest-first by default and supports newest-first toggle', () => {
+  it('shows oldest-first by default and supports reverse-order toggle', () => {
     const trend = [
       { offset: 0, label: 'This week', from: '', to: '', totalDays: 7, daysOff: 1, daysWorked: 6 },
       { offset: 1, label: '-1 wk', from: '', to: '', totalDays: 7, daysOff: 2, daysWorked: 5 },
@@ -42,18 +42,18 @@ describe('DayOffTrendCard', () => {
       props: { trend, lookback: 2, labelMode: 'offset' },
     })
     expect(normal.findAll('.dayoff-tile__label').map((node) => node.text())).toEqual([
-      'Current',
-      '-1',
       '-2',
+      '-1',
+      'Current',
     ])
 
     const reversed = mount(DayOffTrendCard, {
-      props: { trend, lookback: 2, labelMode: 'offset', newestFirst: true },
+      props: { trend, lookback: 2, labelMode: 'offset', reverseOrder: true },
     })
     expect(reversed.findAll('.dayoff-tile__label').map((node) => node.text())).toEqual([
-      '-2',
-      '-1',
       'Current',
+      '-1',
+      '-2',
     ])
   })
 })

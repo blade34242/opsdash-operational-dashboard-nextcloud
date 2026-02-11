@@ -82,9 +82,9 @@ describe('chart widgets', () => {
     expect(defaultProps.legendItems[0].label).toContain('Week -1')
     expect(defaultProps.legendItems[1].label).toContain('Current week')
 
-    const newestProps = entry.buildProps({ options: { filterMode: 'calendar', filterIds: ['cal-1'], forecastMode: 'off', newestFirst: true } } as any, ctx) as any
-    expect(newestProps.legendItems[0].label).toContain('Current week')
-    expect(newestProps.legendItems[1].label).toContain('Week -1')
+    const reversedProps = entry.buildProps({ options: { filterMode: 'calendar', filterIds: ['cal-1'], forecastMode: 'off', reverseOrder: true } } as any, ctx) as any
+    expect(reversedProps.legendItems[0].label).toContain('Current week')
+    expect(reversedProps.legendItems[1].label).toContain('Week -1')
   })
 
   it('uses oldest-first ordering for day-of-week lookback by default', () => {
@@ -112,9 +112,9 @@ describe('chart widgets', () => {
     expect(props.groupedData.series[0].data[monIdx]).toBe(3)
     expect(props.groupedData.series[1].data[monIdx]).toBe(5)
 
-    const newestProps = entry.buildProps({ options: { filterMode: 'calendar', filterIds: ['cal-1'], forecastMode: 'off', newestFirst: true } } as any, ctx) as any
-    expect(newestProps.groupedData.series[0].data[monIdx]).toBe(5)
-    expect(newestProps.groupedData.series[1].data[monIdx]).toBe(3)
+    const reversedProps = entry.buildProps({ options: { filterMode: 'calendar', filterIds: ['cal-1'], forecastMode: 'off', reverseOrder: true } } as any, ctx) as any
+    expect(reversedProps.groupedData.series[0].data[monIdx]).toBe(5)
+    expect(reversedProps.groupedData.series[1].data[monIdx]).toBe(3)
   })
 
   it('uses oldest-first ordering for heatmap lookback by default', () => {
@@ -137,8 +137,8 @@ describe('chart widgets', () => {
     expect(props.lookbackEntries[0].id).toBe('offset-1')
     expect(props.lookbackEntries[1].id).toBe('offset-0')
 
-    const newestProps = entry.buildProps({ options: { newestFirst: true } } as any, ctx) as any
-    expect(newestProps.lookbackEntries[0].id).toBe('offset-0')
-    expect(newestProps.lookbackEntries[1].id).toBe('offset-1')
+    const reversedProps = entry.buildProps({ options: { reverseOrder: true } } as any, ctx) as any
+    expect(reversedProps.lookbackEntries[0].id).toBe('offset-0')
+    expect(reversedProps.lookbackEntries[1].id).toBe('offset-1')
   })
 })

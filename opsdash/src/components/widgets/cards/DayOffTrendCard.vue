@@ -54,7 +54,7 @@ const props = defineProps<{
   toneHighColor?: string | null
   showHeader?: boolean
   labelMode?: LabelMode
-  newestFirst?: boolean
+  reverseOrder?: boolean
 }>()
 
 const historyUnit = computed(() => (props.unit === 'mo' ? 'mo' : 'wk'))
@@ -124,10 +124,10 @@ const tiles = computed<DayOffTrendTile[]>(() => {
     const share = total > 0 ? daysOff / total : 0
     return { ...entry, label: formatLabel(entry), share, tone: classifyTone(share) }
   })
-  if (props.newestFirst === true) {
-    return base.slice().reverse()
+  if (props.reverseOrder === true) {
+    return base
   }
-  return base
+  return base.slice().reverse()
 })
 
 const lookbackLabel = computed(() => {

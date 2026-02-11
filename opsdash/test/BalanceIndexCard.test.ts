@@ -112,7 +112,7 @@ describe('BalanceIndexCard', () => {
     expect(trendValues.length).toBeGreaterThan(0)
   })
 
-  it('shows oldest-first by default and supports newest-first toggle', () => {
+  it('shows oldest-first by default and supports reverse-order toggle', () => {
     const baseProps = {
       overview: {
         index: 0.75,
@@ -134,10 +134,10 @@ describe('BalanceIndexCard', () => {
       'Current',
     ])
 
-    const newest = mount(BalanceIndexCard, {
-      props: { ...baseProps, newestFirst: true },
+    const reversed = mount(BalanceIndexCard, {
+      props: { ...baseProps, reverseOrder: true },
     })
-    expect(newest.findAll('.trend-offset').map((node) => node.text())).toEqual([
+    expect(reversed.findAll('.trend-offset').map((node) => node.text())).toEqual([
       'Current',
       '-1',
       '-2',

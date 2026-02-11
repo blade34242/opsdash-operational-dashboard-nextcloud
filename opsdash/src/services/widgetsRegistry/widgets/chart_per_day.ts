@@ -28,7 +28,7 @@ export const chartPerDayEntry: RegistryEntry = {
   defaultOptions: {
     showLabels: false,
     compact: false,
-    newestFirst: false,
+    reverseOrder: false,
     forecastMode: 'total',
   },
   dynamicControls: (options, ctx) => {
@@ -42,7 +42,7 @@ export const chartPerDayEntry: RegistryEntry = {
       ] },
       { key: 'showLabels', label: 'Show labels', type: 'toggle' },
       { key: 'compact', label: 'Compact', type: 'toggle' },
-      { key: 'newestFirst', label: 'Newest first', type: 'toggle' },
+      { key: 'reverseOrder', label: 'Reverse order (newest first)', type: 'toggle' },
     ]
   },
   buildProps: (def, ctx) => {
@@ -53,13 +53,13 @@ export const chartPerDayEntry: RegistryEntry = {
       lookbackWeeks > 1 && Array.isArray(ctx.charts?.perDaySeriesByOffset)
         ? ctx.charts.perDaySeriesByOffset
         : null
-    const newestFirst = def.options?.newestFirst === true
+    const reverseOrder = def.options?.reverseOrder === true
     let chartData: { labels: string[]; data: number[]; colors?: string[] } | null = null
     let legendItems: Array<{ id: string; label: string; color: string }> = []
 
     if (lookbackInput && lookbackInput.length) {
       const sorted = sortLookbackOffsets(lookbackInput)
-      const ordered = newestFirst ? sorted : sorted.slice().reverse()
+      const ordered = reverseOrder ? sorted : sorted.slice().reverse()
       const labels: string[] = []
       const data: number[] = []
       const colors: string[] = []

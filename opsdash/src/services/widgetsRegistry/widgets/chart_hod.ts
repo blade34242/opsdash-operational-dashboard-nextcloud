@@ -20,7 +20,7 @@ export const chartHodEntry: RegistryEntry = {
     showLegend: true,
     lookbackMode: 'stacked',
     compact: false,
-    newestFirst: false,
+    reverseOrder: false,
   },
   dynamicControls: () => {
     return [
@@ -31,7 +31,7 @@ export const chartHodEntry: RegistryEntry = {
       { key: 'showLegend', label: 'Show legend', type: 'toggle' },
       { key: 'showHint', label: 'Show hint', type: 'toggle' },
       { key: 'compact', label: 'Compact', type: 'toggle' },
-      { key: 'newestFirst', label: 'Newest first', type: 'toggle' },
+      { key: 'reverseOrder', label: 'Reverse order (newest first)', type: 'toggle' },
     ]
   },
   buildProps: (def, ctx) => {
@@ -40,9 +40,9 @@ export const chartHodEntry: RegistryEntry = {
       lookbackWeeks > 1 && Array.isArray(ctx.charts?.hodByOffset)
         ? ctx.charts.hodByOffset
         : null
-    const newestFirst = def.options?.newestFirst === true
+    const reverseOrder = def.options?.reverseOrder === true
     const sortedLookback = lookbackInput ? sortLookbackOffsets(lookbackInput) : []
-    const orderedLookback = newestFirst ? sortedLookback : sortedLookback.slice().reverse()
+    const orderedLookback = reverseOrder ? sortedLookback : sortedLookback.slice().reverse()
     const lookbackEntries = orderedLookback
       .map((entry, idx) => {
         const matrix = Array.isArray(entry.matrix) ? entry.matrix : []

@@ -93,7 +93,7 @@ const props = defineProps<{
   density?: DensityMode
   labelMode?: LabelMode
   squareCells?: boolean
-  newestFirst?: boolean
+  reverseOrder?: boolean
   rangeLabel?: string
   from?: string
   to?: string
@@ -196,7 +196,7 @@ const displayColumns = computed(() => {
       shares: null,
     },
   ]
-  if (props.newestFirst === true) {
+  if (props.reverseOrder === true) {
     return columns.slice().reverse()
   }
   return columns

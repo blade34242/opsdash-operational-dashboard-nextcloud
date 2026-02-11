@@ -29,7 +29,7 @@ describe('CategoryMixTrendCard', () => {
     expect(cells.some((el) => el.style.getPropertyValue('--mix-bg').includes('#111111'))).toBe(true)
   })
 
-  it('shows oldest-first by default and supports newest-first toggle', () => {
+  it('shows oldest-first by default and supports reverse-order toggle', () => {
     const props = {
       overview: {
         categories: [
@@ -55,7 +55,7 @@ describe('CategoryMixTrendCard', () => {
     ])
 
     const reversed = mount(CategoryMixTrendCard, {
-      props: { ...props, newestFirst: true },
+      props: { ...props, reverseOrder: true },
     })
     expect(reversed.findAll('.mix-column-label').map((node) => node.text()).slice(1)).toEqual([
       'Current',
