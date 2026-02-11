@@ -14,9 +14,9 @@ use OCP\IUserSession;
 use OCP\IConfig;
 use Psr\Log\LoggerInterface;
 
-use OCA\Opsdash\Service\CalendarAccessService;
 use OCA\Opsdash\Service\UserConfigService;
 use OCA\Opsdash\Service\OverviewLoadService;
+use OCA\Opsdash\Service\OverviewIncludeResolver;
 use OCA\Opsdash\Service\ViteAssetsService;
 use OCA\Opsdash\Service\DashboardDefaultsService;
 
@@ -30,30 +30,6 @@ final class OverviewController extends Controller {
     private const MAX_VALUE_LEN = 128;
     private const MAX_CSV_LEN = 4096;
     private const MAX_QUERY_BYTES = 4096;
-    private const INCLUDE_ALIASES = [
-        'all' => 'all',
-        'core' => 'core',
-        'data' => 'data',
-        'debug' => 'debug',
-        'calendars' => 'calendars',
-        'selected' => 'selected',
-        'colors' => 'colors',
-        'groups' => 'groups',
-        'targets' => 'targets',
-        'targetsconfig' => 'targetsConfig',
-        'themepreference' => 'themePreference',
-        'reportingconfig' => 'reportingConfig',
-        'decksettings' => 'deckSettings',
-        'widgets' => 'widgets',
-        'onboarding' => 'onboarding',
-        'usersettings' => 'userSettings',
-        'stats' => 'stats',
-        'bycal' => 'byCal',
-        'byday' => 'byDay',
-        'longest' => 'longest',
-        'charts' => 'charts',
-        'lookback' => 'lookback',
-    ];
 
     public function __construct(
         string $appName,
@@ -62,9 +38,9 @@ final class OverviewController extends Controller {
         private IUserSession $userSession,
         private IConfig $config,
         private ViteAssetsService $viteAssetsService,
-        private CalendarAccessService $calendarAccess,
         private UserConfigService $userConfigService,
         private OverviewLoadService $loadService,
+        private OverviewIncludeResolver $includeResolver,
         private DashboardDefaultsService $dashboardDefaultsService,
     ) {
         parent::__construct($appName, $request);
@@ -192,58 +168,6 @@ final class OverviewController extends Controller {
         return new DataResponse($payload, Http::STATUS_OK);
     }
 
-    #[NoAdminRequired]
-    public function save(): DataResponse {
-        $uid = (string)($this->userSession->getUser()?->getUID() ?? '');
-        if ($uid === '') return new DataResponse(['message' => 'unauthorized'], Http::STATUS_UNAUTHORIZED);
-
-        $method = strtoupper((string)($_SERVER['REQUEST_METHOD'] ?? 'GET'));
-        if ($method !== 'POST') {
-            return new DataResponse(['message' => 'method not allowed'], Http::STATUS_METHOD_NOT_ALLOWED);
-        }
-        $data = $this->readJsonBodyDefault();
-        if ($data instanceof DataResponse) {
-            return $data;
-        }
-
-        $original = $data['cals'] ?? [];
-        if (is_string($original)) {
-            $original = array_values(array_filter(array_map(fn($x)=>substr((string)$x,0,128), explode(',', $original)), fn($x)=>$x!==''));
-        }
-        $cals = is_array($original) ? $original : [];
-        $cals = array_values(array_unique(array_filter(array_map(fn($x)=>substr((string)$x,0,128), $cals), fn($x)=>$x!=='')));
-        // Intersect with user's calendars
-        $allowedIds = $this->calendarAccess->getCalendarIdsFor($uid);
-        $allowedSet = array_fill_keys($allowedIds, true);
-        $filtered = array_values(array_filter($cals, fn($id)=>isset($allowedSet[$id])));
-        $rejected = array_values(array_diff($cals, $filtered));
-        if (!empty($rejected) && $this->userConfigService->isDebugEnabled()) {
-            $this->logger->debug('save selection filtered ids', ['app'=>$this->appName, 'rejected'=>$rejected]);
-        }
-        $cals = $filtered;
-
-        // Optionally save calendar groups mapping if provided
-        if (isset($data['groups']) && is_array($data['groups'])) {
-            $gclean = [];
-            foreach ($data['groups'] as $k=>$v) {
-                $id = substr((string)$k, 0, 128);
-                if (!isset($allowedSet[$id])) continue;
-                $n = (int)$v; if ($n < 0) $n = 0; if ($n > 9) $n = 9;
-                $gclean[$id] = $n;
-            }
-            try { $this->config->setUserValue($uid, $this->appName, 'cal_groups', json_encode($gclean)); }
-            catch (\Throwable $e) { $this->logger->error('save groups failed: '.$e->getMessage(), ['app'=>$this->appName]); }
-        }
-
-        try {
-            $this->config->setUserValue($uid, $this->appName, 'selected_cals', implode(',', $cals));
-            return new DataResponse(['ok'=>true, 'saved'=>$cals], Http::STATUS_OK);
-        } catch (\Throwable $e) {
-            $this->logger->error('save prefs failed: '.$e->getMessage(), ['app'=>$this->appName]);
-            return new DataResponse(['message'=>'error'], Http::STATUS_INTERNAL_SERVER_ERROR);
-        }
-    }
-
     /**
      * @param array<string,mixed> $input
      * @param string[] $defaultInclude
@@ -272,7 +196,7 @@ final class OverviewController extends Controller {
             $csv = substr($includeParam, 0, self::MAX_CSV_LEN);
             $include = preg_split('/\s*,\s*/', $csv) ?: [];
         }
-        $include = $this->sanitizeIncludeList($include, self::MAX_INCLUDE_PARAM);
+        $include = $this->includeResolver->sanitizeInputList($include, self::MAX_INCLUDE_PARAM);
         if (empty($include) && !empty($defaultInclude)) {
             $include = $defaultInclude;
         }
@@ -305,27 +229,6 @@ final class OverviewController extends Controller {
             $v = substr(trim((string)$value), 0, self::MAX_VALUE_LEN);
             if ($v === '') continue;
             $out[] = $v;
-            if (count($out) >= $max) {
-                break;
-            }
-        }
-        return array_values(array_unique($out));
-    }
-
-    /**
-     * @param array<int,mixed> $values
-     * @return array<int,string>
-     */
-    private function sanitizeIncludeList(array $values, int $max): array {
-        $allowed = self::INCLUDE_ALIASES;
-        $out = [];
-        foreach ($values as $value) {
-            $v = strtolower(trim((string)$value));
-            if ($v === '') continue;
-            if (!isset($allowed[$v])) {
-                continue;
-            }
-            $out[] = $allowed[$v];
             if (count($out) >= $max) {
                 break;
             }

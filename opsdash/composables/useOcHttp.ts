@@ -31,15 +31,6 @@ function getRoot(): string {
   return (w.OC && (w.OC.webroot || w.OC.getRootPath?.())) || w._oc_webroot || ''
 }
 
-function buildUrl(name: keyof RouteMap, param?: string): string {
-  const base = ROUTES[name]
-  if (name === 'presetsLoad' || name === 'presetsDelete') {
-    const target = param ? `${base}/${encodeURIComponent(param)}` : base
-    return target
-  }
-  return base
-}
-
 export function useOcHttp() {
   const root = computed(() => getRoot())
 

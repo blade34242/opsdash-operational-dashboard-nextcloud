@@ -174,24 +174,6 @@ final class PersistController extends Controller {
             $reportingSaved = $cleanReporting;
         }
         $reportingRead = $this->userConfigService->readReportingConfig($this->appName, $uid);
-        if (isset($data['targets_config_activity'])) {
-            $activity = $data['targets_config_activity'];
-            if (is_array($activity) && array_key_exists('showDayOffTrend', $activity)) {
-                $currentCfg = $targetsConfigSaved ?? $this->userConfigService->readTargetsConfig($this->appName, $uid);
-                if (is_array($currentCfg)) {
-                    if (!isset($currentCfg['activityCard']) || !is_array($currentCfg['activityCard'])) {
-                        $currentCfg['activityCard'] = [];
-                    }
-                    $currentCfg['activityCard']['showDayOffTrend'] = $activity['showDayOffTrend'] !== false;
-                    if ($resp = $this->writeUserJsonValue($uid, 'targets_config', $currentCfg, 'targets_config')) {
-                        return $resp;
-                    }
-                    $didMutate = true;
-                    $targetsConfigSaved = $currentCfg;
-                    $targetsConfigRead = $currentCfg;
-                }
-            }
-        }
         if (isset($data['deck_settings'])) {
             $cleanDeck = $this->persistSanitizer->sanitizeDeckSettings($data['deck_settings']);
             if ($resp = $this->writeUserJsonValue($uid, 'deck_settings', $cleanDeck, 'deck_settings')) {

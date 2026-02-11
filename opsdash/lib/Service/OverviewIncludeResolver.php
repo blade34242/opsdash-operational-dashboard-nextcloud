@@ -83,6 +83,28 @@ final class OverviewIncludeResolver {
     }
 
     /**
+     * @param array<int,mixed> $values
+     * @return array<int,string>
+     */
+    public function sanitizeInputList(array $values, int $max): array {
+        $out = [];
+        foreach ($values as $value) {
+            $key = strtolower(trim((string)$value));
+            if ($key === '') {
+                continue;
+            }
+            if (!isset(self::INCLUDE_ALIASES[$key])) {
+                continue;
+            }
+            $out[] = self::INCLUDE_ALIASES[$key];
+            if (count($out) >= $max) {
+                break;
+            }
+        }
+        return array_values(array_unique($out));
+    }
+
+    /**
      * @param array<string,bool> $includes
      * @return array{includeAll: bool, includeDebugRequested: bool, includeLookback: bool, includeCharts: bool, includeData: bool}
      */

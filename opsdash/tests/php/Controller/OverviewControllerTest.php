@@ -128,9 +128,9 @@ class OverviewControllerTest extends TestCase {
       $userSession,
       $this->config,
       $viteAssetsService,
-      $calendarAccess,
       $userConfigService,
       $this->loadService,
+      $includeResolver,
       $dashboardDefaultsService,
     );
   }
