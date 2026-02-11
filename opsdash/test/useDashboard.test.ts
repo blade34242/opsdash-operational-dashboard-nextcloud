@@ -286,4 +286,54 @@ describe('useDashboard load', () => {
     expect(fetchNotes).toHaveBeenCalledTimes(2)
     expect(scheduleDraw).toHaveBeenCalledTimes(2)
   })
+
+  it('does not block dashboard loading completion on notes fetch', async () => {
+    const response = {
+      meta: {
+        from: '2024-01-01',
+        to: '2024-01-07',
+      },
+      calendars: [
+        { id: 'cal-1', displayname: 'Calendar 1', color: '#ff0000' },
+      ],
+      colors: {
+        byName: { 'Calendar 1': '#ff0000' },
+        byId: { 'cal-1': '#ff0000' },
+      },
+      groups: { byId: { 'cal-1': 0 } },
+      targets: { week: {}, month: {} },
+      targetsConfig: createDefaultTargetsConfig(),
+      onboarding: {
+        completed: true,
+        version: 1,
+        version_required: 1,
+        needsOnboarding: false,
+      },
+      selected: ['cal-1'],
+      stats: {},
+      byCal: [],
+      byDay: [],
+      longest: [],
+      charts: {},
+    }
+    let resolveNotes: ((value?: unknown) => void) | undefined
+    const fetchNotes = vi.fn().mockImplementation(() => new Promise((resolve) => {
+      resolveNotes = resolve
+    }))
+    const getJson = vi.fn().mockResolvedValue(response)
+    const postJson = vi.fn().mockResolvedValue(response)
+    const dashboard = createDashboard({
+      getJson,
+      postJson,
+      fetchNotes,
+    })
+
+    const loadPromise = dashboard.load()
+    await loadPromise
+
+    expect(fetchNotes).toHaveBeenCalledTimes(1)
+    expect(dashboard.isLoading.value).toBe(false)
+
+    resolveNotes?.()
+  })
 })

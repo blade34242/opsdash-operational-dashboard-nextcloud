@@ -284,7 +284,8 @@ export function useDashboard(deps: DashboardDeps) {
         await nextTick()
         deps.scheduleDraw()
 
-        await deps.fetchNotes().catch(() => {})
+        // Notes should not block dashboard readiness.
+        void deps.fetchNotes().catch(() => {})
       }
 
       const coreParams: Record<string, unknown> = {

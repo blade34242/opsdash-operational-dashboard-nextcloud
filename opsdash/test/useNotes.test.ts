@@ -84,4 +84,43 @@ describe('useNotes', () => {
     expect(notes.notesPrev.value).toBe(notesWeekOffset.notes.previous)
     expect(notes.notesCurrDraft.value).toBe(notesWeekOffset.notes.current)
   })
+
+  it('ignores stale notes responses when requests overlap', async () => {
+    const range = ref<'week' | 'month'>('week')
+    const offset = ref(0)
+    let resolveFirst: ((value: any) => void) | undefined
+    let resolveSecond: ((value: any) => void) | undefined
+    const firstResponse = new Promise<any>((resolve) => { resolveFirst = resolve })
+    const secondResponse = new Promise<any>((resolve) => { resolveSecond = resolve })
+    const getJson = vi.fn()
+      .mockReturnValueOnce(firstResponse)
+      .mockReturnValueOnce(secondResponse)
+    const postJson = vi.fn()
+    const notifySuccess = vi.fn()
+    const notifyError = vi.fn()
+
+    const notes = useNotes({
+      range,
+      offset,
+      route: () => '/notes',
+      getJson,
+      postJson,
+      notifySuccess,
+      notifyError,
+    })
+
+    const firstRequest = notes.fetchNotes()
+    offset.value = 1
+    const secondRequest = notes.fetchNotes()
+
+    resolveSecond?.(notesWeekOffset)
+    await secondRequest
+    resolveFirst?.(notesFixture)
+    await firstRequest
+
+    expect(notes.notesPrev.value).toBe(notesWeekOffset.notes.previous)
+    expect(notes.notesCurrDraft.value).toBe(notesWeekOffset.notes.current)
+    expect(getJson).toHaveBeenNthCalledWith(1, '/notes', { range: 'week', offset: 0 })
+    expect(getJson).toHaveBeenNthCalledWith(2, '/notes', { range: 'week', offset: 1 })
+  })
 })

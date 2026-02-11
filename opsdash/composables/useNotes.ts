@@ -24,6 +24,7 @@ export function useNotes(deps: NotesDeps) {
   const notesCurrDraft = ref('')
   const isSavingNote = ref(false)
   const notesHistory = ref<NotesHistoryEntry[]>([])
+  let fetchSeq = 0
 
   const buildHistoryLabel = (range: 'week' | 'month', from: string, offset: number) => {
     if (range === 'month') {
@@ -40,10 +41,14 @@ export function useNotes(deps: NotesDeps) {
   }
 
   async function fetchNotes() {
+    const seq = ++fetchSeq
+    const requestRange = deps.range.value
+    const requestOffset = deps.offset.value | 0
     const response = await deps.getJson(deps.route('notes'), {
-      range: deps.range.value,
-      offset: deps.offset.value | 0,
+      range: requestRange,
+      offset: requestOffset,
     })
+    if (seq !== fetchSeq) return
     notesPrev.value = String(response?.notes?.previous ?? '')
     notesCurrDraft.value = String(response?.notes?.current ?? '')
     const history = Array.isArray(response?.notes?.history) ? response.notes.history : []
@@ -53,8 +58,8 @@ export function useNotes(deps: NotesDeps) {
         const from = String(entry?.from ?? '').trim()
         const content = String(entry?.content ?? '')
         if (!content.trim()) return null
-        const label = buildHistoryLabel(deps.range.value, from, offset)
-        const title = buildHistoryTitle(deps.range.value, from)
+        const label = buildHistoryLabel(requestRange, from, offset)
+        const title = buildHistoryTitle(requestRange, from)
         return {
           id: `offset-${offset}-${from || idx}`,
           label,

@@ -1376,8 +1376,6 @@ const guidedHints = computed(() => ({
 useDashboardBoot({
   performLoad,
   refreshPresets,
-  range,
-  offset,
   onboardingState,
   hasInitialLoad,
   evaluateOnboarding,

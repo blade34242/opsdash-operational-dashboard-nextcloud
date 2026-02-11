@@ -3,8 +3,6 @@ import { onMounted, watch, type Ref } from 'vue'
 export function useDashboardBoot(options: {
   performLoad: () => Promise<void>
   refreshPresets: () => Promise<void>
-  range: Ref<'week' | 'month'>
-  offset: Ref<number>
   onboardingState: Ref<any>
   hasInitialLoad: Ref<boolean>
   evaluateOnboarding: (state?: any) => void
@@ -13,8 +11,6 @@ export function useDashboardBoot(options: {
   const {
     performLoad,
     refreshPresets,
-    range,
-    offset,
     onboardingState,
     hasInitialLoad,
     evaluateOnboarding,
@@ -43,10 +39,4 @@ export function useDashboardBoot(options: {
     }
     refreshPresets().catch((err) => console.warn('[opsdash] presets fetch failed', err))
   })
-
-  watch(range, () => {
-    offset.value = 0
-    performLoad().catch(console.error)
-  })
 }
-
