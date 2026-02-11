@@ -3,6 +3,8 @@
 All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
+### Changed
+- Bump app version to `0.5.6` for the next development cycle.
 
 ## [0.5.5] - 2026-02-11
 ### Added
