@@ -160,6 +160,10 @@ seed_deck() {
   seed_for_user "$ADMIN_USER" "$QA_USER"
 }
 
+deck_available() {
+  php "$OCC_BIN" app:list | grep -q ' - deck:'
+}
+
 main() {
   require_occ
   echo "[seed] enabling apps calendar+deck"
@@ -172,7 +176,11 @@ main() {
   ensure_user "$QA2_USER" "$QA2_PASS" "QA User 2"
 
   seed_calendars
-  seed_deck
+  if deck_available; then
+    seed_deck
+  else
+    echo "[seed] deck unavailable; skipping deck board/card seed"
+  fi
 
   echo "[seed] done. Test at ${BASE%/}/index.php/apps/opsdash"
 }

@@ -90,15 +90,39 @@ jobs:
           php occ maintenance:install --database=sqlite --database-name=nextcloud --admin-user admin --admin-pass admin
           php occ app:enable $APP_NAME
 
-      - name: Install Deck app
+      - name: Install Deck app (optional)
         working-directory: server
         run: |
-          if php occ app:list --installed | grep -q '\- deck:'; then
-            echo "[deck] already installed"
+          has_deck() {
+            php occ app:list --output=json \
+              | php -r '
+                  $json = json_decode(stream_get_contents(STDIN), true);
+                  $found = false;
+                  foreach (["enabled", "disabled"] as $bucket) {
+                    if (!isset($json[$bucket]) || !is_array($json[$bucket])) continue;
+                    if (array_is_list($json[$bucket])) {
+                      if (in_array("deck", $json[$bucket], true)) { $found = true; break; }
+                    } else {
+                      if (array_key_exists("deck", $json[$bucket])) { $found = true; break; }
+                    }
+                  }
+                  exit($found ? 0 : 1);
+                '
+          }
+          if has_deck; then
+            echo "[deck] app entry already present"
           else
-            php occ app:install deck
+            echo "[deck] trying to install deck from app store"
+            php occ app:install deck || echo "[deck] install failed; continuing without deck"
           fi
-          php occ app:enable deck
+          php occ app:enable deck || echo "[deck] enable failed; continuing without deck"
+          if has_deck; then
+            echo "[deck] available"
+            echo "OPSDASH_DECK_AVAILABLE=1" >> "$GITHUB_ENV"
+          else
+            echo "[deck] unavailable; Deck-dependent seeding will be skipped"
+            echo "OPSDASH_DECK_AVAILABLE=0" >> "$GITHUB_ENV"
+          fi
 
       - name: PHPUnit
         working-directory: server/apps/${{ env.APP_NAME }}

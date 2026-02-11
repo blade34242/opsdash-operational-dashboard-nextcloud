@@ -18,7 +18,8 @@ async function seedCalendarEvent(page: Page, baseURL: string, summary: string, d
   const dtend = format(end)
   const uid = `opsdash-e2e-${Date.now()}@local`
   const ics = `BEGIN:VCALENDAR\nVERSION:2.0\nPRODID:-//Opsdash//Integration Test//EN\nBEGIN:VEVENT\nUID:${uid}\nDTSTAMP:${dtstamp}\nDTSTART:${dtstart}\nDTEND:${dtend}\nSUMMARY:${summary}\nEND:VEVENT\nEND:VCALENDAR\n`
-  const url = `${baseURL}/remote.php/dav/calendars/admin/personal/${encodeURIComponent(uid)}.ics`
+  const encodedUser = encodeURIComponent(PRIMARY_USER)
+  const url = `${baseURL}/remote.php/dav/calendars/${encodedUser}/personal/${encodeURIComponent(uid)}.ics`
   const response = await page.request.put(url, {
     data: ics,
     headers: { 'Content-Type': 'text/calendar' },
@@ -94,6 +95,30 @@ async function openProfilesOverlay(page: Page) {
   }
 
   await expect(dialog).toBeVisible({ timeout: 10000 })
+}
+
+async function resolveNcRoute(page: Page, route: string): Promise<string> {
+  return await page.evaluate((rawRoute) => {
+    const normalized = rawRoute.startsWith('/') ? rawRoute : `/${rawRoute}`
+    const win = window as any
+
+    if (typeof win?.OC?.generateUrl === 'function') {
+      try {
+        return win.OC.generateUrl(normalized)
+      } catch {
+        // Fallback below for environments where generateUrl is not fully initialized.
+      }
+    }
+
+    const root = String((win.OC && (win.OC.webroot || win.OC.getRootPath?.())) || win._oc_webroot || '').replace(/\/$/, '')
+    if (!root) {
+      return `/index.php${normalized}`
+    }
+    if (root.endsWith('/index.php')) {
+      return `${root}${normalized}`
+    }
+    return `${root}/index.php${normalized}`
+  }, route)
 }
 
 async function loginUser(page: Page, baseURL: string, username: string, password: string) {
@@ -238,25 +263,22 @@ test('Config preset can be saved via UI', async ({ page, baseURL }) => {
   await page.goto(baseURL + '/index.php/apps/opsdash/overview')
   await dismissOnboardingIfVisible(page)
   await openProfilesOverlay(page)
+  const presetsUrl = await resolveNcRoute(page, '/apps/opsdash/overview/presets')
 
   await page.getByLabel('Profile name').fill(presetName)
   await page.getByRole('button', { name: 'Save current configuration' }).click()
   await expect.poll(async () => {
-    return await page.evaluate(async (name) => {
-      const response = await fetch('/apps/opsdash/overview/presets', {
-        credentials: 'same-origin',
-      })
-      if (!response.ok) {
-        return false
-      }
-      const payload = await response.json().catch(() => ({}))
-      const list = Array.isArray((payload as any)?.presets)
-        ? (payload as any).presets
-        : Array.isArray(payload)
-          ? payload
-          : []
-      return list.some((entry: any) => String(entry?.name ?? '').trim() === name)
-    }, presetName)
+    const response = await page.request.get(presetsUrl)
+    if (!response.ok()) {
+      return false
+    }
+    const payload = await response.json().catch(() => ({}))
+    const list = Array.isArray((payload as any)?.presets)
+      ? (payload as any).presets
+      : Array.isArray(payload)
+        ? payload
+        : []
+    return list.some((entry: any) => String(entry?.name ?? '').trim() === presetName)
   }, { timeout: 30000 }).toBe(true)
 
   await page.evaluate(async (name) => {
@@ -365,6 +387,7 @@ test('Dashboard handles seeded calendar events without load failures', async ({ 
   await page.goto(baseURL + '/index.php/apps/opsdash/overview')
   await dismissOnboardingIfVisible(page)
   await persistSelection(page, ['personal'])
+  const loadUrl = await resolveNcRoute(page, '/apps/opsdash/overview/load?range=week&offset=0&dbg=1')
 
   const resourceUrl = await seedCalendarEvent(page, baseURL, seededSummary, 30)
   if (!resourceUrl) {
@@ -377,18 +400,17 @@ test('Dashboard handles seeded calendar events without load failures', async ({ 
     expect(seededResource.ok()).toBeTruthy()
 
     await page.getByRole('button', { name: 'Refresh' }).first().click()
-    const loadResult = await page.evaluate(async () => {
-      const win = window as any
-      const root = (win.OC && (win.OC.webroot || win.OC.getRootPath?.())) || win._oc_webroot || ''
-      const response = await fetch(`${root}/apps/opsdash/overview/load?range=week&offset=0&dbg=1`, {
-        credentials: 'same-origin',
-      })
-      if (!response.ok) {
-        return { ok: false }
+    await expect.poll(async () => {
+      const response = await page.request.get(loadUrl)
+      if (!response.ok()) {
+        return false
       }
-      return { ok: true }
-    })
-    expect(loadResult.ok).toBeTruthy()
+      const payload = await response.json().catch(() => null)
+      if (!payload || typeof payload !== 'object') {
+        return false
+      }
+      return !Object.prototype.hasOwnProperty.call(payload, 'error')
+    }, { timeout: 30000 }).toBe(true)
   } finally {
     await removeCalendarResource(page, resourceUrl)
   }
