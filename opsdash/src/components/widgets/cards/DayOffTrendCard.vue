@@ -54,6 +54,7 @@ const props = defineProps<{
   toneHighColor?: string | null
   showHeader?: boolean
   labelMode?: LabelMode
+  reverseTrend?: boolean
 }>()
 
 const historyUnit = computed(() => (props.unit === 'mo' ? 'mo' : 'wk'))
@@ -116,14 +117,18 @@ const normalized = computed<DayOffTrendEntry[]>(() => {
   return entries
 })
 
-const tiles = computed<DayOffTrendTile[]>(() =>
-  normalized.value.map((entry) => {
+const tiles = computed<DayOffTrendTile[]>(() => {
+  const base = normalized.value.map((entry) => {
     const total = Math.max(0, Number(entry.totalDays) || 0)
     const daysOff = Math.max(0, Math.min(total, Number(entry.daysOff) || 0))
     const share = total > 0 ? daysOff / total : 0
     return { ...entry, label: formatLabel(entry), share, tone: classifyTone(share) }
-  }),
-)
+  })
+  if (props.reverseTrend) {
+    return base.slice().reverse()
+  }
+  return base
+})
 
 const lookbackLabel = computed(() => {
   const history = historyCount.value

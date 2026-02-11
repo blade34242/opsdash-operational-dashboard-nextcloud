@@ -17,12 +17,14 @@ export const dayOffTrendEntry: RegistryEntry = {
   configurable: true,
   defaultOptions: {
     showBadges: true,
+    reverseTrend: false,
     labelMode: 'period',
     toneLowColor: '#dc2626',
     toneHighColor: '#16a34a',
   },
   controls: [
     { key: 'showBadges', label: 'Show badges', type: 'toggle' },
+    { key: 'reverseTrend', label: 'Oldest first (reverse)', type: 'toggle' },
     {
       key: 'labelMode',
       label: 'Trend label',
@@ -42,6 +44,7 @@ export const dayOffTrendEntry: RegistryEntry = {
     lookback: ctx.activityDayOffLookback ?? 3,
     showHeader: def.options?.showHeader !== false,
     showBadges: def.options?.showBadges !== false,
+    reverseTrend: def.options?.reverseTrend === true,
     labelMode: def.options?.labelMode,
     title: buildTitle(baseTitle, def.options?.titlePrefix),
     cardBg: def.options?.cardBg,

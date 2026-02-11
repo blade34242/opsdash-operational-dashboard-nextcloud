@@ -18,13 +18,13 @@
     <div class="mix-columns" :style="mixHeaderStyle" v-if="historyColumns.length || trendRows.length">
       <span class="mix-column-label mix-column-label--label">CAT</span>
       <span
-        v-for="column in historyColumns"
-        :key="`col-${column.offset}`"
+        v-for="column in displayColumns"
+        :key="column.key"
         class="mix-column-label"
+        :class="{ 'mix-column-label--current': column.isCurrent }"
       >
         {{ column.label }}
       </span>
-      <span class="mix-column-label mix-column-label--current">{{ currentColumnLabel }}</span>
     </div>
     <ul class="mix-list" v-if="trendRows.length">
       <li v-for="row in trendRows" :key="row.id" class="mix-row">
@@ -93,6 +93,7 @@ const props = defineProps<{
   density?: DensityMode
   labelMode?: LabelMode
   squareCells?: boolean
+  reverseTrend?: boolean
   rangeLabel?: string
   from?: string
   to?: string
@@ -178,7 +179,30 @@ const historyColumns = computed<TrendHistoryColumn[]>(() => {
   return Array.from(byOffset.values()).sort((a, b) => b.offset - a.offset)
 })
 
-const columnCount = computed(() => historyColumns.value.length + 1)
+const displayColumns = computed(() => {
+  const columns = [
+    ...historyColumns.value.map((column) => ({
+      key: `col-${column.offset}`,
+      offset: column.offset,
+      label: column.label,
+      isCurrent: false,
+      shares: column.shares,
+    })),
+    {
+      key: 'col-current',
+      offset: 0,
+      label: currentColumnLabel.value,
+      isCurrent: true,
+      shares: null,
+    },
+  ]
+  if (props.reverseTrend) {
+    return columns.slice().reverse()
+  }
+  return columns
+})
+
+const columnCount = computed(() => displayColumns.value.length)
 const mixHeaderStyle = computed(() => {
   const count = Math.max(columnCount.value, 1)
   const labelCol = 'minmax(0, var(--mix-label-width, 52px))'
@@ -226,16 +250,12 @@ const trendRows = computed(() => {
   if (!props.overview) return []
   const categories = props.overview.categories ?? []
   return categories.map((cat) => {
-    const historyEntries = historyColumns.value.map((column) => ({
-      label: column.label,
-      share: column.shares[cat.id] ?? 0,
-      isCurrent: false,
-    }))
     const currentShare = typeof cat.share === 'number' ? cat.share : 0
-    const slots = [
-      ...historyEntries,
-      { label: currentColumnLabel.value, share: currentShare, isCurrent: true },
-    ]
+    const slots = displayColumns.value.map((column) => ({
+      label: column.label,
+      share: column.isCurrent ? currentShare : (column.shares?.[cat.id] ?? 0),
+      isCurrent: column.isCurrent,
+    }))
     const cells = slots.map((slot, idx) => {
       const prevShare = idx === 0 ? slot.share : slots[idx - 1].share
       const delta = slot.share - prevShare

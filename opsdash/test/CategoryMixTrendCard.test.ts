@@ -28,4 +28,39 @@ describe('CategoryMixTrendCard', () => {
     expect(cells.length).toBeGreaterThan(1)
     expect(cells.some((el) => el.style.getPropertyValue('--mix-bg').includes('#111111'))).toBe(true)
   })
+
+  it('reverses history columns when reverseTrend is enabled', () => {
+    const props = {
+      overview: {
+        categories: [
+          { id: 'work', label: 'Work', share: 30 },
+        ],
+        trend: {
+          history: [
+            { offset: 1, label: '-1', categories: [{ id: 'work', label: 'Work', share: 50 }] },
+            { offset: 2, label: '-2', categories: [{ id: 'work', label: 'Work', share: 60 }] },
+          ],
+        },
+      },
+      rangeMode: 'week' as const,
+      lookbackWeeks: 2,
+      labelMode: 'offset' as const,
+    }
+
+    const normal = mount(CategoryMixTrendCard, { props })
+    expect(normal.findAll('.mix-column-label').map((node) => node.text()).slice(1)).toEqual([
+      '-2',
+      '-1',
+      'Current',
+    ])
+
+    const reversed = mount(CategoryMixTrendCard, {
+      props: { ...props, reverseTrend: true },
+    })
+    expect(reversed.findAll('.mix-column-label').map((node) => node.text()).slice(1)).toEqual([
+      'Current',
+      '-1',
+      '-2',
+    ])
+  })
 })

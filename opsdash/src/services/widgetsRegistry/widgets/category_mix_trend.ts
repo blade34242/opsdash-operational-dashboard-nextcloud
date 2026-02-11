@@ -19,6 +19,7 @@ export const categoryMixTrendEntry: RegistryEntry = {
     labelMode: 'period',
     colorMode: 'hybrid',
     squareCells: false,
+    reverseTrend: false,
     showHeader: true,
     showBadge: true,
   },
@@ -34,6 +35,7 @@ export const categoryMixTrendEntry: RegistryEntry = {
       ],
     },
     { key: 'squareCells', label: 'Square cells', type: 'toggle' },
+    { key: 'reverseTrend', label: 'Oldest first (reverse)', type: 'toggle' },
     {
       key: 'labelMode',
       label: 'History label',
@@ -74,6 +76,7 @@ export const categoryMixTrendEntry: RegistryEntry = {
     density: def.options?.density,
     labelMode: def.options?.labelMode,
     squareCells: def.options?.squareCells === true,
+    reverseTrend: def.options?.reverseTrend === true,
     colorMode: def.options?.colorMode,
     title: buildTitle(baseTitle, def.options?.titlePrefix),
     cardBg: def.options?.cardBg,
