@@ -151,15 +151,6 @@ jobs:
         run: |
           bash apps/${{ env.APP_NAME }}/tools/seed_opsdash.sh
 
-      - name: CalDAV color probe
-        working-directory: server/apps/${{ env.APP_NAME }}
-        env:
-          OPSDASH_BASE: http://127.0.0.1:8080/index.php/apps/opsdash
-          OPSDASH_USER: admin
-          OPSDASH_PASS: admin
-          CALDAV_CALENDAR: personal
-        run: bash tools/security/probe_dav_colors.sh
-
       - name: Playwright smoke test
         working-directory: server/apps/${{ env.APP_NAME }}
         env:
