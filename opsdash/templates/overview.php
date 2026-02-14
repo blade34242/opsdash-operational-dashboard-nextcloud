@@ -21,35 +21,38 @@ $defaultWidgetsJson = json_encode($defaultWidgets, JSON_HEX_TAG | JSON_HEX_AMP |
       min-height: calc(100vh - 56px);
       background: var(--color-main-background, #f6f7f9);
       color: var(--color-main-text, #1f2937);
+      padding: 20px 16px;
     }
     #content.app-opsdash #app .opsdash-boot {
-      max-width: 640px;
-      margin: 24px auto;
-      padding: 20px 22px;
-      border-radius: 16px;
-      background: var(--color-main-background, #ffffff);
+      max-width: 680px;
+      margin: 20px auto;
+      padding: 24px 24px 20px;
+      border-radius: 18px;
+      background: color-mix(in srgb, var(--color-main-background, #ffffff) 88%, var(--color-primary-element, #0082c9) 12%);
       border: 1px solid var(--color-border, #e5e7eb);
-      box-shadow: 0 10px 30px rgba(15, 23, 42, 0.08);
+      box-shadow: 0 8px 24px rgba(15, 23, 42, 0.08);
     }
     #content.app-opsdash #app .opsdash-boot__title {
-      font-size: 16px;
+      font-size: 17px;
       font-weight: 600;
-      margin-bottom: 8px;
+      margin-bottom: 6px;
+      letter-spacing: 0.01em;
     }
     #content.app-opsdash #app .opsdash-boot__hint {
       font-size: 13px;
       color: var(--color-text-maxcontrast, #6b7280);
       margin-top: 8px;
+      line-height: 1.45;
     }
     #content.app-opsdash #app .opsdash-boot__bars {
       display: grid;
-      gap: 10px;
-      margin-top: 14px;
+      gap: 9px;
+      margin-top: 13px;
     }
     #content.app-opsdash #app .opsdash-boot__bar {
-      height: 10px;
+      height: 8px;
       border-radius: 999px;
-      background: linear-gradient(90deg, rgba(148, 163, 184, 0.25), rgba(148, 163, 184, 0.45));
+      background: linear-gradient(90deg, rgba(148, 163, 184, 0.22), rgba(148, 163, 184, 0.42));
       overflow: hidden;
       position: relative;
     }
@@ -70,12 +73,12 @@ $defaultWidgetsJson = json_encode($defaultWidgets, JSON_HEX_TAG | JSON_HEX_AMP |
     }
   </style>
   <div class="opsdash-boot">
-    <div class="opsdash-boot__title">Operational Dashboard is loading…</div>
+    <div class="opsdash-boot__title">Preparing your dashboard…</div>
     <div class="opsdash-boot__bars">
       <div class="opsdash-boot__bar opsdash-boot__bar--full"></div>
       <div class="opsdash-boot__bar opsdash-boot__bar--medium"></div>
       <div class="opsdash-boot__bar opsdash-boot__bar--short"></div>
     </div>
-    <div class="opsdash-boot__hint">If this stays, the JS bundle may be missing.</div>
+    <div class="opsdash-boot__hint">This usually takes a moment on first load.</div>
   </div>
 </div>
