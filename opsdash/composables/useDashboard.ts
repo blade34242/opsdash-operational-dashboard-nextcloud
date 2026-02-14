@@ -205,7 +205,12 @@ export function useDashboard(deps: DashboardDeps) {
         calendars.value = normalizedCalendars
         colorsByName.value = nextColorsByName
         colorsById.value = nextColorsById
-        onboarding.value = json.onboarding ? { ...json.onboarding } : null
+        // Some partial payloads may omit onboarding; keep existing state unless server explicitly sends it.
+        if (Object.prototype.hasOwnProperty.call(json, 'onboarding')) {
+          onboarding.value = json.onboarding && typeof json.onboarding === 'object'
+            ? { ...json.onboarding }
+            : null
+        }
         reportingConfig.value = normalizeReportingConfig(json.reportingConfig, reportingConfig.value)
         deckSettings.value = normalizeDeckSettings(json.deckSettings, deckSettings.value)
         if (json.widgetPresets) {
