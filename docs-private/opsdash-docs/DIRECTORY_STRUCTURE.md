@@ -5,7 +5,7 @@ This documents the required tree for the Nextcloud App Store package. Only files
 Required top-level (shipped)
 - appinfo/
   - info.xml (metadata)
-  - signatures/ (after signing)
+  - signature.json (after signing)
 - lib/ (PHP controllers/services)
 - templates/ (PHP templates)
 - css/ (built styles)
@@ -29,7 +29,7 @@ Reference tree (minimal example)
 opsdash/
   appinfo/
     info.xml
-    signatures/
+    signature.json
   css/
     style.css
   js/
@@ -61,4 +61,4 @@ opsdash/
 Notes
 - The controller resolves JS and CSS entries via the Vite manifest; hashed filenames under `js/assets/` are referenced automatically.
 - Keep info.xml and package.json versions aligned before building.
-- After signing, `appinfo/signatures/*.json` must be present in the shipped app.
+- After signing, `appinfo/signature.json` must be present in the shipped app.

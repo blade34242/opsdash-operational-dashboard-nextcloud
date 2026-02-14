@@ -46,6 +46,7 @@ appstore: clean
 	  --exclude='.git' --exclude='.github' --exclude='.idea' --exclude='.vscode' \
 	  --exclude='node_modules' --exclude='.vite' --exclude='dist' \
 	  --exclude='playwright-report' --exclude='test-results' \
+	  --exclude='docs-private' \
 	  $(SRC_DIR)/ $(APP_BUILD_DIR)/
 	cd $(APP_BUILD_DIR) && npm ci
 	cd $(APP_BUILD_DIR) && npm run build
@@ -57,7 +58,7 @@ appstore: clean
 	  $(APP_BUILD_DIR)/.vscode $(APP_BUILD_DIR)/.idea \
 	  $(APP_BUILD_DIR)/.github $(APP_BUILD_DIR)/tools \
 	  $(APP_BUILD_DIR)/docker-compose*.yml $(APP_BUILD_DIR)/Dockerfile \
-	  $(APP_BUILD_DIR)/src $(APP_BUILD_DIR)/docs
+	  $(APP_BUILD_DIR)/src $(APP_BUILD_DIR)/docs $(APP_BUILD_DIR)/docs-private
 	rm -f $(APP_BUILD_DIR)/package-lock.json $(APP_BUILD_DIR)/pnpm-lock.yaml $(APP_BUILD_DIR)/yarn.lock
 	@echo "[make] Creating tarball"
 	mkdir -p $(DIST_DIR)

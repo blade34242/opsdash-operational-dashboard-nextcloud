@@ -7,6 +7,7 @@ use DateTimeImmutable;
 use DateTimeInterface;
 use DateTimeZone;
 use JsonSerializable;
+use OCP\App\IAppManager;
 use OCP\ICacheFactory;
 use OCP\IConfig;
 use OCP\Server;
@@ -21,6 +22,7 @@ class DeckDataService {
         private LoggerInterface $logger,
         private ICacheFactory $cacheFactory,
         private IConfig $config,
+        private IAppManager $appManager,
     ) {
     }
 
@@ -194,11 +196,10 @@ class DeckDataService {
             return false;
         }
         try {
-            $appManager = \OC::$server->getAppManager();
-            if (!$appManager->isInstalled('deck') || !$appManager->isEnabledForUser('deck')) {
+            if (!$this->appManager->isInstalled('deck') || !$this->appManager->isEnabledForUser('deck')) {
                 return false;
             }
-            $appManager->loadApp('deck');
+            $this->appManager->loadApp('deck');
         } catch (\Throwable $e) {
             $this->logger->error('Deck app check failed: ' . $e->getMessage(), ['app' => 'opsdash']);
             return false;

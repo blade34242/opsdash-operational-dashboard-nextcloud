@@ -5,7 +5,9 @@ namespace OCA\Opsdash\Service;
 
 use DateTimeImmutable;
 use DateTimeZone;
+use OCP\App\IAppManager;
 use OCP\IUserManager;
+use OCP\IUserSession;
 use OCP\Server;
 
 class DeckSeedException extends \RuntimeException {}
@@ -13,6 +15,8 @@ class DeckSeedException extends \RuntimeException {}
 class DeckSeedService {
     public function __construct(
         private IUserManager $userManager,
+        private IUserSession $userSession,
+        private IAppManager $appManager,
     ) {
     }
 
@@ -38,9 +42,8 @@ class DeckSeedService {
 
         // Ensure Deck sees a logged-in user for activity entries.
         try {
-            $userSession = \OC::$server->getUserSession();
-            if ($userSession && method_exists($userSession, 'setUser')) {
-                $userSession->setUser($user);
+            if (method_exists($this->userSession, 'setUser')) {
+                $this->userSession->setUser($user);
             }
         } catch (\Throwable $e) {
             // Non-fatal: continue if session binding fails
@@ -118,11 +121,10 @@ class DeckSeedService {
         if (!class_exists('OCA\\Deck\\AppInfo\\Application')) {
             throw new DeckSeedException('Deck app is not installed. Enable Deck before seeding.');
         }
-        $appManager = \OC::$server->getAppManager();
-        if (!$appManager->isInstalled('deck') || !$appManager->isEnabledForUser('deck')) {
+        if (!$this->appManager->isInstalled('deck') || !$this->appManager->isEnabledForUser('deck')) {
             throw new DeckSeedException('Deck app is disabled. Enable Deck before seeding.');
         }
-        $appManager->loadApp('deck');
+        $this->appManager->loadApp('deck');
     }
 
     /**

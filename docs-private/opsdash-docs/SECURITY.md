@@ -21,8 +21,8 @@
 
 ## CSP
 - No inline scripts; CSS extracted and loaded via `Util::addStyle`.
-- Template fallback uses CSS classes (no inline styles).
-- Remaining dynamic styles are limited to color dots; consider palette classes if strict CSP forbids any inline styles.
+- Template fallback currently includes a small inline `<style>` block for the boot skeleton.
+- Remaining dynamic styles are limited to color dots; consider palette classes if strict CSP forbids inline styles.
 
 ## Recommendations
 - Keep debug level off in production.

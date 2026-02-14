@@ -4,8 +4,10 @@ declare(strict_types=1);
 namespace OCA\Opsdash\Tests\Service;
 
 use OCA\Opsdash\Service\DeckSeedService;
+use OCP\App\IAppManager;
 use OCP\IUser;
 use OCP\IUserManager;
+use OCP\IUserSession;
 use PHPUnit\Framework\TestCase;
 use ReflectionMethod;
 
@@ -17,7 +19,11 @@ class DeckSeedServiceTest extends TestCase {
             return $uid === $userId ? $user : null;
         });
 
-        return new DeckSeedService($userManager);
+        return new DeckSeedService(
+            $userManager,
+            $this->createMock(IUserSession::class),
+            $this->createMock(IAppManager::class),
+        );
     }
 
     private function callNormalize(DeckSeedService $service, string $color): string {
@@ -46,7 +52,11 @@ class DeckSeedServiceTest extends TestCase {
     public function testSeedThrowsWhenUserMissing(): void {
         $userManager = $this->createMock(IUserManager::class);
         $userManager->method('get')->willReturn(null);
-        $service = new DeckSeedService($userManager);
+        $service = new DeckSeedService(
+            $userManager,
+            $this->createMock(IUserSession::class),
+            $this->createMock(IAppManager::class),
+        );
 
         $this->expectException(\OCA\Opsdash\Service\DeckSeedException::class);
         $service->seed(['userId' => 'ghost']);

@@ -2,11 +2,14 @@
 
 All notable changes to this project will be documented in this file.
 
-## [Unreleased]
-### Changed
-- Bump app version to `0.5.6` for the next development cycle.
+## Unreleased
+- None yet.
 
-## [0.5.5] - 2026-02-11
+## 0.5.6 - 2026-02-14
+### Changed
+- App Store release hardening: metadata, packaging hygiene, docs consistency, and public API alignment.
+
+## 0.5.5 - 2026-02-11
 ### Added
 - Balance overview now surfaces a compact Balance index badge in the card header.
 - Sidebar navigation is explicitly registered so Opsdash appears in Nextcloud’s app menu (and NC max version extended to 32).
@@ -74,14 +77,14 @@ All notable changes to this project will be documented in this file.
 - Widget layouts now persist as a tabbed payload (`{ tabs, defaultTabId }`), with legacy arrays normalized into a single tab.
 - Layout toolbar is left-aligned and tab visuals are more pronounced for quick scanning (dark theme contrast improved).
 
-## [0.4.7] - Unreleased
+## 0.4.7
 ### Added
 - Targets card and By Calendar progress bars now show today's hours as an overlay in the same series color, including the over-100% portion.
 - Dashboard cards render through a widget registry and grid layout (`DashboardLayout`) so we can introduce an editor mode later.
 ### Changed
 - Bump version to 0.4.7 and update fixtures/export metadata.
 
-## [0.4.6] - Unreleased
+## 0.4.6
 ### Added
 - Keyboard shortcuts overlay + `useKeyboardShortcuts` composable: Alt+←/→ navigation, Alt+N notes pane, Alt+T Config & Setup, Ctrl/⌘+S note save, and `?` cheat sheet.
 - QA month + notes fixtures (`load-month-qa.json`, `notes-month-qa.json`) wired into Vitest + PHPUnit to keep `/overview/load` + `/overview/notes` schema coverage in sync.
@@ -108,7 +111,7 @@ All notable changes to this project will be documented in this file.
 - `cleanBalanceConfig()` propagates `showNotes`, so `/overview/persist` always echoes all balance UI toggles and the client no longer re-injects missing fields.
 - Fixed `/overview/load` crashes when all-day events were normalised without a pass-by-reference day map (Nextcloud 31’s controller now updates the accumulator safely).
 
-## [0.4.5] - 2025-11-10
+## 0.4.5 - 2025-11-10
 ### Added
 - GitHub Actions matrix that provisions Nextcloud server branches (`stable30`, `stable31`) across PHP 8.2/8.3 and runs Vitest, PHPUnit, and Playwright.
 - Playwright flow that re-runs onboarding and saves a preset to guard main UI paths.
@@ -126,5 +129,5 @@ All notable changes to this project will be documented in this file.
 - Preset names are sanitised end-to-end (API + UI) after fuzz testing uncovered path/HTML issues.
 - Notes endpoint enforces CSRF tokens even for curl clients.
 
-## [0.4.4] - 2025-10-20
+## 0.4.4 - 2025-10-20
 - First public beta: calendar overview, targets/pacing widgets, presets, onboarding wizard, notes panel, theme syncing.

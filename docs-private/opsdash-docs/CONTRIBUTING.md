@@ -10,7 +10,7 @@ Thanks for your interest in improving this app! A few guidelines:
 
 ## Coding Standards
 - PHP: PSR-12, strict types where possible, thin controllers, logic in services.
-- TypeScript: strict mode; avoid `any`; keep components small (<150 LOC).
+- TypeScript: prefer strict typing, avoid `any`, keep components small (<150 LOC).
 - Security: never add state changes to read endpoints; POST+CSRF for writes.
 - CSP: no inline scripts; minimize inline styles (prefer CSS classes/files).
 

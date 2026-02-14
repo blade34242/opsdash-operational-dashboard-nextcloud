@@ -21,6 +21,8 @@ need curl
 need jq
 
 AUTH_CURL=(curl -s -f -u "$USER:$PASS" -H 'OCS-APIREQUEST: true')
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+. "$SCRIPT_DIR/_token.sh"
 
 TMP=$(mktemp)
 trap 'rm -f "$TMP"' EXIT
@@ -84,7 +86,12 @@ payload=$(jq -n \
   }')
 
 echo "[onboarding] Replaying wizard payload (strategy=$strategy, theme=$theme)"
-if ! response=$("${AUTH_CURL[@]}" -H 'Content-Type: application/json' -X POST "$PERSIST_URL" --data "$payload"); then
+TOKEN=$(fetch_requesttoken "$BASE" "$USER" "$PASS" || true)
+if [ -z "$TOKEN" ]; then
+  echo "Failed to extract requesttoken from overview HTML" >&2
+  exit 1
+fi
+if ! response=$("${AUTH_CURL[@]}" -H 'Content-Type: application/json' -H "requesttoken: $TOKEN" -X POST "$PERSIST_URL" --data "$payload"); then
   echo "Failed to persist onboarding payload" >&2
   exit 7
 fi

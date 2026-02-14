@@ -65,12 +65,7 @@ final class OverviewController extends Controller {
         }
         \OCP\Util::addScript($this->appName, $assets['script']);
         // Expose version and optional changelog URL to template
-        $version = '';
-        try {
-            if (class_exists('OC_App') && method_exists(\OC_App::class, 'getAppVersion')) {
-                $version = (string) (\OC_App::getAppVersion($this->appName) ?? '');
-            }
-        } catch (\Throwable) { }
+        $version = $this->resolveAppVersion();
         $changelog = '';
         try {
             $changelog = (string)$this->config->getAppValue($this->appName, 'changelog_url', '');
@@ -102,8 +97,7 @@ final class OverviewController extends Controller {
     #[NoAdminRequired]
     #[NoCSRFRequired]
     public function ping(): DataResponse {
-        $version = '';
-        try { if (class_exists('OC_App') && method_exists(\OC_App::class, 'getAppVersion')) { $version = (string)(\OC_App::getAppVersion($this->appName) ?? ''); } } catch (\Throwable) {}
+        $version = $this->resolveAppVersion();
         $changelog = '';
         try { $changelog = (string)$this->config->getAppValue($this->appName, 'changelog_url', ''); } catch (\Throwable) {}
         return new DataResponse([
@@ -253,6 +247,21 @@ final class OverviewController extends Controller {
             }
         }
         return false;
+    }
+
+    private function resolveAppVersion(): string {
+        try {
+            $infoPath = dirname(__DIR__, 2) . '/appinfo/info.xml';
+            $xml = @file_get_contents($infoPath);
+            if (!is_string($xml) || $xml === '') {
+                return '';
+            }
+            if (preg_match('/<version>([^<]+)<\/version>/', $xml, $matches) === 1) {
+                return trim((string)$matches[1]);
+            }
+        } catch (\Throwable) {
+        }
+        return '';
     }
 
 }

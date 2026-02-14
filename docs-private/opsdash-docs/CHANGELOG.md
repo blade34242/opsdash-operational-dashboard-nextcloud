@@ -3,7 +3,7 @@
 This file is a short internal log. Full release notes live in the repo root `CHANGELOG.md`.
 
 ## Unreleased
-- Version bump: current development line is now `0.5.6`.
+- None yet.
 
 ## 0.5.5 - 2026-02-11
 - Performance: `OverviewEventsCollector` now caches identical collect calls within one `/overview/load` request to reduce repeated calendar scans.

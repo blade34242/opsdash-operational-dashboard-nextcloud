@@ -12,13 +12,7 @@ final class ViteAssetsService {
      * @return array{script: string, styles: string[]}
      */
     public function resolveBuiltAssets(string $appName): array {
-        if (!class_exists('OC_App') || !method_exists(\OC_App::class, 'getAppPath')) {
-            throw new \RuntimeException('Unable to locate app path (OC_App::getAppPath unavailable)');
-        }
-        $appPath = \OC_App::getAppPath($appName);
-        if (!is_string($appPath) || $appPath === '') {
-            throw new \RuntimeException('Unable to resolve app path for ' . $appName);
-        }
+        $appPath = dirname(__DIR__, 2);
         $manifestPath = $appPath . '/js/.vite/manifest.json';
         if (!is_readable($manifestPath)) {
             throw new \RuntimeException('Vite manifest not found: ' . $manifestPath);
@@ -63,4 +57,3 @@ final class ViteAssetsService {
         ];
     }
 }
-

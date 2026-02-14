@@ -33,6 +33,7 @@ $interfaceStubs = [
 	\OCP\IConfig::class => '/stubs/OCP/IConfig.php',
 	\OCP\ICache::class => '/stubs/OCP/ICache.php',
 	\OCP\ICacheFactory::class => '/stubs/OCP/ICacheFactory.php',
+	\OCP\App\IAppManager::class => '/stubs/OCP/App/IAppManager.php',
 	\Psr\Log\LoggerInterface::class => '/stubs/Psr/Log/LoggerInterface.php',
 ];
 

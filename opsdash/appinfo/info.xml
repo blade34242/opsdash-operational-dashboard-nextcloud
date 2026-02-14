@@ -5,8 +5,11 @@
   <summary>Calendar analytics &amp; targets inside Nextcloud</summary>
   <description><![CDATA[Opsdash turns calendar data into week/month dashboards: totals, pacing badges, balance charts, presets, and an onboarding wizard. The SPA runs entirely inside Nextcloud, inherited its theme, and stores every preference per user.]]></description>
   <version>0.5.6</version>
-  <licence>agpl</licence>
+  <licence>AGPL-3.0-or-later</licence>
   <author>Gellert Innovation</author>
+  <website>https://github.com/blade34242/opsdash-operational-dashboard-nextcloud</website>
+  <bugs>https://github.com/blade34242/opsdash-operational-dashboard-nextcloud/issues</bugs>
+  <repository>https://github.com/blade34242/opsdash-operational-dashboard-nextcloud</repository>
   <namespace>Opsdash</namespace>
   <bootstrap>OCA\Opsdash\AppInfo\Application</bootstrap>
   <category>tools</category>

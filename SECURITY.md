@@ -1,7 +1,7 @@
 # Security Policy
 
 ## Supported Versions
-We currently support the 0.4.x line (Nextcloud 30–31). Future 0.5.x releases will be listed here once NC 32 is officially supported.
+We currently support the 0.5.x line (Nextcloud 30-32).
 
 ## Reporting a Vulnerability
 - **Preferred**: open a private report via GitHub Security Advisories for this repository.
