@@ -34,7 +34,7 @@ This file is a short internal log. Full release notes live in the repo root `CHA
 - Frontend: component tree grouped into feature folders (widgets/charts/tables/panels) and unused sidebar panes removed.
 - E2E: dashboard spec is now focused on startup/config smoke coverage (deck-specific tab assertions removed to avoid env-specific skips/flakes).
 
-## 0.5.6 (current line)
+## 0.5.7 (current line)
 - Widget-driven dashboard with tabbed layouts.
 - Profile save/load backed by `/overview/presets` endpoint.
 - Targets + balance config sanitisation tightened server-side.

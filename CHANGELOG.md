@@ -5,9 +5,15 @@ All notable changes to this project will be documented in this file.
 ## Unreleased
 - None yet.
 
-## 0.5.6 - 2026-02-14
+## 0.5.7 - 2026-02-14
 ### Changed
 - App Store release hardening: metadata, packaging hygiene, docs consistency, and public API alignment.
+- Onboarding wizard panel now uses a consistent window size across steps, with internal scrolling for overflow to avoid layout jumping.
+- Onboarding review step redesigned into a richer executive recap: grouped configuration cards, readiness checks, and direct edit/fix actions per area.
+- Onboarding review typography and spacing refined for clearer hierarchy and improved screenshot quality.
+
+### Fixed
+- Light-theme onboarding headings were too muted; key titles (welcome/step/card headings) now render with stronger contrast.
 
 ## 0.5.5 - 2026-02-11
 ### Added

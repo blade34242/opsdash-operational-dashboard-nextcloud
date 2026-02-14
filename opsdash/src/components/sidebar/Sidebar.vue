@@ -90,11 +90,10 @@
           </svg>
         </button>
         <button
-          v-if="props.dashboardMode !== 'quick'"
           type="button"
           class="sidebar-icon-btn sidebar-icon-btn--profile"
-          title="Profiles"
-          aria-label="Profiles"
+          title="Profiles and backups"
+          aria-label="Profiles and backups"
           @click="emit('open-profiles')"
         >
           <svg class="sidebar-icon sidebar-icon--profile" viewBox="0 0 24 24" aria-hidden="true">

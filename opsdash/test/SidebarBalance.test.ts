@@ -69,7 +69,7 @@ describe('Sidebar layout', () => {
   it('renders the range bar and profiles trigger without legacy controls', () => {
     const wrapper = mountSidebar()
     expect(wrapper.find('.rangebar').exists()).toBe(true)
-    expect(wrapper.find('button[aria-label="Profiles"]').exists()).toBe(true)
+    expect(wrapper.find('button[aria-label="Profiles and backups"]').exists()).toBe(true)
     expect(wrapper.text()).not.toContain('Projection mode')
     expect(wrapper.text()).not.toContain('Trend lookback')
   })

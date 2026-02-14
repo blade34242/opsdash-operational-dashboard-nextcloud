@@ -1290,6 +1290,10 @@
   border-bottom:1px solid color-mix(in oklab, var(--line), transparent 10%);
   padding-bottom:2px;
 }
+#opsdash .tab-item{
+  display:inline-flex;
+  align-items:stretch;
+}
 #opsdash .cards-toolbar__center{
   display:flex;
   align-items:center;
@@ -1353,6 +1357,9 @@
   position:relative;
   box-shadow:0 1px 0 rgba(15,23,42,0.04);
 }
+#opsdash .tab-btn--with-menu{
+  border-radius:6px 0 0 0;
+}
 #opsdash .tab-btn.active{
   color:var(--fg);
   background:var(--card);
@@ -1383,6 +1390,29 @@
   color:var(--muted);
   background:color-mix(in oklab, var(--card), transparent 40%);
   box-shadow:none;
+}
+#opsdash .tab-menu-btn{
+  appearance:none;
+  border:1px solid color-mix(in oklab, var(--line), transparent 10%);
+  border-bottom:0;
+  border-left:0;
+  background:color-mix(in oklab, var(--card), var(--soft) 12%);
+  color:var(--muted);
+  padding:6px 8px 5px;
+  border-radius:0 6px 0 0;
+  font-weight:700;
+  cursor:pointer;
+  line-height:1;
+  min-width:28px;
+}
+#opsdash .tab-menu-btn:hover{
+  background:color-mix(in oklab, var(--brand), var(--card) 90%);
+  color:var(--fg);
+}
+#opsdash .tab-menu-btn.active{
+  background:var(--card);
+  border-color:color-mix(in oklab, var(--brand), var(--line) 60%);
+  color:var(--fg);
 }
 #opsdash .tab-input{
   min-width:120px;
@@ -1472,7 +1502,17 @@
   color:var(--opsdash-muted);
   box-shadow:none;
 }
+#opsdash.opsdash-theme-dark .tab-menu-btn{
+  background:#0d1526;
+  border-color:var(--opsdash-border);
+  color:var(--opsdash-muted);
+}
 #opsdash.opsdash-theme-dark .tab-btn.active{
+  background:#13203a;
+  border-color:color-mix(in oklab, var(--opsdash-accent), transparent 20%);
+  color:var(--opsdash-text);
+}
+#opsdash.opsdash-theme-dark .tab-menu-btn.active{
   background:#13203a;
   border-color:color-mix(in oklab, var(--opsdash-accent), transparent 20%);
   color:var(--opsdash-text);
@@ -1519,7 +1559,17 @@
   color:var(--opsdash-muted);
   box-shadow:none;
 }
+#opsdash.opsdash-theme-light .tab-menu-btn{
+  background:#ffffff;
+  border-color:var(--opsdash-border);
+  color:var(--opsdash-muted);
+}
 #opsdash.opsdash-theme-light .tab-btn.active{
+  background:var(--opsdash-card);
+  border-color:var(--opsdash-border);
+  color:var(--opsdash-text);
+}
+#opsdash.opsdash-theme-light .tab-menu-btn.active{
   background:var(--opsdash-card);
   border-color:var(--opsdash-border);
   color:var(--opsdash-text);

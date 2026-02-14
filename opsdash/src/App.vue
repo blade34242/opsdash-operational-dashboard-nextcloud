@@ -142,32 +142,51 @@
 
             <div class="cards-toolbar">
               <div class="cards-toolbar__tabs" role="tablist" aria-label="Dashboard tabs">
-                <button
+                <div
                   v-for="tab in layoutTabs"
                   :key="tab.id"
-                  type="button"
-                  class="tab-btn"
-                  :class="{ active: tab.id === activeTabId, default: tab.id === defaultTabId }"
-                  role="tab"
-                  :aria-selected="tab.id === activeTabId"
-                  @click="handleTabClick(tab.id)"
-                  @contextmenu.prevent="openTabContextMenu($event, tab.id)"
+                  class="tab-item"
+                  :class="{ active: tab.id === activeTabId }"
                 >
-                  <template v-if="isLayoutEditing && tabEditingId === tab.id">
-                    <input
-                      class="tab-input"
-                      v-model="tabLabelDraft"
-                      @blur="commitTabLabel"
-                      @keydown.enter.prevent="commitTabLabel"
-                      @keydown.esc.prevent="cancelTabLabel"
-                      @click.stop
-                    />
-                  </template>
-                  <template v-else>
-                    <span class="tab-label">{{ tab.label }}</span>
-                    <span v-if="tab.id === defaultTabId" class="tab-default">Default</span>
-                  </template>
-                </button>
+                  <button
+                    type="button"
+                    class="tab-btn"
+                    :class="{
+                      active: tab.id === activeTabId,
+                      default: tab.id === defaultTabId,
+                      'tab-btn--with-menu': isLayoutEditing,
+                    }"
+                    role="tab"
+                    :aria-selected="tab.id === activeTabId"
+                    @click="handleTabClick(tab.id)"
+                    @contextmenu.prevent="openTabContextMenu($event, tab.id)"
+                  >
+                    <template v-if="isLayoutEditing && tabEditingId === tab.id">
+                      <input
+                        class="tab-input"
+                        v-model="tabLabelDraft"
+                        @blur="commitTabLabel"
+                        @keydown.enter.prevent="commitTabLabel"
+                        @keydown.esc.prevent="cancelTabLabel"
+                        @click.stop
+                      />
+                    </template>
+                    <template v-else>
+                      <span class="tab-label">{{ tab.label }}</span>
+                      <span v-if="tab.id === defaultTabId" class="tab-default">Default</span>
+                    </template>
+                  </button>
+                  <button
+                    v-if="isLayoutEditing"
+                    type="button"
+                    class="tab-menu-btn"
+                    :class="{ active: tab.id === activeTabId }"
+                    :aria-label="`Tab actions for ${tab.label}`"
+                    @click.stop="openTabContextMenuFromButton($event, tab.id)"
+                  >
+                    ⋯
+                  </button>
+                </div>
                 <button
                   v-if="isLayoutEditing"
                   type="button"
@@ -250,7 +269,7 @@
                 Operational Dashboard • v{{ appVersion }} • Built by Blade34242 @ Gellert Innovation
               </template>
               <template v-else>
-                Operational Dashboard • v{{ pkg?.version || '0.5.6' }} • Built by Blade34242 @ Gellert Innovation
+                Operational Dashboard • v{{ pkg?.version || '0.5.7' }} • Built by Blade34242 @ Gellert Innovation
               </template>
               <template v-if="changelogUrl">
                 • <a :href="changelogUrl" target="_blank" rel="noopener noreferrer">Changelog</a>
@@ -522,10 +541,25 @@ function handleTabClick(id: string) {
 
 function openTabContextMenu(evt: MouseEvent, tabId: string) {
   if (!isLayoutEditing.value) return
+  openTabContextMenuAt(evt.clientX, evt.clientY, tabId)
+}
+
+function openTabContextMenuFromButton(evt: MouseEvent, tabId: string) {
+  if (!isLayoutEditing.value) return
+  const target = evt.currentTarget as HTMLElement | null
+  if (!target) {
+    openTabContextMenuAt(evt.clientX, evt.clientY, tabId)
+    return
+  }
+  const rect = target.getBoundingClientRect()
+  openTabContextMenuAt(rect.left, rect.bottom + 6, tabId)
+}
+
+function openTabContextMenuAt(x: number, y: number, tabId: string) {
   tabContext.value = {
     open: true,
-    x: evt.clientX,
-    y: evt.clientY,
+    x,
+    y,
     tabId,
   }
 }
@@ -607,6 +641,7 @@ function handleGlobalClick(event: MouseEvent) {
   if (!target) return
   if (target.closest('.tab-context-menu')) return
   if (target.closest('.tab-btn')) return
+  if (target.closest('.tab-menu-btn')) return
   closeTabContextMenu()
 }
 
@@ -1242,8 +1277,8 @@ const { widgetContext } = useWidgetRenderContext({
 })
 
 const dashboardModeLabel = computed(() => {
-  if (dashboardMode.value === 'quick') return 'Quick preset'
-  if (dashboardMode.value === 'pro') return 'Pro preset'
+  if (dashboardMode.value === 'quick') return 'Compact preset'
+  if (dashboardMode.value === 'pro') return 'Workspace preset'
   return 'Standard preset'
 })
 
@@ -1305,8 +1340,8 @@ const targetsPreviewLines = computed(() => {
 const totalWeeklyTargetLine = computed(() => `${n1(targetsConfig.value?.totalHours ?? 0)} h`)
 
 const dashboardLayoutLine = computed(() => {
-  if (dashboardMode.value === 'pro') return 'Pro layout'
-  if (dashboardMode.value === 'quick') return 'Quick layout'
+  if (dashboardMode.value === 'pro') return 'Workspace layout'
+  if (dashboardMode.value === 'quick') return 'Compact layout'
   return 'Standard layout'
 })
 

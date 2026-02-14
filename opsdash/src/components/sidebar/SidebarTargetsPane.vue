@@ -87,7 +87,7 @@
             </div>
           </label>
           <label class="field">
-            <span class="label">Pace mode</span>
+            <span class="label">Category pace method</span>
             <select
               :value="cat.paceMode || targets.pace.mode"
               @change="$emit('set-category-pace', { id: cat.id, mode: ($event.target as HTMLSelectElement).value })"
@@ -95,7 +95,7 @@
               <option value="days_only">Days only</option>
               <option value="time_aware">Time aware</option>
             </select>
-            <span class="field-hint">Time aware adjusts for time already logged.</span>
+            <span class="field-hint">Time aware adapts pacing based on hours already logged.</span>
         </label>
         <label class="field checkbox">
           <input
@@ -175,7 +175,7 @@
           <span>Count weekend in total pace</span>
         </label>
         <label class="field">
-          <span class="label">Mode</span>
+          <span class="label">Total pace method</span>
           <select
             :value="targets.pace.mode"
             @change="$emit('set-pace-mode', ($event.target as HTMLSelectElement).value)"
@@ -215,7 +215,7 @@
       <div class="target-section">
         <div class="section-title">Forecast</div>
         <label class="field">
-          <span class="label">Primary method</span>
+          <span class="label">Forecast method</span>
           <select
             :value="targets.forecast.methodPrimary"
             @change="$emit('set-forecast-method', ($event.target as HTMLSelectElement).value)"

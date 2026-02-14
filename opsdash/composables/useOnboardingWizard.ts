@@ -87,8 +87,8 @@ export function useOnboardingWizard(options: { props: WizardProps; emit: WizardE
   const dashboardPresets = [
     {
       id: 'quick' as const,
-      title: 'Quick',
-      subtitle: 'Minimal, KPI-first layout',
+      title: 'Compact',
+      subtitle: 'Lean, KPI-first layout',
       highlights: ['Time summary + targets', 'Balance index', 'Days-off trend'],
       widgets: '4 widgets',
     },
@@ -101,8 +101,8 @@ export function useOnboardingWizard(options: { props: WizardProps; emit: WizardE
     },
     {
       id: 'pro' as const,
-      title: 'Pro',
-      subtitle: 'Full layout with everything',
+      title: 'Workspace',
+      subtitle: 'Multi-tab layout for deep analysis',
       highlights: ['Overview + balance stack', 'Dedicated tables + charts tabs', 'Notes + Deck workspace'],
       widgets: '15 widgets',
     },
@@ -416,7 +416,7 @@ export function useOnboardingWizard(options: { props: WizardProps; emit: WizardE
       case 'intro':
         return 'Intro'
       case 'strategy':
-        return 'Modes'
+        return 'Strategy'
       case 'dashboard':
         return 'Dashboard'
       case 'calendars':

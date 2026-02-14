@@ -233,7 +233,7 @@ const PRO_TABS: WidgetTabsState = {
     },
     {
       id: 'tab-mk4w4rau',
-      label: 'Tab 4',
+      label: 'Workspace',
       widgets: [
         {
           id: 'widget-note_editor-1768297159393',

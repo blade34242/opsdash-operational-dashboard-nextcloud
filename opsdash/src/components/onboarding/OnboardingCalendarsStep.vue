@@ -19,7 +19,7 @@
   </div>
   <div v-if="localSelection.length && showCalendarTargets" class="calendar-targets">
     <h4>Calendar targets (h / week)</h4>
-    <p class="hint">Optional in Power mode — set only if you need per-calendar pacing.</p>
+    <p class="hint">Optional in Advanced strategy — set only if you need per-calendar pacing.</p>
     <div
       v-for="cal in calendars.filter((c) => localSelection.includes(c.id))"
       :key="`target-${cal.id}`"
@@ -39,7 +39,7 @@
     </div>
   </div>
   <p v-else-if="localSelection.length && !showCalendarTargets" class="hint">
-    Per-calendar targets are available in Power mode.
+    Per-calendar targets are available in the Advanced strategy.
   </p>
   <div v-if="!localSelection.length" class="warning">Select at least one calendar to continue.</div>
 </template>

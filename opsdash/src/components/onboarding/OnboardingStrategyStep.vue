@@ -1,5 +1,6 @@
 <template>
-  <h3>Select a starting strategy</h3>
+  <h3>Choose your tracking strategy</h3>
+  <p class="hint">Strategy controls how detailed your targets are. Layout comes in the next step.</p>
   <div class="strategy-grid">
     <article
       v-for="strategy in strategies"
@@ -16,7 +17,7 @@
       <footer>Best for: {{ strategy.recommendedFor }}</footer>
     </article>
   </div>
-  <p class="hint">Balanced and Power include a Targets step for categories and calendar assignments.</p>
+  <p class="hint">Balanced and Advanced include a Targets step for categories and calendar assignments.</p>
 </template>
 
 <script setup lang="ts">

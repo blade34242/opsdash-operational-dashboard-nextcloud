@@ -163,6 +163,7 @@
             :show-save-profile="props.hasExistingConfig ?? false"
             :set-save-profile="setSaveProfile"
             :set-profile-name="setProfileName"
+            :go-to-step="goToStep"
           />
         </section>
       </main>
@@ -367,7 +368,8 @@ function emitSaveStep() {
 .onboarding-panel {
   position: relative;
   z-index: 1;
-  width: min(960px, 100%);
+  width: min(1080px, 100%);
+  height: min(820px, calc(100vh - 48px));
   max-height: calc(100vh - 48px);
   background: var(--color-main-background, #fff);
   border: 1px solid color-mix(in oklab, var(--brand, #2563eb), var(--line, #e2e8f0) 70%);
@@ -381,8 +383,78 @@ function emitSaveStep() {
 }
 
 .onboarding-panel.theme-light {
+  --color-main-background: #ffffff;
+  --color-background-contrast: #f8fafc;
+  --color-text: #0f172a;
+  --color-text-maxcontrast: #020617;
+  --color-text-light: #334155;
+  --color-border: #cbd5e1;
+  --color-primary: #1d4ed8;
+  --color-primary-element: #1d4ed8;
+  --color-error: #b91c1c;
+  --color-warning: #b45309;
   color: #0f172a;
   background: #ffffff;
+}
+
+.onboarding-panel.theme-light .step-pill {
+  color: #1e293b;
+  background: #f8fafc;
+  border-color: #cbd5e1;
+}
+
+.onboarding-panel.theme-light .step-pill.active {
+  color: #1e40af;
+  border-color: rgba(29, 78, 216, 0.6);
+  background: rgba(37, 99, 235, 0.12);
+}
+
+.onboarding-panel.theme-light .subtitle,
+.onboarding-panel.theme-light .hint,
+.onboarding-panel.theme-light .pref-desc,
+.onboarding-panel.theme-light .pref-hint,
+.onboarding-panel.theme-light .field .label,
+.onboarding-panel.theme-light .field-hint,
+.onboarding-panel.theme-light .strategy-card .subtitle,
+.onboarding-panel.theme-light .strategy-card footer,
+.onboarding-panel.theme-light .theme-option__desc,
+.onboarding-panel.theme-light .theme-preview,
+.onboarding-panel.theme-light .preset-desc,
+.onboarding-panel.theme-light .empty-state,
+.onboarding-panel.theme-light .category-total,
+.onboarding-panel.theme-light .deck-status,
+.onboarding-panel.theme-light .review-section h4,
+.onboarding-panel.theme-light .review-card__meta,
+.onboarding-panel.theme-light .review-status,
+.onboarding-panel.theme-light .remove-category,
+.onboarding-panel.theme-light .mode-card span,
+.onboarding-panel.theme-light .input-unit .unit,
+.onboarding-panel.theme-light .custom-color {
+  color: #334155 !important;
+}
+
+.onboarding-panel.theme-light h2,
+.onboarding-panel.theme-light h3,
+.onboarding-panel.theme-light h4,
+.onboarding-panel.theme-light h5,
+.onboarding-panel.theme-light .theme-option__title,
+.onboarding-panel.theme-light .preset-title {
+  color: #020617 !important;
+}
+
+.onboarding-panel.theme-light .onboarding-title h2,
+.onboarding-panel.theme-light .onboarding-step h3,
+.onboarding-panel.theme-light .onboarding-step h4,
+.onboarding-panel.theme-light .strategy-card h4,
+.onboarding-panel.theme-light .mode-card strong {
+  color: #000000 !important;
+}
+
+.onboarding-panel.theme-light input,
+.onboarding-panel.theme-light select,
+.onboarding-panel.theme-light textarea {
+  color: #0f172a;
+  border-color: #cbd5e1;
 }
 
 .onboarding-panel.theme-dark {
@@ -475,10 +547,6 @@ function emitSaveStep() {
   box-shadow: 0 16px 30px rgba(0, 0, 0, 0.5);
 }
 
-.onboarding-panel.theme-light .mode-card span {
-  color: #475569;
-}
-
 .onboarding-panel.theme-dark .input-unit .unit {
   background: #0b1220;
   color: #94a3b8;
@@ -520,8 +588,38 @@ function emitSaveStep() {
   color: #93c5fd;
 }
 
-.onboarding-panel.theme-dark .review-grid h5 {
-  color: #e2e8f0;
+.onboarding-panel.theme-dark .review-card,
+.onboarding-panel.theme-dark .review-section {
+  background: #111827;
+  border-color: #1f2937;
+}
+
+.onboarding-panel.theme-dark .review-chip {
+  background: rgba(59, 130, 246, 0.2);
+  border-color: rgba(147, 197, 253, 0.45);
+  color: #dbeafe;
+}
+
+.onboarding-panel.theme-dark .review-status {
+  background: #0b1220;
+  border-color: #334155;
+  color: #bfdbfe;
+}
+
+.onboarding-panel.theme-dark .review-checklist li.is-ok {
+  border-left-color: #16a34a;
+}
+
+.onboarding-panel.theme-dark .review-checklist li.is-warn {
+  border-left-color: #f59e0b;
+}
+
+.onboarding-panel.theme-dark .review-action-btn,
+.onboarding-panel.theme-dark .review-inline-btn,
+.onboarding-panel.theme-dark .review-edit-link {
+  border-color: #334155;
+  background: #0b1220;
+  color: #93c5fd;
 }
 
 .onboarding-panel.theme-dark .warning {
@@ -606,6 +704,19 @@ function emitSaveStep() {
   margin-right: -8px;
 }
 
+@media (max-width: 960px) {
+  .onboarding-overlay {
+    padding: 12px;
+  }
+
+  .onboarding-panel {
+    width: 100%;
+    height: calc(100vh - 24px);
+    max-height: calc(100vh - 24px);
+    padding: 16px;
+  }
+}
+
 .onboarding-step h3 {
   margin-top: 0;
 }
@@ -632,7 +743,7 @@ function emitSaveStep() {
 }
 
 .onboarding-overlay .hint {
-  color: var(--color-text-light);
+  color: var(--color-text-light, #334155);
   margin-top: 12px;
 }
 
@@ -725,21 +836,231 @@ function emitSaveStep() {
   margin-top: 12px;
 }
 
-.onboarding-overlay .review-grid {
+.onboarding-overlay .review-hero {
   display: grid;
-  gap: 16px;
-  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 12px;
 }
 
-.onboarding-overlay .review-grid h5 {
-  margin: 0 0 8px;
-  font-size: 0.95rem;
+.onboarding-overlay .review-hero h3 {
+  margin: 0;
+  font-size: 1.2rem;
+  line-height: 1.25;
+}
+
+.onboarding-overlay .review-hero .hint {
+  margin: 0;
+  max-width: 70ch;
+  line-height: 1.45;
+}
+
+.onboarding-overlay .review-chip-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.onboarding-overlay .review-chip {
+  padding: 5px 10px;
+  border-radius: 999px;
+  border: 1px solid color-mix(in oklab, var(--color-border), transparent 28%);
+  background: color-mix(in oklab, var(--color-primary, #2563eb), transparent 90%);
+  color: var(--color-text);
+  font-size: 0.8rem;
+  line-height: 1.2;
+  letter-spacing: 0.01em;
+  font-weight: 600;
+}
+
+.onboarding-overlay .review-layout {
+  margin-top: 18px;
+  display: grid;
+  gap: 18px;
+  grid-template-columns: minmax(0, 2fr) minmax(280px, 1fr);
+  align-items: start;
+}
+
+.onboarding-overlay .review-main {
+  display: grid;
+  gap: 16px;
+}
+
+.onboarding-overlay .review-section {
+  border: 1px solid color-mix(in oklab, var(--color-border), transparent 34%);
+  border-radius: 12px;
+  padding: 14px;
+  background: color-mix(in oklab, var(--color-main-background, #fff), transparent 6%);
+  display: grid;
+  gap: 12px;
+}
+
+.onboarding-overlay .review-section h4 {
+  margin: 0;
+  font-size: 0.98rem;
+  font-weight: 700;
+  letter-spacing: 0.01em;
   color: var(--color-text-light);
+}
+
+.onboarding-overlay .review-card-grid {
+  display: grid;
+  gap: 12px;
+  grid-template-columns: repeat(auto-fit, minmax(230px, 1fr));
+}
+
+.onboarding-overlay .review-card {
+  border: 1px solid color-mix(in oklab, var(--color-border), transparent 34%);
+  border-radius: 10px;
+  padding: 12px;
+  background: color-mix(in oklab, var(--color-main-background, #fff), transparent 3%);
+  display: grid;
+  gap: 10px;
+}
+
+.onboarding-overlay .review-card__head {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 10px;
+}
+
+.onboarding-overlay .review-card__head h5 {
+  margin: 0;
+  font-size: 0.92rem;
+  line-height: 1.3;
+  letter-spacing: 0.01em;
+}
+
+.onboarding-overlay .review-card__value {
+  margin: 0;
+  font-size: 1.06rem;
+  line-height: 1.3;
+  font-weight: 700;
+  color: var(--color-text);
+}
+
+.onboarding-overlay .review-card__meta {
+  margin: 0;
+  font-size: 0.85rem;
+  line-height: 1.45;
+  color: var(--color-text-light);
+}
+
+.onboarding-overlay .review-list {
+  margin: 0;
+  padding-left: 18px;
+  display: grid;
+  gap: 4px;
+  font-size: 0.88rem;
+  line-height: 1.4;
+}
+
+.onboarding-overlay .review-checklist {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 10px;
+}
+
+.onboarding-overlay .review-checklist li {
+  border: 1px solid color-mix(in oklab, var(--color-border), transparent 26%);
+  border-left: 4px solid transparent;
+  border-radius: 8px;
+  padding: 10px 12px;
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  gap: 12px;
+  align-items: flex-start;
+}
+
+.onboarding-overlay .review-checklist li.is-ok {
+  border-left-color: #22c55e;
+}
+
+.onboarding-overlay .review-checklist li.is-warn {
+  border-left-color: #f59e0b;
+}
+
+.onboarding-overlay .review-status {
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+  color: var(--color-text-light);
+  border: 1px solid color-mix(in oklab, var(--color-border), transparent 24%);
+  border-radius: 999px;
+  padding: 3px 8px;
+  white-space: nowrap;
+  line-height: 1.2;
+}
+
+.onboarding-overlay .review-checklist__copy {
+  display: grid;
+  gap: 4px;
+}
+
+.onboarding-overlay .review-checklist__copy strong {
+  font-size: 0.91rem;
+  line-height: 1.3;
+}
+
+.onboarding-overlay .review-checklist__copy p {
+  margin: 0;
+  font-size: 0.84rem;
+  line-height: 1.45;
+  color: var(--color-text-light);
+}
+
+.onboarding-overlay .review-side {
+  display: grid;
+  gap: 16px;
+}
+
+.onboarding-overlay .review-actions {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.onboarding-overlay .review-action-btn,
+.onboarding-overlay .review-inline-btn,
+.onboarding-overlay .review-edit-link {
+  border: 1px solid color-mix(in oklab, var(--color-border), transparent 20%);
+  background: color-mix(in oklab, var(--color-main-background, #fff), transparent 2%);
+  color: var(--color-primary, #2563eb);
+  border-radius: 8px;
+  padding: 6px 10px;
+  font-size: 0.81rem;
+  line-height: 1.2;
+  cursor: pointer;
+  font-weight: 600;
+}
+
+.onboarding-overlay .review-edit-link {
+  padding: 4px 9px;
+  border-radius: 6px;
+}
+
+.onboarding-overlay .review-action-btn:hover,
+.onboarding-overlay .review-inline-btn:hover,
+.onboarding-overlay .review-edit-link:hover {
+  border-color: color-mix(in oklab, var(--color-primary, #2563eb), var(--color-border) 35%);
+}
+
+.onboarding-overlay .review-action-btn:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
 }
 
 .onboarding-overlay .review-profile {
   display: grid;
-  gap: 8px;
+  gap: 10px;
+}
+
+@media (max-width: 980px) {
+  .onboarding-overlay .review-layout {
+    grid-template-columns: 1fr;
+  }
 }
 
 .onboarding-overlay .onboarding-mode {

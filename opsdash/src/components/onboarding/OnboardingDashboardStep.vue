@@ -1,6 +1,7 @@
 <template>
-  <h3>Dashboard layout</h3>
-  <p class="hint">Pick how much you want to see by default. You can change widgets later.</p>
+  <h3>Choose dashboard layout</h3>
+  <p class="hint">Layout controls widget arrangement and tab structure only.</p>
+  <p class="hint">It does not change your target strategy.</p>
   <div class="strategy-grid">
     <article
       v-for="mode in dashboardPresets"

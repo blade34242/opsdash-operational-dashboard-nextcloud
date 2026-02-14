@@ -34,7 +34,7 @@ Opsdash turns your Nextcloud calendar data into a practical operations dashboard
 ## Compatibility
 | Branch | Nextcloud | App version |
 | --- | --- | --- |
-| `master` | 30-32 | 0.5.6 |
+| `master` | 30-32 | 0.5.7 |
 | `release/0.5.x` | 30-32 | Store-ready line |
 
 ## Install
@@ -62,7 +62,7 @@ make smoke
 
 ## Packaging
 ```bash
-make appstore VERSION=0.5.6
+make appstore VERSION=0.5.7
 ```
 
 Produces `build/dist/opsdash-<version>.tar.gz` (unsigned).  

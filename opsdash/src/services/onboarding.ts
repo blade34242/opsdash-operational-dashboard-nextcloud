@@ -46,9 +46,9 @@ export interface StrategyBuildResult {
 const STRATEGIES: StrategyDefinition[] = [
   {
     id: 'total_only',
-    title: 'Focused',
-    subtitle: 'Keep it simple with one total goal',
-    highlights: ['Single weekly/monthly target', 'Great for personal overview', 'Upgradable later'],
+    title: 'Single Goal',
+    subtitle: 'One total target with minimal setup',
+    highlights: ['Single weekly/monthly target', 'Fastest setup', 'Can be expanded later'],
     layers: { total: true, categories: false, calendars: false },
     recommendedFor: 'Individuals tracking a single workload',
   },
@@ -62,11 +62,11 @@ const STRATEGIES: StrategyDefinition[] = [
   },
   {
     id: 'full_granular',
-    title: 'Power',
+    title: 'Advanced',
     subtitle: 'Targets per category and calendar',
     highlights: ['Detailed per-calendar goals', 'Category dashboards & pacing', 'Best for multi-project oversight'],
     layers: { total: true, categories: true, calendars: true },
-    recommendedFor: 'Power users managing several project calendars',
+    recommendedFor: 'Users managing several project calendars',
   },
 ]
 
