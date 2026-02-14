@@ -91,7 +91,7 @@
               </span>
               <span class="deck-card__title">{{ card.title }}</span>
               <span class="deck-card__meta">
-                <span class="deck-card__board" :style="{ borderColor: card.boardColor || 'var(--color-primary)' }">
+                <span class="deck-card__board" :style="{ borderColor: card.boardColor || 'var(--brand)' }">
                   {{ card.boardTitle }}
                 </span>
                 <span class="deck-card__stack">{{ card.stackTitle }}</span>
@@ -101,7 +101,7 @@
                   v-for="label in card.labels"
                   :key="`deck-label-${card.id}-${label.id ?? label.title}`"
                   class="deck-card__label"
-                  :style="{ background: label.color || 'var(--color-background-darker)' }"
+                  :style="{ background: label.color || 'var(--soft)' }"
                 >
                   {{ label.title }}
                 </span>
@@ -132,7 +132,7 @@
             </div>
             <div class="deck-card__title">{{ card.title }}</div>
             <div class="deck-card__meta">
-              <span class="deck-card__board" :style="{ borderColor: card.boardColor || 'var(--color-primary)' }">
+              <span class="deck-card__board" :style="{ borderColor: card.boardColor || 'var(--brand)' }">
                 {{ card.boardTitle }}
               </span>
               <span class="deck-card__stack">{{ card.stackTitle }}</span>
@@ -142,7 +142,7 @@
                 v-for="label in card.labels"
                 :key="`deck-label-${card.id}-${label.id ?? label.title}`"
                 class="deck-card__label"
-                :style="{ background: label.color || 'var(--color-background-darker)' }"
+                :style="{ background: label.color || 'var(--soft)' }"
               >
                 {{ label.title }}
               </span>
@@ -378,7 +378,7 @@ function statusLabel(status: DeckCardSummary['status']) {
 }
 .deck-panel__subtitle {
   font-size: calc(14px * var(--widget-scale, 1));
-  color: var(--color-text-maxcontrast);
+  color: var(--muted);
 }
 .deck-panel__actions {
   display: flex;
@@ -387,15 +387,15 @@ function statusLabel(status: DeckCardSummary['status']) {
 }
 .deck-panel__count{
   font-size:calc(14px * var(--widget-scale, 1));
-  background:var(--color-background-darker);
-  border:1px solid var(--color-border-dark);
+  background:color-mix(in oklab, var(--card), var(--soft) 30%);
+  border:1px solid var(--line);
   padding:calc(2px * var(--widget-space, 1)) calc(8px * var(--widget-space, 1));
   border-radius:calc(12px * var(--widget-space, 1));
 }
 .deck-panel__refresh {
-  border: 1px solid var(--color-primary);
+  border: 1px solid var(--brand);
   background: transparent;
-  color: var(--color-primary);
+  color: var(--brand);
   border-radius: 999px;
   padding: calc(4px * var(--widget-space, 1)) calc(12px * var(--widget-space, 1));
   font-size: calc(14px * var(--widget-scale, 1));
@@ -408,13 +408,13 @@ function statusLabel(status: DeckCardSummary['status']) {
 .deck-panel__link {
   font-size: calc(14px * var(--widget-scale, 1));
   text-decoration: none;
-  color: var(--color-text-maxcontrast);
+  color: var(--fg);
 }
 .deck-panel__loading {
   display: flex;
   align-items: center;
   gap: calc(8px * var(--widget-space, 1));
-  color: var(--color-text-maxcontrast);
+  color: var(--muted);
 }
 .deck-panel__filters {
   display: flex;
@@ -447,7 +447,7 @@ function statusLabel(status: DeckCardSummary['status']) {
   height: 6px;
 }
 .deck-panel--compact .deck-card__row::-webkit-scrollbar-thumb {
-  background: color-mix(in oklab, var(--color-border), transparent 30%);
+  background: color-mix(in oklab, var(--line), transparent 30%);
   border-radius: 999px;
 }
 .deck-panel--compact .deck-card__status-row {
@@ -460,7 +460,7 @@ function statusLabel(status: DeckCardSummary['status']) {
 }
 .deck-panel--compact .deck-card__time {
   font-size: calc(11px * var(--widget-scale, 1));
-  color: var(--color-text-maxcontrast);
+  color: var(--muted);
 }
 .deck-panel--compact .deck-card__title {
   font-size: calc(13px * var(--widget-scale, 1));
@@ -494,8 +494,9 @@ function statusLabel(status: DeckCardSummary['status']) {
   padding-right: calc(4px * var(--widget-space, 1));
 }
 .deck-filter-btn {
-  border: 1px solid var(--color-border-maxcontrast);
-  background: var(--color-main-background);
+  border: 1px solid var(--line);
+  background: var(--card);
+  color: var(--fg);
   border-radius: 999px;
   padding: calc(3px * var(--widget-space, 1)) calc(14px * var(--widget-space, 1));
   font-size: calc(13px * var(--widget-scale, 1));
@@ -511,8 +512,8 @@ function statusLabel(status: DeckCardSummary['status']) {
   cursor: grabbing;
 }
 .deck-filter-btn.active {
-  border-color: var(--color-primary);
-  color: var(--color-primary);
+  border-color: var(--brand);
+  color: var(--brand);
 }
 .deck-filter-count {
   font-size: calc(11px * var(--widget-scale, 1));
@@ -537,10 +538,10 @@ function statusLabel(status: DeckCardSummary['status']) {
   gap: calc(16px * var(--widget-space, 1));
 }
 .deck-card {
-  border: 1px solid var(--color-border);
+  border: 1px solid var(--line);
   border-radius: calc(12px * var(--widget-space, 1));
   padding: calc(14px * var(--widget-space, 1));
-  background: var(--color-main-background);
+  background: var(--card);
   display: flex;
   flex-direction: column;
   gap: calc(6px * var(--widget-space, 1));
@@ -550,7 +551,7 @@ function statusLabel(status: DeckCardSummary['status']) {
   align-items: center;
   gap: calc(8px * var(--widget-space, 1));
   font-size: calc(14px * var(--widget-scale, 1));
-  color: var(--color-text-maxcontrast);
+  color: var(--muted);
 }
 .deck-card__status {
   font-weight: 600;
@@ -562,12 +563,12 @@ function statusLabel(status: DeckCardSummary['status']) {
   color: var(--color-success);
 }
 .deck-card__status.archived {
-  color: var(--color-text-maxcontrast);
+  color: var(--muted);
 }
 .deck-card__title {
   font-size: calc(16px * var(--widget-scale, 1));
   font-weight: 600;
-  color: var(--color-text);
+  color: var(--fg);
 }
 .deck-card__meta {
   display: flex;
@@ -576,14 +577,14 @@ function statusLabel(status: DeckCardSummary['status']) {
   font-size: calc(13px * var(--widget-scale, 1));
 }
 .deck-card__board {
-  border: 2px solid var(--color-border);
+  border: 2px solid var(--line);
   padding: calc(2px * var(--widget-space, 1)) calc(8px * var(--widget-space, 1));
   border-radius: 999px;
   text-transform: uppercase;
   font-size: calc(11px * var(--widget-scale, 1));
 }
 .deck-card__stack {
-  color: var(--color-text-maxcontrast);
+  color: var(--muted);
 }
 .deck-card__labels {
   display: flex;
@@ -603,7 +604,7 @@ function statusLabel(status: DeckCardSummary['status']) {
   font-size: calc(12px * var(--widget-scale, 1));
 }
 .deck-card__assignees-label {
-  color: var(--color-text-maxcontrast);
+  color: var(--muted);
 }
 .deck-card__assignee {
   font-weight: 500;

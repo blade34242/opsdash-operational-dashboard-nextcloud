@@ -183,11 +183,11 @@ onBeforeUnmount(() => {
   font-size: var(--widget-title-size, calc(14px * var(--widget-scale, 1)));
 }
 .deck-summary-card__subtitle {
-  color: var(--color-text-maxcontrast);
+  color: var(--muted);
   font-size: calc(14px * var(--widget-scale, 1));
 }
 .deck-summary-card__meta {
-  color: var(--color-text-maxcontrast);
+  color: var(--muted);
   font-size: calc(14px * var(--widget-scale, 1));
 }
 .deck-summary-card__loading,
@@ -196,7 +196,7 @@ onBeforeUnmount(() => {
   display: flex;
   align-items: center;
   gap: calc(8px * var(--widget-space, 1));
-  color: var(--color-text-maxcontrast);
+  color: var(--muted);
 }
 .deck-summary-card__error {
   background: var(--color-error-hover);
@@ -213,20 +213,20 @@ onBeforeUnmount(() => {
   gap: calc(8px * var(--widget-space, 1));
 }
 .deck-summary-card__row {
-  border: 1px solid var(--color-border);
+  border: 1px solid var(--line);
   border-radius: calc(10px * var(--widget-space, 1));
   padding: calc(10px * var(--widget-space, 1)) calc(12px * var(--widget-space, 1));
   display: flex;
   flex-direction: column;
   gap: calc(6px * var(--widget-space, 1));
-  background: var(--color-main-background);
+  background: var(--card);
 }
 .deck-summary-card__row--clickable {
   cursor: pointer;
 }
 .deck-summary-card__row--active {
-  border-color: var(--color-primary);
-  box-shadow: inset 0 0 0 1px var(--color-primary);
+  border-color: var(--brand);
+  box-shadow: inset 0 0 0 1px var(--brand);
 }
 .deck-summary-card__row-head {
   display: flex;
@@ -241,7 +241,7 @@ onBeforeUnmount(() => {
   font-size: calc(13px * var(--widget-scale, 1));
   border-radius: 999px;
   padding: calc(2px * var(--widget-space, 1)) calc(9px * var(--widget-space, 1));
-  background: var(--color-background-darker);
+  background: var(--soft);
 }
 .deck-summary-card__row-body {
   display: flex;
@@ -250,7 +250,7 @@ onBeforeUnmount(() => {
   align-items: center;
 }
 .bucket-board {
-  border: 2px solid var(--color-border);
+  border: 2px solid var(--line);
   padding: calc(3px * var(--widget-space, 1)) calc(10px * var(--widget-space, 1));
   border-radius: 999px;
   font-size: calc(12px * var(--widget-scale, 1));
@@ -263,11 +263,11 @@ onBeforeUnmount(() => {
 }
 .bucket-title {
   padding: calc(2px * var(--widget-space, 1)) calc(8px * var(--widget-space, 1));
-  background: var(--color-background-darker);
+  background: var(--soft);
   border-radius: 999px;
   font-size: calc(13px * var(--widget-scale, 1));
 }
 .bucket-title--muted {
-  color: var(--color-text-maxcontrast);
+  color: var(--muted);
 }
 </style>

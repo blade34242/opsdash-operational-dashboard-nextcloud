@@ -1753,6 +1753,39 @@
   border-color:var(--opsdash-border);
   color:var(--opsdash-text);
 }
+#opsdash.opsdash-theme-light .note-card{
+  background:#ffffff;
+  border-color:var(--opsdash-border);
+  color:var(--opsdash-text);
+}
+#opsdash.opsdash-theme-light .note{
+  background:#ffffff;
+  border-color:var(--opsdash-border);
+  color:var(--opsdash-text);
+}
+#opsdash.opsdash-theme-light .note:read-only{
+  background:#f8fafc;
+  color:var(--opsdash-muted);
+}
+#opsdash.opsdash-theme-light .note-select,
+#opsdash.opsdash-theme-light .note-card .btn{
+  background:#ffffff;
+  border-color:var(--opsdash-border);
+  color:var(--opsdash-text);
+}
+#opsdash.opsdash-theme-light .note-card .btn--ghost{
+  background:transparent;
+}
+#opsdash.opsdash-theme-light .deck-summary-card__row{
+  background:#ffffff;
+  border-color:var(--opsdash-border);
+  color:var(--opsdash-text);
+}
+#opsdash.opsdash-theme-light .deck-summary-card .bucket-count,
+#opsdash.opsdash-theme-light .deck-summary-card .bucket-title{
+  background:#f8fafc;
+  color:var(--opsdash-text);
+}
 #opsdash.opsdash-theme-light .notes-textarea:focus{
   border-color:var(--opsdash-accent);
   box-shadow:0 0 0 1px var(--opsdash-accent);
@@ -1821,6 +1854,11 @@
   border-color:#1f3a5d;
   color:var(--opsdash-text);
 }
+#opsdash.opsdash-theme-dark .note-card{
+  background:#0f172a;
+  border-color:#1f2937;
+  color:var(--opsdash-text);
+}
 #opsdash.opsdash-theme-dark .notes-textarea:focus{
   border-color:#60a5fa;
   box-shadow:0 0 0 1px #60a5fa;
@@ -1842,6 +1880,23 @@
   background:#0f2440;
   border-color:#1f3a5d;
   color:var(--opsdash-text);
+}
+#opsdash.opsdash-theme-dark .note-card .btn{
+  background:#0f1a30;
+  border-color:#1f3a5d;
+  color:var(--opsdash-text);
+}
+#opsdash.opsdash-theme-dark .note-card .btn--ghost{
+  background:transparent;
+}
+#opsdash.opsdash-theme-dark .deck-summary-card__row{
+  background:#0f1a30;
+  border-color:#1e2a44;
+  color:var(--opsdash-text);
+}
+#opsdash.opsdash-theme-dark .deck-summary-card .bucket-count,
+#opsdash.opsdash-theme-dark .deck-summary-card .bucket-title{
+  background:#11213b;
 }
 #opsdash.opsdash-theme-dark .deck-panel__filters button{
   background:#0f1a30;
