@@ -43,4 +43,28 @@ describe('deckTags', () => {
     const tag = options.find((opt) => opt.label === 'Same')
     expect(tag?.value).toBe('tag_99')
   })
+
+  it('adds board context for duplicate label names with different ids', () => {
+    const options = buildDeckTagOptions([
+      {
+        id: 1,
+        boardTitle: 'Opsdash Product Delivery',
+        boardColor: '#2563EB',
+        labels: [{ id: 11, title: 'Ops' }],
+      },
+      {
+        id: 2,
+        boardTitle: 'Opsdash Release Train',
+        boardColor: '#F97316',
+        labels: [{ id: 22, title: 'Ops' }],
+      },
+    ] as any)
+    const ops = options.filter((opt) => opt.label === 'Ops')
+    expect(ops).toHaveLength(2)
+    expect(ops.every((opt) => opt.duplicateLabel)).toBe(true)
+    expect(ops.map((opt) => opt.contextLabel).sort()).toEqual([
+      'Opsdash Product Delivery',
+      'Opsdash Release Train',
+    ])
+  })
 })

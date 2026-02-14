@@ -30,6 +30,6 @@ export const noteEditorEntry: RegistryEntry = {
     modelValue: ctx.notesCurr ?? '',
     saving: ctx.isSavingNote ?? false,
     onSave: ctx.onSaveNote,
-    onUpdateModelValue: ctx.onUpdateNotes,
+    'onUpdate:modelValue': ctx.onUpdateNotes,
   }),
 }

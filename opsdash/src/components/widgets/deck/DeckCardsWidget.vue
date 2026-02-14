@@ -201,6 +201,8 @@ const filterOptionDefs = computed(() => {
     label: opt.label,
     mine: false,
     count: counts.get(opt.value as DeckFilterMode) ?? opt.count ?? 0,
+    contextLabel: opt.contextLabel,
+    contextColor: opt.contextColor,
   }))
   return [...built, ...custom, ...tags]
 })

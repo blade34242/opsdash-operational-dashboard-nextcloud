@@ -49,6 +49,7 @@
       }"
       :aria-pressed="activeFilter === option.value"
       :disabled="option.mine && !allowMine"
+      :title="option.contextLabel ? `${option.label} · ${option.contextLabel}` : option.label"
       :draggable="props.editable && orderableFilters.includes(option.value)"
       @click="$emit('update:filter', option.value)"
       @dragstart="onDragStart(option.value, $event)"
@@ -56,7 +57,16 @@
       @drop.prevent="onDrop(option.value)"
       @dragend="onDragEnd"
     >
-      <span>{{ option.label }}</span>
+      <span class="deck-filter-label">
+        <span class="deck-filter-label-main">{{ option.label }}</span>
+        <span v-if="option.contextLabel" class="deck-filter-label-context">
+          <span
+            class="deck-filter-board-dot"
+            :style="{ backgroundColor: option.contextColor || 'var(--line)' }"
+          />
+          {{ option.contextLabel }}
+        </span>
+      </span>
       <span v-if="typeof option.count === 'number'" class="deck-filter-count">{{ option.count }}</span>
     </button>
   </div>
@@ -182,7 +192,14 @@ const props = defineProps<{
   filter?: DeckFilterMode
   canFilterMine?: boolean
   filtersEnabled?: boolean
-  filterOptions?: Array<{ value: DeckFilterMode; label: string; mine?: boolean }>
+  filterOptions?: Array<{
+    value: DeckFilterMode
+    label: string
+    mine?: boolean
+    count?: number
+    contextLabel?: string
+    contextColor?: string
+  }>
   orderableValues?: DeckFilterMode[]
   editable?: boolean
   allowMineOverride?: boolean
@@ -207,7 +224,14 @@ const cardStyle = computed(() => ({ background: props.cardBg || undefined }))
 const showHeader = computed(() => props.showHeader !== false)
 const filtersEnabledFlag = computed(() => props.filtersEnabled !== false && filterOptions.value.length > 1)
 const allowMine = computed(() => filtersEnabledFlag.value && props.canFilterMine !== false && props.allowMineOverride !== false)
-const filterOptions = computed<Array<{ value: DeckFilterMode; label: string; mine: boolean }>>(() => {
+const filterOptions = computed<Array<{
+  value: DeckFilterMode
+  label: string
+  mine: boolean
+  count?: number
+  contextLabel?: string
+  contextColor?: string
+}>>(() => {
   if (props.filterOptions && props.filterOptions.length) {
     return props.filterOptions.map((opt) => ({ ...opt, mine: !!opt.mine }))
   }
@@ -504,6 +528,34 @@ function statusLabel(status: DeckCardSummary['status']) {
   display: inline-flex;
   align-items: center;
   gap: calc(6px * var(--widget-space, 1));
+}
+.deck-filter-label {
+  display: inline-flex;
+  align-items: center;
+  gap: calc(6px * var(--widget-space, 1));
+  min-width: 0;
+}
+.deck-filter-label-main {
+  white-space: nowrap;
+}
+.deck-filter-label-context {
+  display: inline-flex;
+  align-items: center;
+  gap: calc(4px * var(--widget-space, 1));
+  color: var(--muted);
+  font-size: calc(11px * var(--widget-scale, 1));
+  white-space: nowrap;
+  max-width: 170px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.deck-filter-board-dot {
+  width: calc(8px * var(--widget-space, 1));
+  height: calc(8px * var(--widget-space, 1));
+  border-radius: 999px;
+  display: inline-block;
+  border: 1px solid color-mix(in oklab, var(--line), transparent 35%);
+  flex: 0 0 auto;
 }
 .deck-filter-btn.is-draggable {
   cursor: grab;

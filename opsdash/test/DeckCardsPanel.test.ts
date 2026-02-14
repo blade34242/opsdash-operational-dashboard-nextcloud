@@ -115,6 +115,32 @@ describe('DeckCardsPanel', () => {
     expect(counts[1].text()).toBe('1')
   })
 
+  it('renders context label and board color marker for duplicate tag filters', () => {
+    const wrapper = mountPanel({
+      filtersEnabled: true,
+      filterOptions: [
+        {
+          value: 'open_all',
+          label: 'Open · All',
+          mine: false,
+          count: 2,
+        },
+        {
+          value: 'tag_11' as any,
+          label: 'Ops',
+          mine: false,
+          count: 4,
+          contextLabel: 'Opsdash Product Delivery',
+          contextColor: '#2563EB',
+        },
+      ],
+    })
+    expect(wrapper.text()).toContain('Opsdash Product Delivery')
+    const dot = wrapper.find('.deck-filter-board-dot')
+    expect(dot.exists()).toBe(true)
+    expect(dot.attributes('style')).toContain('background-color: rgb(37, 99, 235)')
+  })
+
   it('renders error message when provided', () => {
     const wrapper = mountPanel({ error: 'Deck unavailable', cards: [] })
     expect(wrapper.find('.deck-panel__error').text()).toContain('Deck unavailable')
