@@ -17,15 +17,19 @@ Opsdash turns your Nextcloud calendar data into a practical operations dashboard
 - 📐 **Widget sizing controls** – per-widget width/height plus scale/dense options for layout tuning.
 
 ## Screenshots
-| Overview | Sidebar / Setup | Targets |
-| --- | --- | --- |
-| ![Overview](img/picture1.png) | ![Sidebar](img/picture2.png) | ![Targets](img/picture3.png) |
+![Overview (Light)](img/opsdash-overview-light-wide.png)
 
-| Charts | Table | Notes / Profiles |
-| --- | --- | --- |
-| ![Charts](img/picture4.png) | ![Table](img/picture5.png) | ![Notes](img/picture6.png) |
+| Widgets (Light) | Widgets (Dark) |
+| --- | --- |
+| ![Widgets Light](img/opsdash-widgets-light.png) | ![Widgets Dark](img/opsdash-widgets-dark.png) |
 
-![Additional view](img/picture7.png)
+| Onboarding (Light) | Onboarding (Dark) |
+| --- | --- |
+| ![Onboarding Light](img/opsdash-onboarding-light.png) | ![Onboarding Dark](img/opsdash-onboarding-dark.png) |
+
+| Calendar Table (Light) | Calendar Table (Dark) |
+| --- | --- |
+| ![Calendar Table Light](img/opsdash-calendar-table-light.png) | ![Calendar Table Dark](img/opsdash-calendar-table-dark.png) |
 
 ## Compatibility
 | Branch | Nextcloud | App version |
