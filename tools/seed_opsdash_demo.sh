@@ -24,40 +24,40 @@ declare -A CALENDARS=(
 )
 
 EVENT_DATA=$(cat <<'EOF'
-opsdash-work|Mon|09:00|150|Deep focus block
-opsdash-work|Mon|14:00|120|Feature implementation
-opsdash-meetings|Mon|11:30|60|Team standup
-opsdash-meetings|Mon|16:30|45|Stakeholder sync
+opsdash-work|Mon|09:00|150|API implementation block
+opsdash-work|Mon|14:00|120|Release hardening sprint
+opsdash-meetings|Mon|11:30|60|Product standup
+opsdash-meetings|Mon|16:30|45|Customer feedback sync
 opsdash-personal|Mon|18:30|90|Family dinner
-opsdash-sport|Mon|20:30|60|Gym session
+opsdash-sport|Mon|20:30|60|Strength training
 
-opsdash-work|Tue|08:30|180|Architecture planning
-opsdash-meetings|Tue|12:00|60|Client check-in
-opsdash-work|Tue|15:00|120|Code reviews
-opsdash-learning|Tue|19:30|75|Tech meetup
+opsdash-work|Tue|08:30|180|Architecture decision workshop
+opsdash-meetings|Tue|12:00|60|Partner call: migration plan
+opsdash-work|Tue|15:00|120|Code review + refactor
+opsdash-learning|Tue|19:30|75|Technical writing meetup
 
 opsdash-work|Wed|09:00|180|Deep work sprint
-opsdash-meetings|Wed|13:00|90|Project alignment
-opsdash-recovery|Wed|17:30|60|Short break walk
-opsdash-personal|Wed|19:00|120|Date night
+opsdash-meetings|Wed|13:00|90|Cross-team planning
+opsdash-recovery|Wed|17:30|60|Reset walk
+opsdash-personal|Wed|19:00|120|Dinner with friends
 
-opsdash-work|Thu|08:30|150|Feature build
-opsdash-meetings|Thu|11:00|45|1:1 coaching
-opsdash-work|Thu|14:00|150|Integration testing
-opsdash-recovery|Thu|18:30|60|Yoga session
+opsdash-work|Thu|08:30|150|Feature polish loop
+opsdash-meetings|Thu|11:00|45|Mentoring 1:1
+opsdash-work|Thu|14:00|150|Integration + regression checks
+opsdash-recovery|Thu|18:30|60|Mobility session
 
-opsdash-work|Fri|09:00|120|Wrap-up + documentation
-opsdash-meetings|Fri|11:30|60|Demo & retro
+opsdash-work|Fri|09:00|120|Weekly wrap-up docs
+opsdash-meetings|Fri|11:30|60|Sprint demo + retrospective
 opsdash-personal|Fri|16:30|90|Family time
-opsdash-sport|Fri|19:00|75|Swim training
+opsdash-sport|Fri|19:00|75|Swim interval training
 
-opsdash-personal|Sat|10:00|180|Outdoor time
+opsdash-personal|Sat|10:00|180|Hike and nature break
 opsdash-sport|Sat|16:30|90|Trail run
-opsdash-recovery|Sat|19:30|60|Recovery stretching
+opsdash-recovery|Sat|19:30|60|Stretch + foam roll
 
-opsdash-personal|Sun|09:30|150|Brunch & planning
-opsdash-learning|Sun|14:00|120|Course: analytics
-opsdash-recovery|Sun|18:00|90|Evening wind-down
+opsdash-personal|Sun|09:30|150|Brunch and weekly planning
+opsdash-learning|Sun|14:00|120|Course: observability fundamentals
+opsdash-recovery|Sun|18:00|90|Quiet evening reset
 EOF
 )
 

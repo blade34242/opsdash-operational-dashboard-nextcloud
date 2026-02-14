@@ -101,20 +101,79 @@ END:VCALENDAR
 EOF
 }
 
+event_summary() {
+  local cal=$1
+  local slot=$2
+  case "$cal" in
+    opsdash-work)
+      case "$slot" in
+        mon-standup) echo "Product standup" ;;
+        mon-focus) echo "API implementation block" ;;
+        tue-arch) echo "Architecture decision session" ;;
+        wed-pair) echo "Pair programming (backend)" ;;
+        thu-1on1) echo "Mentoring 1:1" ;;
+        fri-review) echo "Sprint demo + review" ;;
+        fri-bugbash) echo "Regression triage" ;;
+        sat-family) echo "Weekend reset" ;;
+        sun-friends) echo "Weekly planning walk" ;;
+      esac
+      ;;
+    opsdash-personal)
+      case "$slot" in
+        mon-standup) echo "Morning school drop-off" ;;
+        mon-focus) echo "Home admin and errands" ;;
+        tue-arch) echo "Parent-teacher check-in" ;;
+        wed-pair) echo "Doctor appointment" ;;
+        thu-1on1) echo "Groceries + meal prep" ;;
+        fri-review) echo "Family outing plan" ;;
+        fri-bugbash) echo "Kids activity transport" ;;
+        sat-family) echo "Family brunch" ;;
+        sun-friends) echo "Dinner with friends" ;;
+      esac
+      ;;
+    opsdash-qa|opsdash-qa2)
+      case "$slot" in
+        mon-standup) echo "QA triage standup" ;;
+        mon-focus) echo "Smoke test pass" ;;
+        tue-arch) echo "Bug reproduction workshop" ;;
+        wed-pair) echo "Cross-browser test session" ;;
+        thu-1on1) echo "Release candidate validation" ;;
+        fri-review) echo "QA sign-off review" ;;
+        fri-bugbash) echo "Critical bug sweep" ;;
+        sat-family) echo "On-call handover prep" ;;
+        sun-friends) echo "Incident postmortem notes" ;;
+      esac
+      ;;
+    *)
+      case "$slot" in
+        mon-standup) echo "Team standup" ;;
+        mon-focus) echo "Deep work block" ;;
+        tue-arch) echo "Architecture review" ;;
+        wed-pair) echo "Pairing session" ;;
+        thu-1on1) echo "1:1 meeting" ;;
+        fri-review) echo "Sprint review" ;;
+        fri-bugbash) echo "Bug bash" ;;
+        sat-family) echo "Family brunch" ;;
+        sun-friends) echo "Friends meetup" ;;
+      esac
+      ;;
+  esac
+}
+
 seed_calendar_events() {
   local user=$1 pass=$2 cal=$3
   # Seed past-only weeks (default 4) with realistic work + weekend events
   for i in $(seq 0 $((WEEKS-1))); do
     local offset=$((i+1))
-    put_event "$user" "$pass" "$cal" "${cal}-w${offset}-mon-standup" "Team standup" "$(rfc3339_z "${offset} weeks ago monday 09:00")" "$(rfc3339_z "${offset} weeks ago monday 09:30")"
-    put_event "$user" "$pass" "$cal" "${cal}-w${offset}-mon-focus" "Deep work (feature)" "$(rfc3339_z "${offset} weeks ago monday 14:00")" "$(rfc3339_z "${offset} weeks ago monday 16:00")"
-    put_event "$user" "$pass" "$cal" "${cal}-w${offset}-tue-arch" "Architecture review" "$(rfc3339_z "${offset} weeks ago tuesday 11:00")" "$(rfc3339_z "${offset} weeks ago tuesday 12:30")"
-    put_event "$user" "$pass" "$cal" "${cal}-w${offset}-wed-pair" "Pairing session (backend)" "$(rfc3339_z "${offset} weeks ago wednesday 10:00")" "$(rfc3339_z "${offset} weeks ago wednesday 12:00")"
-    put_event "$user" "$pass" "$cal" "${cal}-w${offset}-thu-1on1" "1:1 with manager" "$(rfc3339_z "${offset} weeks ago thursday 15:00")" "$(rfc3339_z "${offset} weeks ago thursday 16:30")"
-    put_event "$user" "$pass" "$cal" "${cal}-w${offset}-fri-review" "Sprint review" "$(rfc3339_z "${offset} weeks ago friday 09:00")" "$(rfc3339_z "${offset} weeks ago friday 11:00")"
-    put_event "$user" "$pass" "$cal" "${cal}-w${offset}-fri-bugbash" "Bug bash" "$(rfc3339_z "${offset} weeks ago friday 13:00")" "$(rfc3339_z "${offset} weeks ago friday 15:00")"
-    put_event "$user" "$pass" "$cal" "${cal}-w${offset}-sat-family" "Family brunch" "$(rfc3339_z "${offset} weeks ago saturday 10:00")" "$(rfc3339_z "${offset} weeks ago saturday 12:00")"
-    put_event "$user" "$pass" "$cal" "${cal}-w${offset}-sun-friends" "Friends BBQ" "$(rfc3339_z "${offset} weeks ago sunday 17:00")" "$(rfc3339_z "${offset} weeks ago sunday 19:00")"
+    put_event "$user" "$pass" "$cal" "${cal}-w${offset}-mon-standup" "$(event_summary "$cal" mon-standup)" "$(rfc3339_z "${offset} weeks ago monday 09:00")" "$(rfc3339_z "${offset} weeks ago monday 09:30")"
+    put_event "$user" "$pass" "$cal" "${cal}-w${offset}-mon-focus" "$(event_summary "$cal" mon-focus)" "$(rfc3339_z "${offset} weeks ago monday 14:00")" "$(rfc3339_z "${offset} weeks ago monday 16:00")"
+    put_event "$user" "$pass" "$cal" "${cal}-w${offset}-tue-arch" "$(event_summary "$cal" tue-arch)" "$(rfc3339_z "${offset} weeks ago tuesday 11:00")" "$(rfc3339_z "${offset} weeks ago tuesday 12:30")"
+    put_event "$user" "$pass" "$cal" "${cal}-w${offset}-wed-pair" "$(event_summary "$cal" wed-pair)" "$(rfc3339_z "${offset} weeks ago wednesday 10:00")" "$(rfc3339_z "${offset} weeks ago wednesday 12:00")"
+    put_event "$user" "$pass" "$cal" "${cal}-w${offset}-thu-1on1" "$(event_summary "$cal" thu-1on1)" "$(rfc3339_z "${offset} weeks ago thursday 15:00")" "$(rfc3339_z "${offset} weeks ago thursday 16:30")"
+    put_event "$user" "$pass" "$cal" "${cal}-w${offset}-fri-review" "$(event_summary "$cal" fri-review)" "$(rfc3339_z "${offset} weeks ago friday 09:00")" "$(rfc3339_z "${offset} weeks ago friday 11:00")"
+    put_event "$user" "$pass" "$cal" "${cal}-w${offset}-fri-bugbash" "$(event_summary "$cal" fri-bugbash)" "$(rfc3339_z "${offset} weeks ago friday 13:00")" "$(rfc3339_z "${offset} weeks ago friday 15:00")"
+    put_event "$user" "$pass" "$cal" "${cal}-w${offset}-sat-family" "$(event_summary "$cal" sat-family)" "$(rfc3339_z "${offset} weeks ago saturday 10:00")" "$(rfc3339_z "${offset} weeks ago saturday 12:00")"
+    put_event "$user" "$pass" "$cal" "${cal}-w${offset}-sun-friends" "$(event_summary "$cal" sun-friends)" "$(rfc3339_z "${offset} weeks ago sunday 17:00")" "$(rfc3339_z "${offset} weeks ago sunday 19:00")"
   done
 }
 
@@ -136,11 +195,11 @@ seed_deck() {
   app_path=$(resolve_app_path)
   # Board titles + colors reused per user to keep fixtures predictable.
   local titles=(
-    "Opsdash Ops QA"
-    "Opsdash Roadmap"
-    "Opsdash Support"
-    "Opsdash Automation"
-    "Opsdash Experiments"
+    "Opsdash Product Delivery"
+    "Opsdash Release Train"
+    "Opsdash Customer Operations"
+    "Opsdash Reliability"
+    "Opsdash Growth Experiments"
   )
   local colors=("#2563EB" "#F97316" "#0EA5E9" "#10B981" "#A855F7")
   seed_for_user() {

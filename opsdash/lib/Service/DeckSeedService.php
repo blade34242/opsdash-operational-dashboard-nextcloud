@@ -214,9 +214,9 @@ class DeckSeedService {
 
         $entries = [
             [
-                'title' => 'Prep Opsdash Deck sync',
+                'title' => 'Review overnight alerts',
                 'stack' => 'Inbox',
-                'description' => 'Collect blockers and upcoming deliverables.',
+                'description' => 'Check incidents and flag anything that blocks delivery.',
                 'due' => $weekStart->modify('+1 day'),
                 'labels' => ['Ops'],
                 'assign' => [$userId],
@@ -224,9 +224,9 @@ class DeckSeedService {
                 'archived' => false,
             ],
             [
-                'title' => 'Resolve Deck blockers',
+                'title' => 'Escalate blocked migration tasks',
                 'stack' => 'Inbox',
-                'description' => 'Triage cards stuck behind approvals.',
+                'description' => 'Unblock owner approvals for cards stuck in review.',
                 'due' => $weekStart->modify('+3 days'),
                 'labels' => ['Blocked'],
                 'assign' => [$otherUserId ?: $userId],
@@ -234,9 +234,9 @@ class DeckSeedService {
                 'archived' => false,
             ],
             [
-                'title' => 'QA follow-ups',
+                'title' => 'QA follow-up checks',
                 'stack' => 'Inbox',
-                'description' => 'Follow up on sprint QA items.',
+                'description' => 'Verify retests for issues marked ready-for-verify.',
                 'due' => $weekStart->modify('+2 days'),
                 'labels' => ['Ops'],
                 'assign' => [$userId],
@@ -244,9 +244,9 @@ class DeckSeedService {
                 'archived' => false,
             ],
             [
-                'title' => 'Publish Ops report cards',
+                'title' => 'Publish weekly KPI digest',
                 'stack' => 'Done',
-                'description' => 'Assemble summaries for this sprint.',
+                'description' => 'Post the weekly metrics digest for product and support.',
                 'due' => $weekStart->modify('+3 days'),
                 'labels' => ['Reporting'],
                 'assign' => [$userId],
@@ -254,19 +254,19 @@ class DeckSeedService {
                 'archived' => false,
             ],
             [
-                'title' => 'Archive completed Ops tasks',
+                'title' => 'Close resolved support escalations',
                 'stack' => 'Done',
-                'description' => 'Keeps the board lean with auto-archiving.',
-                'due' => $weekStart->modify('-1 day'),
-                'labels' => [],
+                'description' => 'Confirm fix rollout and close escalations from this sprint.',
+                'due' => $weekStart->modify('+1 day'),
+                'labels' => ['Ops'],
                 'assign' => [$otherUserId ?: $userId],
                 'done' => true,
-                'archived' => true,
+                'archived' => false,
             ],
             [
-                'title' => 'Retro Deck automation',
+                'title' => 'Document automation runbook updates',
                 'stack' => 'Done',
-                'description' => 'Document learnings from automation spike.',
+                'description' => 'Capture lessons from the latest workflow automation updates.',
                 'due' => $weekStart->modify('+1 day'),
                 'labels' => ['Ops'],
                 'assign' => [$userId],
@@ -274,9 +274,9 @@ class DeckSeedService {
                 'archived' => false,
             ],
             [
-                'title' => 'Cleanup stale labels',
+                'title' => 'Tag cards for monthly reporting',
                 'stack' => 'Done',
-                'description' => 'Reduce label noise before next sprint.',
+                'description' => 'Apply reporting labels so charts stay clean and consistent.',
                 'due' => $weekStart->modify('+2 days'),
                 'labels' => ['Reporting'],
                 'assign' => [$otherUserId ?: $userId],
@@ -284,9 +284,9 @@ class DeckSeedService {
                 'archived' => false,
             ],
             [
-                'title' => 'Triage Deck bugs',
+                'title' => 'Investigate sync latency spike',
                 'stack' => 'In Progress',
-                'description' => 'Sweep new Deck bugs and assign owners.',
+                'description' => 'Analyze slow sync jobs and prepare mitigations.',
                 'due' => $weekStart->modify('+4 days'),
                 'labels' => ['Blocked'],
                 'assign' => [$otherUserId ?: $userId],
@@ -294,9 +294,9 @@ class DeckSeedService {
                 'archived' => false,
             ],
             [
-                'title' => 'Plan monthly Ops themes',
+                'title' => 'Plan next month reliability themes',
                 'stack' => 'Inbox',
-                'description' => 'Draft next month focus areas.',
+                'description' => 'Draft monthly priorities for reliability and support quality.',
                 'due' => $monthAnchor->modify('+20 days'),
                 'labels' => ['Ops'],
                 'assign' => [$userId],
@@ -365,12 +365,12 @@ class DeckSeedService {
         $doneStackId = $stackMap['Done'] ?? null;
         if ($doneStackId) {
             $card = $cardService->create(
-                'Archive completed Ops tasks',
+                'Archive shipped initiatives',
                 $doneStackId,
                 'plain',
                 $order + 5,
                 $userId,
-                'Keeps the board lean with auto-archiving.',
+                'Keep the board tidy by archiving work shipped this week.',
                 $weekStart->modify('-1 day')->format('c')
             );
             $cardService->done((int)$card->getId());
