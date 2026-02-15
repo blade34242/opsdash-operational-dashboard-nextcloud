@@ -5,6 +5,10 @@ This file is a short internal log. Full release notes live in the repo root `CHA
 ## Unreleased
 - None yet.
 
+## 0.5.8 - 2026-02-15
+- Deck cards tag filters now show board context + board color marker when identical label names exist across multiple boards.
+- Notes editor widget event binding fixed so note content is posted and restored correctly after save/reload.
+
 ## 0.5.5 - 2026-02-11
 - Performance: `OverviewEventsCollector` now caches identical collect calls within one `/overview/load` request to reduce repeated calendar scans.
 - Loading UX: widget overlays now apply only on initial paint; refresh keeps existing cards visible and shows `Updating...` in the toolbar.
@@ -34,7 +38,7 @@ This file is a short internal log. Full release notes live in the repo root `CHA
 - Frontend: component tree grouped into feature folders (widgets/charts/tables/panels) and unused sidebar panes removed.
 - E2E: dashboard spec is now focused on startup/config smoke coverage (deck-specific tab assertions removed to avoid env-specific skips/flakes).
 
-## 0.5.7 (current line)
+## 0.5.7
 - Widget-driven dashboard with tabbed layouts.
 - Profile save/load backed by `/overview/presets` endpoint.
 - Targets + balance config sanitisation tightened server-side.

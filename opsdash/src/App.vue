@@ -269,7 +269,7 @@
                 Operational Dashboard • v{{ appVersion }} • Built by Blade34242 @ Gellert Innovation
               </template>
               <template v-else>
-                Operational Dashboard • v{{ pkg?.version || '0.5.7' }} • Built by Blade34242 @ Gellert Innovation
+                Operational Dashboard • v{{ pkg?.version || '0.5.8' }} • Built by Blade34242 @ Gellert Innovation
               </template>
               <template v-if="changelogUrl">
                 • <a :href="changelogUrl" target="_blank" rel="noopener noreferrer">Changelog</a>

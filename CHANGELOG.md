@@ -5,6 +5,13 @@ All notable changes to this project will be documented in this file.
 ## Unreleased
 - None yet.
 
+## 0.5.8 - 2026-02-15
+### Changed
+- Deck cards tag filters now disambiguate duplicate tag names by showing board context (plus board color marker) in each filter chip.
+
+### Fixed
+- Notes editor widget now binds `update:modelValue` correctly so saved note content is sent, persisted, and restored after reload.
+
 ## 0.5.7 - 2026-02-14
 ### Changed
 - App Store release hardening: metadata, packaging hygiene, docs consistency, and public API alignment.

@@ -12,7 +12,7 @@ Opsdash turns your Nextcloud calendar data into a practical operations dashboard
 - 🧩 **Onboarding wizard & profiles** – guided setup, rerun onboarding, and save/load/delete/export/import profile presets.
 - 🗓️ **Activity & schedule** – event and active-day KPIs plus “Days off” trend heatmaps.
 - 🔐 **Nextcloud-native** – same session, same permissions, CSRF-protected writes, no external API calls.
-- 🗂️ **Deck widgets** – per-widget board/filter selection, auto-scroll ticker, counts, and optional deck summary.
+- 🗂️ **Deck widgets** – per-widget board/filter selection, auto-scroll ticker, counts, duplicate-tag disambiguation by board context, and optional deck summary.
 - 📨 **Report tab (preview)** – configure weekly/monthly digest preferences and reminder behavior.
 - 📐 **Widget sizing controls** – per-widget width/height plus scale/dense options for layout tuning.
 
@@ -34,7 +34,7 @@ Opsdash turns your Nextcloud calendar data into a practical operations dashboard
 ## Compatibility
 | Branch | Nextcloud | App version |
 | --- | --- | --- |
-| `master` | 30-32 | 0.5.7 |
+| `master` | 30-32 | 0.5.8 |
 | `release/0.5.x` | 30-32 | Store-ready line |
 
 ## Install
@@ -62,7 +62,7 @@ make smoke
 
 ## Packaging
 ```bash
-make appstore VERSION=0.5.7
+make appstore VERSION=0.5.8
 ```
 
 Produces `build/dist/opsdash-<version>.tar.gz` (unsigned).  
