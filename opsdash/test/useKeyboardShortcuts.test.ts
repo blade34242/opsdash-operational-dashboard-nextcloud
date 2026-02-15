@@ -12,7 +12,6 @@ function setup(overrides: Partial<Parameters<typeof useKeyboardShortcuts>[0]> = 
     openNotesPanel: vi.fn(),
     openConfigPanel: vi.fn(),
     ensureSidebarVisible: vi.fn(),
-    onOpen: vi.fn(),
     toggleEditLayout: vi.fn(),
     ...overrides,
   }
@@ -22,14 +21,13 @@ function setup(overrides: Partial<Parameters<typeof useKeyboardShortcuts>[0]> = 
 
 describe('useKeyboardShortcuts', () => {
   it('opens overlay with ? and closes on escape restoring focus', () => {
-    const { shortcuts, deps } = setup()
+    const { shortcuts } = setup()
     const trigger = document.createElement('button')
     document.body.appendChild(trigger)
     trigger.focus()
 
     trigger.dispatchEvent(new KeyboardEvent('keydown', { key: '?', shiftKey: true, bubbles: true }))
     expect(shortcuts.shortcutsOpen.value).toBe(true)
-    expect(deps.onOpen).toHaveBeenCalledWith({ source: 'keyboard' })
 
     document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }))
     expect(shortcuts.shortcutsOpen.value).toBe(false)

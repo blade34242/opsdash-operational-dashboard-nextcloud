@@ -11,7 +11,6 @@ interface KeyboardShortcutDeps {
   openNotesPanel?: () => void
   openConfigPanel?: () => void
   ensureSidebarVisible?: () => void
-  onOpen?: (detail: { source: 'keyboard' | 'button' | 'api' }) => void
   toggleEditLayout?: () => void | Promise<void>
 }
 
@@ -21,12 +20,11 @@ export function useKeyboardShortcuts(deps: KeyboardShortcutDeps) {
   let listenerBound = false
   const hasInstance = !!getCurrentInstance()
 
-  function openShortcuts(trigger?: HTMLElement | null, source: 'keyboard' | 'button' | 'api' = 'api') {
+  function openShortcuts(trigger?: HTMLElement | null) {
     if (trigger) {
       triggerEl.value = trigger
     }
     shortcutsOpen.value = true
-    deps.onOpen?.({ source })
   }
 
   function closeShortcuts() {
@@ -79,7 +77,7 @@ export function useKeyboardShortcuts(deps: KeyboardShortcutDeps) {
     if (!event.altKey && !event.ctrlKey && !event.metaKey) {
       if (!editable && (event.key === '?' || (event.shiftKey && event.key === '/'))) {
         event.preventDefault()
-        openShortcuts(event.target instanceof HTMLElement ? event.target : null, 'keyboard')
+        openShortcuts(event.target instanceof HTMLElement ? event.target : null)
         return
       }
     }

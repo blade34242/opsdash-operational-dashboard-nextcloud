@@ -3,7 +3,9 @@
 All notable changes to this project will be documented in this file.
 
 ## Unreleased
-- None yet.
+### Changed
+- Removed the keyboard-shortcuts telemetry hook; opening the shortcuts overlay no longer emits analytics/event-bus telemetry events.
+- Frontend boot logging is now debug-gated; production mode no longer prints verbose startup/error payloads to the browser console.
 
 ## 0.5.8 - 2026-02-15
 ### Changed
@@ -102,7 +104,6 @@ All notable changes to this project will be documented in this file.
 - Keyboard shortcuts overlay + `useKeyboardShortcuts` composable: Alt+←/→ navigation, Alt+N notes pane, Alt+T Config & Setup, Ctrl/⌘+S note save, and `?` cheat sheet.
 - QA month + notes fixtures (`load-month-qa.json`, `notes-month-qa.json`) wired into Vitest + PHPUnit to keep `/overview/load` + `/overview/notes` schema coverage in sync.
 - Localization helpers: `npm run i18n:scan` highlights untranslated strings and `npm run i18n:extract` wraps `occ translations:create-app` for template generation.
-- Telemetry hook via `trackTelemetry('shortcuts_opened')` so overlay usage is observable.
 - Vitest coverage for `DeckCardsPanel` (filters, loading/error/empty states) and `TimeSummaryCard` to lock UI copy/metrics before Playwright runs.
 - Deck preview: `src/services/deck.ts` normalises Deck API payloads, `composables/useDeckCards.ts` wires them into the SPA, and App.vue now exposes a Deck tab powered by `DeckCardsPanel.vue`.
 - QA Deck seed script `apps/opsdash/tools/seed_deck_boards.php` (plus Vitest fixtures/tests) ensures CI and Playwright runs have deterministic Deck boards/cards.

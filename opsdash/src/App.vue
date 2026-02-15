@@ -66,7 +66,7 @@
           @toggle-nav="toggleNav"
           @rerun-onboarding="openWizardFromSidebar"
           @open-profiles="profilesOverlayOpen = true"
-          @open-shortcuts="(el) => openShortcuts(el, 'button')"
+          @open-shortcuts="(el) => openShortcuts(el)"
         />
       </template>
 
@@ -340,7 +340,6 @@ import { useDeckFiltering, sanitizeDeckFilter } from '../composables/useDeckFilt
 import { useWidgetLayoutManager } from '../composables/useWidgetLayoutManager'
 import { useDashboardBoot } from '../composables/useDashboardBoot'
 import { useWidgetRenderContext } from '../composables/useWidgetRenderContext'
-import { trackTelemetry } from './services/telemetry'
 import './styles/widgetTextScale.css'
 // Ensure a visible version even if backend attrs are empty: use package.json as fallback
 // @ts-ignore
@@ -982,7 +981,6 @@ const {
     layoutRef.value?.openOptionsForSelected?.()
   },
   ensureSidebarVisible,
-  onOpen: ({ source }) => trackTelemetry('shortcuts_opened', { source }),
 })
 
 const activeDayMode = ref<'active'|'all'>('active')
