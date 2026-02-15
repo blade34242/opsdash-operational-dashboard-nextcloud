@@ -1,15 +1,28 @@
 # Security Policy
 
+## Project Note
+Opsdash is built and maintained as a hobby project.
+I put real effort into security hardening, validation, and review, but this is still best-effort maintenance.
+If you spot something suspicious, please report it. Helpful reports make the app safer for everyone.
+
 ## Supported Versions
-We currently support the 0.5.x line (Nextcloud 30-32).
+We currently support the `0.5.x` line (Nextcloud `30-32`).
 
-## Reporting a Vulnerability
-- **Preferred**: open a private report via GitHub Security Advisories for this repository.
-- **Alternate**: email security reports to `opsdash-security@gellert-innovation.dev` (PGP optional). Please include steps to reproduce, Nextcloud version, and Opsdash version.
+## How to Report
+- **Sensitive/security-critical issue**: please use a private GitHub Security Advisory report.
+- **Non-sensitive security concern or hardening suggestion**: opening a normal GitHub issue is welcome.
+- **Alternate private contact**: `opsdash-security@gellert-innovation.dev` (PGP optional).
 
-## Response Timeline
-1. **Acknowledgement** within 3 business days.
-2. **Status update** once triaged (typically within a week).
-3. **Fix release** tracked via `CHANGELOG.md` and GitHub Releases. If disclosure is coordinated, we’ll agree on a timeline before publishing.
+Please include:
+- clear reproduction steps
+- expected vs actual behavior
+- Nextcloud version
+- Opsdash version
+- relevant logs/screenshots (with secrets removed)
 
-Please avoid publicly disclosing vulnerabilities before we have confirmed and released a fix.
+## Response Expectations
+1. Acknowledgement target: within 3 business days.
+2. Triage update target: usually within 7 days.
+3. Fix and release notes: tracked in `CHANGELOG.md` and GitHub Releases.
+
+Please avoid public disclosure of exploitable vulnerabilities until a fix is available.
