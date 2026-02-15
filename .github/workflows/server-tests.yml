@@ -7,6 +7,13 @@ on:
       - 'release/**'
   pull_request:
 
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 env:
   APP_NAME: opsdash
   PLAYWRIGHT_SECOND_USER: qa
@@ -18,10 +25,12 @@ jobs:
     outputs:
       matrix: ${{ steps.load-matrix.outputs.matrix }}
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@5a4ac9002d0be2fb38bd78e4b4dbde5606d7042f
+      - uses: actions/setup-node@60edb5dd545a775178f52524783378180af0d1f8
         with:
           node-version: 20
+          cache: npm
+          cache-dependency-path: opsdash/package-lock.json
       - id: load-matrix
         run: |
           matrix=$(node .github/scripts/render-matrix.js)
@@ -36,7 +45,7 @@ jobs:
       matrix: ${{ fromJSON(needs.matrix-config.outputs.matrix) }}
     steps:
       - name: Checkout Nextcloud server
-        uses: actions/checkout@v4
+        uses: actions/checkout@5a4ac9002d0be2fb38bd78e4b4dbde5606d7042f
         with:
           repository: nextcloud/server
           ref: ${{ matrix.nextcloud_branch }}
@@ -44,7 +53,7 @@ jobs:
           path: server
 
       - name: Checkout app sources
-        uses: actions/checkout@v4
+        uses: actions/checkout@5a4ac9002d0be2fb38bd78e4b4dbde5606d7042f
         with:
           path: app-src
 
@@ -56,9 +65,11 @@ jobs:
           rsync -a app-src/tools/security/ server/apps/${{ env.APP_NAME }}/tools/security/ 2>/dev/null || true
 
       - name: Set up Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@60edb5dd545a775178f52524783378180af0d1f8
         with:
           node-version: 20
+          cache: npm
+          cache-dependency-path: server/apps/${{ env.APP_NAME }}/package-lock.json
 
       - name: NPM install
         working-directory: server/apps/${{ env.APP_NAME }}
@@ -73,11 +84,20 @@ jobs:
         run: npm run build
 
       - name: Set up PHP
-        uses: shivammathur/setup-php@v2
+        uses: shivammathur/setup-php@afefcaf556d98dc7896cca380e181decb609ca44
         with:
           php-version: ${{ matrix.php_version }}
           extensions: mbstring, intl, gd
           coverage: none
+
+      - name: Cache Composer downloads
+        uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830
+        with:
+          path: ~/.composer/cache/files
+          key: ${{ runner.os }}-composer-${{ matrix.php_version }}-${{ hashFiles('server/apps/opsdash/composer.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-composer-${{ matrix.php_version }}-
+            ${{ runner.os }}-composer-
 
       - name: Composer install
         working-directory: server/apps/${{ env.APP_NAME }}
@@ -163,7 +183,7 @@ jobs:
 
       - name: Upload Playwright results
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@65462800fd760344b1a7b4382951275a0abb4808
         with:
           name: playwright-report-${{ matrix.nextcloud_branch }}-php${{ matrix.php_version }}
           path: server/apps/${{ env.APP_NAME }}/playwright-report

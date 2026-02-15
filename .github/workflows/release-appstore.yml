@@ -1,0 +1,100 @@
+name: Build And Publish Appstore Package
+
+on:
+  release:
+    types: [published]
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'App version (x.y.z). Optional; falls back to tag/ref.'
+        required: false
+        type: string
+      release_tag:
+        description: 'Optional existing release tag to attach the tarball to.'
+        required: false
+        type: string
+
+permissions:
+  contents: write
+
+concurrency:
+  group: release-${{ github.workflow }}-${{ github.event.release.tag_name || github.ref }}
+  cancel-in-progress: false
+
+env:
+  APP_NAME: opsdash
+
+jobs:
+  build_and_publish:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout app sources
+        uses: actions/checkout@5a4ac9002d0be2fb38bd78e4b4dbde5606d7042f
+
+      - name: Set up Node.js
+        uses: actions/setup-node@60edb5dd545a775178f52524783378180af0d1f8
+        with:
+          node-version: 20
+          cache: npm
+          cache-dependency-path: opsdash/package-lock.json
+
+      - name: Set up PHP
+        uses: shivammathur/setup-php@afefcaf556d98dc7896cca380e181decb609ca44
+        with:
+          php-version: '8.3'
+          extensions: mbstring, intl, gd, zip
+          coverage: none
+
+      - name: Cache Composer downloads
+        uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830
+        with:
+          path: ~/.composer/cache/files
+          key: ${{ runner.os }}-composer-release-${{ hashFiles('opsdash/composer.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-composer-release-
+            ${{ runner.os }}-composer-
+
+      - name: Resolve release version
+        id: version
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          version="${{ github.event.inputs.version || '' }}"
+          if [ -z "$version" ]; then
+            if [ "${{ github.event_name }}" = "release" ]; then
+              version="${{ github.event.release.tag_name }}"
+            else
+              version="${GITHUB_REF_NAME}"
+            fi
+          fi
+
+          version="${version#v}"
+          if [ -z "$version" ]; then
+            echo "Unable to resolve release version" >&2
+            exit 1
+          fi
+
+          asset_name="${{ env.APP_NAME }}-${version}.tar.gz"
+          echo "version=${version}" >> "$GITHUB_OUTPUT"
+          echo "asset_name=${asset_name}" >> "$GITHUB_OUTPUT"
+
+      - name: Build appstore tarball
+        run: make appstore VERSION=${{ steps.version.outputs.version }}
+
+      - name: Upload package as workflow artifact
+        uses: actions/upload-artifact@65462800fd760344b1a7b4382951275a0abb4808
+        with:
+          name: appstore-package-${{ steps.version.outputs.version }}
+          path: build/dist/${{ steps.version.outputs.asset_name }}
+          if-no-files-found: error
+
+      - name: Upload tarball to GitHub release
+        if: ${{ github.event_name == 'release' || github.event.inputs.release_tag != '' }}
+        uses: svenstaro/upload-release-action@483c1e56f95e88835747b1c7c60581215016cbf2
+        with:
+          repo_token: ${{ secrets.GITHUB_TOKEN }}
+          file: build/dist/${{ steps.version.outputs.asset_name }}
+          asset_name: ${{ steps.version.outputs.asset_name }}
+          tag: ${{ github.event_name == 'release' && github.event.release.tag_name || github.event.inputs.release_tag }}
+          overwrite: true
