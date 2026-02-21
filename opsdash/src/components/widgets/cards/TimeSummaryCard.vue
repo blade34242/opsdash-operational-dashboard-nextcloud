@@ -66,32 +66,64 @@
       </div>
     </div>
     </div>
-    <div class="time-summary-history" v-if="showLookbackPanel && historyItems.length">
+    <div class="time-summary-history" v-if="showLookbackPanel && historyRows.length">
       <div class="time-summary-history__header">
         <div class="time-summary-history__title">Lookback</div>
         <div class="time-summary-history__mode">{{ historyViewLabel }}</div>
       </div>
-      <div v-if="historyView === 'pills'" class="time-summary-history__pills">
-        <div class="history-pill" v-for="item in historyItems" :key="item.offset">
-          <div class="history-pill__title">{{ item.label }}</div>
-          <div class="history-pill__metrics">
-            <span class="history-pill__metric" v-for="metric in item.metrics" :key="metric.key">
-              <span class="history-pill__metric-label">{{ metric.label }}</span>
-              <span class="history-pill__metric-value">{{ metric.value }}</span>
+      <div v-if="historyView === 'timeline'" class="time-summary-history__timeline">
+        <div class="history-timeline-entry" v-for="item in historyRows" :key="item.offset">
+          <div class="history-timeline-entry__header">
+            <span class="history-timeline-entry__title">{{ item.label }}</span>
+            <span v-if="item.range" class="history-timeline-entry__range">{{ item.range }}</span>
+            <span v-if="showDelta && item.deltaHours" class="history-timeline-entry__delta">
+              {{ item.deltaHours }}<template v-if="item.deltaPercent"> · {{ item.deltaPercent }}</template>
             </span>
+          </div>
+          <div class="history-timeline-entry__metrics">
+            <div v-if="summaryConfig.showTotal" class="history-timeline-cell">
+              <span class="history-timeline-cell__label">Total</span>
+              <span class="history-timeline-cell__value">{{ item.totalHours }}</span>
+            </div>
+            <div v-if="summaryConfig.showAverage" class="history-timeline-cell">
+              <span class="history-timeline-cell__label">Avg/day</span>
+              <span class="history-timeline-cell__value">{{ item.avgDay }}</span>
+            </div>
+            <div v-if="summaryConfig.showBalance" class="history-timeline-cell">
+              <span class="history-timeline-cell__label">Balance</span>
+              <span class="history-timeline-cell__value">{{ item.balanceIndex }}</span>
+            </div>
+            <div v-if="summaryConfig.showWeekendShare" class="history-timeline-cell">
+              <span class="history-timeline-cell__label">Weekend %</span>
+              <span class="history-timeline-cell__value">{{ item.weekendShare }}</span>
+            </div>
+            <div v-if="summaryConfig.showTopCategory" class="history-timeline-cell">
+              <span class="history-timeline-cell__label">Top category</span>
+              <span class="history-timeline-cell__value">{{ item.topCategoryBrief }}</span>
+            </div>
           </div>
         </div>
       </div>
-      <div v-else class="time-summary-history__list">
-        <div class="history-entry" v-for="item in historyItems" :key="item.offset">
-          <div class="history-entry__header">
-            <span class="history-entry__title">{{ item.label }}</span>
-            <span v-if="item.range" class="history-entry__range">{{ item.range }}</span>
-          </div>
-          <div class="history-entry__metrics">
-            <div class="history-entry__metric" v-for="metric in item.metrics" :key="metric.key">
-              <span class="history-entry__metric-label">{{ metric.label }}</span>
-              <span class="history-entry__metric-value">{{ metric.value }}</span>
+      <div v-else class="time-summary-history__accordion">
+        <div class="history-accordion-entry" v-for="item in historyRows" :key="item.offset">
+          <button class="history-accordion-entry__header" type="button" @click="toggleAccordion(item.offset)">
+            <span class="history-accordion-entry__title">{{ item.label }}</span>
+            <span v-if="item.range" class="history-accordion-entry__range">{{ item.range }}</span>
+            <span v-if="summaryConfig.showTotal" class="history-accordion-entry__summary">{{ item.totalHours }}</span>
+            <span v-if="showDelta && item.deltaHours" class="history-accordion-entry__delta">
+              {{ item.deltaHours }}<template v-if="item.deltaPercent"> · {{ item.deltaPercent }}</template>
+            </span>
+            <span class="history-accordion-entry__caret">{{ isAccordionOpen(item.offset) ? '−' : '+' }}</span>
+          </button>
+          <div v-if="isAccordionOpen(item.offset)" class="history-accordion-entry__body">
+            <div class="history-accordion-group" v-for="section in item.sections" :key="section.key">
+              <div class="history-accordion-group__title">{{ section.label }}</div>
+              <div class="history-accordion-group__metrics">
+                <div class="history-accordion-group__metric" v-for="metric in section.metrics" :key="metric.label">
+                  <span class="history-accordion-group__metric-label">{{ metric.label }}</span>
+                  <span class="history-accordion-group__metric-value">{{ metric.value }}</span>
+                </div>
+              </div>
             </div>
           </div>
         </div>
@@ -104,7 +136,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed } from 'vue'
+import { computed, ref, watch } from 'vue'
 import { formatDateOnly, formatDateRange, formatDateKey, formatTime, parseDateKey, addDaysUtc, addMonthsUtc } from '../../../services/dateTime'
 
 type Mode = 'active' | 'all'
@@ -158,9 +190,28 @@ type HistoryEntry = {
 }
 
 type HistoryMetric = {
-  key: string
   label: string
   value: string
+}
+
+type HistorySection = {
+  key: string
+  label: string
+  metrics: HistoryMetric[]
+}
+
+type HistoryRow = {
+  offset: number
+  label: string
+  range: string
+  totalHours: string
+  avgDay: string
+  balanceIndex: string
+  weekendShare: string
+  topCategoryBrief: string
+  deltaHours: string
+  deltaPercent: string
+  sections: HistorySection[]
 }
 
 const defaultConfig: SummaryConfig = {
@@ -243,7 +294,7 @@ const props = withDefaults(defineProps<{
   showActivity?: boolean
   history?: HistoryEntry[]
   showHistoryCoreMetrics?: boolean
-  historyView?: 'list' | 'pills'
+  historyView?: 'timeline' | 'accordion' | 'list' | 'pills'
   showActivityDetails?: boolean
   showOverview?: boolean
   showLookback?: boolean
@@ -292,8 +343,12 @@ const showHeader = computed(() => props.showHeader)
 const showToday = computed(() => props.showToday)
 const showActivity = computed(() => props.showActivity)
 const showHistoryCoreMetrics = computed(() => props.showHistoryCoreMetrics)
-const historyView = computed(() => (props.historyView === 'pills' ? 'pills' : 'list'))
-const historyViewLabel = computed(() => (historyView.value === 'pills' ? 'Compact' : 'Detailed'))
+const historyView = computed(() => {
+  const value = String(props.historyView ?? '').toLowerCase()
+  if (value === 'timeline' || value === 'list') return 'timeline'
+  return 'accordion'
+})
+const historyViewLabel = computed(() => (historyView.value === 'accordion' ? 'Accordion' : 'Timeline'))
 const showActivityDetails = computed(() => props.showActivityDetails)
 const showOverviewPanel = computed(() => props.showOverview !== false)
 const showLookbackPanel = computed(() => props.showLookback !== false)
@@ -382,26 +437,33 @@ const eveningDeltaLabel = computed(() => {
   return shareDeltaLabel(activity.value.eveningShare, activity.value.delta.eveningShare)
 })
 
-const historyItems = computed(() => {
+const historyRows = computed<HistoryRow[]>(() => {
   const history = Array.isArray(props.history) ? props.history : []
-  return history.map((entry) => {
-    const metrics: HistoryMetric[] = []
+  return history.map((entry, idx) => {
+    const previous = history[idx + 1]
+    const deltaHours = previous ? Number(entry.totalHours) - Number(previous.totalHours) : null
+    const deltaPercent = previous && Number(previous.totalHours) !== 0
+      ? (Number(deltaHours) / Number(previous.totalHours)) * 100
+      : null
+
+    const coreMetrics: HistoryMetric[] = []
     if (summaryConfig.value.showTotal) {
-      metrics.push({ key: 'total', label: 'Total', value: `${n2(entry.totalHours)} h` })
+      coreMetrics.push({ label: 'Total', value: `${n2(entry.totalHours)} h` })
     }
     if (summaryConfig.value.showAverage) {
-      metrics.push({ key: 'avg-day', label: `Avg/day (${modeLabel.value})`, value: `${n2(entry.avgDay)} h` })
-      metrics.push({ key: 'avg-event', label: 'Avg/event', value: `${n2(entry.avgEvent)} h` })
+      coreMetrics.push({ label: `Avg/day (${modeLabel.value})`, value: `${n2(entry.avgDay)} h` })
+      coreMetrics.push({ label: 'Avg/event', value: `${n2(entry.avgEvent)} h` })
     }
     if (summaryConfig.value.showMedian) {
-      metrics.push({ key: 'median', label: 'Median/day', value: `${n2(entry.medianDay)} h` })
+      coreMetrics.push({ label: 'Median/day', value: `${n2(entry.medianDay)} h` })
     }
-    if (summaryConfig.value.showBusiest) {
-      metrics.push({ key: 'busiest', label: 'Busiest', value: formatBusiest(entry.busiest) })
+    if (summaryConfig.value.showBalance) {
+      coreMetrics.push({ label: 'Balance index', value: entry.balanceIndex == null ? '—' : entry.balanceIndex.toFixed(2) })
     }
+
+    const paceMetrics: HistoryMetric[] = []
     if (summaryConfig.value.showWorkday) {
-      metrics.push({
-        key: 'workday',
+      paceMetrics.push({
         label: 'Workdays',
         value: `${n2(entry.workdayAvg)} h avg · ${n2(entry.workdayMedian)} h median`,
       })
@@ -410,84 +472,96 @@ const historyItems = computed(() => {
       const share = summaryConfig.value.showWeekendShare && entry.weekendShare != null
         ? ` (${n1(entry.weekendShare)}%)`
         : ''
-      metrics.push({
-        key: 'weekend',
+      paceMetrics.push({
         label: 'Weekend',
         value: `${n2(entry.weekendAvg)} h avg · ${n2(entry.weekendMedian)} h median${share}`,
       })
     }
+
+    const categoryMetrics: HistoryMetric[] = []
+    if (summaryConfig.value.showTopCategory) {
+      categoryMetrics.push({ label: 'Top category', value: formatTopCategory(entry.topCategory) })
+    }
     if (summaryConfig.value.showCalendarSummary) {
-      metrics.push({
-        key: 'calendars',
+      categoryMetrics.push({
         label: `${entry.activeCalendars} calendars`,
         value: entry.calendarSummary || '—',
       })
     }
-    if (summaryConfig.value.showTopCategory) {
-      metrics.push({
-        key: 'top-category',
-        label: 'Top category',
-        value: formatTopCategory(entry.topCategory),
-      })
-    }
-    if (summaryConfig.value.showBalance) {
-      metrics.push({
-        key: 'balance',
-        label: 'Balance index',
-        value: entry.balanceIndex == null ? '—' : entry.balanceIndex.toFixed(2),
-      })
+
+    const patternMetrics: HistoryMetric[] = []
+    if (summaryConfig.value.showBusiest) {
+      patternMetrics.push({ label: 'Busiest', value: formatBusiest(entry.busiest) })
     }
     if (showHistoryCoreMetrics.value) {
-      metrics.push({ key: 'events', label: 'Events', value: String(entry.activity?.events ?? 0) })
-      metrics.push({ key: 'active-days', label: 'Active days', value: String(entry.activity?.activeDays ?? 0) })
-      metrics.push({ key: 'typical', label: 'Typical', value: formatTypical(entry.activity?.typicalStart, entry.activity?.typicalEnd) })
+      patternMetrics.push({ label: 'Events', value: String(entry.activity?.events ?? 0) })
+      patternMetrics.push({ label: 'Active days', value: String(entry.activity?.activeDays ?? 0) })
+      patternMetrics.push({ label: 'Typical', value: formatTypical(entry.activity?.typicalStart, entry.activity?.typicalEnd) })
     }
     if (showActivityDetails.value) {
-      metrics.push({
-        key: 'weekend-share',
+      patternMetrics.push({
         label: 'Weekend share',
         value: entry.activity?.weekendShare == null ? '—' : `${n1(entry.activity.weekendShare)}%`,
       })
-      metrics.push({
-        key: 'evening-share',
+      patternMetrics.push({
         label: 'Evening share',
         value: entry.activity?.eveningShare == null ? '—' : `${n1(entry.activity.eveningShare)}%`,
       })
-      metrics.push({
-        key: 'earliest-latest',
+      patternMetrics.push({
         label: 'Earliest/Late',
         value: formatEarliestLatest(entry.activity?.earliestStart, entry.activity?.latestEnd),
       })
-      metrics.push({
-        key: 'overlaps',
-        label: 'Overlaps',
-        value: String(entry.activity?.overlapEvents ?? 0),
-      })
-      metrics.push({
-        key: 'longest',
-        label: 'Longest',
-        value: formatLongest(entry.activity?.longestSession),
-      })
-      metrics.push({
-        key: 'last-day-off',
-        label: 'Last day off',
-        value: entry.activity?.lastDayOff || '—',
-      })
-      metrics.push({
-        key: 'last-half-day',
-        label: 'Last half day',
-        value: entry.activity?.lastHalfDayOff || '—',
-      })
+      patternMetrics.push({ label: 'Overlaps', value: String(entry.activity?.overlapEvents ?? 0) })
+      patternMetrics.push({ label: 'Longest', value: formatLongest(entry.activity?.longestSession) })
+      patternMetrics.push({ label: 'Last day off', value: entry.activity?.lastDayOff || '—' })
+      patternMetrics.push({ label: 'Last half day', value: entry.activity?.lastHalfDayOff || '—' })
     }
+
+    const sections: HistorySection[] = [
+      { key: 'core', label: 'Core', metrics: coreMetrics },
+      { key: 'pace', label: 'Pace', metrics: paceMetrics },
+      { key: 'category', label: 'Category', metrics: categoryMetrics },
+      { key: 'pattern', label: 'Pattern', metrics: patternMetrics },
+    ].filter((section) => section.metrics.length > 0)
 
     return {
       offset: entry.offset,
       label: entry.label || `Offset ${formatOffset(entry.offset)}`,
       range: formatRangeSpan(entry.rangeStart, entry.rangeEnd),
-      metrics,
+      totalHours: `${n2(entry.totalHours)} h`,
+      avgDay: `${n2(entry.avgDay)} h`,
+      balanceIndex: entry.balanceIndex == null ? '—' : entry.balanceIndex.toFixed(2),
+      weekendShare: entry.weekendShare == null ? '—' : `${n1(entry.weekendShare)}%`,
+      topCategoryBrief: formatTopCategoryBrief(entry.topCategory),
+      deltaHours: formatSignedHours(deltaHours),
+      deltaPercent: formatSignedPercent(deltaPercent),
+      sections,
     }
   })
 })
+
+const activeAccordionOffset = ref<number | null>(null)
+watch(
+  historyRows,
+  (rows) => {
+    if (!rows.length) {
+      activeAccordionOffset.value = null
+      return
+    }
+    if (!rows.some((row) => row.offset === activeAccordionOffset.value)) {
+      activeAccordionOffset.value = rows[0].offset
+    }
+  },
+  { immediate: true },
+)
+
+function isAccordionOpen(offset: number) {
+  return activeAccordionOffset.value === offset
+}
+
+function toggleAccordion(offset: number) {
+  activeAccordionOffset.value = activeAccordionOffset.value === offset ? null : offset
+}
 
 const rangeSpanLabel = computed(() => {
   const from = props.summary.rangeStart || props.rangeStart
@@ -579,6 +653,23 @@ function formatTopCategory(cat: HistoryEntry['topCategory']) {
   if (!cat) return '—'
   const targetPart = cat.targetHours > 0 ? ` (${Math.round(cat.percent)}% of ${n2(cat.targetHours)} h)` : ''
   return `${cat.label} — ${n2(cat.actualHours)} h${targetPart}`
+}
+
+function formatTopCategoryBrief(cat: HistoryEntry['topCategory']) {
+  if (!cat) return '—'
+  return `${cat.label} ${Math.round(cat.percent)}%`
+}
+
+function formatSignedHours(value: number | null) {
+  if (value == null || !Number.isFinite(value)) return ''
+  const sign = value >= 0 ? '+' : '−'
+  return `${sign}${n2(Math.abs(value))} h`
+}
+
+function formatSignedPercent(value: number | null) {
+  if (value == null || !Number.isFinite(value)) return ''
+  const sign = value >= 0 ? '+' : '−'
+  return `${sign}${Math.abs(value).toFixed(1)}%`
 }
 
 function formatTypical(start?: string | null, end?: string | null) {
@@ -788,89 +879,133 @@ function shareDeltaLabel(current: number | null | undefined, delta: number | nul
   letter-spacing: 0.08em;
   color: var(--muted);
 }
-.time-summary-history__list {
+.time-summary-history__timeline {
   display: grid;
   gap: calc(10px * var(--widget-space, 1));
 }
-.history-entry {
+.history-timeline-entry {
   border: 1px solid color-mix(in oklab, var(--line, #e5e7eb), transparent 20%);
   border-radius: calc(12px * var(--widget-space, 1));
   padding: calc(10px * var(--widget-space, 1));
   background: color-mix(in oklab, var(--card, #fff), transparent 6%);
 }
-.history-entry__header {
+.history-timeline-entry__header {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
   gap: calc(6px * var(--widget-space, 1)) calc(10px * var(--widget-space, 1));
   margin-bottom: calc(8px * var(--widget-space, 1));
 }
-.history-entry__title {
+.history-timeline-entry__title {
   font-weight: 600;
   color: var(--fg);
 }
-.history-entry__range {
+.history-timeline-entry__range {
   font-size: calc(11px * var(--widget-scale, 1));
   color: var(--muted);
 }
-.history-entry__metrics {
+.history-timeline-entry__delta {
+  margin-left: auto;
+  font-size: calc(11px * var(--widget-scale, 1));
+  color: var(--muted);
+}
+.history-timeline-entry__metrics {
   display: grid;
   gap: calc(6px * var(--widget-space, 1));
-  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
 }
-.history-entry__metric {
+.history-timeline-cell {
   display: flex;
   flex-direction: column;
   gap: calc(2px * var(--widget-space, 1));
 }
-.history-entry__metric-label {
+.history-timeline-cell__label {
   font-size: calc(11px * var(--widget-scale, 1));
   color: var(--muted);
   text-transform: uppercase;
   letter-spacing: 0.05em;
 }
-.history-entry__metric-value {
+.history-timeline-cell__value {
   font-size: calc(12px * var(--widget-scale, 1));
   color: var(--fg);
+  font-weight: 600;
 }
-.time-summary-history__pills {
+
+.time-summary-history__accordion {
   display: grid;
   gap: calc(10px * var(--widget-space, 1));
 }
-.history-pill {
+.history-accordion-entry {
   border: 1px solid color-mix(in oklab, var(--line, #e5e7eb), transparent 20%);
-  border-radius: calc(999px * var(--widget-space, 1));
-  padding: calc(8px * var(--widget-space, 1)) calc(12px * var(--widget-space, 1));
+  border-radius: calc(12px * var(--widget-space, 1));
   background: color-mix(in oklab, var(--card, #fff), transparent 6%);
-  display: grid;
-  gap: calc(6px * var(--widget-space, 1));
 }
-.history-pill__title {
+
+.history-accordion-entry__header {
+  width: 100%;
+  display: grid;
+  grid-template-columns: 1fr auto auto auto auto;
+  align-items: center;
+  gap: calc(8px * var(--widget-space, 1));
+  border: 0;
+  background: transparent;
+  color: inherit;
+  text-align: left;
+  padding: calc(10px * var(--widget-space, 1));
+  cursor: pointer;
+}
+.history-accordion-entry__title {
   font-weight: 600;
   color: var(--fg);
-  font-size: calc(12px * var(--widget-scale, 1));
 }
-.history-pill__metrics {
-  display: flex;
-  flex-wrap: wrap;
-  gap: calc(6px * var(--widget-space, 1));
-}
-.history-pill__metric {
-  display: inline-flex;
-  align-items: center;
-  gap: calc(4px * var(--widget-space, 1));
-  padding: calc(2px * var(--widget-space, 1)) calc(8px * var(--widget-space, 1));
-  border-radius: 999px;
-  background: color-mix(in oklab, var(--card, #fff), transparent 12%);
-  border: 1px solid color-mix(in oklab, var(--line, #e5e7eb), transparent 35%);
-}
-.history-pill__metric-label {
-  font-size: calc(10px * var(--widget-scale, 1));
-  text-transform: uppercase;
-  letter-spacing: 0.06em;
+.history-accordion-entry__range {
+  font-size: calc(11px * var(--widget-scale, 1));
   color: var(--muted);
 }
-.history-pill__metric-value {
+.history-accordion-entry__summary {
+  font-size: calc(12px * var(--widget-scale, 1));
+  color: var(--fg);
+  font-weight: 600;
+}
+.history-accordion-entry__delta {
+  font-size: calc(11px * var(--widget-scale, 1));
+  color: var(--muted);
+}
+.history-accordion-entry__caret {
+  font-size: calc(14px * var(--widget-scale, 1));
+  color: var(--muted);
+  line-height: 1;
+}
+.history-accordion-entry__body {
+  border-top: 1px solid color-mix(in oklab, var(--line, #e5e7eb), transparent 25%);
+  padding: calc(8px * var(--widget-space, 1)) calc(10px * var(--widget-space, 1)) calc(10px * var(--widget-space, 1));
+  display: grid;
+  gap: calc(8px * var(--widget-space, 1));
+}
+.history-accordion-group {
+  display: grid;
+  gap: calc(4px * var(--widget-space, 1));
+}
+.history-accordion-group__title {
+  font-size: calc(11px * var(--widget-scale, 1));
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--muted);
+}
+.history-accordion-group__metrics {
+  display: grid;
+  gap: calc(6px * var(--widget-space, 1));
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+}
+.history-accordion-group__metric {
+  display: grid;
+  gap: calc(2px * var(--widget-space, 1));
+}
+.history-accordion-group__metric-label {
+  font-size: calc(11px * var(--widget-scale, 1));
+  color: var(--muted);
+}
+.history-accordion-group__metric-value {
   font-size: calc(11px * var(--widget-scale, 1));
   color: var(--fg);
   font-weight: 600;

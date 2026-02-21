@@ -55,7 +55,7 @@ function buildDefaultOptions() {
     showToday: true,
     showActivity: true,
     showHistoryCoreMetrics: true,
-    historyView: 'list',
+    historyView: 'accordion',
     showActivityDetails: true,
     showDelta: true,
   }
@@ -82,7 +82,11 @@ function buildTimeSummaryProps(
   const showToday = opts.showOverview && def.options?.showToday !== false
   const showActivity = opts.showOverview && def.options?.showActivity !== false
   const showHistoryCoreMetrics = def.options?.showHistoryCoreMetrics !== false
-  const historyView = def.options?.historyView === 'pills' ? 'pills' : 'list'
+  const rawHistoryView = String(def.options?.historyView ?? '').toLowerCase()
+  const historyView =
+    rawHistoryView === 'accordion' || rawHistoryView === 'pills'
+      ? 'accordion'
+      : 'timeline'
   const showActivityDetails = def.options?.showActivityDetails !== false
   const showDelta = opts.showLookback && opts.showDelta && def.options?.showDelta !== false
 
@@ -171,8 +175,8 @@ export const timeSummaryLookbackEntry: RegistryEntry = {
       label: 'History layout',
       type: 'select',
       options: [
-        { value: 'list', label: 'List' },
-        { value: 'pills', label: 'Pills' },
+        { value: 'timeline', label: 'Timeline' },
+        { value: 'accordion', label: 'Accordion' },
       ],
     },
     { key: 'showActivityDetails', label: 'Activity details', type: 'toggle' },
@@ -206,8 +210,8 @@ export const timeSummaryV2Entry: RegistryEntry = {
       label: 'History layout',
       type: 'select',
       options: [
-        { value: 'list', label: 'List' },
-        { value: 'pills', label: 'Pills' },
+        { value: 'timeline', label: 'Timeline' },
+        { value: 'accordion', label: 'Accordion' },
       ],
     },
     { key: 'showActivityDetails', label: 'Activity details', type: 'toggle' },

@@ -77,12 +77,27 @@ describe('time summary split widgets', () => {
     expect(props.showToday).toBe(false)
     expect(props.showActivity).toBe(false)
     expect(props.showDelta).toBe(false)
-    expect(props.historyView).toBe('pills')
+    expect(props.historyView).toBe('accordion')
     expect(props.history.length).toBe(1)
     expect(baseCfg.timeSummary.showTotal).toBe(true)
     expect(baseCfg.timeSummary.showWeekend).toBe(true)
     expect(props.showHistoryCoreMetrics).toBe(true)
     expect(props.showHeader).toBe(true)
+  })
+
+  it('maps legacy list history layout to timeline', () => {
+    const entry = widgetsRegistry.time_summary_lookback
+    const baseCfg = createDefaultTargetsConfig()
+    const def: any = { options: { historyView: 'list' } }
+    const ctx: any = {
+      summary: { rangeLabel: 'Week', totalHours: 10 },
+      activeDayMode: 'active',
+      targetsConfig: baseCfg,
+      lookbackWeeks: 1,
+    }
+
+    const props = entry.buildProps(def, ctx) as any
+    expect(props.historyView).toBe('timeline')
   })
 
   it('passes showHeader when explicitly disabled on lookback widget', () => {

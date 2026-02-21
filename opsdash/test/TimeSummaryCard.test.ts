@@ -192,4 +192,25 @@ describe('TimeSummaryCard', () => {
     expect(text).not.toContain('Typical')
     expect(text).toContain('Lookback')
   })
+
+  it('uses accordion by default and maps legacy list to timeline layout', () => {
+    const baseProps = {
+      summary: baseSummary,
+      mode: 'active' as const,
+      history: [baseHistoryEntry],
+    }
+
+    const accordion = mount(TimeSummaryCard, { props: baseProps })
+    expect(accordion.find('.time-summary-history__accordion').exists()).toBe(true)
+    expect(accordion.find('.time-summary-history__timeline').exists()).toBe(false)
+
+    const timeline = mount(TimeSummaryCard, {
+      props: {
+        ...baseProps,
+        historyView: 'list',
+      },
+    })
+    expect(timeline.find('.time-summary-history__timeline').exists()).toBe(true)
+    expect(timeline.find('.time-summary-history__accordion').exists()).toBe(false)
+  })
 })

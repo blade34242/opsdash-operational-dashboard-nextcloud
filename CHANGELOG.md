@@ -12,6 +12,7 @@ All notable changes to this project will be documented in this file.
 - Strategy setup now uses three explicit modes: Single Goal, Calendar Goals, and Calendar + Categories.
 - Dashboard preset labels/mapping are now Empty, Standard, and Advanced; the Empty preset keeps one default tab without widgets.
 - Profile payload sanitization now keeps additional compatible fields (`theme_preference`, `reporting_config`, `deck_settings`, `widgets`, `onboarding`) for save/load/export.
+- Time Summary (Lookback) now uses `Timeline` / `Accordion` history layouts (replacing `List` / `Pills`), with `Accordion` as the default and backward mapping for existing profile values.
 
 ### Fixed
 - Profile load now restores onboarding strategy/dashboard mode context and applies the matching dashboard preset when widget tabs are not included in the profile.

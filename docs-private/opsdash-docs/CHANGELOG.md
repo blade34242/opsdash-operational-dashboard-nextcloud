@@ -10,6 +10,7 @@ This file is a short internal log. Full release notes live in the repo root `CHA
 - Dashboard presets remapped to Empty/Standard/Advanced (internal IDs unchanged for compatibility).
 - Empty preset behavior updated to keep one default tab and no widgets.
 - Preset save/load/export now carries onboarding + dashboard context fields and applies preset fallback when widgets are missing.
+- Time Summary (Lookback) history layout options are now `Timeline` / `Accordion` (legacy `list`/`pills` values still map), with `Accordion` default.
 
 ## 0.5.8 - 2026-02-15
 - Deck cards tag filters now show board context + board color marker when identical label names exist across multiple boards.
