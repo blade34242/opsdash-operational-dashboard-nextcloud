@@ -7,6 +7,15 @@ All notable changes to this project will be documented in this file.
 - Removed the keyboard-shortcuts telemetry hook; opening the shortcuts overlay no longer emits analytics/event-bus telemetry events.
 - Frontend boot logging is now debug-gated; production mode no longer prints verbose startup/error payloads to the browser console.
 
+## 0.5.9 - 2026-02-21
+### Changed
+- Strategy setup now uses three explicit modes: Single Goal, Calendar Goals, and Calendar + Categories.
+- Dashboard preset labels/mapping are now Empty, Standard, and Advanced; the Empty preset keeps one default tab without widgets.
+- Profile payload sanitization now keeps additional compatible fields (`theme_preference`, `reporting_config`, `deck_settings`, `widgets`, `onboarding`) for save/load/export.
+
+### Fixed
+- Profile load now restores onboarding strategy/dashboard mode context and applies the matching dashboard preset when widget tabs are not included in the profile.
+
 ## 0.5.8 - 2026-02-15
 ### Changed
 - Deck cards tag filters now disambiguate duplicate tag names by showing board context (plus board color marker) in each filter chip.

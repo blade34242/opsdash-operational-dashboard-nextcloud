@@ -14,6 +14,7 @@ import {
   type ReportingConfig,
 } from '../src/services/reporting'
 import { normalizeWidgetTabs, createDefaultWidgetTabs } from '../src/services/widgetsRegistry'
+import type { OnboardingState } from './useDashboard'
 
 interface DashboardPersistenceDeps {
   route: (name: 'persist') => string
@@ -30,6 +31,7 @@ interface DashboardPersistenceDeps {
   reportingConfig?: Ref<ReportingConfig>
   deckSettings?: Ref<DeckFeatureSettings>
   widgetTabs?: Ref<WidgetTabsState>
+  onboardingState?: Ref<OnboardingState | null>
 }
 
 export function useDashboardPersistence(deps: DashboardPersistenceDeps) {
@@ -67,6 +69,9 @@ export function useDashboardPersistence(deps: DashboardPersistenceDeps) {
         }
         if (deps.widgetTabs) {
           payload.widgets = deps.widgetTabs.value
+        }
+        if (deps.onboardingState?.value) {
+          payload.onboarding = deps.onboardingState.value
         }
         const result = await deps.postJson(deps.route('persist'), payload)
         if (requestId !== latestRequestId) {
@@ -116,6 +121,15 @@ export function useDashboardPersistence(deps: DashboardPersistenceDeps) {
           const nextWidgets = result.widgets_read ?? result.widgets_saved ?? result.widgets
           const fallback = deps.widgetTabs.value || createDefaultWidgetTabs('standard')
           deps.widgetTabs.value = normalizeWidgetTabs(nextWidgets, fallback)
+        }
+        if (deps.onboardingState) {
+          const nextOnboarding = result.onboarding_read ?? result.onboarding_saved
+          if (nextOnboarding && typeof nextOnboarding === 'object') {
+            deps.onboardingState.value = {
+              ...(deps.onboardingState.value || {}),
+              ...nextOnboarding,
+            } as OnboardingState
+          }
         }
 
         if (reload && deps.onReload) {

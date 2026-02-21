@@ -7,16 +7,16 @@
 
 ## Flow (current)
 1. Intro (edit current vs create new profile, optional backup).
-2. Strategy (Single Goal/Balanced/Advanced).
-3. Dashboard layout (Compact/Standard/Workspace).
+2. Strategy (Single Goal/Calendar Goals/Calendar + Categories).
+3. Dashboard layout (Empty/Standard/Advanced).
 4. Calendars (no defaults; at least one required).
-5. Categories/Targets (only for Balanced/Advanced).
+5. Categories/Targets (only for Calendar + Categories).
 6. Preferences (theme, all-day hours, reporting, activity day-off).
 7. Deck boards (enable Deck + choose visible boards).
 8. Review (summary + optional "save as new profile").
 
 ## Rules
-- Calendar targets only show in the Advanced strategy.
+- Calendar targets show in Calendar Goals and Calendar + Categories.
 - Category assignment is optional; Unassigned calendars are allowed.
 - Category presets seed common defaults.
 - Wizard can save per step without finishing.

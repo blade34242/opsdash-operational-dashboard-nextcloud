@@ -57,7 +57,7 @@ describe('OnboardingWizard', () => {
   it('honors startStep and allows jumping via step pills', async () => {
     const wrapper = mountWizard({
       startStep: 'categories',
-      initialStrategy: 'total_plus_categories',
+      initialStrategy: 'full_granular',
     })
     const pills = wrapper.findAll('.step-pill')
     const labels = pills.map((p) => p.text())

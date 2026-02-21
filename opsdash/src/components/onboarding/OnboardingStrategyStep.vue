@@ -17,7 +17,7 @@
       <footer>Best for: {{ strategy.recommendedFor }}</footer>
     </article>
   </div>
-  <p class="hint">Balanced and Advanced include a Targets step for categories and calendar assignments.</p>
+  <p class="hint">Calendar + Categories includes the Targets step. Calendar Goals uses per-calendar targets in the Calendars step.</p>
 </template>
 
 <script setup lang="ts">

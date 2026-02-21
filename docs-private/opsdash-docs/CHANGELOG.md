@@ -5,6 +5,12 @@ This file is a short internal log. Full release notes live in the repo root `CHA
 ## Unreleased
 - None yet.
 
+## 0.5.9 - 2026-02-21
+- Strategy modes renamed/reworked to: Single Goal, Calendar Goals, Calendar + Categories.
+- Dashboard presets remapped to Empty/Standard/Advanced (internal IDs unchanged for compatibility).
+- Empty preset behavior updated to keep one default tab and no widgets.
+- Preset save/load/export now carries onboarding + dashboard context fields and applies preset fallback when widgets are missing.
+
 ## 0.5.8 - 2026-02-15
 - Deck cards tag filters now show board context + board color marker when identical label names exist across multiple boards.
 - Notes editor widget event binding fixed so note content is posted and restored correctly after save/reload.

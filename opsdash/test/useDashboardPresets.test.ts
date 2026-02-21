@@ -5,6 +5,7 @@ import { useDashboardPresets } from '../composables/useDashboardPresets'
 import { createDefaultTargetsConfig } from '../src/services/targets'
 import { createDefaultDeckSettings, createDefaultReportingConfig } from '../src/services/reporting'
 import { createDefaultWidgetTabs } from '../src/services/widgetsRegistry'
+import type { OnboardingState } from '../composables/useDashboard'
 import presetFixture from './fixtures-v2/preset-export.json'
 
 function createPresetManager(overrides: Partial<Parameters<typeof useDashboardPresets>[0]> = {}) {
@@ -18,6 +19,15 @@ function createPresetManager(overrides: Partial<Parameters<typeof useDashboardPr
   const reportingConfig = overrides.reportingConfig ?? ref(createDefaultReportingConfig())
   const deckSettings = overrides.deckSettings ?? ref(createDefaultDeckSettings())
   const setThemePreference = overrides.setThemePreference ?? vi.fn()
+  const onboardingState = overrides.onboardingState ?? ref<OnboardingState | null>({
+    completed: true,
+    version: 1,
+    strategy: 'total_only',
+    completed_at: '2026-01-01T00:00:00.000Z',
+    dashboardMode: 'standard',
+  })
+  const setDashboardMode = overrides.setDashboardMode ?? vi.fn()
+  const applyDashboardPreset = overrides.applyDashboardPreset ?? vi.fn()
   const userChangedSelection = ref(false)
 
   const route = vi.fn<(name: 'presetsList' | 'presetsSave' | 'presetsLoad' | 'presetsDelete', param?: string) => string>().mockImplementation((name, param?: string) => {
@@ -58,6 +68,9 @@ function createPresetManager(overrides: Partial<Parameters<typeof useDashboardPr
     reportingConfig,
     deckSettings,
     widgetTabs,
+    onboardingState,
+    setDashboardMode,
+    applyDashboardPreset,
     userChangedSelection,
     ...overrides,
   })
@@ -73,6 +86,9 @@ function createPresetManager(overrides: Partial<Parameters<typeof useDashboardPr
     deckSettings,
     setThemePreference,
     widgetTabs,
+    onboardingState,
+    setDashboardMode,
+    applyDashboardPreset,
     userChangedSelection,
     route,
     getJson,
@@ -116,6 +132,7 @@ describe('useDashboardPresets', () => {
     expect(postJson).toHaveBeenCalledWith('/presets', expect.objectContaining({
       name: 'Deep Work',
       widgets: manager.widgetTabs.value,
+      onboarding: manager.onboardingState.value,
       theme_preference: 'dark',
       reporting_config: manager.reportingConfig.value,
       deck_settings: manager.deckSettings.value,
@@ -151,6 +168,13 @@ describe('useDashboardPresets', () => {
         reporting_config: presetReporting,
         deck_settings: presetDeck,
         widgets: presetWidgets,
+        onboarding: {
+          completed: true,
+          version: 1,
+          strategy: 'total_plus_categories',
+          completed_at: '2026-02-20T00:00:00.000Z',
+          dashboardMode: 'pro',
+        },
       },
       presets: [],
     }
@@ -172,6 +196,9 @@ describe('useDashboardPresets', () => {
     expect(manager.deckSettings.value.enabled).toBe(false)
     expect(manager.deckSettings.value.defaultFilter).toBe('open_all')
     expect(manager.widgetTabs.value.tabs[0].widgets[0].type).toBe('note_editor')
+    expect(manager.onboardingState.value?.strategy).toBe('total_plus_categories')
+    expect(manager.onboardingState.value?.dashboardMode).toBe('pro')
+    expect(manager.setDashboardMode).toHaveBeenCalledWith('pro')
     expect(queueSave).toHaveBeenCalledWith(true)
     expect(manager.notifySuccess).toHaveBeenCalledWith('Profile "Focus" applied')
     expect(confirmSpy).not.toHaveBeenCalled()
@@ -189,6 +216,33 @@ describe('useDashboardPresets', () => {
     expect(manager.queueSave).not.toHaveBeenCalled()
     expect(manager.notifySuccess).not.toHaveBeenCalled()
     expect(confirmSpy).toHaveBeenCalledTimes(1)
+  })
+
+  it('applies dashboard preset fallback when profile has onboarding mode but no widgets', async () => {
+    const applyDashboardPreset = vi.fn()
+    const setDashboardMode = vi.fn()
+    const getJson = vi.fn().mockResolvedValueOnce({
+      preset: {
+        selected: ['cal-1'],
+        onboarding: {
+          completed: true,
+          version: 1,
+          strategy: 'total_only',
+          completed_at: '2026-02-21T00:00:00.000Z',
+          dashboardMode: 'quick',
+        },
+      },
+    }).mockResolvedValueOnce({ presets: [] })
+    const manager = createPresetManager({
+      getJson,
+      applyDashboardPreset,
+      setDashboardMode,
+    })
+
+    await manager.loadPreset('Compact')
+
+    expect(setDashboardMode).toHaveBeenCalledWith('quick')
+    expect(applyDashboardPreset).toHaveBeenCalledWith('quick')
   })
 
   it('replays exported preset envelope fixture without warnings', async () => {

@@ -119,6 +119,78 @@ class PresetsControllerTest extends TestCase {
     $this->assertArrayNotHasKey('unknown', $result['payload']['targets_month']);
   }
 
+  public function testSanitizePresetPayloadKeepsStrategyThemeAndWidgetLayout(): void {
+    $data = [
+      'selected' => ['personal', 'opsdash-focus'],
+      'groups' => [
+        'personal' => 0,
+        'opsdash-focus' => 1,
+      ],
+      'targets_week' => [
+        'personal' => 12,
+        'opsdash-focus' => 8,
+      ],
+      'targets_month' => [
+        'personal' => 48,
+        'opsdash-focus' => 32,
+      ],
+      'targets_config' => [
+        'totalHours' => 20,
+      ],
+      'theme_preference' => 'dark',
+      'reporting_config' => [
+        'enabled' => true,
+        'schedule' => 'week',
+      ],
+      'deck_settings' => [
+        'enabled' => true,
+        'defaultFilter' => 'mine',
+      ],
+      'onboarding' => [
+        'completed' => true,
+        'version' => 1,
+        'strategy' => 'full_granular',
+        'completed_at' => '2026-02-21T00:00:00.000Z',
+        'dashboardMode' => 'pro',
+      ],
+      'widgets' => [
+        'tabs' => [
+          [
+            'id' => 'tab-1',
+            'label' => 'Overview',
+            'widgets' => [
+              [
+                'id' => 'widget-note',
+                'type' => 'note_editor',
+                'layout' => ['width' => 'half', 'height' => 'm', 'order' => 1],
+                'options' => [],
+              ],
+            ],
+          ],
+        ],
+        'defaultTabId' => 'tab-1',
+      ],
+    ];
+
+    $allowedIds = ['personal', 'opsdash-focus'];
+    $allowedSet = array_flip($allowedIds);
+
+    $method = new \ReflectionMethod(PresetsController::class, 'sanitizePresetPayload');
+    $method->setAccessible(true);
+
+    /** @var array{payload:array<string,mixed>,warnings:string[]} $result */
+    $result = $method->invoke($this->controller, $data, $allowedSet, $allowedIds);
+
+    $this->assertSame([], $result['warnings']);
+    $this->assertSame('dark', $result['payload']['theme_preference']);
+    $this->assertSame('week', $result['payload']['reporting_config']['schedule']);
+    $this->assertSame('mine', $result['payload']['deck_settings']['defaultFilter']);
+    $this->assertSame('full_granular', $result['payload']['onboarding']['strategy']);
+    $this->assertSame('pro', $result['payload']['onboarding']['dashboardMode']);
+    $this->assertSame('tab-1', $result['payload']['widgets']['defaultTabId']);
+    $this->assertSame('note_editor', $result['payload']['widgets']['tabs'][0]['widgets'][0]['type']);
+  }
+
   public function testTrimPresetsKeepsMostRecent(): void {
     $method = new \ReflectionMethod(PresetsController::class, 'trimPresets');
     $method->setAccessible(true);

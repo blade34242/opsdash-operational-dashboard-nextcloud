@@ -258,14 +258,35 @@ final class PresetsController extends Controller {
             }
         }
 
+        $payload = [
+            'selected' => $selected,
+            'groups' => $groups,
+            'targets_week' => $targetsWeek,
+            'targets_month' => $targetsMonth,
+            'targets_config' => $targetsConfig,
+        ];
+
+        if (array_key_exists('theme_preference', $data)) {
+            $theme = $this->persistSanitizer->sanitizeThemePreference($data['theme_preference']);
+            if ($theme !== null) {
+                $payload['theme_preference'] = $theme;
+            }
+        }
+        if (array_key_exists('reporting_config', $data)) {
+            $payload['reporting_config'] = $this->persistSanitizer->sanitizeReportingConfig($data['reporting_config']);
+        }
+        if (array_key_exists('deck_settings', $data)) {
+            $payload['deck_settings'] = $this->persistSanitizer->sanitizeDeckSettings($data['deck_settings']);
+        }
+        if (array_key_exists('widgets', $data)) {
+            $payload['widgets'] = $this->persistSanitizer->sanitizeWidgets($data['widgets']);
+        }
+        if (array_key_exists('onboarding', $data) && is_array($data['onboarding'])) {
+            $payload['onboarding'] = $this->persistSanitizer->cleanOnboardingState($data['onboarding']);
+        }
+
         return [
-            'payload' => [
-                'selected' => $selected,
-                'groups' => $groups,
-                'targets_week' => $targetsWeek,
-                'targets_month' => $targetsMonth,
-                'targets_config' => $targetsConfig,
-            ],
+            'payload' => $payload,
             'warnings' => $warnings,
         ];
     }

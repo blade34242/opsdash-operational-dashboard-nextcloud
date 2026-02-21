@@ -146,6 +146,7 @@
           <OnboardingReviewStep
             :strategy-title="strategyTitle"
             :categories-enabled="categoriesEnabled"
+            :calendar-targets-enabled="calendarTargetsEnabled"
             :selected-calendars="selectedCalendars"
             :draft-targets-categories="draft.targetsConfig.categories"
             :draft-total-hours="draft.targetsConfig.totalHours"

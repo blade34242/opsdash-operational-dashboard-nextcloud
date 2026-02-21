@@ -18,6 +18,7 @@ function createPersistence(overrides: Partial<Parameters<typeof useDashboardPers
   const targetsConfig = ref(createDefaultTargetsConfig())
   const themePreference =
     overrides.themePreference ?? ref<'auto' | 'light' | 'dark'>('auto')
+  const onboardingState = overrides.onboardingState ?? ref<any>(null)
 
   const route = vi.fn<(name: 'persist') => string>().mockReturnValue('/persist')
   const postJson = vi.fn().mockResolvedValue({})
@@ -37,6 +38,7 @@ function createPersistence(overrides: Partial<Parameters<typeof useDashboardPers
     targetsMonth,
     targetsConfig,
     themePreference,
+    onboardingState,
     ...overrides,
   })
 
@@ -52,6 +54,7 @@ function createPersistence(overrides: Partial<Parameters<typeof useDashboardPers
     targetsMonth,
     targetsConfig,
     themePreference,
+    onboardingState,
     ...persistence,
   }
 }
@@ -202,6 +205,42 @@ describe('useDashboardPersistence', () => {
       theme_preference: 'light',
     }))
     expect(themePreference.value).toBe('dark')
+  })
+
+  it('persists onboarding state and applies server read-back', async () => {
+    const onboardingState = ref<any>({
+      completed: true,
+      version: 1,
+      strategy: 'full_granular',
+      completed_at: '2026-02-21T00:00:00.000Z',
+      dashboardMode: 'pro',
+    })
+    const postJson = vi.fn().mockResolvedValue({
+      onboarding_read: {
+        completed: true,
+        version: 1,
+        strategy: 'total_plus_categories',
+        completed_at: '2026-02-21T00:00:00.000Z',
+        dashboardMode: 'quick',
+      },
+    })
+
+    const { queueSave } = createPersistence({
+      postJson,
+      onboardingState,
+    })
+
+    queueSave(false)
+    await vi.runOnlyPendingTimersAsync()
+
+    expect(postJson).toHaveBeenCalledWith('/persist', expect.objectContaining({
+      onboarding: expect.objectContaining({
+        strategy: 'full_granular',
+        dashboardMode: 'pro',
+      }),
+    }))
+    expect(onboardingState.value.strategy).toBe('total_plus_categories')
+    expect(onboardingState.value.dashboardMode).toBe('quick')
   })
 
   it('replays persist response fixture without dropping UI flags', async () => {

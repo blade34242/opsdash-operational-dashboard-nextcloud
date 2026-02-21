@@ -269,7 +269,7 @@
                 Operational Dashboard • v{{ appVersion }} • Built by Blade34242 @ Gellert Innovation
               </template>
               <template v-else>
-                Operational Dashboard • v{{ pkg?.version || '0.5.8' }} • Built by Blade34242 @ Gellert Innovation
+                Operational Dashboard • v{{ pkg?.version || '0.5.9' }} • Built by Blade34242 @ Gellert Innovation
               </template>
               <template v-if="changelogUrl">
                 • <a :href="changelogUrl" target="_blank" rel="noopener noreferrer">Changelog</a>
@@ -807,6 +807,7 @@ const { queueSave, isSaving: reportingSaving } = useDashboardPersistence({
   reportingConfig,
   deckSettings,
   widgetTabs: widgetTabsRef,
+  onboardingState,
 })
 
 widgetsQueueSaveRef.value = queueSave
@@ -859,6 +860,9 @@ const {
   reportingConfig,
   deckSettings,
   widgetTabs: widgetTabsRef,
+  onboardingState,
+  setDashboardMode: (mode) => { dashboardMode.value = mode },
+  applyDashboardPreset: (mode) => { applyDashboardPreset(mode) },
   userChangedSelection,
 })
 
@@ -1275,8 +1279,8 @@ const { widgetContext } = useWidgetRenderContext({
 })
 
 const dashboardModeLabel = computed(() => {
-  if (dashboardMode.value === 'quick') return 'Compact preset'
-  if (dashboardMode.value === 'pro') return 'Workspace preset'
+  if (dashboardMode.value === 'quick') return 'Empty preset'
+  if (dashboardMode.value === 'pro') return 'Advanced preset'
   return 'Standard preset'
 })
 
@@ -1338,8 +1342,8 @@ const targetsPreviewLines = computed(() => {
 const totalWeeklyTargetLine = computed(() => `${n1(targetsConfig.value?.totalHours ?? 0)} h`)
 
 const dashboardLayoutLine = computed(() => {
-  if (dashboardMode.value === 'pro') return 'Workspace layout'
-  if (dashboardMode.value === 'quick') return 'Compact layout'
+  if (dashboardMode.value === 'pro') return 'Advanced layout'
+  if (dashboardMode.value === 'quick') return 'Empty layout'
   return 'Standard layout'
 })
 

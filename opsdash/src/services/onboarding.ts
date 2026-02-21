@@ -54,19 +54,19 @@ const STRATEGIES: StrategyDefinition[] = [
   },
   {
     id: 'total_plus_categories',
-    title: 'Balanced',
-    subtitle: 'Track balance across a few life areas',
-    highlights: ['Total goal plus key categories', 'Automatic category summaries', 'Calendar grouping suggestions'],
-    layers: { total: true, categories: true, calendars: false },
-    recommendedFor: 'Work/life blend with a handful of focus areas',
+    title: 'Calendar Goals',
+    subtitle: 'Set weekly targets per calendar',
+    highlights: ['Per-calendar weekly targets', 'No category setup required', 'Great for multi-calendar tracking'],
+    layers: { total: true, categories: false, calendars: true },
+    recommendedFor: 'Users who track work by calendar without categories',
   },
   {
     id: 'full_granular',
-    title: 'Advanced',
-    subtitle: 'Targets per category and calendar',
-    highlights: ['Detailed per-calendar goals', 'Category dashboards & pacing', 'Best for multi-project oversight'],
+    title: 'Calendar + Categories',
+    subtitle: 'Per-calendar targets with category planning',
+    highlights: ['Detailed per-calendar goals', 'Category dashboards & pacing', 'Calendar-to-category assignments'],
     layers: { total: true, categories: true, calendars: true },
-    recommendedFor: 'Users managing several project calendars',
+    recommendedFor: 'Users planning both calendar and category goals',
   },
 ]
 
@@ -144,7 +144,7 @@ export function createStrategyDraft(
 ): { categories: CategoryDraft[]; assignments: Record<string, string> } {
   const selected = [...new Set(selectedInput.filter((id) => calendars.some((cal) => cal.id === id)))]
 
-  if (strategyId === 'total_only') {
+  if (strategyId === 'total_only' || strategyId === 'total_plus_categories') {
     return {
       categories: [],
       assignments: {},
@@ -178,6 +178,24 @@ export function buildStrategyResult(
     cfg.ui.showCategoryBlocks = false
     cfg.ui.showCategoryCharts = false
     cfg.ui.showCalendarCharts = false
+    return {
+      selected,
+      targetsConfig: normalizeTargetsConfig(cfg),
+      groups,
+      targetsWeek,
+      targetsMonth: {},
+    }
+  }
+
+  if (strategyId === 'total_plus_categories') {
+    const cfg = cloneTargetsConfig(baseConfig)
+    cfg.totalHours = cfg.totalHours || 40
+    cfg.categories = []
+    cfg.ui.showCategoryBlocks = false
+    cfg.ui.showCategoryCharts = false
+    cfg.ui.showCalendarCharts = true
+    cfg.balance.categories = []
+    cfg.balance.useCategoryMapping = false
     return {
       selected,
       targetsConfig: normalizeTargetsConfig(cfg),

@@ -4,6 +4,7 @@ import { normalizeTargetsConfig, cloneTargetsConfig, type TargetsConfig } from '
 import { normalizeDeckSettings, normalizeReportingConfig, type DeckFeatureSettings, type ReportingConfig } from '../src/services/reporting'
 import { createDefaultWidgetTabs, normalizeWidgetTabs, type WidgetTabsState } from '../src/services/widgetsRegistry'
 import type { ThemePreference } from './useThemeController'
+import type { OnboardingState } from './useDashboard'
 
 export type PresetSummary = {
   name: string
@@ -31,6 +32,9 @@ interface DashboardPresetsDeps {
   reportingConfig?: Ref<ReportingConfig>
   deckSettings?: Ref<DeckFeatureSettings>
   widgetTabs?: Ref<WidgetTabsState>
+  onboardingState?: Ref<OnboardingState | null>
+  setDashboardMode?: (mode: 'quick' | 'standard' | 'pro') => void
+  applyDashboardPreset?: (mode: 'quick' | 'standard' | 'pro') => void
   userChangedSelection: Ref<boolean>
 }
 
@@ -71,6 +75,7 @@ export function useDashboardPresets(deps: DashboardPresetsDeps) {
         targets_month: deps.targetsMonth.value,
         targets_config: deps.targetsConfig.value,
         ...(deps.widgetTabs ? { widgets: deps.widgetTabs.value } : {}),
+        ...(deps.onboardingState?.value ? { onboarding: deps.onboardingState.value } : {}),
         ...(deps.themePreference ? { theme_preference: deps.themePreference.value } : {}),
         ...(deps.reportingConfig ? { reporting_config: deps.reportingConfig.value } : {}),
         ...(deps.deckSettings ? { deck_settings: deps.deckSettings.value } : {}),
@@ -90,6 +95,8 @@ export function useDashboardPresets(deps: DashboardPresetsDeps) {
   }
 
   function applyPresetData(preset: any) {
+    const hasPresetWidgets = !!(preset && Object.prototype.hasOwnProperty.call(preset, 'widgets'))
+    let onboardingMode: 'quick' | 'standard' | 'pro' | null = null
     const sel = Array.isArray(preset?.selected) ? preset.selected.map((id: any) => String(id)) : []
     deps.selected.value = sel
     const groups = preset?.groups && typeof preset.groups === 'object' ? preset.groups : {}
@@ -117,6 +124,27 @@ export function useDashboardPresets(deps: DashboardPresetsDeps) {
     if (deps.widgetTabs && preset?.widgets) {
       const fallback = deps.widgetTabs.value || createDefaultWidgetTabs('standard')
       deps.widgetTabs.value = normalizeWidgetTabs(preset.widgets, fallback)
+    }
+    if (deps.onboardingState && preset?.onboarding && typeof preset.onboarding === 'object') {
+      const incoming = preset.onboarding as OnboardingState
+      const next: OnboardingState = {
+        ...(deps.onboardingState.value || {
+          completed: false,
+          version: 0,
+          strategy: 'total_only',
+          completed_at: '',
+        }),
+        ...incoming,
+      }
+      const mode = next.dashboardMode
+      if (mode === 'quick' || mode === 'standard' || mode === 'pro') {
+        onboardingMode = mode
+        deps.setDashboardMode?.(mode)
+      }
+      deps.onboardingState.value = next
+    }
+    if (!hasPresetWidgets && onboardingMode) {
+      deps.applyDashboardPreset?.(onboardingMode)
     }
     deps.userChangedSelection.value = false
   }

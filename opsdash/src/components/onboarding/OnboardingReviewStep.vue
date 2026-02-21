@@ -23,7 +23,13 @@
             </div>
             <p class="review-card__value">{{ strategyTitle }}</p>
             <p class="review-card__meta">
-              {{ categoriesEnabled ? 'Category targets and calendar assignments are enabled.' : 'Single total weekly target mode.' }}
+              {{
+                categoriesEnabled
+                  ? 'Category targets and calendar assignments are enabled.'
+                  : calendarTargetsEnabled
+                    ? 'Per-calendar targets are enabled.'
+                    : 'Single total weekly target mode.'
+              }}
             </p>
           </article>
 
@@ -46,7 +52,7 @@
               <button
                 type="button"
                 class="review-edit-link"
-                @click="goToStep(categoriesEnabled ? 'categories' : 'preferences')"
+                @click="goToStep(categoriesEnabled ? 'categories' : (calendarTargetsEnabled ? 'calendars' : 'preferences'))"
               >
                 Edit
               </button>
@@ -56,7 +62,9 @@
               <li v-for="cat in draftTargetsCategories.slice(0, 4)" :key="cat.id">{{ cat.label }} - {{ cat.targetHours }} h</li>
               <li v-if="draftTargetsCategories.length > 4">+{{ draftTargetsCategories.length - 4 }} more</li>
             </ul>
-            <p v-else class="review-card__meta">Total target mode with one weekly goal.</p>
+            <p v-else class="review-card__meta">
+              {{ calendarTargetsEnabled ? 'Calendar goals mode with optional per-calendar targets.' : 'Total target mode with one weekly goal.' }}
+            </p>
           </article>
 
           <article class="review-card">
@@ -126,7 +134,7 @@
           <button
             type="button"
             class="review-action-btn"
-            @click="goToStep(categoriesEnabled ? 'categories' : 'preferences')"
+            @click="goToStep(categoriesEnabled ? 'categories' : (calendarTargetsEnabled ? 'calendars' : 'preferences'))"
           >
             Targets
           </button>
@@ -169,6 +177,7 @@ type ReviewStepId = 'strategy' | 'dashboard' | 'calendars' | 'categories' | 'pre
 const props = defineProps<{
   strategyTitle: string
   categoriesEnabled: boolean
+  calendarTargetsEnabled: boolean
   selectedCalendars: Array<{ id: string; displayname: string }>
   draftTargetsCategories: Array<{ id: string; label: string; targetHours: number }>
   draftTotalHours: number
@@ -200,8 +209,8 @@ const totalTarget = computed(() => {
 })
 
 const dashboardLabel = computed(() => {
-  if (props.dashboardMode === 'quick') return 'Compact layout'
-  if (props.dashboardMode === 'pro') return 'Workspace layout'
+  if (props.dashboardMode === 'quick') return 'Empty layout'
+  if (props.dashboardMode === 'pro') return 'Advanced layout'
   return 'Standard layout'
 })
 
@@ -232,7 +241,7 @@ const readinessChecks = computed(() => {
         ? `${totalTarget.value.toFixed(1)} h weekly target configured.`
         : 'Set a weekly target greater than 0 hours.',
     ok: totalTarget.value > 0,
-    step: props.categoriesEnabled ? 'categories' : 'preferences',
+    step: props.categoriesEnabled ? 'categories' : (props.calendarTargetsEnabled ? 'calendars' : 'preferences'),
     canFix: true,
   })
   checks.push({

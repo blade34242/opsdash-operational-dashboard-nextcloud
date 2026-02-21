@@ -45,68 +45,8 @@ final class DashboardDefaultsService {
      * @return array<int, array<string,mixed>>
      */
     private function buildQuickPreset(): array {
-        $widgets = [];
-        $i = 0;
-        $widgets[] = $this->buildWidget('time_summary_overview', [
-            'showTotal' => true,
-            'showAverage' => true,
-            'showMedian' => true,
-            'showBusiest' => true,
-            'showWorkday' => true,
-            'showWeekend' => true,
-            'showWeekendShare' => true,
-            'showCalendarSummary' => true,
-            'showTopCategory' => true,
-            'showBalance' => true,
-            'mode' => 'active',
-            'scale' => 'xl',
-        ], ['width' => 'full', 'height' => 'xl', 'order' => 5], ++$i);
-        $widgets[] = $this->buildWidget('time_summary_lookback', [
-            'showTotal' => true,
-            'showAverage' => true,
-            'showMedian' => true,
-            'showBusiest' => true,
-            'showWorkday' => true,
-            'showWeekend' => true,
-            'showWeekendShare' => true,
-            'showCalendarSummary' => true,
-            'showTopCategory' => true,
-            'showBalance' => true,
-            'mode' => 'active',
-            'historyView' => 'pills',
-            'showHistoryCoreMetrics' => true,
-            'showActivityDetails' => true,
-            'showDelta' => true,
-            'scale' => 'md',
-        ], ['width' => 'full', 'height' => 'l', 'order' => 7], ++$i);
-        $widgets[] = $this->buildWidget('targets_v2', [
-            'showForecast' => true,
-            'showHeader' => false,
-            'showLegend' => true,
-            'showDelta' => true,
-            'showPace' => true,
-            'showToday' => true,
-            'scale' => 'lg',
-        ], ['width' => 'full', 'height' => 'xl', 'order' => 10], ++$i);
-        $widgets[] = $this->buildWidget('balance_index', [
-            'showTrend' => true,
-            'showMessages' => true,
-            'showConfig' => false,
-            'indexBasis' => 'category',
-            'noticeAbove' => 0.15,
-            'noticeBelow' => 0.15,
-            'warnAbove' => 0.3,
-            'warnBelow' => 0.3,
-            'warnIndex' => 0.6,
-            'lookbackWeeks' => 3,
-            'messageDensity' => 'normal',
-            'trendColor' => '#2563EB',
-            'showCurrent' => true,
-            'labelMode' => 'period',
-            'reverseTrend' => false,
-        ], ['width' => 'full', 'height' => 'm', 'order' => 20], ++$i);
-        $widgets[] = $this->buildWidget('dayoff_trend', [], ['width' => 'full', 'height' => 's', 'order' => 30], ++$i);
-        return $widgets;
+        // "quick" maps to the empty dashboard mode: one tab with no widgets.
+        return [];
     }
 
     /**
