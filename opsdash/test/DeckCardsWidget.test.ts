@@ -357,6 +357,41 @@ describe('DeckCardsWidget', () => {
     expect(wrapper.find('.deck-card__row').exists()).toBe(true)
   })
 
+  it('hides filters below minFilterCount and falls back from hidden default filter', () => {
+    const noThreshold = mount(DeckCardsWidget, {
+      props: {
+        cards,
+        rangeLabel: 'This week',
+        filters: ['open_all', 'due_all', 'done_all', 'archived_all'],
+        defaultFilter: 'done_all',
+        includeCompleted: false,
+        includeArchived: false,
+        minFilterCount: 0,
+      },
+      global: { stubs },
+    })
+
+    const wrapper = mount(DeckCardsWidget, {
+      props: {
+        cards,
+        rangeLabel: 'This week',
+        filters: ['open_all', 'due_all', 'done_all', 'archived_all'],
+        defaultFilter: 'done_all',
+        includeCompleted: false,
+        includeArchived: false,
+        minFilterCount: 1,
+      },
+      global: { stubs },
+    })
+
+    const noThresholdLabels = noThreshold.findAll('.deck-filter-btn').map((btn) => btn.text())
+    const labels = wrapper.findAll('.deck-filter-btn').map((btn) => btn.text())
+    expect(noThresholdLabels.some((text) => text.includes('Done · All'))).toBe(true)
+    expect(labels.some((text) => text.includes('Done · All'))).toBe(false)
+    expect(labels.some((text) => text.includes('Archived · All'))).toBe(false)
+    expect(wrapper.findAll('.deck-card').length).toBe(1)
+  })
+
   it('hydrates created_range filters without runtime initialization errors', () => {
     const wrapper = mount(DeckCardsWidget, {
       props: {

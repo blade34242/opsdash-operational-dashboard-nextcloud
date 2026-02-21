@@ -54,6 +54,7 @@ const props = withDefaults(defineProps<{
   autoScroll?: boolean
   intervalSeconds?: number
   showCount?: boolean
+  minFilterCount?: number
   showHeader?: boolean
   title?: string
   cardBg?: string | null
@@ -161,7 +162,7 @@ const filterOrder = computed(() => {
   return (props.filters && props.filters.length ? props.filters : defaultFilters).filter(Boolean) as DeckFilterMode[]
 })
 
-const filterOptionDefs = computed(() => {
+const allFilterOptionDefs = computed(() => {
   const opts = filterOrder.value
   const labels: Record<DeckFilterMode, string> = {
     all: 'All cards',
@@ -205,6 +206,17 @@ const filterOptionDefs = computed(() => {
     contextColor: opt.contextColor,
   }))
   return [...built, ...custom, ...tags]
+})
+
+const minFilterCount = computed(() => {
+  const value = Number(props.minFilterCount ?? 0)
+  if (!Number.isFinite(value)) return 0
+  return Math.max(0, Math.trunc(value))
+})
+
+const filterOptionDefs = computed(() => {
+  if (minFilterCount.value <= 0) return allFilterOptionDefs.value
+  return allFilterOptionDefs.value.filter((opt) => Number(opt.count ?? 0) >= minFilterCount.value)
 })
 
 const activeFilter = ref<DeckFilterMode>(sanitizeDefaultFilter())

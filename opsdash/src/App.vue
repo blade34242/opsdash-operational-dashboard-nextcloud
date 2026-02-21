@@ -215,7 +215,7 @@
                 <div v-if="isLayoutEditing" class="cards-toolbar__add">
                   <select v-model="newWidgetType" @change="handleAddWidget">
                     <option value="" disabled>Select widget…</option>
-                    <option v-for="entry in availableWidgetTypes" :key="entry.type" :value="entry.type">
+                    <option v-for="entry in availableWidgetTypesForStrategy" :key="entry.type" :value="entry.type">
                       {{ entry.label }}
                     </option>
                   </select>
@@ -249,7 +249,7 @@
                 :widgets="widgets"
                 :context="widgetContext"
                 :editable="isLayoutEditing"
-                :widget-types="availableWidgetTypes"
+                :widget-types="availableWidgetTypesForStrategy"
                 :preset-label="dashboardModeLabel"
                 @edit:width="cycleWidth"
                 @edit:height="cycleHeight"
@@ -811,6 +811,60 @@ const { queueSave, isSaving: reportingSaving } = useDashboardPersistence({
 })
 
 widgetsQueueSaveRef.value = queueSave
+
+const isSingleGoalStrategy = computed(() => onboardingState.value?.strategy === 'total_only')
+
+const availableWidgetTypesForStrategy = computed(() => {
+  if (!isSingleGoalStrategy.value) return availableWidgetTypes.value
+  return availableWidgetTypes.value.filter((entry) => entry.type !== 'balance_index')
+})
+
+function removeBalanceIndexFromTabsState(state: { tabs: any[]; defaultTabId: string }) {
+  let changed = false
+  const tabs = (state?.tabs || []).map((tab) => {
+    const sourceWidgets = Array.isArray(tab?.widgets) ? tab.widgets : []
+    const widgets = sourceWidgets.filter((widget: any) => String(widget?.type ?? '') !== 'balance_index')
+    if (widgets.length !== sourceWidgets.length) changed = true
+    return { ...tab, widgets }
+  })
+  return { changed, next: { tabs, defaultTabId: state?.defaultTabId || 'tab-1' } }
+}
+
+function enforceSingleGoalWidgetConstraints() {
+  if (!isSingleGoalStrategy.value) return
+  const { changed, next } = removeBalanceIndexFromTabsState(widgetTabsState.value as any)
+  if (!changed) return
+  setTabsFromPayload(next)
+  if (hasInitialLoad.value) {
+    queueSave(false)
+  }
+}
+
+watch(
+  () => newWidgetType.value,
+  (type) => {
+    if (!isSingleGoalStrategy.value) return
+    if (type === 'balance_index') {
+      newWidgetType.value = ''
+    }
+  },
+)
+
+watch(
+  () => isSingleGoalStrategy.value,
+  () => {
+    enforceSingleGoalWidgetConstraints()
+  },
+  { immediate: true },
+)
+
+watch(
+  () => widgetTabsState.value,
+  () => {
+    enforceSingleGoalWidgetConstraints()
+  },
+  { deep: true },
+)
 
 const {
   isSelected,

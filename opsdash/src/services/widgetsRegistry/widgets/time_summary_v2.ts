@@ -13,6 +13,7 @@ import type { RegistryEntry } from '../types'
 import { formatLookbackLabel, sortLookbackOffsets } from './chartHelpers'
 
 const baseTitle = 'Time Summary'
+const lookbackTitle = 'Period Comparison'
 const summaryToggleKeys: Array<keyof TargetsConfig['timeSummary']> = [
   'showTotal',
   'showAverage',
@@ -163,8 +164,8 @@ export const timeSummaryOverviewEntry: RegistryEntry = {
 export const timeSummaryLookbackEntry: RegistryEntry = {
   component: TimeSummaryCard,
   defaultLayout: { width: 'half', height: 'l', order: 19 },
-  label: 'Time Summary (Lookback)',
-  baseTitle: `${baseTitle} (Lookback)`,
+  label: lookbackTitle,
+  baseTitle: lookbackTitle,
   configurable: true,
   defaultOptions: buildDefaultOptions(),
   controls: [
@@ -185,7 +186,7 @@ export const timeSummaryLookbackEntry: RegistryEntry = {
   ],
   buildProps: (def, ctx) =>
     buildTimeSummaryProps(def, ctx, {
-      title: `${baseTitle} (Lookback)`,
+      title: lookbackTitle,
       includeHistory: true,
       showOverview: false,
       showLookback: true,

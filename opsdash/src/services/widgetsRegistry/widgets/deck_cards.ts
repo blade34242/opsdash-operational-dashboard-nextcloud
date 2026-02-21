@@ -23,6 +23,7 @@ export const deckCardsEntry: RegistryEntry = {
     autoScroll: true,
     intervalSeconds: 5,
     showCount: true,
+    minFilterCount: 0,
     autoTagsEnabled: true,
     compactList: false,
     customFilters: [],
@@ -58,6 +59,7 @@ export const deckCardsEntry: RegistryEntry = {
     { key: 'autoScroll', label: 'Auto-scroll list', type: 'toggle' },
     { key: 'intervalSeconds', label: 'Scroll every (s)', type: 'number', min: 3, max: 10, step: 1 },
     { key: 'showCount', label: 'Show count pill', type: 'toggle' },
+    { key: 'minFilterCount', label: 'Min filter count', type: 'number', min: 0, max: 999, step: 1 },
     { key: 'compactList', label: 'Compact list', type: 'toggle' },
     { key: 'customFilters', label: 'Custom filters', type: 'filterbuilder' },
   ],
@@ -147,6 +149,7 @@ export const deckCardsEntry: RegistryEntry = {
       autoScroll: def.options?.autoScroll !== false,
       intervalSeconds: def.options?.intervalSeconds ?? 5,
       showCount: def.options?.showCount !== false,
+      minFilterCount: Number(def.options?.minFilterCount ?? 0),
       compactList: def.options?.compactList === true,
       autoTagsEnabled: def.options?.autoTagsEnabled !== false,
       autoTagSelection: Array.isArray(def.options?.autoTagSelection)
