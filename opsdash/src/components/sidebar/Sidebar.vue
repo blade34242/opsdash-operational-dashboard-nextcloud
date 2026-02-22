@@ -206,12 +206,19 @@ const emit = defineEmits([
 }
 
 .onboarding-hint{
-  margin:1px 0 4px;
-  font-size:11px;
-  line-height:1.2;
+  margin:0;
+  font-size:12px;
+  line-height:1.3;
   color:color-mix(in oklab, var(--text), transparent 40%);
-  white-space:nowrap;
+  white-space:normal;
   overflow:hidden;
+  max-width:100%;
+  overflow-wrap:anywhere;
+  word-break:break-word;
+  display:-webkit-box;
+  -webkit-box-orient:vertical;
+  -webkit-line-clamp:2;
+  line-clamp:2;
   text-overflow:ellipsis;
 }
 
@@ -289,24 +296,51 @@ const emit = defineEmits([
 
 .onboarding-jumps{
   display:grid;
-  gap:2px;
-  margin:4px 0 2px;
-  padding-left:18px;
+  gap:10px;
+  margin:8px 0 4px;
+  padding-left:0;
+  min-width:0;
   font-size:12px;
   color: var(--muted, #6b7280);
-  list-style: decimal;
-  list-style-position: inside;
+  list-style: none;
+  counter-reset: guided-step;
 }
 
+.onboarding-jumps li{
+  counter-increment: guided-step;
+  display:flex;
+  flex-direction:column;
+  align-items:flex-start;
+  gap:4px;
+  min-width:0;
+}
 
 .onboarding-jumps .link{
+  appearance:none;
+  display:inline-block;
+  width:100%;
+  min-width:0;
+  margin:0;
+  min-height:0;
   background: transparent;
   border: 0;
   padding: 0;
+  font-size:12px;
+  line-height:1.2;
+  white-space:nowrap;
+  overflow:hidden;
+  text-overflow:ellipsis;
   color: inherit;
   text-align: left;
   text-decoration: none;
   cursor: pointer;
+}
+
+.onboarding-jumps .link::before{
+  content: counter(guided-step) '. ';
+  font-variant-numeric: tabular-nums;
+  font-weight:600;
+  color:color-mix(in oklab, var(--text), transparent 20%);
 }
 
 .onboarding-jumps .link:hover{
