@@ -129,15 +129,12 @@
         </div>
       </div>
     </div>
-    <div class="time-summary-delta" v-if="showLookbackPanel && showDelta && deltaLine">
-      {{ deltaLine }}
-    </div>
   </div>
 </template>
 
 <script setup lang="ts">
 import { computed, ref, watch } from 'vue'
-import { formatDateOnly, formatDateRange, formatDateKey, formatTime, parseDateKey, addDaysUtc, addMonthsUtc } from '../../../services/dateTime'
+import { formatDateOnly, formatDateRange, formatTime } from '../../../services/dateTime'
 
 type Mode = 'active' | 'all'
 
@@ -357,9 +354,7 @@ const offsetBase = computed(() =>
   Number.isFinite(props.summary.offset) ? props.summary.offset : (props.offset ?? 0),
 )
 const comparisonOffset = computed(() => offsetBase.value - 1)
-const comparisonShift = computed(() => comparisonOffset.value - offsetBase.value)
 const comparisonOffsetLabel = computed(() => formatOffset(comparisonOffset.value))
-const comparisonSpanLabel = computed(() => comparisonRangeLabel(comparisonShift.value))
 const activityOffsetSuffix = computed(() => {
   if (offsetBase.value === 0) return ''
   return ` (offset ${formatOffset(offsetBase.value)})`
@@ -563,28 +558,6 @@ function toggleAccordion(offset: number) {
   activeAccordionOffset.value = activeAccordionOffset.value === offset ? null : offset
 }
 
-const rangeSpanLabel = computed(() => {
-  const from = props.summary.rangeStart || props.rangeStart
-  const to = props.summary.rangeEnd || props.rangeEnd
-  if (!from || !to) return ''
-  return formatDateRange(from, to, { month: 'short', day: 'numeric' })
-})
-
-const deltaLine = computed(() => {
-  const delta = props.summary.delta
-  if (!delta) return ''
-  const current = props.summary.totalHours
-  const prev = current - delta.totalHours
-  const pct = prev !== 0 ? (delta.totalHours / prev) * 100 : 0
-  const comparisonSpan = comparisonSpanLabel.value
-  const sign = delta.totalHours >= 0 ? '+' : '−'
-  const hoursLabel = `${sign}${n2(Math.abs(delta.totalHours))} h`
-  const pctLabel = `${sign}${Math.abs(pct).toFixed(1)}%`
-  const offsetLabel = comparisonOffsetLabel.value
-  const rangeLabel = comparisonSpan ? ` (${comparisonSpan})` : ''
-  return `Δ vs. offset ${offsetLabel}${rangeLabel}: ${hoursLabel} / ${pctLabel}`
-})
-
 function n1(v: unknown) {
   return Number(v ?? 0).toFixed(1)
 }
@@ -612,24 +585,6 @@ function pct(value: number | null | undefined) {
   if (value == null) return '0.0%'
   const num = Math.max(0, Math.min(100, Number(value)))
   return `${num.toFixed(1)}%`
-}
-
-function shiftDateKey(baseKey: string, mode: string, offset: number): string | null {
-  const date = parseDateKey(baseKey)
-  if (!date) return null
-  const next = mode === 'month' ? addMonthsUtc(date, offset) : addDaysUtc(date, offset * 7)
-  return formatDateKey(next, 'UTC')
-}
-
-function comparisonRangeLabel(shift: number) {
-  const mode = (props.rangeMode || 'week').toString().toLowerCase()
-  const baseFrom = props.summary.rangeStart || props.rangeStart || ''
-  const baseTo = props.summary.rangeEnd || props.rangeEnd || ''
-  if (!baseFrom || !baseTo) return ''
-  const startKey = shiftDateKey(baseFrom, mode, shift)
-  const endKey = shiftDateKey(baseTo, mode, shift)
-  if (!startKey || !endKey) return ''
-  return formatDateRange(startKey, endKey, { month: 'short', day: 'numeric' })
 }
 
 function formatOffset(offset: number) {
@@ -847,13 +802,6 @@ function shareDeltaLabel(current: number | null | undefined, delta: number | nul
   gap: calc(6px * var(--widget-space, 1));
 }
 .time-summary-activity__delta {
-  color: var(--muted);
-}
-.time-summary-delta {
-  margin-top: calc(6px * var(--widget-space, 1));
-  padding-top: calc(6px * var(--widget-space, 1));
-  border-top: 1px dashed color-mix(in oklab, var(--muted), transparent 70%);
-  font-size: calc(12px * var(--widget-scale, 1));
   color: var(--muted);
 }
 .time-summary-history {

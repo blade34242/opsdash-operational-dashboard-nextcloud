@@ -147,7 +147,7 @@ describe('TimeSummaryCard', () => {
     expect(wrapper.find('.time-summary-firstline').exists()).toBe(false)
   })
 
-  it('supports new display toggles for today/activity/delta/history core metrics', () => {
+  it('supports new display toggles for today/activity/history core metrics', () => {
     const wrapper = mount(TimeSummaryCard, {
       props: {
         summary: {
@@ -186,7 +186,7 @@ describe('TimeSummaryCard', () => {
     const text = wrapper.text().replace(/\s+/g, ' ')
     expect(text).not.toContain('Total today')
     expect(text).not.toContain('Activity & Schedule')
-    expect(text).toContain('Δ vs. offset')
+    expect(text).not.toContain('Δ vs. offset')
     expect(text).not.toContain('Events')
     expect(text).not.toContain('Active days')
     expect(text).not.toContain('Typical')
