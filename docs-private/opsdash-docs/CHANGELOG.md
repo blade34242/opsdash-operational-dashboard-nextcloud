@@ -13,6 +13,13 @@ This file is a short internal log. Full release notes live in the repo root `CHA
 - Period Comparison history layout options are now `Timeline` / `Accordion` (legacy `list`/`pills` values still map), with `Accordion` default.
 - Single Goal strategy now removes `balance_index` widgets from tabs and hides it from the add-widget selector.
 - Deck cards widget adds a `minFilterCount` option to hide low-count filter chips.
+- Keyboard-shortcuts telemetry hook removed; opening the shortcuts overlay no longer emits telemetry events.
+- Frontend boot logging is debug-gated; production mode no longer prints verbose startup/error payloads.
+- Period Comparison: removed the redundant bottom footer delta summary line.
+- Time Off Trend: refined colors and interpretation controls.
+- Category Mix Trend: dark-theme trend accents restored (hybrid strip visible again) with improved contrast.
+- Sidebar Guided Setup: cleaner step numbering/spacing, less left indent, clearer scanability.
+- Category Mix Trend config + registry tests expanded.
 
 ## 0.5.8 - 2026-02-15
 - Deck cards tag filters now show board context + board color marker when identical label names exist across multiple boards.

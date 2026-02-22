@@ -3,9 +3,7 @@
 All notable changes to this project will be documented in this file.
 
 ## Unreleased
-### Changed
-- Removed the keyboard-shortcuts telemetry hook; opening the shortcuts overlay no longer emits analytics/event-bus telemetry events.
-- Frontend boot logging is now debug-gated; production mode no longer prints verbose startup/error payloads to the browser console.
+- None yet.
 
 ## 0.5.9 - 2026-02-21
 ### Changed
@@ -15,9 +13,16 @@ All notable changes to this project will be documented in this file.
 - Period Comparison now uses `Timeline` / `Accordion` history layouts (replacing `List` / `Pills`), with `Accordion` as the default and backward mapping for existing profile values.
 - When strategy is Single Goal, `Balance Index` is now removed from dashboard tabs and excluded from the add-widget list.
 - Deck cards widget options now include `Min filter count` to hide filter chips below a configurable count threshold.
+- Removed the keyboard-shortcuts telemetry hook; opening the shortcuts overlay no longer emits analytics/event-bus telemetry events.
+- Frontend boot logging is now debug-gated; production mode no longer prints verbose startup/error payloads to the browser console.
+- Period Comparison no longer shows the redundant footer delta summary row (`Δ vs. offset -1 ...`) at the bottom of the widget.
+- Time Off Trend now uses refined color semantics and interpretation controls for clearer status reading.
+- Guided Setup steps in the sidebar now use cleaner numbering/spacing with reduced left indentation and improved readability.
+- Category Mix Trend widget configuration/registry test coverage was expanded.
 
 ### Fixed
 - Profile load now restores onboarding strategy/dashboard mode context and applies the matching dashboard preset when widget tabs are not included in the profile.
+- Category Mix Trend in dark theme now keeps visible hybrid trend accents (up/down color strip) while preserving readable text contrast.
 
 ## 0.5.8 - 2026-02-15
 ### Changed
