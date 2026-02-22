@@ -63,4 +63,27 @@ describe('CategoryMixTrendCard', () => {
       '-2',
     ])
   })
+
+  it('renders trend indicator when enabled', () => {
+    const wrapper = mount(CategoryMixTrendCard, {
+      props: {
+        overview: {
+          categories: [{ id: 'work', label: 'Work', share: 30 }],
+          trend: {
+            history: [
+              { offset: 1, label: '-1', categories: [{ id: 'work', label: 'Work', share: 10 }] },
+            ],
+          },
+        },
+        rangeMode: 'week',
+        lookbackWeeks: 1,
+        labelMode: 'offset',
+        trendIndicator: 'both',
+      },
+    })
+    const cells = wrapper.findAll('.mix-row .mix-cell')
+    expect(cells).toHaveLength(2)
+    expect(cells[0].find('.mix-cell__indicator').exists()).toBe(false)
+    expect(cells[1].find('.mix-cell__indicator').text()).toBe('↑ +20pp')
+  })
 })

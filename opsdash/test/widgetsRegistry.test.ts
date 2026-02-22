@@ -191,6 +191,12 @@ describe('widgetsRegistry targets_v2', () => {
       } as any,
     ) as any
     expect(mixProps.lookbackWeeks).toBe(3)
+    expect(mixEntry.defaultOptions?.colorMode).toBe('hybrid')
+    expect(mixEntry.defaultOptions?.trendIndicator).toBe('none')
+    expect(mixEntry.defaultOptions?.shareLowColor).toBe('#e2e8f0')
+    expect(mixEntry.defaultOptions?.shareHighColor).toBe('#60a5fa')
+    expect(mixEntry.defaultOptions?.toneLowColor).toBe('#e11d48')
+    expect(mixEntry.defaultOptions?.toneHighColor).toBe('#10b981')
   })
 
   it('dayoff_trend uses global unit and defaults tone colors', () => {
