@@ -9,11 +9,8 @@
         v-for="entry in tiles"
         :key="entry.offset"
         class="dayoff-tile"
-        :class="[
-          `dayoff-tile--${entry.tone}`,
-          { 'dayoff-tile--current': entry.offset === 0 },
-        ]"
-        :style="tileStyle(entry.tone)"
+        :class="{ 'dayoff-tile--current': entry.offset === 0 }"
+        :style="tileStyle(entry)"
         :title="`${entry.label} · ${shareLabel(entry.share)}`"
       >
         <div class="dayoff-tile__label">{{ entry.label }}</div>
@@ -42,7 +39,8 @@ type DayOffTrendEntry = {
 }
 
 type LabelMode = 'date' | 'period' | 'offset'
-type DayOffTrendTile = DayOffTrendEntry & { share: number; tone: 'low' | 'mid' | 'high' }
+type InterpretationMode = 'more_off_positive' | 'more_off_warning'
+type DayOffTrendTile = DayOffTrendEntry & { share: number }
 
 const props = defineProps<{
   trend?: DayOffTrendEntry[]
@@ -55,6 +53,7 @@ const props = defineProps<{
   showHeader?: boolean
   labelMode?: LabelMode
   reverseOrder?: boolean
+  interpretation?: InterpretationMode | string | null
 }>()
 
 const historyUnit = computed(() => (props.unit === 'mo' ? 'mo' : 'wk'))
@@ -63,6 +62,10 @@ const labelMode = computed<LabelMode>(() => {
   const mode = (props.labelMode || 'period').toString().toLowerCase()
   if (mode === 'date' || mode === 'offset') return mode as LabelMode
   return 'period'
+})
+const interpretation = computed<InterpretationMode>(() => {
+  const raw = String(props.interpretation ?? '').toLowerCase()
+  return raw === 'more_off_warning' ? 'more_off_warning' : 'more_off_positive'
 })
 const historyCount = computed(() => {
   const configured = typeof props.lookback === 'number' ? props.lookback : null
@@ -122,7 +125,7 @@ const tiles = computed<DayOffTrendTile[]>(() => {
     const total = Math.max(0, Number(entry.totalDays) || 0)
     const daysOff = Math.max(0, Math.min(total, Number(entry.daysOff) || 0))
     const share = total > 0 ? daysOff / total : 0
-    return { ...entry, label: formatLabel(entry), share, tone: classifyTone(share) }
+    return { ...entry, label: formatLabel(entry), share }
   })
   if (props.reverseOrder === true) {
     return base
@@ -141,15 +144,10 @@ const titleText = computed(() => props.title || 'Days off trend')
 const cardStyle = computed(() => ({ background: props.cardBg || undefined }))
 const showHeader = computed(() => props.showHeader !== false)
 
-const toneStyles = computed(() => {
+const toneRange = computed(() => {
   const low = normalizeColor(props.toneLowColor) || '#dc2626'
   const high = normalizeColor(props.toneHighColor) || '#16a34a'
-  const mid = mixColor(low, high, 0.5)
-  return {
-    low: makeTone(low),
-    mid: makeTone(mid),
-    high: makeTone(high),
-  }
+  return { low, high }
 })
 
 function shareLabel(value: number) {
@@ -157,20 +155,17 @@ function shareLabel(value: number) {
   return `${Math.round(pct * 100)}% off`
 }
 
-function tileStyle(tone: 'low' | 'mid' | 'high') {
-  const style = toneStyles.value[tone]
+function tileStyle(entry: DayOffTrendTile) {
+  const pct = clamp(Number(entry.share) || 0, 0, 1)
+  const ratio = interpretation.value === 'more_off_warning' ? 1 - pct : pct
+  const background = mixColor(toneRange.value.low, toneRange.value.high, ratio)
+  const style = makeTone(background)
   return {
     '--tile-bg': style.background,
     '--tile-fg': style.color,
     background: style.background,
     color: style.color,
   }
-}
-
-function classifyTone(value: number): 'low' | 'mid' | 'high' {
-  if (value >= 0.5) return 'high'
-  if (value >= 0.25) return 'mid'
-  return 'low'
 }
 
 function parseDate(value?: string) {
@@ -219,16 +214,26 @@ function normalizeColor(value?: string | null): string | null {
 }
 
 function mixColor(a: string, b: string, ratio = 0.5): string {
-  const pa = parseHex(a)
-  const pb = parseHex(b)
+  const pa = parseColor(a)
+  const pb = parseColor(b)
   if (!pa || !pb) return a
-  const r = clamp(Math.round(pa.r + (pb.r - pa.r) * ratio), 0, 255)
-  const g = clamp(Math.round(pa.g + (pb.g - pa.g) * ratio), 0, 255)
-  const bl = clamp(Math.round(pa.b + (pb.b - pa.b) * ratio), 0, 255)
+  const t = clamp(ratio, 0, 1)
+  const r = clamp(Math.round(pa.r + (pb.r - pa.r) * t), 0, 255)
+  const g = clamp(Math.round(pa.g + (pb.g - pa.g) * t), 0, 255)
+  const bl = clamp(Math.round(pa.b + (pb.b - pa.b) * t), 0, 255)
   return `rgb(${r}, ${g}, ${bl})`
 }
 
-function parseHex(hex: string): { r: number; g: number; b: number } | null {
+function parseColor(value: string): { r: number; g: number; b: number } | null {
+  const hex = value.trim()
+  const rgbMatch = hex.match(/^rgb\(\s*(\d{1,3})\s*,\s*(\d{1,3})\s*,\s*(\d{1,3})\s*\)$/i)
+  if (rgbMatch) {
+    return {
+      r: clamp(Number(rgbMatch[1]), 0, 255),
+      g: clamp(Number(rgbMatch[2]), 0, 255),
+      b: clamp(Number(rgbMatch[3]), 0, 255),
+    }
+  }
   const clean = hex.replace('#', '')
   if (clean.length === 3) {
     const [r, g, b] = clean.split('').map((v) => parseInt(v.repeat(2), 16))
@@ -244,7 +249,7 @@ function parseHex(hex: string): { r: number; g: number; b: number } | null {
 }
 
 function luminance(hex: string): number {
-  const p = parseHex(hex)
+  const p = parseColor(hex)
   if (!p) return 0
   return (0.2126 * p.r + 0.7152 * p.g + 0.0722 * p.b) / 255
 }
@@ -290,20 +295,11 @@ function clamp(v: number, min: number, max: number) {
   transition: transform .2s ease, background .2s ease;
 }
 .dayoff-tile--current{
-  outline:1px solid color-mix(in oklab, var(--brand), transparent 30%);
+  outline:2px solid color-mix(in oklab, var(--brand), white 10%);
   outline-offset:1px;
-}
-.dayoff-tile--low{
-  background: var(--tile-bg, color-mix(in oklab, #dc2626, white 70%));
-  color: var(--tile-fg, #7f1d1d);
-}
-.dayoff-tile--mid{
-  background: var(--tile-bg, color-mix(in oklab, #f97316, white 68%));
-  color: var(--tile-fg, #7c2d12);
-}
-.dayoff-tile--high{
-  background: var(--tile-bg, color-mix(in oklab, #16a34a, white 65%));
-  color: var(--tile-fg, #14532d);
+  box-shadow:
+    0 0 0 1px color-mix(in oklab, var(--brand), transparent 70%),
+    0 4px 14px color-mix(in oklab, var(--brand), transparent 78%);
 }
 .dayoff-tile__label{
   font-size:calc(11px * var(--widget-scale, 1));

@@ -202,10 +202,13 @@ describe('widgetsRegistry targets_v2', () => {
 
     expect(keys).not.toContain('unit')
     expect(keys).not.toContain('lookback')
+    expect(keys).not.toContain('showBadges')
     expect(keys).toContain('labelMode')
+    expect(keys).toContain('interpretation')
     expect(entry.defaultOptions?.toneLowColor).toBe('#dc2626')
     expect(entry.defaultOptions?.toneHighColor).toBe('#16a34a')
     expect(entry.defaultOptions?.labelMode).toBe('period')
+    expect(entry.defaultOptions?.interpretation).toBe('more_off_positive')
     expect(props.unit).toBe('mo')
     expect(props.lookback).toBe(2)
   })
