@@ -43,6 +43,7 @@
             :title="`${row.label} · ${cell.label} · ${formatShare(cell.share)}`"
           >
             <span class="mix-cell__value">{{ formatShare(cell.share) }}</span>
+            <span v-if="cell.indicator" class="mix-cell__indicator">{{ cell.indicator }}</span>
           </div>
         </div>
       </li>
@@ -82,6 +83,7 @@ type BalanceOverview = {
 type ColorMode = 'trend' | 'share' | 'hybrid'
 type DensityMode = 'normal' | 'dense'
 type LabelMode = 'period' | 'offset' | 'label' | 'compact' | 'date'
+type TrendIndicatorMode = 'none' | 'symbol' | 'delta' | 'both'
 
 const props = defineProps<{
   overview: BalanceOverview | null
@@ -94,6 +96,7 @@ const props = defineProps<{
   labelMode?: LabelMode
   squareCells?: boolean
   reverseOrder?: boolean
+  trendIndicator?: TrendIndicatorMode | string
   rangeLabel?: string
   from?: string
   to?: string
@@ -116,6 +119,11 @@ const squareCells = computed(() => props.squareCells === true)
 const colorMode = computed<ColorMode>(() => {
   const mode = props.colorMode
   return mode === 'trend' || mode === 'share' || mode === 'hybrid' ? mode : 'hybrid'
+})
+const trendIndicator = computed<TrendIndicatorMode>(() => {
+  const mode = String(props.trendIndicator ?? '').toLowerCase()
+  if (mode === 'symbol' || mode === 'delta' || mode === 'both') return mode
+  return 'none'
 })
 const trendBadge = computed(() => (props.showBadge === false ? '' : props.overview?.trend?.badge ?? ''))
 const historyUnit = computed(() => (props.rangeMode === 'month' ? 'MO' : 'WE'))
@@ -257,9 +265,10 @@ const trendRows = computed(() => {
       isCurrent: column.isCurrent,
     }))
     const cells = slots.map((slot, idx) => {
-      const prevShare = idx === 0 ? slot.share : slots[idx - 1].share
+      const hasPrevious = idx > 0
+      const prevShare = hasPrevious ? slots[idx - 1].share : slot.share
       const delta = slot.share - prevShare
-      const trend = idx === 0 ? 'flat' : classifyTrend(delta)
+      const trend = hasPrevious ? classifyTrend(delta) : 'flat'
       const mode = colorMode.value
       const trendTone = toneStyles.value[trend]
       const shareBg = shareColor(slot.share)
@@ -271,6 +280,7 @@ const trendRows = computed(() => {
         share: slot.share,
         isCurrent: !!slot.isCurrent,
         trend,
+        indicator: trendIndicatorLabel(trend, delta, hasPrevious),
         style: {
           '--mix-bg': bg,
           '--mix-fg': fg,
@@ -299,6 +309,28 @@ const lookbackLabel = computed(() => {
 })
 
 const formatShare = (value: number) => `${Math.max(0, Math.round(value))}%`
+
+function trendSymbol(trend: 'up' | 'down' | 'flat') {
+  if (trend === 'up') return '↑'
+  if (trend === 'down') return '↓'
+  return '→'
+}
+
+function formatDelta(delta: number) {
+  const rounded = Math.round(delta)
+  if (!Number.isFinite(rounded)) return '0pp'
+  if (rounded === 0) return '0pp'
+  return `${rounded > 0 ? '+' : ''}${rounded}pp`
+}
+
+function trendIndicatorLabel(trend: 'up' | 'down' | 'flat', delta: number, hasPrevious: boolean) {
+  if (!hasPrevious) return ''
+  const mode = trendIndicator.value
+  if (mode === 'none') return ''
+  if (mode === 'symbol') return trendSymbol(trend)
+  if (mode === 'delta') return formatDelta(delta)
+  return `${trendSymbol(trend)} ${formatDelta(delta)}`
+}
 
 const dateRangeOptions = { day: '2-digit', month: '2-digit' }
 function formatRange(from?: Date, to?: Date) {
@@ -531,16 +563,23 @@ function clamp(v: number, min: number, max: number) {
   display:flex;
   align-items:center;
   justify-content:center;
+  flex-direction:column;
+  gap:2px;
 }
 :global(#opsdash.opsdash-theme-dark .mix-cell){
   background: linear-gradient(
     135deg,
-    color-mix(in oklab, var(--mix-bg), #0b1220 78%),
-    color-mix(in oklab, var(--mix-bg), #0b1220 90%)
+    color-mix(in oklab, var(--mix-bg), #0b1220 38%),
+    color-mix(in oklab, var(--mix-bg), #0b1220 56%)
   );
-  border-color: color-mix(in oklab, var(--mix-bg), #0b1220 45%);
-  color: color-mix(in oklab, var(--mix-fg), #e2e8f0 80%);
-  box-shadow: inset 0 0 0 1px color-mix(in oklab, var(--mix-bg), transparent 72%);
+  border-color: color-mix(in oklab, var(--mix-bg), #0b1220 28%);
+  color: color-mix(in oklab, #f8fafc 92%, var(--mix-fg) 8%);
+  box-shadow: inset 0 0 0 1px color-mix(in oklab, var(--mix-bg), transparent 64%);
+}
+:global(#opsdash.opsdash-theme-dark .mix-cell.mix-cell--mode-hybrid){
+  box-shadow:
+    inset 0 0 0 1px color-mix(in oklab, var(--mix-bg), transparent 64%),
+    inset 0 -3px 0 0 color-mix(in oklab, var(--mix-accent), transparent 18%);
 }
 .mix-cell--current{
   outline: 1px solid color-mix(in oklab, var(--brand), transparent 35%);
@@ -559,6 +598,14 @@ function clamp(v: number, min: number, max: number) {
 .mix-cell__value{
   font-weight:700;
   font-variant-numeric: tabular-nums;
+  white-space:nowrap;
+}
+.mix-cell__indicator{
+  font-size:clamp(8px, calc(9px * var(--widget-scale, 1)), 11px);
+  font-weight:600;
+  line-height:1;
+  font-variant-numeric: tabular-nums;
+  opacity:.88;
   white-space:nowrap;
 }
 .pill{
