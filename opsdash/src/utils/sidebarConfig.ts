@@ -79,7 +79,7 @@ export function sanitiseSidebarPayload(raw: unknown): SanitiseResult {
   return { cleaned, ignored }
 }
 
-export function buildConfigEnvelope(payload: SidebarConfigPayload, version = '0.5.9') {
+export function buildConfigEnvelope(payload: SidebarConfigPayload, version = '0.6.0') {
   return {
     version,
     generated: new Date().toISOString(),

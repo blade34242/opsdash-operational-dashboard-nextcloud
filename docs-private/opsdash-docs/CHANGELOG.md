@@ -5,7 +5,7 @@ This file is a short internal log. Full release notes live in the repo root `CHA
 ## Unreleased
 - None yet.
 
-## 0.5.9 - 2026-02-21
+## 0.6.0 - 2026-02-21
 - Strategy modes renamed/reworked to: Single Goal, Calendar Goals, Calendar + Categories.
 - Dashboard presets remapped to Empty/Standard/Advanced (internal IDs unchanged for compatibility).
 - Empty preset behavior updated to keep one default tab and no widgets.

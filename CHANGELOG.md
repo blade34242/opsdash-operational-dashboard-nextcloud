@@ -5,7 +5,7 @@ All notable changes to this project will be documented in this file.
 ## Unreleased
 - None yet.
 
-## 0.5.9 - 2026-02-21
+## 0.6.0 - 2026-02-21
 ### Changed
 - Strategy setup now uses three explicit modes: Single Goal, Calendar Goals, and Calendar + Categories.
 - Dashboard preset labels/mapping are now Empty, Standard, and Advanced; the Empty preset keeps one default tab without widgets.
