@@ -130,6 +130,26 @@ jobs:
             exit 1
           fi
 
+          if [ "${SHOULD_PUSH_APPSTORE}" = "true" ] && printf '%s' "${APPSTORE_TOKEN}" | grep -q '[[:space:]]'; then
+            echo "APPSTORE_TOKEN contains whitespace/newlines. Re-save it as a single-line token." >&2
+            exit 1
+          fi
+
+          tmpdir="$(mktemp -d)"
+          trap 'rm -rf "$tmpdir"' EXIT
+          printf '%s' "${APP_PRIVATE_KEY}" > "$tmpdir/app.key"
+          printf '%s' "${APP_PUBLIC_CRT}" > "$tmpdir/app.crt"
+
+          if ! openssl pkey -in "$tmpdir/app.key" -noout >/dev/null 2>&1; then
+            echo "APP_PRIVATE_KEY is not a valid PEM private key." >&2
+            exit 1
+          fi
+
+          if ! openssl x509 -in "$tmpdir/app.crt" -noout >/dev/null 2>&1; then
+            echo "APP_PUBLIC_CRT is not a valid PEM certificate." >&2
+            exit 1
+          fi
+
       - name: Build appstore tarball
         run: make appstore VERSION=${{ steps.version.outputs.version }}
 
@@ -179,14 +199,29 @@ jobs:
           tag: ${{ github.event_name == 'release' && github.event.release.tag_name || github.event.inputs.release_tag }}
           overwrite: true
 
+      - name: Normalize App Store token
+        if: ${{ steps.version.outputs.should_push == 'true' }}
+        id: appstore_token
+        shell: bash
+        env:
+          APPSTORE_TOKEN: ${{ secrets.APPSTORE_TOKEN }}
+        run: |
+          set -euo pipefail
+          token="$(printf '%s' "${APPSTORE_TOKEN}" | tr -d '[:space:]')"
+          if [ -z "$token" ]; then
+            echo "APPSTORE_TOKEN resolved to an empty value after normalization." >&2
+            exit 1
+          fi
+          echo "::add-mask::$token"
+          echo "value=$token" >> "$GITHUB_OUTPUT"
+
       - name: Push to Nextcloud App Store
         if: ${{ steps.version.outputs.should_push == 'true' }}
         uses: R0Wi/nextcloud-appstore-push-action@a011fe619bcf6e77ddebc96f9908e1af4071b9c1
         with:
           app_name: ${{ env.APP_NAME }}
-          appstore_token: ${{ secrets.APPSTORE_TOKEN }}
+          appstore_token: ${{ steps.appstore_token.outputs.value }}
           download_url: ${{ steps.attach_to_release.outputs.browser_download_url }}
-          app_private_key: ${{ secrets.APP_PRIVATE_KEY }}
           nightly: ${{ github.event_name == 'release' && github.event.release.prerelease || false }}
 
       - name: Delete crt and key from local storage
