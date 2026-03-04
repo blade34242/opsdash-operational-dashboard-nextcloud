@@ -5,6 +5,14 @@ All notable changes to this project will be documented in this file.
 ## Unreleased
 - None yet.
 
+## 0.6.2 - 2026-03-04
+### Changed
+- App Store listing metadata now includes documentation links, discussion link, and screenshot gallery entries sourced from the repository image assets.
+- App categories now include both `tools` and `dashboard` for improved App Store discoverability.
+
+### Fixed
+- Release automation now passes `APP_PRIVATE_KEY` to the Nextcloud App Store push action so upload signing no longer fails with an empty key file.
+
 ## 0.6.1 - 2026-03-04
 ### Changed
 - Release automation workflow now validates signing secrets, normalizes `APPSTORE_TOKEN`, and tightens App Store push preflight checks to fail early on malformed credentials.
