@@ -5,6 +5,13 @@ All notable changes to this project will be documented in this file.
 ## Unreleased
 - None yet.
 
+## 0.6.1 - 2026-03-04
+### Changed
+- Release automation workflow now validates signing secrets, normalizes `APPSTORE_TOKEN`, and tightens App Store push preflight checks to fail early on malformed credentials.
+
+### Fixed
+- Stabilized `DeckCardsWidget` created-range test by replacing hardcoded date bounds with a dynamic range around current runtime timestamps.
+
 ## 0.6.0 - 2026-02-21
 ### Changed
 - Strategy setup now uses three explicit modes: Single Goal, Calendar Goals, and Calendar + Categories.
