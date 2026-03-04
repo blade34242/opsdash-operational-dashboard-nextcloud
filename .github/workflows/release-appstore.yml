@@ -13,6 +13,11 @@ on:
         description: 'Optional existing release tag to attach the tarball to.'
         required: false
         type: string
+      push_to_appstore:
+        description: 'Push to Nextcloud App Store (requires release_tag on manual runs).'
+        required: false
+        default: false
+        type: boolean
 
 permissions:
   contents: write
@@ -23,13 +28,23 @@ concurrency:
 
 env:
   APP_NAME: opsdash
+  NEXTCLOUD_RELEASE_BRANCH: stable32
 
 jobs:
   build_and_publish:
+    environment: release
     runs-on: ubuntu-latest
     steps:
       - name: Checkout app sources
         uses: actions/checkout@5a4ac9002d0be2fb38bd78e4b4dbde5606d7042f
+
+      - name: Checkout Nextcloud server
+        uses: actions/checkout@5a4ac9002d0be2fb38bd78e4b4dbde5606d7042f
+        with:
+          repository: nextcloud/server
+          ref: ${{ env.NEXTCLOUD_RELEASE_BRANCH }}
+          submodules: true
+          path: server
 
       - name: Set up Node.js
         uses: actions/setup-node@60edb5dd545a775178f52524783378180af0d1f8
@@ -76,11 +91,75 @@ jobs:
           fi
 
           asset_name="${{ env.APP_NAME }}-${version}.tar.gz"
+          should_push="${{ github.event_name == 'release' || github.event.inputs.push_to_appstore == 'true' }}"
+          target_tag="${{ github.event_name == 'release' && github.event.release.tag_name || github.event.inputs.release_tag }}"
           echo "version=${version}" >> "$GITHUB_OUTPUT"
           echo "asset_name=${asset_name}" >> "$GITHUB_OUTPUT"
+          echo "should_push=${should_push}" >> "$GITHUB_OUTPUT"
+          echo "target_tag=${target_tag}" >> "$GITHUB_OUTPUT"
+
+      - name: Verify required release secrets
+        shell: bash
+        env:
+          APP_PRIVATE_KEY: ${{ secrets.APP_PRIVATE_KEY }}
+          APP_PUBLIC_CRT: ${{ secrets.APP_PUBLIC_CRT }}
+          APPSTORE_TOKEN: ${{ secrets.APPSTORE_TOKEN }}
+          SHOULD_PUSH_APPSTORE: ${{ steps.version.outputs.should_push }}
+          TARGET_TAG: ${{ steps.version.outputs.target_tag }}
+        run: |
+          set -euo pipefail
+
+          missing=()
+          for secret in APP_PRIVATE_KEY APP_PUBLIC_CRT; do
+            if [ -z "${!secret:-}" ]; then
+              missing+=("$secret")
+            fi
+          done
+
+          if [ "${SHOULD_PUSH_APPSTORE}" = "true" ] && [ -z "${APPSTORE_TOKEN:-}" ]; then
+            missing+=("APPSTORE_TOKEN")
+          fi
+
+          if [ "${SHOULD_PUSH_APPSTORE}" = "true" ] && [ -z "${TARGET_TAG:-}" ]; then
+            echo "push_to_appstore=true requires release_tag on workflow_dispatch." >&2
+            exit 1
+          fi
+
+          if [ "${#missing[@]}" -gt 0 ]; then
+            printf 'Missing required secret(s): %s\n' "${missing[*]}" >&2
+            exit 1
+          fi
 
       - name: Build appstore tarball
         run: make appstore VERSION=${{ steps.version.outputs.version }}
+
+      - name: Export signing materials from environment secrets
+        shell: bash
+        env:
+          app_private_key: ${{ secrets.APP_PRIVATE_KEY }}
+          app_public_crt: ${{ secrets.APP_PUBLIC_CRT }}
+        run: |
+          set -euo pipefail
+          cert_dir="$HOME/.nextcloud/certificates"
+          mkdir -p "$cert_dir"
+          php ./tools/ci/file_from_env.php "app_private_key" "$cert_dir/${{ env.APP_NAME }}.key"
+          php ./tools/ci/file_from_env.php "app_public_crt" "$cert_dir/${{ env.APP_NAME }}.crt"
+
+      - name: Sign staged app and rebuild tarball
+        shell: bash
+        run: |
+          set -euo pipefail
+          cert_dir="$HOME/.nextcloud/certificates"
+
+          php server/occ integrity:sign-app \
+            --privateKey="$cert_dir/${{ env.APP_NAME }}.key" \
+            --certificate="$cert_dir/${{ env.APP_NAME }}.crt" \
+            --path="$GITHUB_WORKSPACE/build/${{ env.APP_NAME }}"
+
+          test -f "build/${{ env.APP_NAME }}/appinfo/signature.json"
+
+          rm -f "build/dist/${{ steps.version.outputs.asset_name }}"
+          tar -czf "build/dist/${{ steps.version.outputs.asset_name }}" -C build "${{ env.APP_NAME }}"
 
       - name: Upload package as workflow artifact
         uses: actions/upload-artifact@65462800fd760344b1a7b4382951275a0abb4808
@@ -90,6 +169,7 @@ jobs:
           if-no-files-found: error
 
       - name: Upload tarball to GitHub release
+        id: attach_to_release
         if: ${{ github.event_name == 'release' || github.event.inputs.release_tag != '' }}
         uses: svenstaro/upload-release-action@483c1e56f95e88835747b1c7c60581215016cbf2
         with:
@@ -98,3 +178,17 @@ jobs:
           asset_name: ${{ steps.version.outputs.asset_name }}
           tag: ${{ github.event_name == 'release' && github.event.release.tag_name || github.event.inputs.release_tag }}
           overwrite: true
+
+      - name: Push to Nextcloud App Store
+        if: ${{ steps.version.outputs.should_push == 'true' }}
+        uses: R0Wi/nextcloud-appstore-push-action@a011fe619bcf6e77ddebc96f9908e1af4071b9c1
+        with:
+          app_name: ${{ env.APP_NAME }}
+          appstore_token: ${{ secrets.APPSTORE_TOKEN }}
+          download_url: ${{ steps.attach_to_release.outputs.browser_download_url }}
+          app_private_key: ${{ secrets.APP_PRIVATE_KEY }}
+          nightly: ${{ github.event_name == 'release' && github.event.release.prerelease || false }}
+
+      - name: Delete crt and key from local storage
+        if: always()
+        run: rm -f ~/.nextcloud/certificates/*
