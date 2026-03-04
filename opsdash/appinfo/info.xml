@@ -2,8 +2,24 @@
 <info>
   <id>opsdash</id>
   <name>Operational Dashboard</name>
-  <summary>Calendar analytics &amp; targets inside Nextcloud</summary>
-  <description><![CDATA[Opsdash turns calendar data into week/month dashboards: totals, pacing badges, balance charts, presets, and an onboarding wizard. The SPA runs entirely inside Nextcloud, inherited its theme, and stores every preference per user.]]></description>
+  <summary>Operational calendar KPIs, targets, and trends in Nextcloud</summary>
+  <description><![CDATA[Opsdash is an operations dashboard for teams that run their planning in Nextcloud Calendar.
+
+It converts raw events into clear weekly and monthly insights so you can track workload, pace against targets, and spot drift early.
+
+## What you get
+- KPI dashboard for totals, active days, busiest slots, and category mix
+- Target tracking for calendars and categories with pacing and forecast context
+- Balance and trend widgets to compare periods and detect over/under-allocation
+- Notes, presets, and profile import/export for repeatable reporting workflows
+- Guided onboarding that gets a new setup ready in minutes
+
+## Built for Nextcloud
+- Runs fully inside Nextcloud (no external analytics service)
+- Per-user preferences are stored server-side
+- CSRF-protected write endpoints and standard Nextcloud permission model
+
+If you need a practical planning cockpit on top of existing calendar data, Opsdash gives you fast visibility without leaving your Nextcloud instance.]]></description>
   <version>0.6.2</version>
   <licence>AGPL-3.0-or-later</licence>
   <author>Gellert Innovation</author>
