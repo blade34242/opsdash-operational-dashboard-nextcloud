@@ -7,12 +7,24 @@
   <version>0.6.1</version>
   <licence>AGPL-3.0-or-later</licence>
   <author>Gellert Innovation</author>
+  <documentation>
+    <user>https://github.com/blade34242/opsdash-operational-dashboard-nextcloud#opsdash---operational-calendar-dashboard-for-nextcloud</user>
+    <admin>https://github.com/blade34242/opsdash-operational-dashboard-nextcloud#install</admin>
+    <developer>https://github.com/blade34242/opsdash-operational-dashboard-nextcloud#development</developer>
+  </documentation>
   <website>https://github.com/blade34242/opsdash-operational-dashboard-nextcloud</website>
+  <discussion>https://help.nextcloud.com/search?q=opsdash</discussion>
   <bugs>https://github.com/blade34242/opsdash-operational-dashboard-nextcloud/issues</bugs>
   <repository>https://github.com/blade34242/opsdash-operational-dashboard-nextcloud</repository>
   <namespace>Opsdash</namespace>
   <bootstrap>OCA\Opsdash\AppInfo\Application</bootstrap>
   <category>tools</category>
+  <category>dashboard</category>
+  <screenshot small-thumbnail="https://raw.githubusercontent.com/blade34242/opsdash-operational-dashboard-nextcloud/master/img/opsdash-overview-light-wide.png">https://raw.githubusercontent.com/blade34242/opsdash-operational-dashboard-nextcloud/master/img/opsdash-overview-light-wide.png</screenshot>
+  <screenshot small-thumbnail="https://raw.githubusercontent.com/blade34242/opsdash-operational-dashboard-nextcloud/master/img/opsdash-widgets-light.png">https://raw.githubusercontent.com/blade34242/opsdash-operational-dashboard-nextcloud/master/img/opsdash-widgets-light.png</screenshot>
+  <screenshot small-thumbnail="https://raw.githubusercontent.com/blade34242/opsdash-operational-dashboard-nextcloud/master/img/opsdash-widgets-dark.png">https://raw.githubusercontent.com/blade34242/opsdash-operational-dashboard-nextcloud/master/img/opsdash-widgets-dark.png</screenshot>
+  <screenshot small-thumbnail="https://raw.githubusercontent.com/blade34242/opsdash-operational-dashboard-nextcloud/master/img/opsdash-onboarding-light.png">https://raw.githubusercontent.com/blade34242/opsdash-operational-dashboard-nextcloud/master/img/opsdash-onboarding-light.png</screenshot>
+  <screenshot small-thumbnail="https://raw.githubusercontent.com/blade34242/opsdash-operational-dashboard-nextcloud/master/img/opsdash-calendar-table-light.png">https://raw.githubusercontent.com/blade34242/opsdash-operational-dashboard-nextcloud/master/img/opsdash-calendar-table-light.png</screenshot>
   <navigations>
     <navigation>
       <name>Operational Dashboard</name>
