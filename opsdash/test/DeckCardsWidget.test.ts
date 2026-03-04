@@ -9,6 +9,9 @@ const stubs = {
 
 describe('DeckCardsWidget', () => {
   const now = Date.now()
+  const dayMs = 24 * 60 * 60 * 1000
+  const rangeFrom = new Date(now - 7 * dayMs).toISOString().slice(0, 10)
+  const rangeTo = new Date(now + 7 * dayMs).toISOString().slice(0, 10)
   const cards = [
     {
       id: 1,
@@ -399,8 +402,8 @@ describe('DeckCardsWidget', () => {
         rangeLabel: 'This week',
         filters: ['created_range_all', 'all'],
         defaultFilter: 'created_range_all',
-        from: '2026-02-01',
-        to: '2026-02-28',
+        from: rangeFrom,
+        to: rangeTo,
       },
       global: { stubs },
     })
