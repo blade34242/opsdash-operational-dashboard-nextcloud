@@ -5,6 +5,11 @@ All notable changes to this project will be documented in this file.
 ## Unreleased
 - None yet.
 
+## 0.6.3 - 2026-03-04
+### Changed
+- Refined App Store summary and description copy for clearer value proposition, tighter structure, and better readability on the app detail page.
+- Polished release metadata consistency for publishing (`info.xml`, `package.json`, and README version references).
+
 ## 0.6.2 - 2026-03-04
 ### Changed
 - App Store listing metadata now includes documentation links, discussion link, and screenshot gallery entries sourced from the repository image assets.
