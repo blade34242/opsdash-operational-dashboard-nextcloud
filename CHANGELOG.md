@@ -5,6 +5,18 @@ All notable changes to this project will be documented in this file.
 ## Unreleased
 - None yet.
 
+## 0.6.4 - 2026-03-07
+### Added
+- Introduced enforceable static quality gates in CI: frontend TypeScript typecheck (`npm run typecheck`) and backend PHP static analysis (`composer run test:static` with PHPStan).
+- Added deterministic E2E must-pass coverage with a dedicated `dashboard.mustpass.spec.ts` containing stable shell/profiles/shortcuts journeys.
+- Added automated version-consistency validation (`tools/ci/check_versions.sh`) to enforce alignment across `appinfo/info.xml`, `package.json`, `VERSION`, and `SECURITY.md`.
+
+### Changed
+- Unified packaging to a single official release path: `make appstore VERSION=<x.y.z>`; deprecated `opsdash/tools/release/package.sh` now delegates to that path.
+- Refactored `App.vue` by extracting tab context/editing orchestration into `useLayoutTabsContext` to reduce top-level coupling.
+- Refactored persist sanitization into domain helpers (`PersistDeckSanitizer`, `PersistWidgetsSanitizer`, `PersistOnboardingSanitizer`) while keeping `PersistSanitizer` as orchestration facade.
+- Updated release metadata and documentation references for the 0.6.4 line.
+
 ## 0.6.3 - 2026-03-04
 ### Changed
 - Refined App Store summary and description copy for clearer value proposition, tighter structure, and better readability on the app detail page.

@@ -5,6 +5,14 @@ This file is a short internal log. Full release notes live in the repo root `CHA
 ## Unreleased
 - None yet.
 
+## 0.6.4 - 2026-03-07
+- CI gates erweitert: verpflichtender TS-Typecheck + PHPStan static analysis.
+- Release-Hygiene erweitert: Versionskonsistenz-Check (`info.xml`/`package.json`/`VERSION`/`SECURITY.md`) als CI-Guard.
+- Packaging vereinheitlicht auf `make appstore`; altes `tools/release/package.sh` als delegierender Legacy-Wrapper markiert.
+- Frontend-Orchestrierung reduziert: Tab-Context/Edit-Logik aus `App.vue` in `useLayoutTabsContext` extrahiert.
+- Persist-Sanitizer modularisiert: Deck-, Widget- und Onboarding-Sanitization in eigene Services ausgelagert.
+- Deterministische Must-pass-E2E-Spec mit 3 stabilen Dashboard-Journeys ergänzt.
+
 ## 0.6.0 - 2026-02-21
 - Strategy modes renamed/reworked to: Single Goal, Calendar Goals, Calendar + Categories.
 - Dashboard presets remapped to Empty/Standard/Advanced (internal IDs unchanged for compatibility).
