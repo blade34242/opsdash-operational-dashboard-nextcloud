@@ -8,7 +8,7 @@
 
 ## Packaging
 1. Build assets.
-2. Package via `pack_opsdash.sh` or `make appstore`.
+2. Package via `make appstore` (single official path).
 3. Sign with `occ integrity:sign-app`.
 
 Keep this doc minimal; defer details to `RELEASE.md`.

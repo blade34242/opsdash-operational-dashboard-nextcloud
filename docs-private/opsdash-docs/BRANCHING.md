@@ -15,7 +15,7 @@ Keep the workflow simple: `main` is the active development line, and release bra
 
 1. `git switch -c release/<version>` from `main`.
 2. Bump versions (`appinfo/info.xml`, `package.json`, `VERSION`, `docs-private/opsdash-docs/CHANGELOG.md`).
-3. `npm ci && npm run build`, then package via `pack_opsdash.sh`.
+3. `npm ci && npm run build`, then package via `make appstore VERSION=<version>`.
 4. Tag `v<version>` on the release branch, upload to the App Store.
 
 ## Backport rules
