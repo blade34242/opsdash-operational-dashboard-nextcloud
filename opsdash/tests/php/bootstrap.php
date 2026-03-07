@@ -23,6 +23,24 @@ if (!class_exists(\OCP\AppFramework\Http::class)) {
 if (!class_exists(\OCP\AppFramework\Http\DataResponse::class)) {
 	require __DIR__ . '/stubs/OCP/AppFramework/Http/DataResponse.php';
 }
+if (!class_exists(\OCP\AppFramework\Http\TemplateResponse::class)) {
+	require __DIR__ . '/stubs/OCP/AppFramework/Http/TemplateResponse.php';
+}
+if (!class_exists(\OCP\AppFramework\Http\Attribute\NoAdminRequired::class)) {
+	require __DIR__ . '/stubs/OCP/AppFramework/Http/Attribute/NoAdminRequired.php';
+}
+if (!class_exists(\OCP\AppFramework\Http\Attribute\NoCSRFRequired::class)) {
+	require __DIR__ . '/stubs/OCP/AppFramework/Http/Attribute/NoCSRFRequired.php';
+}
+if (!class_exists(\OCP\Server::class)) {
+	require __DIR__ . '/stubs/OCP/Server.php';
+}
+if (!class_exists(\OCP\Util::class)) {
+	require __DIR__ . '/stubs/OCP/Util.php';
+}
+if (!class_exists(\Sabre\VObject\Reader::class)) {
+	require __DIR__ . '/stubs/Sabre/VObject/Reader.php';
+}
 
 $interfaceStubs = [
 	\OCP\IRequest::class => '/stubs/OCP/IRequest.php',
@@ -33,6 +51,7 @@ $interfaceStubs = [
 	\OCP\IConfig::class => '/stubs/OCP/IConfig.php',
 	\OCP\ICache::class => '/stubs/OCP/ICache.php',
 	\OCP\ICacheFactory::class => '/stubs/OCP/ICacheFactory.php',
+	\OCP\IL10N::class => '/stubs/OCP/IL10N.php',
 	\OCP\App\IAppManager::class => '/stubs/OCP/App/IAppManager.php',
 	\Psr\Log\LoggerInterface::class => '/stubs/Psr/Log/LoggerInterface.php',
 ];

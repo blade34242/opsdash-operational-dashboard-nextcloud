@@ -5,6 +5,7 @@
   "license": "agpl-3.0-or-later",
   "require": {},
   "require-dev": {
+    "phpstan/phpstan": "^1.12",
     "phpunit/phpunit": "^9.6"
   },
   "autoload": {
@@ -19,6 +20,7 @@
   },
   "scripts": {
     "test": "phpunit -c tests/phpunit.xml",
-    "test:unit": "phpunit -c tests/phpunit.xml"
+    "test:unit": "phpunit -c tests/phpunit.xml",
+    "test:static": "phpstan analyse --configuration=phpstan.neon.dist --no-progress --debug"
   }
 }

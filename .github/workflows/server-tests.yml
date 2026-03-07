@@ -79,6 +79,10 @@ jobs:
         working-directory: server/apps/${{ env.APP_NAME }}
         run: npm run test -- --run
 
+      - name: NPM typecheck
+        working-directory: server/apps/${{ env.APP_NAME }}
+        run: npm run typecheck
+
       - name: Build assets
         working-directory: server/apps/${{ env.APP_NAME }}
         run: npm run build
@@ -147,6 +151,10 @@ jobs:
       - name: PHPUnit
         working-directory: server/apps/${{ env.APP_NAME }}
         run: composer run test:unit
+
+      - name: PHP static analysis
+        working-directory: server/apps/${{ env.APP_NAME }}
+        run: composer run test:static
 
       - name: Install Playwright deps
         working-directory: server/apps/${{ env.APP_NAME }}

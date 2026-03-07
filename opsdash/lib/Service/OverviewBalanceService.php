@@ -103,7 +103,7 @@ final class OverviewBalanceService {
         }
 
         if ($useCalendars) {
-            $targetMap = $range === 'month' ? ($targetsMonth ?? []) : ($targetsWeek ?? []);
+            $targetMap = $range === 'month' ? $targetsMonth : $targetsWeek;
             $targetSum = 0.0;
             $cleanTargetMap = [];
             foreach ($targetMap as $calId => $targetVal) {
@@ -293,4 +293,3 @@ final class OverviewBalanceService {
         ];
     }
 }
-

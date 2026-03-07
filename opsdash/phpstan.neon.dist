@@ -1,0 +1,10 @@
+parameters:
+  level: 1
+  paths:
+    - lib/Controller
+    - lib/Service
+  bootstrapFiles:
+    - tests/php/bootstrap.php
+  parallel:
+    maximumNumberOfProcesses: 1
+  treatPhpDocTypesAsCertain: false

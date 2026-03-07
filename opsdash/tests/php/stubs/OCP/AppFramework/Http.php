@@ -13,5 +13,6 @@ final class Http {
   public const STATUS_REQUEST_ENTITY_TOO_LARGE = 413;
   public const STATUS_REQUEST_URI_TOO_LONG = 414;
   public const STATUS_PRECONDITION_FAILED = 412;
+  public const STATUS_SERVICE_UNAVAILABLE = 503;
   public const STATUS_INTERNAL_SERVER_ERROR = 500;
 }

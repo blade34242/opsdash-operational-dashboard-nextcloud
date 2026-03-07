@@ -104,7 +104,7 @@ final class OverviewHistoryService {
             if (!is_array($payload)) {
                 continue;
             }
-            $dateKey = (string)($payload['date'] ?? ($key ?? ''));
+            $dateKey = (string)($payload['date'] ?? $key);
             $dateKey = trim($dateKey);
             if ($dateKey === '') {
                 continue;
