@@ -16,6 +16,7 @@ Use it to answer three questions fast:
 - Balance/trend widgets for period-over-period comparisons
 - Notes, presets, and profile export/import for repeatable reporting
 - Guided onboarding for quick team setup
+- Short demo video (WEBM): https://raw.githubusercontent.com/blade34242/opsdash-operational-dashboard-nextcloud/master/img/opsdash-marketplace-demo.webm
 
 ### Nextcloud-native
 - Runs fully inside Nextcloud (no external analytics backend)
@@ -39,11 +40,10 @@ Opsdash is built for teams that already plan in calendars and want clear executi
   <bootstrap>OCA\Opsdash\AppInfo\Application</bootstrap>
   <category>tools</category>
   <category>dashboard</category>
-  <screenshot small-thumbnail="https://raw.githubusercontent.com/blade34242/opsdash-operational-dashboard-nextcloud/master/img/opsdash-overview-light-wide.png">https://raw.githubusercontent.com/blade34242/opsdash-operational-dashboard-nextcloud/master/img/opsdash-overview-light-wide.png</screenshot>
-  <screenshot small-thumbnail="https://raw.githubusercontent.com/blade34242/opsdash-operational-dashboard-nextcloud/master/img/opsdash-widgets-light.png">https://raw.githubusercontent.com/blade34242/opsdash-operational-dashboard-nextcloud/master/img/opsdash-widgets-light.png</screenshot>
-  <screenshot small-thumbnail="https://raw.githubusercontent.com/blade34242/opsdash-operational-dashboard-nextcloud/master/img/opsdash-widgets-dark.png">https://raw.githubusercontent.com/blade34242/opsdash-operational-dashboard-nextcloud/master/img/opsdash-widgets-dark.png</screenshot>
-  <screenshot small-thumbnail="https://raw.githubusercontent.com/blade34242/opsdash-operational-dashboard-nextcloud/master/img/opsdash-onboarding-light.png">https://raw.githubusercontent.com/blade34242/opsdash-operational-dashboard-nextcloud/master/img/opsdash-onboarding-light.png</screenshot>
-  <screenshot small-thumbnail="https://raw.githubusercontent.com/blade34242/opsdash-operational-dashboard-nextcloud/master/img/opsdash-calendar-table-light.png">https://raw.githubusercontent.com/blade34242/opsdash-operational-dashboard-nextcloud/master/img/opsdash-calendar-table-light.png</screenshot>
+  <screenshot small-thumbnail="https://raw.githubusercontent.com/blade34242/opsdash-operational-dashboard-nextcloud/master/img/opsdash-marketplace-overview.png">https://raw.githubusercontent.com/blade34242/opsdash-operational-dashboard-nextcloud/master/img/opsdash-marketplace-overview.png</screenshot>
+  <screenshot small-thumbnail="https://raw.githubusercontent.com/blade34242/opsdash-operational-dashboard-nextcloud/master/img/opsdash-marketplace-charts.png">https://raw.githubusercontent.com/blade34242/opsdash-operational-dashboard-nextcloud/master/img/opsdash-marketplace-charts.png</screenshot>
+  <screenshot small-thumbnail="https://raw.githubusercontent.com/blade34242/opsdash-operational-dashboard-nextcloud/master/img/opsdash-marketplace-workspace.png">https://raw.githubusercontent.com/blade34242/opsdash-operational-dashboard-nextcloud/master/img/opsdash-marketplace-workspace.png</screenshot>
+  <screenshot small-thumbnail="https://raw.githubusercontent.com/blade34242/opsdash-operational-dashboard-nextcloud/master/img/opsdash-marketplace-onboarding.png">https://raw.githubusercontent.com/blade34242/opsdash-operational-dashboard-nextcloud/master/img/opsdash-marketplace-onboarding.png</screenshot>
   <navigations>
     <navigation>
       <name>Operational Dashboard</name>
