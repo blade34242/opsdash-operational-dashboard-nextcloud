@@ -35,7 +35,8 @@ function mountWhenReady(){
       }
       const app = createApp(App)
       app.config.errorHandler = (err, instance, info) => {
-        const name = instance?.type && (instance.type as any).name ? (instance.type as any).name : ''
+        const instanceType = (instance as any)?.type
+        const name = instanceType && instanceType.name ? instanceType.name : ''
         if (isDebugMode()) {
           const payload = { err, info, name, stack: err instanceof Error ? err.stack : undefined }
           const w:any = window as any

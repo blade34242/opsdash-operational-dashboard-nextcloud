@@ -58,7 +58,7 @@ export const chartPerDayEntry: RegistryEntry = {
     let legendItems: Array<{ id: string; label: string; color: string }> = []
 
     if (lookbackInput && lookbackInput.length) {
-      const sorted = sortLookbackOffsets(lookbackInput)
+      const sorted = sortLookbackOffsets<any>(lookbackInput as any[])
       const ordered = reverseOrder ? sorted : sorted.slice().reverse()
       const labels: string[] = []
       const data: number[] = []

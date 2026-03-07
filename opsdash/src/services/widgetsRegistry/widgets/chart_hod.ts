@@ -41,7 +41,7 @@ export const chartHodEntry: RegistryEntry = {
         ? ctx.charts.hodByOffset
         : null
     const reverseOrder = def.options?.reverseOrder === true
-    const sortedLookback = lookbackInput ? sortLookbackOffsets(lookbackInput) : []
+    const sortedLookback = lookbackInput ? sortLookbackOffsets<any>(lookbackInput as any[]) : []
     const orderedLookback = reverseOrder ? sortedLookback : sortedLookback.slice().reverse()
     const lookbackEntries = orderedLookback
       .map((entry, idx) => {

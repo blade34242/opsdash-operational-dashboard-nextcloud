@@ -6,7 +6,7 @@ import { createDefaultBalanceConfig, type BalanceConfig } from './targets/config
  */
 export function computeIndexForShares(opts: {
   shares: Record<string, number>
-  targets: BalanceConfig['categories']
+  targets: Array<{ id: string; targetHours: number }>
   basis?: BalanceConfig['index']['basis']
 }): number {
   const basis = opts.basis || 'category'

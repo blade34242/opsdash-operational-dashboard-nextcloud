@@ -277,7 +277,8 @@ function normalizeActivityCardConfig(input: any, base: ActivityCardConfig): Acti
     return result
   }
 
-  const booleanKeys: Array<keyof ActivityCardConfig> = [
+  type ActivityCardBooleanKey = Exclude<keyof ActivityCardConfig, 'forecastMode'>
+  const booleanKeys: ActivityCardBooleanKey[] = [
     'showWeekendShare',
     'showEveningShare',
     'showEarliestLatest',

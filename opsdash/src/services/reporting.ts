@@ -161,7 +161,7 @@ export function normalizeDeckSettings(input: any, fallback?: DeckFeatureSettings
     intervalSeconds: clampInterval(input.ticker?.intervalSeconds, base.ticker.intervalSeconds),
     showBoardBadges: normalizeBool(input.ticker?.showBoardBadges, base.ticker.showBoardBadges),
   }
-  const hiddenBoards = Array.isArray(input.hiddenBoards)
+  const hiddenBoards: number[] = Array.isArray(input.hiddenBoards)
     ? Array.from(
         new Set(
           input.hiddenBoards

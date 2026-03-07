@@ -238,7 +238,7 @@ type HistoryEntry = {
   avgDay: number
   avgEvent: number
   medianDay: number
-  busiest: { date?: string; hours?: number } | null
+  busiest: { date: string; hours: number } | null
   workdayAvg: number
   workdayMedian: number
   weekendAvg: number
@@ -246,7 +246,7 @@ type HistoryEntry = {
   weekendShare: number | null
   activeCalendars: number
   calendarSummary: string
-  topCategory: { label: string; actualHours: number; targetHours: number; percent: number; color?: string } | null
+  topCategory: { label: string; actualHours: number; targetHours: number; percent: number; color: string | undefined } | null
   balanceIndex: number | null
   activity: {
     events: number
@@ -391,7 +391,7 @@ function buildHistoryEntries(opts: {
         },
       }
     })
-    .filter((entry): entry is HistoryEntry => !!entry)
+    .filter(Boolean) as HistoryEntry[]
 }
 
 function normalizeTargetsConfigForRange(config: TargetsConfig, rangeMode: 'week' | 'month'): TargetsConfig {

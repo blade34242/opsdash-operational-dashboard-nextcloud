@@ -28,6 +28,7 @@ export type WidgetTabsState = {
 }
 
 export interface WidgetRenderContext {
+  [key: string]: any
   summary?: any
   activeDayMode?: 'active' | 'all'
   targetsSummary?: any
@@ -100,24 +101,25 @@ export interface RegistryEntry {
   defaultLayout: WidgetDefinition['layout']
   label?: string
   baseTitle?: string
+  supportsColors?: boolean
   defaultOptions?: Record<string, any>
   configurable?: boolean
-  dynamicControls?: (options: Record<string, any>) => Array<{
+  dynamicControls?: (options: Record<string, any>, ctx?: WidgetRenderContext) => Array<{
     key: string
     label: string
-    type: 'select' | 'number' | 'toggle' | 'text' | 'textarea' | 'color' | 'multiselect' | 'taglist' | 'filterbuilder' | 'colorlist'
-    options?: Array<{ value: any; label: string; count?: number }>
+    type: string
+    options?: ReadonlyArray<{ value: any; label: string; count?: number }>
     defaultAll?: boolean
     hint?: string
   }>
   controls?: Array<{
     key: string
     label: string
-    type: 'select' | 'number' | 'toggle' | 'text' | 'textarea' | 'color' | 'multiselect' | 'taglist' | 'filterbuilder' | 'colorlist'
+    type: string
     min?: number
     max?: number
     step?: number
-    options?: Array<{ value: any; label: string; count?: number }>
+    options?: ReadonlyArray<{ value: any; label: string; count?: number }>
     defaultAll?: boolean
     hint?: string
   }>
