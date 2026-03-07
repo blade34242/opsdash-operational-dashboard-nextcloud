@@ -36,8 +36,8 @@ test('must-pass: keyboard shortcuts overlay opens and closes', async ({ page, ba
   await dismissOnboardingIfVisible(page)
 
   await page.getByRole('button', { name: 'Keyboard shortcuts' }).click()
-  const shortcutsDialog = page.getByRole('dialog')
+  const shortcutsDialog = page.getByRole('dialog', { name: 'Keyboard Shortcuts' })
   await expect(shortcutsDialog.getByRole('heading', { name: 'Keyboard Shortcuts' })).toBeVisible()
-  await shortcutsDialog.getByRole('button', { name: 'Close' }).click()
+  await shortcutsDialog.getByRole('button', { name: 'Close shortcuts overlay' }).click()
   await expect(shortcutsDialog).toBeHidden()
 })
