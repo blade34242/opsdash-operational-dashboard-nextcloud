@@ -20,6 +20,14 @@ env:
   PLAYWRIGHT_SECOND_PASS: qa-secret
 
 jobs:
+  version-consistency:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout app sources
+        uses: actions/checkout@5a4ac9002d0be2fb38bd78e4b4dbde5606d7042f
+      - name: Validate version consistency
+        run: bash tools/ci/check_versions.sh
+
   matrix-config:
     runs-on: ubuntu-latest
     outputs:
@@ -37,7 +45,7 @@ jobs:
           echo "matrix=$matrix" >> "$GITHUB_OUTPUT"
 
   server-tests:
-    needs: matrix-config
+    needs: [version-consistency, matrix-config]
     name: Nextcloud ${{ matrix.nextcloud_branch }} / PHP ${{ matrix.php_version }}
     runs-on: ubuntu-latest
     strategy:

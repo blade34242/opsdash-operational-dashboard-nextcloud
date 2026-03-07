@@ -3,12 +3,12 @@
 This consolidates the release workflow, packaging/signing steps, App Store submission details, and the internal publishing checklist.
 
 ## Versioning & Branches
-- Align `appinfo/info.xml`, `package.json`, and the public `CHANGELOG.md`.
+- Align `appinfo/info.xml`, `package.json`, `VERSION`, `SECURITY.md`, and the public `CHANGELOG.md`.
 - Use a release branch only when preparing an App Store submission.
 
 ## Pre-release Checklist
 1. **Choose compatibility window** - adjust `<nextcloud min-version="X" max-version="Y"/>` if QA confirms broader support.
-2. **Update versions & changelog** - bump `appinfo/info.xml`, `package.json`, `CHANGELOG.md`.
+2. **Update versions & changelog** - bump `appinfo/info.xml`, `package.json`, `VERSION`, `SECURITY.md`, `CHANGELOG.md`.
 3. **Build + sanity check** - `npm ci && npm run build`; run the app locally.
 4. **Run tests** - `npm run test -- --run`, `composer run test:unit`, `npm run test:e2e`, security scripts in `tools/security/`.
 

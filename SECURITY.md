@@ -6,7 +6,7 @@ I put real effort into security hardening, validation, and review, but this is s
 If you spot something suspicious, please report it. Helpful reports make the app safer for everyone.
 
 ## Supported Versions
-We currently support the `0.5.x` line (Nextcloud `30-32`).
+We currently support the `0.6.x` line (Nextcloud `30-32`).
 
 ## How to Report
 - **Sensitive/security-critical issue**: please use a private GitHub Security Advisory report.
