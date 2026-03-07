@@ -312,7 +312,7 @@ function notifyError(msg: string){
   else { console.error('ERROR:', msg); alert(msg) }
 }
 
-import { ref, watch, computed, onBeforeUnmount, onMounted } from 'vue'
+import { ref, watch, computed, onBeforeUnmount } from 'vue'
 import { useNotes } from '../composables/useNotes'
 import { useDashboard, type OnboardingState } from '../composables/useDashboard'
 import { useDashboardPersistence } from '../composables/useDashboardPersistence'
@@ -340,6 +340,7 @@ import { useDeckFiltering, sanitizeDeckFilter } from '../composables/useDeckFilt
 import { useWidgetLayoutManager } from '../composables/useWidgetLayoutManager'
 import { useDashboardBoot } from '../composables/useDashboardBoot'
 import { useWidgetRenderContext } from '../composables/useWidgetRenderContext'
+import { useLayoutTabsContext } from '../composables/useLayoutTabsContext'
 import './styles/widgetTextScale.css'
 // Ensure a visible version even if backend attrs are empty: use package.json as fallback
 // @ts-ignore
@@ -491,131 +492,31 @@ const shouldIncludeLookback = () => {
   return false
 }
 
-const tabLabelDraft = ref('')
-const tabEditingId = ref<string | null>(null)
-const tabContext = ref<{ open: boolean; x: number; y: number; tabId: string | null }>({
-  open: false,
-  x: 0,
-  y: 0,
-  tabId: null,
+const {
+  tabLabelDraft,
+  tabEditingId,
+  tabContext,
+  addOrderHint,
+  handleTabClick,
+  openTabContextMenu,
+  openTabContextMenuFromButton,
+  setDefaultTabFromMenu,
+  removeTabFromMenu,
+  renameTabFromMenu,
+  commitTabLabel,
+  cancelTabLabel,
+  setAddHint,
+  resetContext: resetTabEditContext,
+} = useLayoutTabsContext({
+  layoutTabs,
+  activeTabId,
+  activeTabLabel: computed(() => activeTab.value?.label || ''),
+  isLayoutEditing,
+  setActiveTab,
+  setDefaultTab,
+  removeTab,
+  renameTab,
 })
-const addOrderHint = ref<number | null>(null)
-
-watch(
-  () => activeTabId.value,
-  () => {
-    if (!tabEditingId.value) {
-      tabLabelDraft.value = activeTab.value?.label || ''
-    }
-  },
-  { immediate: true },
-)
-
-watch(
-  () => isLayoutEditing.value,
-  (next) => {
-    if (!next) {
-      tabEditingId.value = null
-      tabContext.value = { open: false, x: 0, y: 0, tabId: null }
-    }
-  },
-)
-
-function handleTabClick(id: string) {
-  if (!isLayoutEditing.value) {
-    setActiveTab(id)
-    addOrderHint.value = null
-    return
-  }
-  if (activeTabId.value !== id) {
-    setActiveTab(id)
-    tabEditingId.value = null
-    addOrderHint.value = null
-    return
-  }
-  tabEditingId.value = id
-  const tab = layoutTabs.value.find((t) => t.id === id)
-  tabLabelDraft.value = tab?.label || ''
-}
-
-function openTabContextMenu(evt: MouseEvent, tabId: string) {
-  if (!isLayoutEditing.value) return
-  openTabContextMenuAt(evt.clientX, evt.clientY, tabId)
-}
-
-function openTabContextMenuFromButton(evt: MouseEvent, tabId: string) {
-  if (!isLayoutEditing.value) return
-  const target = evt.currentTarget as HTMLElement | null
-  if (!target) {
-    openTabContextMenuAt(evt.clientX, evt.clientY, tabId)
-    return
-  }
-  const rect = target.getBoundingClientRect()
-  openTabContextMenuAt(rect.left, rect.bottom + 6, tabId)
-}
-
-function openTabContextMenuAt(x: number, y: number, tabId: string) {
-  tabContext.value = {
-    open: true,
-    x,
-    y,
-    tabId,
-  }
-}
-
-function closeTabContextMenu() {
-  tabContext.value = { open: false, x: 0, y: 0, tabId: null }
-}
-
-function setDefaultTabFromMenu() {
-  if (!tabContext.value.tabId) return
-  setDefaultTab(tabContext.value.tabId)
-  closeTabContextMenu()
-}
-
-function removeTabFromMenu() {
-  if (!tabContext.value.tabId) return
-  removeTab(tabContext.value.tabId)
-  closeTabContextMenu()
-}
-
-function renameTabFromMenu() {
-  if (!tabContext.value.tabId) return
-  tabEditingId.value = tabContext.value.tabId
-  const tab = layoutTabs.value.find((t) => t.id === tabContext.value.tabId)
-  tabLabelDraft.value = tab?.label || ''
-  closeTabContextMenu()
-}
-
-function commitTabLabel() {
-  if (!tabEditingId.value) return
-  const label = tabLabelDraft.value.trim()
-  const tab = layoutTabs.value.find((t) => t.id === tabEditingId.value)
-  if (!tab) {
-    tabEditingId.value = null
-    return
-  }
-  if (!label) {
-    tabLabelDraft.value = tab.label
-    tabEditingId.value = null
-    return
-  }
-  if (label !== tab.label) {
-    renameTab(tab.id, label)
-  }
-  tabEditingId.value = null
-}
-
-function cancelTabLabel() {
-  if (!tabEditingId.value) return
-  const tab = layoutTabs.value.find((t) => t.id === tabEditingId.value)
-  tabLabelDraft.value = tab?.label || ''
-  tabEditingId.value = null
-}
-
-function setAddHint(orderHint?: number) {
-  addOrderHint.value = Number.isFinite(orderHint ?? NaN) ? Number(orderHint) : null
-}
 
 function handleAddWidget() {
   if (!newWidgetType.value) return
@@ -628,33 +529,9 @@ function handleAddWidget() {
 function toggleLayoutEditing() {
   isLayoutEditing.value = !isLayoutEditing.value
   if (!isLayoutEditing.value) {
-    tabEditingId.value = null
-    tabContext.value = { open: false, x: 0, y: 0, tabId: null }
-    addOrderHint.value = null
+    resetTabEditContext()
   }
 }
-
-function handleGlobalClick(event: MouseEvent) {
-  if (!tabContext.value.open) return
-  const target = event.target as HTMLElement | null
-  if (!target) return
-  if (target.closest('.tab-context-menu')) return
-  if (target.closest('.tab-btn')) return
-  if (target.closest('.tab-menu-btn')) return
-  closeTabContextMenu()
-}
-
-onMounted(() => {
-  if (typeof window !== 'undefined') {
-    window.addEventListener('click', handleGlobalClick)
-  }
-})
-
-onBeforeUnmount(() => {
-  if (typeof window !== 'undefined') {
-    window.removeEventListener('click', handleGlobalClick)
-  }
-})
 
 const {
   calendars,
