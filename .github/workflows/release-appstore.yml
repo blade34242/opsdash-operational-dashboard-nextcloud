@@ -93,6 +93,13 @@ jobs:
           asset_name="${{ env.APP_NAME }}-${version}.tar.gz"
           should_push="${{ github.event_name == 'release' || github.event.inputs.push_to_appstore == 'true' }}"
           target_tag="${{ github.event_name == 'release' && github.event.release.tag_name || github.event.inputs.release_tag }}"
+          if [ -n "${target_tag}" ]; then
+            normalized_target_tag="${target_tag#v}"
+            if [ "${normalized_target_tag}" != "${version}" ]; then
+              echo "Version '${version}' does not match release tag '${target_tag}'." >&2
+              exit 1
+            fi
+          fi
           echo "version=${version}" >> "$GITHUB_OUTPUT"
           echo "asset_name=${asset_name}" >> "$GITHUB_OUTPUT"
           echo "should_push=${should_push}" >> "$GITHUB_OUTPUT"
@@ -149,6 +156,9 @@ jobs:
             echo "APP_PUBLIC_CRT is not a valid PEM certificate." >&2
             exit 1
           fi
+
+      - name: Sync release version sources
+        run: bash tools/release/bump_version.sh "${{ steps.version.outputs.version }}"
 
       - name: Build appstore tarball
         run: make appstore VERSION=${{ steps.version.outputs.version }}

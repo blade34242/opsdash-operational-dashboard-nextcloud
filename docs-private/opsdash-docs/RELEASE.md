@@ -3,12 +3,13 @@
 This consolidates the release workflow, packaging/signing steps, App Store submission details, and the internal publishing checklist.
 
 ## Versioning & Branches
-- Align `appinfo/info.xml`, `package.json`, `VERSION`, `SECURITY.md`, and the public `CHANGELOG.md`.
+- Keep `appinfo/info.xml`, `package.json`, `package-lock.json`, `VERSION`, `SECURITY.md`, and the public `CHANGELOG.md` aligned.
+- Preferred local helper: `bash tools/release/bump_version.sh <x.y.z>` updates those sources and validates consistency.
 - Use a release branch only when preparing an App Store submission.
 
 ## Pre-release Checklist
 1. **Choose compatibility window** - adjust `<nextcloud min-version="X" max-version="Y"/>` if QA confirms broader support.
-2. **Update versions & changelog** - bump `appinfo/info.xml`, `package.json`, `VERSION`, `SECURITY.md`, `CHANGELOG.md`.
+2. **Update versions & changelog** - run `bash tools/release/bump_version.sh <x.y.z>` and update `CHANGELOG.md`.
 3. **Build + sanity check** - `npm ci && npm run build`; run the app locally.
 4. **Run tests** - `npm run test -- --run`, `composer run test:unit`, `npm run test:e2e`, security scripts in `tools/security/`.
 
@@ -21,7 +22,7 @@ This consolidates the release workflow, packaging/signing steps, App Store submi
      --certificate=/path/cert.crt \
      --path=/absolute/path/to/build/opsdash
    ```
-3. (Optional) Automation: once signing works end-to-end, add a GitHub Action that runs `make appstore`, signs with stored secrets, and uploads the tarball on tag pushes.
+3. Release automation enforces version sync before packaging (`tools/release/bump_version.sh`) and fails on tag/version mismatches.
 
 ## App Store Submission
 - Upload the signed tarball via the Nextcloud App Store UI or REST API.
