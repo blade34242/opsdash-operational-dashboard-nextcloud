@@ -538,9 +538,18 @@ function splitFilterValue(value: string) {
   padding: 3px;
 }
 
-.opt-row input[type=\"checkbox\"] {
-  width: 14px;
-  height: 14px;
+.opt-row input[type='checkbox'],
+.multi__item input[type='checkbox'],
+.taglist__meta input[type='checkbox'] {
+  width: 15px !important;
+  min-width: 15px;
+  max-width: 15px;
+  height: 15px !important;
+  min-height: 15px;
+  max-height: 15px;
+  margin: 0;
+  display: inline-block;
+  flex: 0 0 15px;
   align-self: center;
 }
 
@@ -602,11 +611,6 @@ function splitFilterValue(value: string) {
   gap: 6px;
   font-size: 13px;
 }
-.multi__item input[type=\"checkbox\"] {
-  width: 14px;
-  height: 14px;
-}
-
 .multi__item span {
   color: var(--opt-pop-text);
 }
