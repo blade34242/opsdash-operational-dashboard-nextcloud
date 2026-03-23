@@ -1,6 +1,6 @@
 <template>
   <h3>Choose calendars to include</h3>
-  <p>Select the calendars you want to track. You can adjust later at any time.</p>
+  <p>Select the calendars Opsdash should include. Goal editing happens later in the dedicated Goals step.</p>
   <div class="calendar-list">
     <label
       v-for="cal in calendars"
@@ -8,39 +8,17 @@
       :class="['calendar-item', { checked: localSelection.includes(cal.id) }]"
     >
       <input
+        class="list-checkbox"
         type="checkbox"
         :value="cal.id"
         :checked="localSelection.includes(cal.id)"
         @change="toggleCalendar(cal.id, $event.target as HTMLInputElement)"
       />
       <span class="dot" :style="{ backgroundColor: cal.color || '#3B82F6' }"></span>
-      <span>{{ cal.displayname }}</span>
+      <span class="calendar-item__label">{{ cal.displayname }}</span>
+      <span class="calendar-item__state">{{ localSelection.includes(cal.id) ? 'selected' : 'not selected' }}</span>
     </label>
   </div>
-  <div v-if="localSelection.length && showCalendarTargets" class="calendar-targets">
-    <h4>Calendar targets (h / week)</h4>
-    <p class="hint">Optional in Calendar Goals and Calendar + Categories — set only if you need per-calendar pacing.</p>
-    <div
-      v-for="cal in calendars.filter((c) => localSelection.includes(c.id))"
-      :key="`target-${cal.id}`"
-      class="target-row"
-    >
-      <span class="cal-name">{{ cal.displayname }}</span>
-      <div class="input-unit">
-        <input
-          type="number"
-          min="0"
-          step="0.25"
-          :value="getCalendarTarget(cal.id)"
-          @input="setCalendarTarget(cal.id, ($event.target as HTMLInputElement).value)"
-        />
-        <span class="unit">h / week</span>
-      </div>
-    </div>
-  </div>
-  <p v-else-if="localSelection.length && !showCalendarTargets" class="hint">
-    Per-calendar targets are available in Calendar Goals and Calendar + Categories.
-  </p>
   <div v-if="!localSelection.length" class="warning">Select at least one calendar to continue.</div>
 </template>
 
@@ -51,9 +29,5 @@ defineProps<{
   calendars: CalendarSummary[]
   localSelection: string[]
   toggleCalendar: (id: string, el: HTMLInputElement) => void
-  calendarTargets: Record<string, number>
-  getCalendarTarget: (id: string) => number | ''
-  setCalendarTarget: (id: string, value: string) => void
-  showCalendarTargets: boolean
 }>()
 </script>

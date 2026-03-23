@@ -572,10 +572,11 @@ const {
   isDebug: isDbg,
   includeLookback: () => shouldIncludeLookback(),
   widgetTabs: widgetTabsRef,
-  onCoreLoaded: () => {
+  onCoreLoaded: (payload) => {
     if (!hasInitialLoad.value) {
       hasInitialLoad.value = true
     }
+    evaluateOnboarding(payload?.onboarding ?? null)
   },
 })
 
@@ -649,7 +650,7 @@ const opsdashThemeClass = computed(() =>
 )
 
 function openOnboardingFromLayout(step?: string) {
-  openWizardFromSidebar((step as any) || 'categories')
+  openWizardFromSidebar((step as any) || 'goals')
 }
 
 const { exportSidebarConfig, importSidebarConfig } = useConfigExportImport({
@@ -849,6 +850,7 @@ const {
   onboardingState,
   calendars,
   selected,
+  targetsWeek,
   groupsById,
   targetsConfig,
   deckSettings,
@@ -1319,34 +1321,37 @@ const targetsLine = computed(() => {
 const dashboardHint = computed(() =>
   compactJoin(
     [
-      strategyTitle.value && strategyTitle.value !== '—'
-        ? `Strategy — ${strategyTitle.value}`
-        : '',
       dashboardLayoutLine.value,
     ],
     2,
   ),
 )
 
+const strategyHint = computed(() => strategyTitle.value && strategyTitle.value !== '—' ? strategyTitle.value : 'Choose a planning model')
+
 const calendarsHint = computed(() => compactList(selectedCalendarLabels.value, 2))
 
+const deckHint = computed(() => deckLine.value)
+
 const preferencesHint = computed(() =>
-  compactJoin([`Theme — ${themeShort.value}`, deckLine.value], 2),
+  compactJoin([`Theme — ${themeShort.value}`, reportingConfig.value?.enabled ? 'Recap on' : 'Recap off'], 2),
 )
 
 const reviewHint = computed(() =>
   compactJoin(
     [
-      reportingConfig.value?.enabled ? 'Recap on' : 'Recap off',
+      totalWeeklyTargetLine.value ? `Total ${totalWeeklyTargetLine.value}` : '',
     ],
     2,
   ),
 )
 
 const guidedHints = computed(() => ({
+  strategy: strategyHint.value,
+  deck: deckHint.value,
+  goals: targetsLine.value,
   dashboard: dashboardHint.value,
   calendars: calendarsHint.value,
-  categories: targetsLine.value,
   preferences: preferencesHint.value,
   review: reviewHint.value,
 }))

@@ -5,6 +5,23 @@ All notable changes to this project will be documented in this file.
 ## Unreleased
 - None yet.
 
+## 0.7.0 - 2026-03-23
+### Added
+- Guided onboarding now supports a real one-click `Quick setup` path that finishes setup immediately with sensible defaults, uses recent lookback data when available, and falls back to lightweight per-calendar goals when no history exists.
+- Goals onboarding now includes history-driven suggestions from the currently available 1-6 week lookback window for both calendar targets and category targets.
+- Added a dedicated Deck step to the onboarding flow with board visibility setup and empty-state handling when Deck or boards are unavailable.
+
+### Changed
+- Rebuilt the onboarding flow order to `Intro -> Strategy -> Calendars -> Deck -> Goals -> Preferences -> Dashboard -> Review`.
+- Reworked onboarding navigation into arrow-based step controls with current/done/upcoming states and direct reopen behavior for existing setups.
+- Refined onboarding UI to match the new mockups across Intro, Strategy, Calendars, Deck, Goals, Preferences, Dashboard, and Review.
+- Dashboard preset selection now uses stronger preview thumbnails and clearer preset card alignment.
+- Preferences and Review steps were simplified to remove non-mock summary blocks and rely on inline editors/modules instead.
+
+### Fixed
+- Fixed onboarding initialization timing that could trigger a Vue `ReferenceError` during wizard startup.
+- Fixed review and dashboard layout inconsistencies caused by stale onboarding step ordering and card alignment issues.
+
 ## 0.6.4 - 2026-03-07
 ### Added
 - Introduced enforceable static quality gates in CI: frontend TypeScript typecheck (`npm run typecheck`) and backend PHP static analysis (`composer run test:static` with PHPStan).

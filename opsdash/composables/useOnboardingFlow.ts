@@ -1,8 +1,11 @@
 import { computed, ref, watch, type Ref } from 'vue'
 
 import { ONBOARDING_VERSION, type StrategyDefinition, type CalendarSummary, type CategoryDraft } from '../src/services/onboarding'
-import type { TargetsConfig } from '../src/services/targets'
-import type { DeckFeatureSettings, ReportingConfig } from '../src/services/reporting'
+import { type TargetsConfig } from '../src/services/targets'
+import {
+  type DeckFeatureSettings,
+  type ReportingConfig,
+} from '../src/services/reporting'
 
 import { createOnboardingWizardState } from './useOnboardingWizard'
 import type { OnboardingState } from './useDashboard'
@@ -46,9 +49,14 @@ export function useOnboardingFlow(deps: OnboardingFlowDeps) {
   )
 
   const wizardInitialSelection = computed(() => [...deps.selected.value])
-  const wizardInitialStrategy = computed<StrategyDefinition['id']>(
-    () => (deps.onboardingState.value?.strategy as StrategyDefinition['id']) ?? 'total_only',
-  )
+  const wizardInitialStrategy = computed<StrategyDefinition['id']>(() => {
+    const rawCategories = Array.isArray(deps.targetsConfig.value?.categories) ? deps.targetsConfig.value.categories : []
+    if (rawCategories.length > 0) {
+      return 'full_granular'
+    }
+    const fallback = deps.onboardingState.value?.strategy as StrategyDefinition['id'] | undefined
+    return fallback ?? 'total_only'
+  })
 
   const wizardInitialAllDayHours = computed(() => deps.targetsConfig.value?.allDayHours ?? 8)
   const wizardInitialTotalHours = computed(() => deps.targetsConfig.value?.totalHours ?? 40)

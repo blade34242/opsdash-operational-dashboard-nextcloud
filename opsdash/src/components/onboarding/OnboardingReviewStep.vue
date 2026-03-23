@@ -1,106 +1,63 @@
 <template>
-  <section class="review-hero">
-    <h3>Review your setup</h3>
-    <p class="hint">{{ heroHint }}</p>
-    <div class="review-chip-row">
-      <span class="review-chip">{{ strategyTitle }}</span>
-      <span class="review-chip">{{ dashboardLabel }}</span>
-      <span class="review-chip">{{ themeLabel }}</span>
-      <span class="review-chip">{{ selectedCalendars.length }} calendar{{ selectedCalendars.length === 1 ? '' : 's' }}</span>
-      <span class="review-chip">{{ totalTarget.toFixed(1) }} h / week</span>
-    </div>
-  </section>
-
   <div class="review-layout">
     <div class="review-main">
       <section class="review-section">
-        <h4>Configuration overview</h4>
-        <div class="review-card-grid">
-          <article class="review-card">
-            <div class="review-card__head">
-              <h5>Strategy</h5>
-              <button type="button" class="review-edit-link" @click="goToStep('strategy')">Edit</button>
+        <h4>Configuration summary</h4>
+        <div class="review-row-list">
+          <article class="review-row">
+            <div>
+              <strong>Strategy</strong>
+              <p>{{ strategyLine }}</p>
             </div>
-            <p class="review-card__value">{{ strategyTitle }}</p>
-            <p class="review-card__meta">
-              {{
-                categoriesEnabled
-                  ? 'Category targets and calendar assignments are enabled.'
-                  : calendarTargetsEnabled
-                    ? 'Per-calendar targets are enabled.'
-                    : 'Single total weekly target mode.'
-              }}
-            </p>
+            <button type="button" class="review-edit-link" @click="goToStep('strategy')">Edit</button>
           </article>
 
-          <article class="review-card">
-            <div class="review-card__head">
-              <h5>Calendars</h5>
-              <button type="button" class="review-edit-link" @click="goToStep('calendars')">Edit</button>
+          <article class="review-row">
+            <div>
+              <strong>Calendars</strong>
+              <p>{{ calendarsLine }}</p>
             </div>
-            <p class="review-card__value">{{ selectedCalendars.length }} selected</p>
-            <ul v-if="selectedCalendars.length" class="review-list">
-              <li v-for="cal in selectedCalendars.slice(0, 3)" :key="cal.id">{{ cal.displayname }}</li>
-              <li v-if="selectedCalendars.length > 3">+{{ selectedCalendars.length - 3 }} more</li>
-            </ul>
-            <p v-else class="review-card__meta">No calendars selected yet.</p>
+            <button type="button" class="review-edit-link" @click="goToStep('calendars')">Edit</button>
           </article>
 
-          <article class="review-card">
-            <div class="review-card__head">
-              <h5>Targets</h5>
-              <button
-                type="button"
-                class="review-edit-link"
-                @click="goToStep(categoriesEnabled ? 'categories' : (calendarTargetsEnabled ? 'calendars' : 'preferences'))"
-              >
-                Edit
-              </button>
+          <article class="review-row">
+            <div>
+              <strong>Deck</strong>
+              <p>{{ deckLine }}</p>
             </div>
-            <p class="review-card__value">{{ totalTarget.toFixed(1) }} h / week</p>
-            <ul v-if="categoriesEnabled && draftTargetsCategories.length" class="review-list">
-              <li v-for="cat in draftTargetsCategories.slice(0, 4)" :key="cat.id">{{ cat.label }} - {{ cat.targetHours }} h</li>
-              <li v-if="draftTargetsCategories.length > 4">+{{ draftTargetsCategories.length - 4 }} more</li>
-            </ul>
-            <p v-else class="review-card__meta">
-              {{ calendarTargetsEnabled ? 'Calendar goals mode with optional per-calendar targets.' : 'Total target mode with one weekly goal.' }}
-            </p>
+            <button type="button" class="review-edit-link" @click="goToStep('deck')">Edit</button>
           </article>
 
-          <article class="review-card">
-            <div class="review-card__head">
-              <h5>Preferences</h5>
-              <button type="button" class="review-edit-link" @click="goToStep('preferences')">Edit</button>
+          <article class="review-row">
+            <div>
+              <strong>Goals</strong>
+              <p>{{ goalsLine }}</p>
             </div>
-            <p class="review-card__value">{{ themeLabel }}</p>
-            <p class="review-card__meta">{{ reportingEnabled ? reportingSummary : 'Recap disabled' }}</p>
+            <button type="button" class="review-edit-link" @click="goToStep('goals')">Edit</button>
           </article>
 
-          <article class="review-card">
-            <div class="review-card__head">
-              <h5>Deck tab</h5>
-              <button type="button" class="review-edit-link" @click="goToStep('deck')">Edit</button>
+          <article class="review-row">
+            <div>
+              <strong>Preferences</strong>
+              <p>{{ preferencesLine }}</p>
             </div>
-            <p class="review-card__value">{{ deckReviewSummary }}</p>
-            <ul v-if="deckEnabled && deckVisibleBoards.length" class="review-list">
-              <li v-for="board in deckVisibleBoards.slice(0, 3)" :key="board.id">{{ board.title }}</li>
-              <li v-if="deckVisibleBoards.length > 3">+{{ deckVisibleBoards.length - 3 }} more</li>
-            </ul>
+            <button type="button" class="review-edit-link" @click="goToStep('preferences')">Edit</button>
           </article>
 
-          <article class="review-card">
-            <div class="review-card__head">
-              <h5>Dashboard</h5>
-              <button type="button" class="review-edit-link" @click="goToStep('dashboard')">Edit</button>
+          <article class="review-row">
+            <div>
+              <strong>Dashboard</strong>
+              <p>{{ dashboardLine }}</p>
             </div>
-            <p class="review-card__value">{{ dashboardLabel }}</p>
-            <p class="review-card__meta">Widgets and tabs will follow this selected layout.</p>
+            <button type="button" class="review-edit-link" @click="goToStep('dashboard')">Edit</button>
           </article>
         </div>
       </section>
+    </div>
 
+    <aside class="review-side">
       <section class="review-section">
-        <h4>Readiness checks</h4>
+        <h4>Readiness</h4>
         <ul class="review-checklist">
           <li
             v-for="item in readinessChecks"
@@ -122,26 +79,6 @@
             </button>
           </li>
         </ul>
-      </section>
-    </div>
-
-    <aside class="review-side">
-      <section class="review-section">
-        <h4>Quick edits</h4>
-        <div class="review-actions">
-          <button type="button" class="review-action-btn" @click="goToStep('strategy')">Strategy</button>
-          <button type="button" class="review-action-btn" @click="goToStep('calendars')">Calendars</button>
-          <button
-            type="button"
-            class="review-action-btn"
-            @click="goToStep(categoriesEnabled ? 'categories' : (calendarTargetsEnabled ? 'calendars' : 'preferences'))"
-          >
-            Targets
-          </button>
-          <button type="button" class="review-action-btn" @click="goToStep('preferences')">Preferences</button>
-          <button type="button" class="review-action-btn" @click="goToStep('deck')">Deck</button>
-          <button type="button" class="review-action-btn" @click="goToStep('dashboard')">Dashboard</button>
-        </div>
       </section>
 
       <section v-if="showSaveProfile" class="review-section review-profile">
@@ -172,7 +109,7 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 
-type ReviewStepId = 'strategy' | 'dashboard' | 'calendars' | 'categories' | 'preferences' | 'deck'
+type ReviewStepId = 'strategy' | 'calendars' | 'deck' | 'goals' | 'preferences' | 'dashboard'
 
 const props = defineProps<{
   strategyTitle: string
@@ -220,6 +157,47 @@ const themeLabel = computed(() => {
   return 'Follow Nextcloud theme'
 })
 
+const strategyLine = computed(() => {
+  if (props.categoriesEnabled) {
+    return 'Calendar + Category Goals with category targets, per-calendar hours, and assignments.'
+  }
+  if (props.calendarTargetsEnabled) {
+    return 'Calendar Goals with per-calendar weekly targets.'
+  }
+  return 'Single Goal with one overall weekly target.'
+})
+
+const calendarsLine = computed(() => {
+  if (!props.selectedCalendars.length) return 'No calendars selected yet.'
+  const labels = props.selectedCalendars.slice(0, 3).map((cal) => cal.displayname)
+  const more = props.selectedCalendars.length - labels.length
+  return more > 0 ? `${labels.join(', ')} +${more} more` : labels.join(', ')
+})
+
+const goalsLine = computed(() => {
+  if (props.categoriesEnabled && props.draftTargetsCategories.length) {
+    const preview = props.draftTargetsCategories.slice(0, 3).map((cat) => `${cat.label} ${cat.targetHours}h`)
+    const more = props.draftTargetsCategories.length - preview.length
+    return `${preview.join(' · ')}${more > 0 ? ` · +${more} more` : ''} · Total ${totalTarget.value.toFixed(1)} h / week`
+  }
+  if (props.calendarTargetsEnabled) {
+    return `Per-calendar goals with ${totalTarget.value.toFixed(1)} h / week total.`
+  }
+  return `${totalTarget.value.toFixed(1)} h / week total goal.`
+})
+
+const deckLine = computed(() => {
+  if (!props.deckEnabled) return 'Deck hidden in this setup.'
+  if (!props.deckVisibleBoards.length) return props.deckReviewSummary
+  const names = props.deckVisibleBoards.slice(0, 2).map((board) => board.title)
+  const more = props.deckVisibleBoards.length - names.length
+  return more > 0 ? `${names.join(', ')} +${more} more` : names.join(', ')
+})
+
+const preferencesLine = computed(() => `${themeLabel.value} · ${props.reportingEnabled ? props.reportingSummary : 'Recap disabled'}`)
+
+const dashboardLine = computed(() => `${dashboardLabel.value} with the selected widget and tab preset.`)
+
 const readinessChecks = computed(() => {
   const checks: Array<{ id: string; title: string; detail: string; ok: boolean; step: ReviewStepId; canFix: boolean }> = []
   checks.push({
@@ -241,7 +219,7 @@ const readinessChecks = computed(() => {
         ? `${totalTarget.value.toFixed(1)} h weekly target configured.`
         : 'Set a weekly target greater than 0 hours.',
     ok: totalTarget.value > 0,
-    step: props.categoriesEnabled ? 'categories' : (props.calendarTargetsEnabled ? 'calendars' : 'preferences'),
+    step: 'goals',
     canFix: true,
   })
   checks.push({
@@ -273,14 +251,4 @@ const readinessChecks = computed(() => {
   return checks
 })
 
-const heroHint = computed(() => {
-  const issues = readinessChecks.value.filter((item) => !item.ok).length
-  if (issues === 0) {
-    return 'Everything looks good. You can start the dashboard now or quickly edit any section.'
-  }
-  if (issues === 1) {
-    return 'One thing still needs attention before your setup is complete.'
-  }
-  return `${issues} things still need attention before your setup is complete.`
-})
 </script>

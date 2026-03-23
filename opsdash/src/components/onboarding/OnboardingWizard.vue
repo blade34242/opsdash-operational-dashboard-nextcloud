@@ -6,7 +6,7 @@
         <header class="onboarding-header">
           <div class="onboarding-title">
             <h2>Welcome to Opsdash</h2>
-            <p class="subtitle">Step {{ stepNumber }} of {{ totalSteps }}</p>
+            <p class="subtitle">Build a dashboard that matches your calendars, planning style, and review rhythm.</p>
           </div>
           <div class="onboarding-actions">
             <button type="button" class="skip-link" @click="handleSkip" :disabled="saving">Maybe later</button>
@@ -25,15 +25,28 @@
 
         <nav class="onboarding-step-nav" aria-label="Onboarding steps">
           <button
-            v-for="step in enabledSteps"
+            v-for="(step, index) in enabledSteps"
             :key="step"
             type="button"
-            class="step-pill"
-            :class="{ active: step === currentStep }"
+            class="step-arrow"
+            :class="{
+              done: isStepDone(step, index),
+              current: step === currentStep,
+              upcoming: isStepUpcoming(step, index),
+              locked: isStepLocked(index),
+            }"
             :disabled="saving"
-            @click="goToStep(step)"
+            @click="!isStepLocked(index) ? goToStep(step) : undefined"
           >
-            {{ stepLabel(step) }}
+            <span class="step-arrow__inner">
+              <span class="step-arrow__main">
+                <span class="step-arrow__label">{{ stepLabel(step) }}</span>
+                <span class="step-arrow__icon" aria-hidden="true">{{ step === currentStep ? '•' : isStepDone(step, index) ? '✓' : '•' }}</span>
+              </span>
+              <span class="step-arrow__action">
+                {{ step === currentStep ? 'Open' : isStepDone(step, index) ? 'Edit' : '' }}
+              </span>
+            </span>
           </button>
         </nav>
 
@@ -44,144 +57,154 @@
               :snapshot-saving="props.snapshotSaving ?? false"
               :saving="saving"
               :snapshot-notice="props.snapshotNotice ?? null"
+              :intro-choice="introChoice"
               :profile-mode="profileMode"
+              :set-intro-choice="setIntroChoice"
               :set-profile-mode="setProfileMode"
+              :on-continue="nextStep"
               :on-save-current-config="() => emit('save-current-config')"
             />
           </section>
 
-        <section v-else-if="currentStep === 'preferences'" class="onboarding-step">
-          <OnboardingPreferencesStep
-            :theme-preference="themePreference"
-            :system-theme-label="systemThemeLabel"
-            :preview-theme="previewTheme"
-            :set-theme-preference="(value) => (themePreference = value)"
-            :total-hours-input="totalHoursInput"
-            :category-total-hours="categoryTotalHours"
-            :categories-enabled="categoriesEnabled"
-            :on-total-hours-change="onTotalHoursChange"
-            :all-day-hours-input="allDayHoursInput"
-            :on-all-day-hours-change="onAllDayHoursChange"
-            :trend-lookback-input="trendLookbackInput"
-            :on-trend-lookback-change="onTrendLookbackChange"
-            :reporting-draft="reportingDraft"
-            :set-reporting-enabled="setReportingEnabled"
-            :set-reporting-schedule="setReportingSchedule"
-            :set-reporting-interim="setReportingInterim"
-            :update-reporting="updateReporting"
-          />
-        </section>
+          <section v-else-if="currentStep === 'strategy'" class="onboarding-step">
+            <OnboardingStrategyStep
+              :strategies="strategies"
+              :selected-strategy="selectedStrategy"
+              :set-selected-strategy="(id) => (selectedStrategy = id)"
+            />
+          </section>
 
-        <section v-else-if="currentStep === 'deck'" class="onboarding-step">
-          <OnboardingDeckBoardsStep
-            :deck-settings-draft="deckSettingsDraft"
-            :set-deck-enabled="setDeckEnabled"
-            :deck-boards="deckBoards"
-            :deck-boards-loading="deckBoardsLoading"
-            :deck-boards-error="deckBoardsError"
-            :is-deck-board-visible="isDeckBoardVisible"
-            :toggle-deck-board="toggleDeckBoard"
-          />
-        </section>
+          <section v-else-if="currentStep === 'calendars'" class="onboarding-step">
+            <OnboardingCalendarsStep
+              :calendars="calendars"
+              :local-selection="localSelection"
+              :toggle-calendar="toggleCalendar"
+            />
+          </section>
 
-        <section v-else-if="currentStep === 'dashboard'" class="onboarding-step">
-          <OnboardingDashboardStep
-            :dashboard-mode="dashboardMode"
-            :set-dashboard-mode="(mode) => (dashboardMode = mode)"
-            :dashboard-presets="dashboardPresets"
-          />
-        </section>
+          <section v-else-if="currentStep === 'deck'" class="onboarding-step">
+            <OnboardingDeckBoardsStep
+              :deck-settings-draft="deckSettingsDraft"
+              :set-deck-enabled="setDeckEnabled"
+              :deck-boards="deckBoards"
+              :deck-boards-loading="deckBoardsLoading"
+              :deck-boards-error="deckBoardsError"
+              :is-deck-board-visible="isDeckBoardVisible"
+              :toggle-deck-board="toggleDeckBoard"
+            />
+          </section>
 
-        <section v-else-if="currentStep === 'strategy'" class="onboarding-step">
-          <OnboardingStrategyStep
-            :strategies="strategies"
-            :selected-strategy="selectedStrategy"
-            :set-selected-strategy="(id) => (selectedStrategy = id)"
-          />
-        </section>
+          <section v-else-if="currentStep === 'goals'" class="onboarding-step">
+            <OnboardingGoalsStep
+              :selected-strategy="selectedStrategy"
+              :selected-calendars="selectedCalendars"
+              :categories="categories"
+              :assignments="assignments"
+              :category-presets="categoryPresets"
+              :total-hours-input="totalHoursInput"
+              :on-total-hours-change="onTotalHoursChange"
+              :trend-lookback-input="trendLookbackInput"
+              :active-history-lookback="activeHistoryLookback"
+              :history-summary="historySummary"
+              :suggestions-loading="suggestionsLoading"
+              :suggestions-error="suggestionsError"
+              :on-trend-lookback-change="onTrendLookbackChange"
+              :suggested-calendar-targets="suggestedCalendarTargets"
+              :suggested-category-targets="suggestedCategoryTargets"
+              :add-category="addCategory"
+              :remove-category="removeCategory"
+              :reorder-category="reorderCategory"
+              :set-category-label="setCategoryLabel"
+              :apply-category-preset="applyCategoryPreset"
+              :set-category-target="setCategoryTarget"
+              :set-category-pace-mode="setCategoryPaceMode"
+              :toggle-category-weekend="toggleCategoryWeekend"
+              :assign-calendar="assignCalendar"
+              :set-calendar-target="setCalendarTarget"
+              :get-calendar-target="getCalendarTarget"
+              :unassigned-selected-calendars="unassignedSelectedCalendars"
+              :goals-health="goalsHealth"
+              :resolved-color="resolvedColor"
+              :on-color-input="onColorInput"
+            />
+          </section>
 
-        <section v-else-if="currentStep === 'calendars'" class="onboarding-step">
-          <OnboardingCalendarsStep
-            :calendars="calendars"
-            :local-selection="localSelection"
-            :toggle-calendar="toggleCalendar"
-            :calendar-targets="calendarTargets"
-            :get-calendar-target="getCalendarTarget"
-            :set-calendar-target="setCalendarTarget"
-            :show-calendar-targets="calendarTargetsEnabled"
-          />
-        </section>
+          <section v-else-if="currentStep === 'preferences'" class="onboarding-step">
+            <OnboardingPreferencesStep
+              :theme-preference="themePreference"
+              :system-theme-label="systemThemeLabel"
+              :preview-theme="previewTheme"
+              :set-theme-preference="(value) => (themePreference = value)"
+              :total-hours-input="totalHoursInput"
+              :category-total-hours="categoryTotalHours"
+              :categories-enabled="categoriesEnabled"
+              :on-total-hours-change="onTotalHoursChange"
+              :all-day-hours-input="allDayHoursInput"
+              :on-all-day-hours-change="onAllDayHoursChange"
+              :trend-lookback-input="trendLookbackInput"
+              :on-trend-lookback-change="onTrendLookbackChange"
+              :reporting-draft="reportingDraft"
+              :set-reporting-enabled="setReportingEnabled"
+              :set-reporting-schedule="setReportingSchedule"
+              :set-reporting-interim="setReportingInterim"
+              :update-reporting="updateReporting"
+            />
+          </section>
 
-        <section v-else-if="currentStep === 'categories'" class="onboarding-step">
-          <OnboardingCategoriesStep
-            :categories-enabled="categoriesEnabled"
-            :categories="categories"
-            :category-total-hours="categoryTotalHours"
-            :selected-calendars="selectedCalendars"
-            :assignments="assignments"
-            :show-calendar-targets="calendarTargetsEnabled"
-            :calendar-targets="calendarTargets"
-            :get-calendar-target="getCalendarTarget"
-            :set-calendar-target="setCalendarTarget"
-            :add-category="addCategory"
-            :remove-category="removeCategory"
-            :set-category-label="setCategoryLabel"
-            :category-presets="categoryPresets"
-            :apply-category-preset="applyCategoryPreset"
-            :set-category-target="setCategoryTarget"
-            :set-category-pace-mode="setCategoryPaceMode"
-            :toggle-category-weekend="toggleCategoryWeekend"
-            :assign-calendar="assignCalendar"
-            :open-color-id="openColorId"
-            :toggle-color-popover="toggleColorPopover"
-            :close-color-popover="closeColorPopover"
-            :category-color-palette="categoryColorPalette"
-            :resolved-color="resolvedColor"
-            :apply-color="applyColor"
-            :on-color-input="onColorInput"
-          />
-        </section>
+          <section v-else-if="currentStep === 'dashboard'" class="onboarding-step">
+            <OnboardingDashboardStep
+              :dashboard-mode="dashboardMode"
+              :set-dashboard-mode="(mode) => (dashboardMode = mode)"
+              :dashboard-presets="dashboardPresets"
+            />
+          </section>
 
-        <section v-else-if="currentStep === 'review'" class="onboarding-step">
-          <OnboardingReviewStep
-            :strategy-title="strategyTitle"
-            :categories-enabled="categoriesEnabled"
-            :calendar-targets-enabled="calendarTargetsEnabled"
-            :selected-calendars="selectedCalendars"
-            :draft-targets-categories="draft.targetsConfig.categories"
-            :draft-total-hours="draft.targetsConfig.totalHours"
-            :total-hours-input="totalHoursInput"
-            :category-total-hours="categoryTotalHours"
-            :deck-review-summary="deckReviewSummary"
-            :deck-enabled="deckSettingsDraft.enabled"
-            :deck-visible-boards="deckVisibleBoards"
-            :reporting-enabled="reportingDraft.enabled"
-            :reporting-summary="reportingSummary"
-            :theme-preference="themePreference"
-            :dashboard-mode="dashboardMode"
-            :save-profile="saveProfile"
-            :profile-name="profileName"
-            :show-save-profile="props.hasExistingConfig ?? false"
-            :set-save-profile="setSaveProfile"
-            :set-profile-name="setProfileName"
-            :go-to-step="goToStep"
-          />
-        </section>
-      </main>
+          <section v-else-if="currentStep === 'review'" class="onboarding-step">
+            <OnboardingReviewStep
+              :strategy-title="strategyTitle"
+              :categories-enabled="categoriesEnabled"
+              :calendar-targets-enabled="calendarTargetsEnabled"
+              :selected-calendars="selectedCalendars"
+              :draft-targets-categories="draft.targetsConfig.categories"
+              :draft-total-hours="draft.targetsConfig.totalHours"
+              :total-hours-input="totalHoursInput"
+              :category-total-hours="categoryTotalHours"
+              :deck-review-summary="deckReviewSummary"
+              :deck-enabled="deckSettingsDraft.enabled"
+              :deck-visible-boards="deckVisibleBoards"
+              :reporting-enabled="reportingDraft.enabled"
+              :reporting-summary="reportingSummary"
+              :theme-preference="themePreference"
+              :dashboard-mode="dashboardMode"
+              :save-profile="saveProfile"
+              :profile-name="profileName"
+              :show-save-profile="props.hasExistingConfig ?? false"
+              :set-save-profile="setSaveProfile"
+              :set-profile-name="setProfileName"
+              :go-to-step="goToStep"
+            />
+          </section>
+        </main>
 
-      <footer class="onboarding-footer">
-        <NcButton v-if="canGoBack" type="tertiary" :disabled="saving" @click="prevStep">Back</NcButton>
-        <NcButton type="tertiary" :disabled="saving || nextDisabled" @click="emitSaveStep">Save step</NcButton>
-        <NcButton v-if="canGoNext" type="primary" :disabled="nextDisabled || saving" @click="nextStep">Continue</NcButton>
-        <NcButton
-          v-else
-          type="primary"
-          :disabled="saving || nextDisabled"
-          @click="emitComplete"
-        >
-          Start dashboard
-        </NcButton>
-      </footer>
+        <footer class="onboarding-footer">
+          <template v-if="currentStep === 'intro'">
+            <div class="onboarding-footer-spacer"></div>
+            <NcButton type="primary" :disabled="saving || nextDisabled" @click="nextStep">Continue</NcButton>
+          </template>
+          <template v-else>
+            <NcButton v-if="canGoBack" type="tertiary" :disabled="saving" @click="prevStep">Back</NcButton>
+            <NcButton type="tertiary" :disabled="saving || nextDisabled" @click="emitSaveStep">Save step</NcButton>
+            <NcButton v-if="canGoNext" type="primary" :disabled="nextDisabled || saving" @click="nextStep">Continue</NcButton>
+            <NcButton
+              v-else
+              type="primary"
+              :disabled="saving || nextDisabled"
+              @click="emitComplete"
+            >
+              Start dashboard
+            </NcButton>
+          </template>
+        </footer>
       </div>
     </div>
   </transition>
@@ -195,7 +218,7 @@ import OnboardingDeckBoardsStep from './OnboardingDeckBoardsStep.vue'
 import OnboardingDashboardStep from './OnboardingDashboardStep.vue'
 import OnboardingStrategyStep from './OnboardingStrategyStep.vue'
 import OnboardingCalendarsStep from './OnboardingCalendarsStep.vue'
-import OnboardingCategoriesStep from './OnboardingCategoriesStep.vue'
+import OnboardingGoalsStep from './OnboardingGoalsStep.vue'
 import OnboardingReviewStep from './OnboardingReviewStep.vue'
 import type { CalendarSummary, CategoryDraft, StrategyDefinition } from '../../services/onboarding'
 import type { DeckFeatureSettings, ReportingConfig } from '../../services/reporting'
@@ -207,7 +230,7 @@ const props = defineProps<{
   calendars: CalendarSummary[]
   initialSelection: string[]
   initialStrategy?: StrategyDefinition['id']
-  startStep?: 'intro' | 'strategy' | 'dashboard' | 'calendars' | 'categories' | 'preferences' | 'deck' | 'review' | null
+  startStep?: 'intro' | 'strategy' | 'calendars' | 'deck' | 'goals' | 'preferences' | 'dashboard' | 'review' | null
   onboardingVersion: number
   saving?: boolean
   closable?: boolean
@@ -251,6 +274,7 @@ const emit = defineEmits<{
 }>()
 
 const {
+  stepIndex,
   stepNumber,
   totalSteps,
   enabledSteps,
@@ -267,7 +291,9 @@ const {
   prevStep,
   nextStep,
   emitComplete,
+  runQuickSetup,
   profileMode,
+  introChoice,
   saveProfile,
   profileName,
   themePreference,
@@ -302,10 +328,19 @@ const {
   toggleCalendar,
   categories,
   selectedCalendars,
+  suggestedCalendarTargets,
+  suggestedCategoryTargets,
+  suggestionsLoading,
+  suggestionsError,
+  activeHistoryLookback,
+  historySummary,
+  unassignedSelectedCalendars,
+  goalsHealth,
   assignments,
   calendarTargets,
   addCategory,
   removeCategory,
+  reorderCategory,
   setCategoryLabel,
   setCategoryTarget,
   setCategoryPaceMode,
@@ -327,6 +362,7 @@ const {
   deckReviewSummary,
   deckVisibleBoards,
   reportingSummary,
+  setIntroChoice,
   setProfileMode,
   setSaveProfile,
   setProfileName,
@@ -335,6 +371,23 @@ const {
 
 function emitSaveStep() {
   emit('save-step', buildStepPayload(currentStep.value))
+}
+
+function isStepDone(step: typeof currentStep.value, index: number) {
+  if (step === currentStep.value) return false
+  if (props.hasExistingConfig) return true
+  return index < stepIndex.value
+}
+
+function isStepUpcoming(step: typeof currentStep.value, index: number) {
+  if (step === currentStep.value) return false
+  if (props.hasExistingConfig) return false
+  return index > stepIndex.value
+}
+
+function isStepLocked(index: number) {
+  if (props.hasExistingConfig) return false
+  return index > stepIndex.value
 }
 
 </script>
@@ -398,16 +451,22 @@ function emitSaveStep() {
   background: #ffffff;
 }
 
-.onboarding-panel.theme-light .step-pill {
+.onboarding-panel.theme-light .step-arrow {
   color: #1e293b;
-  background: #f8fafc;
-  border-color: #cbd5e1;
+  --step-surface: #f8fafc;
+  --step-outline: #cbd5e1;
 }
 
-.onboarding-panel.theme-light .step-pill.active {
-  color: #1e40af;
-  border-color: rgba(29, 78, 216, 0.6);
-  background: rgba(37, 99, 235, 0.12);
+.onboarding-panel.theme-light .step-arrow.done {
+  color: #14532d;
+  --step-surface: linear-gradient(180deg, rgba(34, 197, 94, 0.11), rgba(34, 197, 94, 0.04));
+  --step-outline: rgba(34, 197, 94, 0.44);
+}
+
+.onboarding-panel.theme-light .step-arrow.current {
+  color: #111827;
+  --step-outline: rgba(194, 65, 12, 0.82);
+  --step-surface: linear-gradient(180deg, rgba(251, 146, 60, 0.18), rgba(251, 146, 60, 0.06));
 }
 
 .onboarding-panel.theme-light .subtitle,
@@ -476,10 +535,6 @@ function emitSaveStep() {
 
 .onboarding-panel.theme-dark .hint,
 .onboarding-panel.theme-dark .subtitle,
-.onboarding-panel.theme-dark .step-pill {
-  color: #94a3b8;
-}
-
 .onboarding-panel.theme-dark h2,
 .onboarding-panel.theme-dark h3,
 .onboarding-panel.theme-dark h4,
@@ -488,15 +543,22 @@ function emitSaveStep() {
   color: #e5e7eb;
 }
 
-.onboarding-panel.theme-dark .step-pill {
-  background: #111827;
-  border-color: #1f2937;
+.onboarding-panel.theme-dark .step-arrow {
+  --step-surface: #111827;
+  --step-outline: #1f2937;
+  color: #cbd5e1;
 }
 
-.onboarding-panel.theme-dark .step-pill.active {
-  color: #93c5fd;
-  border-color: rgba(96, 165, 250, 0.6);
-  background: rgba(96, 165, 250, 0.18);
+.onboarding-panel.theme-dark .step-arrow.done {
+  color: #dcfce7;
+  --step-surface: linear-gradient(180deg, rgba(34, 197, 94, 0.16), rgba(21, 128, 61, 0.08));
+  --step-outline: rgba(34, 197, 94, 0.46);
+}
+
+.onboarding-panel.theme-dark .step-arrow.current {
+  color: #fde7cf;
+  --step-outline: rgba(251, 146, 60, 0.88);
+  --step-surface: linear-gradient(180deg, rgba(249, 115, 22, 0.26), rgba(249, 115, 22, 0.1));
 }
 
 .onboarding-panel.theme-dark input,
@@ -512,7 +574,11 @@ function emitSaveStep() {
   border-color: #1f2937;
 }
 
-.onboarding-panel.theme-dark .category-card,
+.onboarding-panel.theme-dark .goal-side-card,
+.onboarding-panel.theme-dark .goal-category-card,
+.onboarding-panel.theme-dark .goal-info-card,
+.onboarding-panel.theme-dark .review-row,
+.onboarding-panel.theme-dark .deck-step-card,
 .onboarding-panel.theme-dark .pref-card,
 .onboarding-panel.theme-dark .strategy-card {
   background: #111827;
@@ -595,12 +661,6 @@ function emitSaveStep() {
   border-color: #1f2937;
 }
 
-.onboarding-panel.theme-dark .review-chip {
-  background: rgba(59, 130, 246, 0.2);
-  border-color: rgba(147, 197, 253, 0.45);
-  color: #dbeafe;
-}
-
 .onboarding-panel.theme-dark .review-status {
   background: #0b1220;
   border-color: #334155;
@@ -674,28 +734,166 @@ function emitSaveStep() {
 }
 
 .onboarding-step-nav{
-  display:flex;
-  flex-wrap:wrap;
-  gap:8px;
-  margin:0 0 12px;
+  display:grid;
+  grid-template-columns:repeat(8, minmax(0, 1fr));
+  gap:0;
+  width:calc(100% + 12px);
+  margin:0 -6px 16px;
+  padding-bottom:4px;
 }
-.onboarding-overlay .step-pill{
-  border:1px solid var(--color-border);
-  background:var(--color-background-contrast);
-  padding:6px 10px;
-  border-radius:999px;
-  font-size:12px;
+.onboarding-overlay .step-arrow{
+  position:relative;
+  min-height:58px;
+  --step-clip: polygon(0 0, calc(100% - 14px) 0, 100% 50%, calc(100% - 14px) 100%, 0 100%, 14px 50%);
+  --step-surface: var(--color-background-contrast);
+  --step-outline: var(--color-border);
+  background:transparent;
+  border:none;
+  clip-path:var(--step-clip);
+  padding:4px 0;
   cursor:pointer;
-  color:var(--color-text);
+  isolation:isolate;
+  transition:transform 0.16s ease, filter 0.18s ease;
+  filter:
+    drop-shadow(0 6px 12px rgba(15, 23, 42, 0.06))
+    drop-shadow(0 0 0 rgba(249, 115, 22, 0));
 }
-.onboarding-overlay .step-pill.active{
-  border-color:var(--color-primary);
-  color:var(--color-primary);
-  background:rgba(37,99,235,0.08);
+.onboarding-overlay .step-arrow::before,
+.onboarding-overlay .step-arrow::after{
+  content:'';
+  position:absolute;
+  inset:0;
+  clip-path:var(--step-clip);
+  pointer-events:none;
 }
-.onboarding-overlay .step-pill:disabled{
+.onboarding-overlay .step-arrow::before{
+  z-index:0;
+  background:var(--step-outline);
+}
+.onboarding-overlay .step-arrow::after{
+  z-index:1;
+  inset:1px;
+  background:var(--step-surface);
+}
+.onboarding-overlay .step-arrow:first-child{
+  --step-clip: polygon(0 0, calc(100% - 14px) 0, 100% 50%, calc(100% - 14px) 100%, 0 100%);
+}
+.onboarding-overlay .step-arrow:last-child{
+  --step-clip: polygon(0 0, 100% 0, 100% 100%, 0 100%, 14px 50%);
+}
+.onboarding-overlay .step-arrow__inner{
+  position:relative;
+  z-index:2;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  width:100%;
+  min-height:48px;
+  padding:0 10px;
+  text-align:center;
+}
+.onboarding-overlay .step-arrow__main{
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  gap:5px;
+  width:100%;
+  min-width:0;
+}
+.onboarding-overlay .step-arrow__label{
+  font-size:12px;
+  font-weight:800;
+  line-height:1.05;
+  text-align:center;
+}
+.onboarding-overlay .step-arrow__icon{
+  width:20px;
+  height:20px;
+  display:inline-grid;
+  place-items:center;
+  border-radius:999px;
+  border:1px solid var(--color-border);
+  background:color-mix(in oklab, var(--color-main-background, #fff), var(--color-border) 18%);
+  font-size:11.5px;
+  line-height:1;
+  flex-shrink:0;
+}
+.onboarding-overlay .step-arrow__action{
+  position:absolute;
+  bottom:0;
+  left:50%;
+  transform:translateX(-50%);
+  min-width:28px;
+  height:16px;
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  padding:0 7px;
+  border-radius:999px;
+  border:1px solid color-mix(in srgb, var(--color-border) 76%, transparent);
+  background:color-mix(in srgb, var(--color-main-background, #fff) 88%, transparent);
+  color:inherit;
+  font-size:6.8px;
+  line-height:1;
+  letter-spacing:0.02em;
+  text-transform:uppercase;
+  opacity:0;
+  pointer-events:none;
+  visibility:hidden;
+}
+.onboarding-overlay .step-arrow.current .step-arrow__action{
+  opacity:1;
+  visibility:visible;
+  border-color:color-mix(in srgb, var(--nav-current, #c05a31) 40%, var(--color-border));
+  background:color-mix(in srgb, rgba(192, 90, 49, 0.14) 44%, var(--color-main-background, #fff));
+}
+.onboarding-overlay .step-arrow.done:hover .step-arrow__action,
+.onboarding-overlay .step-arrow.done:focus-visible .step-arrow__action,
+.onboarding-overlay .step-arrow.current:hover .step-arrow__action{
+  opacity:1;
+  visibility:visible;
+}
+.onboarding-overlay .step-arrow.upcoming .step-arrow__action{
+  display:none;
+}
+.onboarding-overlay .step-arrow.locked{
+  cursor:default;
+}
+.onboarding-overlay .step-arrow:hover{
+  transform:translateY(-1px);
+  filter:
+    drop-shadow(0 12px 22px rgba(15, 23, 42, 0.14))
+    drop-shadow(0 0 14px rgba(249, 115, 22, 0.14));
+}
+.onboarding-overlay .step-arrow.locked:hover{
+  transform:none;
+  filter:
+    drop-shadow(0 6px 12px rgba(15, 23, 42, 0.06))
+    drop-shadow(0 0 0 rgba(249, 115, 22, 0));
+}
+.onboarding-overlay .step-arrow:disabled{
   opacity:0.6;
   cursor:default;
+}
+.onboarding-overlay .step-arrow.current{
+  filter:
+    drop-shadow(0 12px 24px rgba(15, 23, 42, 0.14))
+    drop-shadow(0 0 18px rgba(249, 115, 22, 0.24));
+}
+.onboarding-overlay .step-arrow.current:hover{
+  filter:
+    drop-shadow(0 16px 28px rgba(15, 23, 42, 0.18))
+    drop-shadow(0 0 24px rgba(249, 115, 22, 0.32));
+}
+.onboarding-overlay .step-arrow.done .step-arrow__icon{
+  color:var(--color-success, #15803d);
+  border-color:color-mix(in srgb, var(--color-success, #15803d) 30%, var(--color-border));
+  background:color-mix(in srgb, rgba(34, 197, 94, 0.14) 72%, var(--color-main-background, #fff));
+}
+.onboarding-overlay .step-arrow.current .step-arrow__icon{
+  color:var(--nav-current, #c05a31);
+  border-color:color-mix(in srgb, var(--nav-current, #c05a31) 48%, var(--color-border));
+  background:color-mix(in srgb, rgba(192, 90, 49, 0.14) 80%, var(--color-main-background, #fff));
 }
 
 .onboarding-body {
@@ -771,6 +969,11 @@ function emitSaveStep() {
   gap: 16px;
 }
 
+.onboarding-overlay .strategy-intro {
+  margin: 0 0 20px;
+  max-width: 72ch;
+}
+
 .onboarding-overlay .strategy-card {
   border: 1px solid var(--color-border);
   border-radius: 8px;
@@ -804,72 +1007,82 @@ function emitSaveStep() {
 
 .onboarding-overlay .calendar-list {
   display: grid;
-  gap: 8px;
+  gap: 6px;
   margin-top: 8px;
 }
 
 .onboarding-overlay .calendar-item {
   display: grid;
-  grid-template-columns: auto auto 1fr;
+  grid-template-columns: auto auto minmax(0, 1fr) auto;
   align-items: center;
-  gap: 8px;
-  padding: 8px 12px;
-  border: 1px solid var(--color-border);
-  border-radius: 6px;
+  gap: 10px;
+  min-height: 42px;
+  padding: 7px 12px;
+  border: 1px solid color-mix(in oklab, var(--color-border), transparent 24%);
+  border-radius: 10px;
+  background: color-mix(in oklab, var(--color-main-background, #fff), transparent 4%);
+  transition: border-color 0.16s ease, background 0.16s ease, box-shadow 0.16s ease;
 }
 
 .onboarding-overlay .calendar-item.checked {
-  border-color: var(--color-primary);
+  border-color: color-mix(in srgb, var(--color-primary) 45%, var(--color-border));
+  background: color-mix(in srgb, var(--color-primary) 8%, var(--color-main-background, #fff));
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--color-primary) 18%, transparent);
 }
 
-.onboarding-overlay .calendar-item input {
+.onboarding-overlay .list-checkbox {
+  appearance: none;
+  width: 17px;
+  height: 17px;
   margin: 0;
+  border-radius: 4px;
+  border: 1px solid color-mix(in srgb, var(--color-border) 92%, transparent);
+  background: color-mix(in oklab, var(--color-main-background, #fff), var(--color-border) 8%);
+  display: inline-block;
+  position: relative;
+  cursor: pointer;
+  transition: background 0.14s ease, border-color 0.14s ease, box-shadow 0.14s ease;
+  vertical-align: middle;
+}
+
+.onboarding-overlay .list-checkbox::after {
+  content: '';
+  width: 10px;
+  height: 6px;
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  border-left: 2.25px solid currentColor;
+  border-bottom: 2.25px solid currentColor;
+  transform: translate(-50%, -58%) rotate(-45deg) scale(0.78);
+  transform-origin: center center;
+  opacity: 0;
+  transition: transform 0.12s ease, opacity 0.12s ease;
+}
+
+.onboarding-overlay .list-checkbox:checked {
+  color: color-mix(in srgb, var(--color-primary) 86%, white 10%);
+  border-color: color-mix(in srgb, var(--color-primary) 55%, var(--color-border));
+  background: color-mix(in srgb, var(--color-primary) 10%, var(--color-main-background, #fff));
+  box-shadow:
+    inset 0 0 0 1px color-mix(in srgb, var(--color-primary) 14%, transparent),
+    0 0 0 2px color-mix(in srgb, var(--color-primary) 12%, transparent);
+}
+
+.onboarding-overlay .list-checkbox:checked::after {
+  opacity: 1;
+  transform: translate(-50%, -58%) rotate(-45deg) scale(1);
 }
 
 .onboarding-overlay .calendar-item .dot {
-  width: 12px;
-  height: 12px;
+  width: 10px;
+  height: 10px;
   border-radius: 50%;
 }
 
 .onboarding-overlay .warning {
   color: var(--color-error);
   margin-top: 12px;
-}
-
-.onboarding-overlay .review-hero {
-  display: grid;
-  gap: 12px;
-}
-
-.onboarding-overlay .review-hero h3 {
-  margin: 0;
-  font-size: 1.2rem;
-  line-height: 1.25;
-}
-
-.onboarding-overlay .review-hero .hint {
-  margin: 0;
-  max-width: 70ch;
-  line-height: 1.45;
-}
-
-.onboarding-overlay .review-chip-row {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-}
-
-.onboarding-overlay .review-chip {
-  padding: 5px 10px;
-  border-radius: 999px;
-  border: 1px solid color-mix(in oklab, var(--color-border), transparent 28%);
-  background: color-mix(in oklab, var(--color-primary, #2563eb), transparent 90%);
-  color: var(--color-text);
-  font-size: 0.8rem;
-  line-height: 1.2;
-  letter-spacing: 0.01em;
-  font-weight: 600;
 }
 
 .onboarding-overlay .review-layout {
@@ -1504,6 +1717,10 @@ function emitSaveStep() {
   gap: 12px;
 }
 
+.onboarding-overlay .pref-card--stack {
+  gap: 14px;
+}
+
 .onboarding-overlay .pref-card h4 {
   margin: 0;
 }
@@ -1614,6 +1831,1136 @@ function emitSaveStep() {
 .onboarding-overlay .theme-preview {
   font-size: 0.85rem;
   color: var(--color-text-light);
+}
+
+.onboarding-overlay .preferences-step {
+  display: grid;
+  gap: 16px;
+}
+
+.onboarding-overlay .field-row,
+.onboarding-overlay .editor-card,
+.onboarding-overlay .module-card {
+  border: 1px solid color-mix(in oklab, var(--color-border), transparent 22%);
+  border-radius: 14px;
+}
+
+.onboarding-overlay .field-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 14px;
+  padding: 12px 14px;
+  background: color-mix(in oklab, var(--color-main-background, #fff), transparent 2%);
+}
+
+.onboarding-overlay .field-copy {
+  display: grid;
+  gap: 4px;
+}
+
+.onboarding-overlay .field-copy strong {
+  font-size: 0.92rem;
+}
+
+.onboarding-overlay .field-copy p {
+  margin: 0;
+  font-size: 0.86rem;
+  color: var(--color-text-light);
+}
+
+.onboarding-overlay .field-actions,
+.onboarding-overlay .row,
+.onboarding-overlay .choice-strip {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+}
+
+.onboarding-overlay .field-actions {
+  justify-content: flex-end;
+}
+
+.onboarding-overlay .field-actions--wrap {
+  max-width: 360px;
+}
+
+.onboarding-overlay .editor-card {
+  display: grid;
+  gap: 12px;
+  padding: 14px;
+  background: linear-gradient(180deg, rgba(37, 99, 235, 0.08), transparent), var(--color-main-background, #fff);
+}
+
+.onboarding-overlay .module-card {
+  display: grid;
+  gap: 10px;
+  padding: 14px;
+  border-style: dashed;
+  background: linear-gradient(180deg, rgba(245, 158, 11, 0.08), transparent), var(--color-main-background, #fff);
+}
+
+.onboarding-overlay .choice-strip.compact {
+  gap: 6px;
+}
+
+.onboarding-overlay .choice-pill,
+.onboarding-overlay .value-chip,
+.onboarding-overlay .action-chip,
+.onboarding-overlay .soft-pill,
+.onboarding-overlay .toggle-chip {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  border-radius: 999px;
+  border: 1px solid var(--color-border);
+  background: color-mix(in oklab, var(--color-main-background, #fff), transparent 3%);
+  color: var(--color-text);
+  padding: 8px 12px;
+  font-size: 0.82rem;
+  font-weight: 700;
+  line-height: 1;
+}
+
+.onboarding-overlay .choice-pill.active {
+  border-color: color-mix(in srgb, var(--color-primary) 55%, var(--color-border));
+  background: rgba(37, 99, 235, 0.1);
+  color: var(--color-primary);
+}
+
+.onboarding-overlay .action-chip {
+  color: var(--color-primary);
+  cursor: pointer;
+}
+
+.onboarding-overlay .toggle-chip.on {
+  border-color: color-mix(in srgb, #15803d 45%, var(--color-border));
+  background: rgba(34, 197, 94, 0.12);
+  color: #166534;
+}
+
+.onboarding-overlay .soft-pill {
+  color: var(--color-text-light);
+}
+
+.onboarding-overlay .inline-input {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  border-radius: 14px;
+  border: 1px solid color-mix(in srgb, var(--color-primary) 40%, var(--color-border));
+  background: var(--color-main-background, #fff);
+  color: var(--color-text);
+  padding: 8px 12px;
+  min-width: 190px;
+}
+
+.onboarding-overlay .inline-input input {
+  width: 68px;
+  min-width: 0;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  box-shadow: none;
+}
+
+.onboarding-overlay .inline-input .slot {
+  padding: 4px 10px;
+  border-radius: 999px;
+  background: rgba(37, 99, 235, 0.1);
+  color: var(--color-primary);
+  font-weight: 700;
+}
+
+.onboarding-overlay .intro-step,
+.onboarding-overlay .goals-step {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+
+.onboarding-overlay .intro-stage {
+  display:flex;
+  justify-content:space-between;
+  align-items:flex-start;
+  gap:16px;
+}
+
+.onboarding-overlay .intro-stage__state {
+  font-size:0.78rem;
+  color:var(--color-text-light);
+}
+
+.onboarding-overlay .intro-hero {
+  display: grid;
+  gap: 12px;
+}
+
+.onboarding-overlay .intro-visual {
+  position:relative;
+  display:grid;
+  gap:18px;
+  min-height:300px;
+  padding:28px;
+  border-radius:18px;
+  overflow:hidden;
+  background:
+    linear-gradient(135deg, #111827, #1f2937),
+    radial-gradient(circle at top right, rgba(37, 99, 235, 0.22), transparent 40%),
+    radial-gradient(circle at bottom left, rgba(192, 90, 49, 0.18), transparent 35%);
+  color:#f8fafc;
+}
+
+.onboarding-overlay .intro-visual::before {
+  content:'';
+  position:absolute;
+  inset:auto 0 0 0;
+  height:38%;
+  background:linear-gradient(180deg, transparent, rgba(192, 90, 49, 0.14));
+}
+
+.onboarding-overlay .intro-visual__tabs,
+.onboarding-overlay .intro-visual__stats {
+  display:flex;
+  gap:8px;
+  flex-wrap:wrap;
+}
+
+.onboarding-overlay .intro-visual__tabs {
+  position:relative;
+  z-index:1;
+}
+
+.onboarding-overlay .intro-visual__tabs span {
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  min-width:74px;
+  height:28px;
+  padding:0 12px;
+  border-radius:999px;
+  border:1px solid rgba(148, 163, 184, 0.35);
+  background:rgba(15, 23, 42, 0.48);
+  color:#cbd5e1;
+  text-transform:uppercase;
+  letter-spacing:0.12em;
+  font-size:0.72rem;
+  font-weight:700;
+}
+
+.onboarding-overlay .intro-visual__tabs .is-active {
+  background:rgba(37, 99, 235, 0.16);
+  border-color:rgba(96, 165, 250, 0.55);
+  color:#f8fafc;
+}
+
+.onboarding-overlay .intro-visual__copy {
+  position:relative;
+  z-index:1;
+  display:grid;
+  gap:2px;
+  max-width:520px;
+  font-size:2.7rem;
+  line-height:0.96;
+  letter-spacing:-0.06em;
+  font-weight:700;
+}
+
+.onboarding-overlay .intro-visual__copy .accent {
+  color:#93c5fd;
+  font-size:3.4rem;
+  font-weight:800;
+}
+
+.onboarding-overlay .intro-visual__card {
+  position:absolute;
+  right:28px;
+  top:28px;
+  z-index:1;
+  width:min(280px, 42%);
+  display:grid;
+  gap:12px;
+  padding:18px;
+  border-radius:18px;
+  background:rgba(11, 18, 32, 0.92);
+  border:1px solid #334155;
+  box-shadow:0 18px 36px rgba(0, 0, 0, 0.28);
+}
+
+.onboarding-overlay .intro-visual__eyebrow {
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  gap:12px;
+  font-size:0.72rem;
+  text-transform:uppercase;
+  letter-spacing:0.1em;
+  color:#dbe7f5;
+}
+
+.onboarding-overlay .intro-visual__status {
+  padding:6px 10px;
+  border-radius:999px;
+  background:#0d2618;
+  border:1px solid #1f7a47;
+  color:#dcfce7;
+}
+
+.onboarding-overlay .intro-visual__score {
+  display:flex;
+  align-items:flex-end;
+  gap:8px;
+}
+
+.onboarding-overlay .intro-visual__score strong {
+  font-size:2.8rem;
+  line-height:1;
+}
+
+.onboarding-overlay .intro-visual__score span {
+  color:#93c5fd;
+  font-weight:700;
+}
+
+.onboarding-overlay .intro-visual__card p {
+  margin:0;
+  color:#94a3b8;
+}
+
+.onboarding-overlay .intro-visual__bar {
+  height:10px;
+  border-radius:999px;
+  background:#172033;
+  overflow:hidden;
+}
+
+.onboarding-overlay .intro-visual__bar span {
+  display:block;
+  width:74%;
+  height:100%;
+  border-radius:inherit;
+  background:#1d4ed8;
+}
+
+.onboarding-overlay .intro-visual__stats > div {
+  flex:1 1 70px;
+  display:grid;
+  gap:4px;
+  padding:10px 12px;
+  border-radius:14px;
+  background:#111827;
+  border:1px solid #223046;
+}
+
+.onboarding-overlay .intro-visual__stats span {
+  color:#94a3b8;
+  text-transform:uppercase;
+  letter-spacing:0.1em;
+  font-size:0.62rem;
+  font-weight:700;
+}
+
+.onboarding-overlay .intro-visual__stats strong {
+  color:#f8fafc;
+}
+
+.onboarding-overlay .intro-route-grid {
+  display:grid;
+  gap:14px;
+}
+
+.onboarding-overlay .intro-route-grid--three {
+  grid-template-columns:repeat(3, minmax(0, 1fr));
+}
+
+.onboarding-overlay .intro-route-grid--two {
+  grid-template-columns:repeat(2, minmax(0, 1fr));
+}
+
+.onboarding-overlay .intro-route-card {
+  display:grid;
+  gap:8px;
+  padding:18px;
+  text-align:left;
+  border-radius:14px;
+  border:1px solid color-mix(in oklab, var(--color-border), transparent 16%);
+  background:color-mix(in oklab, var(--color-main-background, #fff), transparent 4%);
+}
+
+.onboarding-overlay .intro-route-card--button {
+  cursor:pointer;
+}
+
+.onboarding-overlay .intro-route-card.active {
+  border-color:color-mix(in srgb, var(--color-primary) 50%, var(--color-border));
+  background:linear-gradient(180deg, rgba(37, 99, 235, 0.1), transparent), var(--color-main-background, #fff);
+  box-shadow:inset 0 0 0 1px color-mix(in srgb, var(--color-primary) 30%, transparent);
+}
+
+.onboarding-overlay .intro-route-card h4 {
+  margin:0;
+}
+
+.onboarding-overlay .calendar-item__label {
+  min-width: 0;
+  font-size: 0.92rem;
+  font-weight: 600;
+}
+
+.onboarding-overlay .calendar-item__state {
+  font-size: 0.72rem;
+  border-radius: 999px;
+  padding: 3px 8px;
+  white-space: nowrap;
+  background: color-mix(in oklab, var(--color-main-background, #fff), var(--color-border) 20%);
+  color: var(--color-text-light);
+}
+
+.onboarding-overlay .deck-step-card,
+.onboarding-overlay .goal-info-card,
+.onboarding-overlay .goal-side-card {
+  border: 1px solid color-mix(in oklab, var(--color-border), transparent 10%);
+  border-radius: 12px;
+  background: color-mix(in oklab, var(--color-main-background, #fff), transparent 4%);
+}
+
+.onboarding-overlay .deck-board-list--scroll {
+  max-height: 280px;
+  overflow: auto;
+}
+
+.onboarding-overlay .deck-board-options--list {
+  gap: 6px;
+}
+
+.onboarding-overlay .deck-board-option--row {
+  display: grid;
+  grid-template-columns: auto auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 10px;
+  min-height: 42px;
+  padding: 7px 12px;
+  border: 1px solid color-mix(in oklab, var(--color-border), transparent 24%);
+  border-radius: 10px;
+  background: color-mix(in oklab, var(--color-main-background, #fff), transparent 4%);
+}
+
+.onboarding-overlay .deck-board-option--row .dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 999px;
+  background: color-mix(in oklab, var(--brand, #2563eb), white 20%);
+}
+
+.onboarding-overlay .dashboard-preset-grid {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.onboarding-overlay .dashboard-preset-card {
+  gap: 12px;
+  text-align:left;
+  min-height: 320px;
+  align-items: start;
+  border-radius: 14px;
+}
+
+.onboarding-overlay .dashboard-preset-card h4 {
+  margin: 0;
+  min-height: 28px;
+  font-size: 1rem;
+  line-height: 1.15;
+}
+
+.onboarding-overlay .dashboard-preset-card .subtitle {
+  margin: 0;
+  min-height: 54px;
+  line-height: 1.45;
+}
+
+.onboarding-overlay .dashboard-preset-card .mini-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: auto;
+  align-items: center;
+}
+
+.onboarding-overlay .dashboard-preview,
+.onboarding-overlay .dashboard-thumb {
+  display: grid;
+  gap: 6px;
+  min-height: 112px;
+  padding: 10px;
+  border: 1px solid color-mix(in oklab, var(--color-border), transparent 16%);
+  border-radius: 16px;
+  background: color-mix(in oklab, var(--color-main-background, #fff), transparent 2%);
+  width: 100%;
+  align-content: start;
+}
+
+.onboarding-overlay .dashboard-thumb-row {
+  display: grid;
+  gap: 8px;
+}
+
+.onboarding-overlay .dashboard-thumb-row--1 {
+  grid-template-columns: 1fr;
+}
+
+.onboarding-overlay .dashboard-thumb-row--2 {
+  grid-template-columns: 1.2fr 0.8fr;
+}
+
+.onboarding-overlay .dashboard-thumb-row--3 {
+  grid-template-columns: 1.1fr 1.1fr 0.8fr;
+}
+
+.onboarding-overlay .dashboard-preview span,
+.onboarding-overlay .dashboard-block {
+  border-radius: 10px;
+  border: 1px solid rgba(148, 163, 184, 0.14);
+  background: rgba(148, 163, 184, 0.24);
+  min-height: 38px;
+}
+
+.onboarding-overlay .dashboard-tab-strip {
+  display:flex;
+  gap:6px;
+  grid-column:1 / -1;
+  margin-bottom:2px;
+}
+
+.onboarding-overlay .dashboard-tab {
+  height:12px;
+  border-radius:999px;
+  background:rgba(148, 163, 184, 0.24);
+  border:1px solid rgba(148, 163, 184, 0.18);
+}
+
+.onboarding-overlay .dashboard-tab.is-active {
+  background:rgba(37, 99, 235, 0.18);
+  border-color:rgba(37, 99, 235, 0.28);
+}
+
+.onboarding-overlay .dashboard-tab--wide { width:44px; }
+.onboarding-overlay .dashboard-tab--medium { width:34px; }
+.onboarding-overlay .dashboard-tab--short { width:28px; }
+.onboarding-overlay .dashboard-tab--tiny { width:22px; }
+
+.onboarding-overlay .dashboard-block--tall {
+  min-height:44px;
+}
+
+.onboarding-overlay .dashboard-block--soft {
+  background: rgba(37, 99, 235, 0.14);
+}
+
+.onboarding-overlay .dashboard-block--warm {
+  background: rgba(192, 90, 49, 0.15);
+}
+
+.onboarding-overlay .dashboard-block--ok {
+  background: rgba(34, 197, 94, 0.16);
+}
+
+.onboarding-overlay .dashboard-preview--quick {
+  grid-template-columns: 1fr;
+}
+
+.onboarding-overlay .dashboard-preview--quick span:first-child {
+  min-height: 86px;
+}
+
+.onboarding-overlay .preferences-grid--core-optional {
+  grid-template-columns: minmax(0, 1.25fr) minmax(320px, 0.9fr);
+}
+
+.onboarding-overlay .pref-card--module {
+  align-self: start;
+}
+
+.onboarding-overlay .goals-step__header,
+.onboarding-overlay .goal-single,
+.onboarding-overlay .goal-advanced,
+.onboarding-overlay .goal-calendar {
+  display: grid;
+  gap: 16px;
+}
+
+.onboarding-overlay .goals-step__header {
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: start;
+}
+
+.onboarding-overlay .goals-lookback {
+  display: grid;
+  gap: 6px;
+  justify-items: end;
+}
+
+.onboarding-overlay .goals-lookback input {
+  width: 90px;
+}
+
+.onboarding-overlay .goals-lookback__label,
+.onboarding-overlay .goals-lookback__meta,
+.onboarding-overlay .goal-suggestion-inline {
+  font-size: 0.8rem;
+  color: var(--color-text-light);
+}
+
+.onboarding-overlay .goal-info-card {
+  padding: 16px;
+}
+
+.onboarding-overlay .goal-info-card--compact {
+  padding-bottom: 12px;
+}
+
+.onboarding-overlay .goal-single {
+  grid-template-columns: minmax(0, 0.9fr) minmax(260px, 0.7fr);
+}
+
+.onboarding-overlay .goal-single__editor,
+.onboarding-overlay .goal-calendar-list,
+.onboarding-overlay .goal-main-panel,
+.onboarding-overlay .goal-side-panel {
+  display: grid;
+  gap: 12px;
+}
+
+.onboarding-overlay .goal-calendar-row,
+.onboarding-overlay .goal-calendar-subrow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 12px 14px;
+  border-radius: 12px;
+  border: 1px solid color-mix(in oklab, var(--color-border), transparent 20%);
+  background: color-mix(in oklab, var(--color-main-background, #fff), transparent 6%);
+}
+
+.onboarding-overlay .goal-calendar-row__main,
+.onboarding-overlay .goal-calendar-subrow__main {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+}
+
+.onboarding-overlay .goal-advanced {
+  grid-template-columns: minmax(300px, 0.88fr) minmax(0, 1.45fr);
+  align-items: start;
+}
+
+.onboarding-overlay .goal-advanced--b26 {
+  grid-template-columns:1fr;
+}
+
+.onboarding-overlay .goal-side-panel {
+  position: sticky;
+  top: 0;
+}
+
+.onboarding-overlay .goal-side-card {
+  padding: 16px;
+}
+
+.onboarding-overlay .goal-side-stats {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.onboarding-overlay .goal-side-stat {
+  display: grid;
+  gap: 4px;
+  padding: 10px;
+  border-radius: 10px;
+  background: color-mix(in oklab, var(--color-main-background, #fff), transparent 7%);
+}
+
+.onboarding-overlay .goal-side-stat__label {
+  font-size: 0.75rem;
+  color: var(--color-text-light);
+}
+
+.onboarding-overlay .goal-health-chip-row,
+.onboarding-overlay .goal-preset-swatches {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.onboarding-overlay .state-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.78rem;
+  line-height: 1;
+  border-radius: 999px;
+  padding: 5px 10px;
+  background: rgba(37, 99, 235, 0.1);
+  color: var(--color-primary);
+}
+
+.onboarding-overlay .state-chip.ok {
+  background: rgba(34, 197, 94, 0.12);
+  color: #166534;
+}
+
+.onboarding-overlay .state-chip.warn {
+  background: rgba(245, 158, 11, 0.14);
+  color: #92400e;
+}
+
+.onboarding-overlay .goal-preset-grid {
+  display: grid;
+  gap: 10px;
+}
+
+.onboarding-overlay .goal-template-strip {
+  display:flex;
+  gap:10px;
+  flex-wrap:wrap;
+}
+
+.onboarding-overlay .goal-template-card {
+  min-width:0;
+  flex:1 1 180px;
+  display:grid;
+  gap:6px;
+  padding:14px;
+  border-radius:14px;
+  border:1px solid color-mix(in oklab, var(--color-border), transparent 18%);
+  background:var(--color-main-background, #fff);
+  text-align:left;
+}
+
+.onboarding-overlay .goal-template-card.active {
+  border-color:color-mix(in srgb, var(--color-primary) 55%, var(--color-border));
+  background:linear-gradient(180deg, rgba(37, 99, 235, 0.1), transparent), var(--color-main-background, #fff);
+  box-shadow:inset 0 0 0 1px color-mix(in srgb, var(--color-primary) 28%, transparent);
+}
+
+.onboarding-overlay .goal-template-card.is-cool {
+  background:linear-gradient(180deg, rgba(37, 99, 235, 0.08), transparent), var(--color-main-background, #fff);
+}
+
+.onboarding-overlay .goal-template-card.is-warm {
+  background:linear-gradient(180deg, rgba(234, 88, 12, 0.08), transparent), var(--color-main-background, #fff);
+}
+
+.onboarding-overlay .goal-template-card.is-forest {
+  background:linear-gradient(180deg, rgba(22, 163, 74, 0.08), transparent), var(--color-main-background, #fff);
+}
+
+.onboarding-overlay .goal-preset-card {
+  display: grid;
+  gap: 6px;
+  padding: 12px;
+  border-radius: 12px;
+  border: 1px solid color-mix(in oklab, var(--color-border), transparent 24%);
+  text-align: left;
+  background: color-mix(in oklab, var(--color-main-background, #fff), transparent 6%);
+}
+
+.onboarding-overlay .goal-preset-swatch {
+  width: 12px;
+  height: 12px;
+  border-radius: 999px;
+}
+
+.onboarding-overlay .goal-category-list {
+  display: grid;
+  gap: 12px;
+  max-height: 460px;
+  overflow: auto;
+  padding-right: 4px;
+}
+
+.onboarding-overlay .goal-category-list--accordion {
+  max-height:520px;
+}
+
+.onboarding-overlay .goal-panel-card {
+  display:grid;
+  gap:14px;
+  padding:16px;
+  border-radius:14px;
+  border:1px solid color-mix(in oklab, var(--color-border), transparent 16%);
+  background:color-mix(in oklab, var(--color-main-background, #fff), transparent 4%);
+}
+
+.onboarding-overlay .goal-panel-card__head,
+.onboarding-overlay .goal-panel-pills,
+.onboarding-overlay .goal-category-editor__fields,
+.onboarding-overlay .goal-category-row-bottom,
+.onboarding-overlay .goal-category-options {
+  display:flex;
+  align-items:center;
+  gap:10px;
+  flex-wrap:wrap;
+}
+
+.onboarding-overlay .goal-panel-card__head {
+  justify-content:space-between;
+}
+
+.onboarding-overlay .goal-mismatch-box {
+  display:grid;
+  gap:6px;
+  padding:14px;
+  border-radius:12px;
+  border:1px solid color-mix(in srgb, #b45309 40%, transparent);
+  background:rgba(245, 158, 11, 0.12);
+}
+
+.onboarding-overlay .goal-mismatch-box--ok {
+  border-color:color-mix(in srgb, #15803d 40%, transparent);
+  background:rgba(34, 197, 94, 0.12);
+}
+
+.onboarding-overlay .pill {
+  display:inline-flex;
+  align-items:center;
+  gap:8px;
+  padding:6px 10px;
+  border-radius:999px;
+  border:1px solid color-mix(in oklab, var(--color-border), transparent 10%);
+  background:color-mix(in oklab, var(--color-main-background, #fff), transparent 4%);
+  color:var(--color-text-light);
+  font-size:0.8rem;
+  white-space:nowrap;
+}
+
+.onboarding-overlay .pill--warn {
+  border-color:color-mix(in srgb, #b45309 40%, transparent);
+  color:#92400e;
+}
+
+.onboarding-overlay .goal-category-card {
+  display: grid;
+  gap: 12px;
+  padding: 14px;
+  border-radius: 14px;
+  border: 1px solid color-mix(in oklab, var(--color-border), transparent 16%);
+  background: color-mix(in oklab, var(--color-main-background, #fff), transparent 4%);
+}
+
+.onboarding-overlay .goal-category-card--accordion {
+  gap:10px;
+}
+
+.onboarding-overlay .goal-category-summary {
+  display:grid;
+  grid-template-columns:minmax(0, 1fr) auto auto;
+  align-items:center;
+  gap:10px;
+  width:100%;
+  padding:0;
+  border:0;
+  background:transparent;
+  color:inherit;
+  text-align:left;
+}
+
+.onboarding-overlay .goal-category-card__header,
+.onboarding-overlay .goal-category-card__toolbar,
+.onboarding-overlay .goal-footer-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.onboarding-overlay .goal-category-name {
+  flex: 0 1 180px;
+  min-width: 140px;
+  max-width: 220px;
+}
+
+.onboarding-overlay .goal-category-meta {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.onboarding-overlay .drag-handle,
+.onboarding-overlay .ghost-btn {
+  border: 1px solid color-mix(in oklab, var(--color-border), transparent 12%);
+  background: color-mix(in oklab, var(--color-main-background, #fff), transparent 6%);
+  color: var(--color-text);
+  border-radius: 10px;
+  padding: 8px 10px;
+}
+
+.onboarding-overlay .goal-remove-btn {
+  margin-left: auto;
+  width: 34px;
+  min-width: 34px;
+  height: 34px;
+  padding: 0;
+  justify-content: center;
+  font-size: 18px;
+  line-height: 1;
+}
+
+.onboarding-overlay .goal-category-options--inline {
+  gap: 8px;
+  flex-wrap: nowrap;
+}
+
+.onboarding-overlay .goal-checkbox {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin: 0;
+  white-space: nowrap;
+  font-size: 0.8rem;
+}
+
+.onboarding-overlay .goal-checkbox input[type="checkbox"] {
+  width: 14px;
+  height: 14px;
+  margin: 0;
+}
+
+.onboarding-overlay .goal-pace-field {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin: 0;
+  white-space: nowrap;
+}
+
+.onboarding-overlay .goal-pace-field .label {
+  font-size: 0.8rem;
+  color: var(--color-text-light);
+}
+
+.onboarding-overlay .goal-pace-field select {
+  min-width: 118px;
+  padding: 6px 8px;
+}
+
+.onboarding-overlay .drag-handle {
+  cursor: grab;
+}
+
+.onboarding-overlay .drag-pill,
+.onboarding-overlay .chevron-pill,
+.onboarding-overlay .suggest-pill,
+.onboarding-overlay .value-pill {
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  gap:8px;
+  padding:6px 10px;
+  border-radius:999px;
+  white-space:nowrap;
+  font-size:0.8rem;
+}
+
+.onboarding-overlay .drag-pill,
+.onboarding-overlay .chevron-pill {
+  border:1px solid color-mix(in oklab, var(--color-border), transparent 12%);
+  background:color-mix(in oklab, var(--color-main-background, #fff), transparent 4%);
+  color:var(--color-text);
+}
+
+.onboarding-overlay .value-pill {
+  border:1px solid color-mix(in srgb, var(--color-primary) 36%, var(--color-border));
+  background:color-mix(in srgb, rgba(37, 99, 235, 0.1) 78%, var(--color-main-background, #fff));
+  color:var(--color-text);
+}
+
+.onboarding-overlay .suggest-pill {
+  border:1px solid color-mix(in srgb, var(--color-success, #15803d) 24%, var(--color-border));
+  background:rgba(34, 197, 94, 0.08);
+  color:var(--color-text-light);
+}
+
+.onboarding-overlay .suggest-pill--warn {
+  border-color:color-mix(in srgb, #b45309 36%, var(--color-border));
+  background:rgba(245, 158, 11, 0.12);
+  color:#92400e;
+}
+
+.onboarding-overlay .goal-nice-select {
+  display:flex;
+  align-items:center;
+  gap:8px;
+  flex-wrap:wrap;
+}
+
+.onboarding-overlay .goal-calendar-color {
+  width: 10px;
+  height: 10px;
+  border-radius: 999px;
+  flex: 0 0 auto;
+  border: 1px solid color-mix(in oklab, #000, transparent 78%);
+  box-shadow: 0 0 0 1px color-mix(in oklab, var(--color-main-background, #fff), transparent 12%);
+}
+
+.onboarding-overlay .row-inline-note {
+  color:var(--color-text-light);
+  font-size:0.8rem;
+}
+
+.onboarding-overlay .goal-add-select,
+.onboarding-overlay .goal-category-name,
+.onboarding-overlay .goal-color-input {
+  border: 1px solid var(--color-border);
+  border-radius: 10px;
+  padding: 8px 10px;
+  background: var(--color-main-background, #fff);
+}
+
+.onboarding-overlay .goal-add-select--inline {
+  min-width: 132px;
+  max-width: 170px;
+}
+
+.onboarding-overlay .goal-color-input {
+  width: 44px;
+  padding: 4px;
+}
+
+.onboarding-overlay .goal-calendar-sublist {
+  display: grid;
+  gap: 8px;
+  padding-left: 16px;
+}
+
+.onboarding-overlay .goal-calendar-subrow {
+  margin-left: 12px;
+  border-style: dashed;
+  display:grid;
+  grid-template-columns:auto minmax(0, 1fr) auto auto auto;
+  align-items:center;
+  gap:10px;
+  padding:10px 12px;
+  border-radius:12px;
+  border:1px dashed color-mix(in oklab, var(--color-border), transparent 12%);
+  background:color-mix(in oklab, var(--color-main-background, #fff), transparent 3%);
+}
+
+.onboarding-overlay .goal-calendar-subrow__actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.onboarding-overlay .goal-calendar-subrow .row-name,
+.onboarding-overlay .goal-nice-select .select-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.onboarding-overlay .input-unit--small input {
+  width: 72px;
+}
+
+.onboarding-overlay .goal-suggestion-pill {
+  font-size: 0.76rem;
+  border-radius: 999px;
+  padding: 3px 8px;
+  background: rgba(59, 130, 246, 0.1);
+  color: var(--color-primary);
+}
+
+.onboarding-overlay .review-row-list {
+  display: grid;
+  gap: 12px;
+}
+
+.onboarding-overlay .review-row {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 14px 16px;
+  border-radius: 12px;
+  border: 1px solid color-mix(in oklab, var(--color-border), transparent 18%);
+  background: color-mix(in oklab, var(--color-main-background, #fff), transparent 4%);
+}
+
+.onboarding-overlay .review-row strong {
+  display: block;
+  margin-bottom: 4px;
+}
+
+.onboarding-overlay .review-row p {
+  margin: 0;
+  color: var(--color-text-light);
+}
+
+@media (max-width: 1180px) {
+  .onboarding-step-nav {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+
+  .onboarding-overlay .goal-advanced,
+  .onboarding-overlay .goal-single,
+  .onboarding-overlay .preferences-grid--core-optional {
+    grid-template-columns: 1fr;
+  }
+
+  .onboarding-overlay .intro-route-grid--three,
+  .onboarding-overlay .intro-route-grid--two {
+    grid-template-columns:1fr;
+  }
+
+  .onboarding-overlay .goal-side-panel {
+    position: static;
+  }
+
+  .onboarding-overlay .field-row {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .onboarding-overlay .field-actions {
+    justify-content: flex-start;
+  }
+}
+
+@media (max-width: 760px) {
+  .onboarding-step-nav {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .onboarding-overlay .goal-calendar-row,
+  .onboarding-overlay .goal-calendar-subrow,
+  .onboarding-overlay .review-row,
+  .onboarding-overlay .goal-category-summary,
+  .onboarding-overlay .intro-stage {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .onboarding-overlay .intro-visual {
+    padding:18px;
+  }
+
+  .onboarding-overlay .intro-visual__card {
+    position:static;
+    width:100%;
+  }
+
+  .onboarding-overlay .intro-visual__copy {
+    font-size:2.1rem;
+  }
+
+  .onboarding-overlay .intro-visual__copy .accent {
+    font-size:2.7rem;
+  }
 }
 
 :global(body.opsdash-onboarding-lock) {

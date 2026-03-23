@@ -1,21 +1,73 @@
 <template>
   <h3>Choose dashboard layout</h3>
-  <p class="hint">Layout controls widget arrangement and tab structure only.</p>
-  <p class="hint">It does not change your target strategy.</p>
-  <div class="strategy-grid">
+  <p class="hint">Pick the starting dashboard structure now that strategy, calendars, Deck, and goals are already defined.</p>
+  <div class="strategy-grid dashboard-preset-grid">
     <article
       v-for="mode in dashboardPresets"
       :key="mode.id"
-      class="strategy-card"
+      class="strategy-card dashboard-preset-card"
       :class="{ active: dashboardMode === mode.id }"
       @click="setDashboardMode(mode.id)"
     >
+      <div class="dashboard-thumb" :class="`dashboard-thumb--${mode.id}`">
+        <div class="dashboard-tab-strip">
+          <span class="dashboard-tab dashboard-tab--wide is-active"></span>
+          <template v-if="mode.id === 'pro'">
+            <span class="dashboard-tab dashboard-tab--medium"></span>
+            <span class="dashboard-tab dashboard-tab--short"></span>
+            <span class="dashboard-tab dashboard-tab--tiny"></span>
+          </template>
+        </div>
+
+        <template v-if="mode.id === 'quick'">
+          <div class="dashboard-thumb-row dashboard-thumb-row--1">
+            <span class="dashboard-block dashboard-block--tall"></span>
+          </div>
+          <div class="dashboard-thumb-row dashboard-thumb-row--2">
+            <span class="dashboard-block"></span>
+            <span class="dashboard-block"></span>
+          </div>
+        </template>
+
+        <template v-else-if="mode.id === 'standard'">
+          <div class="dashboard-thumb-row dashboard-thumb-row--2">
+            <span class="dashboard-block dashboard-block--tall dashboard-block--soft"></span>
+            <span class="dashboard-block dashboard-block--tall"></span>
+          </div>
+          <div class="dashboard-thumb-row dashboard-thumb-row--3">
+            <span class="dashboard-block dashboard-block--warm"></span>
+            <span class="dashboard-block dashboard-block--ok"></span>
+            <span class="dashboard-block"></span>
+          </div>
+          <div class="dashboard-thumb-row dashboard-thumb-row--2">
+            <span class="dashboard-block dashboard-block--soft"></span>
+            <span class="dashboard-block"></span>
+          </div>
+        </template>
+
+        <template v-else>
+          <div class="dashboard-thumb-row dashboard-thumb-row--3">
+            <span class="dashboard-block dashboard-block--tall dashboard-block--soft"></span>
+            <span class="dashboard-block dashboard-block--tall dashboard-block--warm"></span>
+            <span class="dashboard-block dashboard-block--tall dashboard-block--ok"></span>
+          </div>
+          <div class="dashboard-thumb-row dashboard-thumb-row--3">
+            <span class="dashboard-block"></span>
+            <span class="dashboard-block"></span>
+            <span class="dashboard-block"></span>
+          </div>
+          <div class="dashboard-thumb-row dashboard-thumb-row--2">
+            <span class="dashboard-block dashboard-block--soft"></span>
+            <span class="dashboard-block dashboard-block--warm"></span>
+          </div>
+        </template>
+      </div>
       <h4>{{ mode.title }}</h4>
       <p class="subtitle">{{ mode.subtitle }}</p>
-      <ul>
-        <li v-for="point in mode.highlights" :key="point">{{ point }}</li>
-      </ul>
-      <footer>Widgets: {{ mode.widgets }}</footer>
+      <div class="mini-row">
+        <span class="pill">{{ mode.widgets }}</span>
+        <span class="pill">{{ mode.badge }}</span>
+      </div>
     </article>
   </div>
 </template>
@@ -28,7 +80,8 @@ defineProps<{
     id: 'quick' | 'standard' | 'pro'
     title: string
     subtitle: string
-    highlights: string[]
+    description: string
+    badge: string
     widgets: string
   }>
 }>()

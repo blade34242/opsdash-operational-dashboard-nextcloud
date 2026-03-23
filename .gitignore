@@ -30,3 +30,4 @@ opsdash/docs-private/
 docker-compose*.yml
 
 AGENTS.md
+mockups/

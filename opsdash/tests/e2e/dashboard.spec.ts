@@ -40,11 +40,12 @@ async function removeCalendarResource(page: Page, resourceUrl: string) {
 
 async function dismissOnboardingIfVisible(page: Page) {
   const dialog = page.getByRole('dialog')
+  const onboardingHeading = page.getByRole('heading', { name: 'Welcome to Opsdash' })
   if (await dialog.isVisible({ timeout: 1000 }).catch(() => false)) {
     const maybeLater = dialog.getByRole('button', { name: 'Maybe later' })
     if (await maybeLater.isVisible().catch(() => false)) {
       await maybeLater.click()
-      await expect(dialog).toBeHidden()
+      await expect(onboardingHeading).toBeHidden({ timeout: 15000 })
     }
   }
 }
@@ -201,7 +202,7 @@ test('Operational Dashboard loads without console errors', async ({ page, baseUR
   })
 
   await page.goto(baseURL + '/index.php/apps/opsdash/overview')
-  await expect(page.locator('#opsdash')).toBeVisible()
+  await expect(page.locator('.opsdash')).toBeVisible()
   await expect(page.getByRole('tablist', { name: 'Dashboard tabs' })).toBeVisible()
 
   // ensure no opsdash Vue errors surfaced
@@ -329,7 +330,7 @@ test('Config import applies theme preference', async ({ page, baseURL }) => {
   const fileInput = page.locator('.profiles-overlay input[type="file"][accept="application/json"]')
   await fileInput.setInputFiles({ name: 'opsdash-config.json', mimeType: 'application/json', buffer: Buffer.from(JSON.stringify(importEnvelope)) })
 
-  await expect(page.locator('#opsdash')).toHaveClass(/opsdash-theme-dark/, { timeout: 15000 })
+  await expect(page.locator('.opsdash')).toHaveClass(/opsdash-theme-dark/, { timeout: 15000 })
 })
 
 test('Config export downloads current envelope', async ({ page, baseURL }) => {

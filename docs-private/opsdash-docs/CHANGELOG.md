@@ -5,6 +5,14 @@ This file is a short internal log. Full release notes live in the repo root `CHA
 ## Unreleased
 - None yet.
 
+## 0.7.0 - 2026-03-23
+- Onboarding komplett auf den neuen 8-Schritte-Flow umgebaut: `Intro -> Strategy -> Calendars -> Deck -> Goals -> Preferences -> Dashboard -> Review`.
+- Neue Arrow-Navigation mit `done/current/upcoming`-Zuständen ersetzt die alte kompakte Step-Pill-Optik im Wizard.
+- `Quick setup` jetzt als echter Autopilot umgesetzt: wählt Kalender/Deck, setzt Standard-Dashboard, nutzt Lookback-Daten wenn vorhanden und fällt sonst auf kleine Default-Ziele zurück.
+- Goals-Step auf kombinierte Kalender-/Kategorie-Planung mit Suggestion-Logik, Reorder und klarerer Zuordnung ausgebaut.
+- Preferences-, Dashboard- und Review-Screens an die finalen Mockups angepasst; überflüssige Summary-/Future-Blöcke entfernt.
+- Onboarding-Initialisierung stabilisiert; ein früher Wizard-Start-`ReferenceError` wurde behoben.
+
 ## 0.6.4 - 2026-03-07
 - CI gates erweitert: verpflichtender TS-Typecheck + PHPStan static analysis.
 - Release-Hygiene erweitert: Versionskonsistenz-Check (`info.xml`/`package.json`/`VERSION`/`SECURITY.md`) als CI-Guard.

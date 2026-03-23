@@ -20,6 +20,7 @@ import {
 import { clampTarget, convertWeekToMonth } from '../src/services/targets'
 import { createDefaultWidgetTabs } from '../src/services/widgetsRegistry'
 import { fetchDeckBoardsMeta } from '../src/services/deck'
+import { useOcHttp } from './useOcHttp'
 
 type WizardProps = {
   visible: boolean
@@ -52,6 +53,7 @@ type WizardProps = {
 type WizardEmit = (event: string, payload?: any) => void
 
 type ProfileMode = 'existing' | 'new'
+type IntroChoice = 'quick' | 'existing' | 'new'
 type CategoryPreset = {
   id: string
   title: string
@@ -60,15 +62,22 @@ type CategoryPreset = {
   colors: string[]
 }
 
+type CalendarHistorySlot = {
+  offset: number
+  totals: Record<string, number>
+}
+
 export function useOnboardingWizard(options: { props: WizardProps; emit: WizardEmit }) {
   const { props, emit } = options
+  const { route, postJson } = useOcHttp()
 
-  const stepOrder = ['intro', 'strategy', 'dashboard', 'calendars', 'categories', 'preferences', 'deck', 'review'] as const
+  const stepOrder = ['intro', 'strategy', 'calendars', 'deck', 'goals', 'preferences', 'dashboard', 'review'] as const
 
   const stepIndex = ref(0)
-  const selectedStrategy = ref<StrategyDefinition['id']>('total_only')
+  const selectedStrategy = ref<StrategyDefinition['id']>('total_plus_categories')
   const dashboardMode = ref<'quick' | 'standard' | 'pro'>(props.initialDashboardMode || 'standard')
   const profileMode = ref<ProfileMode>(props.hasExistingConfig ? 'existing' : 'new')
+  const introChoice = ref<IntroChoice>(props.hasExistingConfig ? 'existing' : 'quick')
   const saveProfile = ref(false)
   const profileName = ref('')
   const localSelection = ref<string[]>([])
@@ -84,26 +93,32 @@ export function useOnboardingWizard(options: { props: WizardProps; emit: WizardE
   const deckBoards = ref<Array<{ id: number; title: string }>>([])
   const deckBoardsLoading = ref(false)
   const deckBoardsError = ref('')
+  const suggestionsLoading = ref(false)
+  const suggestionsError = ref('')
+  const historyWindows = ref<CalendarHistorySlot[]>([])
   const dashboardPresets = [
     {
       id: 'quick' as const,
       title: 'Empty',
-      subtitle: 'Start with a blank canvas',
-      highlights: ['One Overview tab', 'No preset widgets', 'Add only what you need'],
+      subtitle: 'Start from a mostly blank dashboard and grow it later.',
+      description: 'Start from a mostly blank dashboard and grow it later.',
+      badge: 'manual build',
       widgets: '0 widgets',
     },
     {
       id: 'standard' as const,
       title: 'Standard',
-      subtitle: 'Balanced layout with charts',
-      highlights: ['Targets + time summary', 'Balance & category mix', 'Calendar table + charts'],
+      subtitle: 'Balanced default with enough structure to be useful immediately.',
+      description: 'Balanced default with enough structure to be useful immediately.',
+      badge: 'recommended',
       widgets: '11 widgets',
     },
     {
       id: 'pro' as const,
       title: 'Advanced',
-      subtitle: 'Multi-tab layout for deep analysis',
-      highlights: ['Overview + balance stack', 'Dedicated tables + charts tabs', 'Notes + Deck workspace'],
+      subtitle: 'Show more widgets and analysis from the first load.',
+      description: 'Show more widgets and analysis from the first load.',
+      badge: 'power users',
       widgets: '15 widgets',
     },
   ]
@@ -194,8 +209,18 @@ export function useOnboardingWizard(options: { props: WizardProps; emit: WizardE
   })
   const systemThemeLabel = computed(() => (props.systemTheme === 'dark' ? 'dark' : 'light'))
   const BASE_CATEGORY_COLORS = ['#2563EB', '#F97316', '#10B981', '#A855F7', '#EC4899', '#14B8A6', '#F59E0B', '#6366F1', '#0EA5E9', '#65A30D']
+  const calendarById = computed(() => new Map(props.calendars.map((cal) => [cal.id, cal])))
+  const selectedCalendars = computed(() =>
+    localSelection.value
+      .map((id) => calendarById.value.get(id))
+      .filter((cal): cal is CalendarSummary => Boolean(cal)),
+  )
+  const selectedCalendarIds = computed(() => selectedCalendars.value.map((cal) => cal.id))
   const categoryTotalHours = computed(() =>
     categories.value.reduce((sum, cat) => sum + (Number.isFinite(cat.targetHours) ? cat.targetHours : 0), 0),
+  )
+  const totalCalendarTargetHours = computed(() =>
+    selectedCalendars.value.reduce((sum, cal) => sum + (Number(getCalendarTarget(cal.id)) || 0), 0),
   )
 
   const categoryColorPalette = computed(() => {
@@ -218,7 +243,7 @@ export function useOnboardingWizard(options: { props: WizardProps; emit: WizardE
 
   const dashboardWidgets = computed(() => createDefaultWidgetTabs(dashboardMode.value))
 
-  const enabledSteps = computed(() => stepOrder.filter((step) => (step === 'categories' ? categoriesEnabled.value : true)))
+  const enabledSteps = computed(() => [...stepOrder])
   const currentStep = computed<StepId>(() => enabledSteps.value[Math.min(stepIndex.value, enabledSteps.value.length - 1)])
   const stepNumber = computed(() => stepIndex.value + 1)
   const totalSteps = computed(() => enabledSteps.value.length)
@@ -247,6 +272,9 @@ export function useOnboardingWizard(options: { props: WizardProps; emit: WizardE
       if (visible) {
         resetWizard()
         closeColorPopover()
+        loadHistoryWindows().catch((error) => {
+          console.error('[opsdash] onboarding history load failed', error)
+        })
       }
       setScrollLocked(visible)
     },
@@ -260,6 +288,9 @@ export function useOnboardingWizard(options: { props: WizardProps; emit: WizardE
     loadDeckBoards().catch((error) => {
       console.error('[opsdash] deck board load failed', error)
     })
+    loadHistoryWindows().catch((error) => {
+      console.error('[opsdash] onboarding history load failed', error)
+    })
   })
 
   onUnmounted(() => {
@@ -272,9 +303,10 @@ export function useOnboardingWizard(options: { props: WizardProps; emit: WizardE
   function resetWizard(mode?: ProfileMode) {
     const resolvedMode: ProfileMode = mode ?? (props.hasExistingConfig ? 'existing' : 'new')
     profileMode.value = resolvedMode
+    introChoice.value = props.hasExistingConfig ? resolvedMode : 'quick'
     const useExisting = resolvedMode === 'existing'
     stepIndex.value = 0
-    selectedStrategy.value = useExisting ? (props.initialStrategy ?? 'total_only') : 'total_only'
+    selectedStrategy.value = useExisting ? (props.initialStrategy ?? 'total_plus_categories') : 'total_plus_categories'
     dashboardMode.value = useExisting ? (props.initialDashboardMode || 'standard') : 'standard'
     const initial = useExisting ? [...(props.initialSelection ?? [])] : []
     localSelection.value = Array.from(new Set(initial.filter((id) => props.calendars.some((cal) => cal.id === id))))
@@ -310,6 +342,8 @@ export function useOnboardingWizard(options: { props: WizardProps; emit: WizardE
       } else {
         totalHoursInput.value = null
       }
+    } else if (selectedStrategy.value === 'total_only') {
+      totalHoursInput.value = clampTotalHours(useExisting ? (props.initialTotalHours ?? 40) : 40)
     } else if (totalHoursInput.value === null && useExisting) {
       totalHoursInput.value = clampTotalHours(props.initialTotalHours ?? 40)
     }
@@ -319,6 +353,18 @@ export function useOnboardingWizard(options: { props: WizardProps; emit: WizardE
   function setProfileMode(mode: ProfileMode) {
     if (profileMode.value === mode) return
     resetWizard(mode)
+  }
+
+  function setIntroChoice(choice: IntroChoice) {
+    introChoice.value = choice
+    if (choice === 'existing') {
+      if (profileMode.value !== 'existing') resetWizard('existing')
+      return
+    }
+    if (choice === 'new') {
+      if (profileMode.value !== 'new') resetWizard('new')
+      return
+    }
   }
 
   function setSaveProfile(enabled: boolean) {
@@ -344,8 +390,32 @@ export function useOnboardingWizard(options: { props: WizardProps; emit: WizardE
       assignments.value = { ...(props.initialAssignments ?? {}) }
     } else {
       const draft = createStrategyDraft(selectedStrategy.value, props.calendars, localSelection.value)
-      categories.value = draft.categories.map((cat) => ({ ...cat }))
+      if (selectedStrategy.value === 'full_granular') {
+        categories.value = categoryPresets[0].categories.map((cat, index) => ({
+          id: String(cat.id || `cat_${index}`),
+          label: cat.label,
+          targetHours: cat.targetHours,
+          includeWeekend: cat.includeWeekend,
+          paceMode: cat.paceMode,
+          color: cat.color ?? null,
+        }))
+      } else {
+        categories.value = draft.categories.map((cat) => ({ ...cat }))
+      }
       assignments.value = { ...draft.assignments }
+    }
+    if (selectedStrategy.value === 'full_granular' && categories.value.length === 0) {
+      categories.value = categoryPresets[0].categories.map((cat, index) => ({
+        id: String(cat.id || `cat_${index}`),
+        label: cat.label,
+        targetHours: cat.targetHours,
+        includeWeekend: cat.includeWeekend,
+        paceMode: cat.paceMode,
+        color: cat.color ?? null,
+      }))
+      if (profileMode.value !== 'existing') {
+        assignments.value = {}
+      }
     }
     ensureAssignments()
     syncTotalsWithStrategy()
@@ -365,12 +435,70 @@ export function useOnboardingWizard(options: { props: WizardProps; emit: WizardE
     assignments.value = next
   }
 
-  const calendarById = computed(() => new Map(props.calendars.map((cal) => [cal.id, cal])))
-  const selectedCalendars = computed(() =>
-    localSelection.value
-      .map((id) => calendarById.value.get(id))
-      .filter((cal): cal is CalendarSummary => Boolean(cal)),
+  const availableHistoryLookback = computed(() => Math.max(0, Math.min(6, historyWindows.value.length)))
+  const activeHistoryLookback = computed(() => {
+    const available = availableHistoryLookback.value
+    if (available <= 0) return 0
+    return Math.max(1, Math.min(available, trendLookbackInput.value))
+  })
+  const historySummary = computed(() => {
+    const lookback = activeHistoryLookback.value
+    if (lookback <= 0) {
+      return {
+        enabled: false,
+        available: 0,
+        label: 'No recent history available',
+      }
+    }
+    return {
+      enabled: true,
+      available: availableHistoryLookback.value,
+      label: `Suggestions use the last ${lookback} ${lookback === 1 ? 'week' : 'weeks'} of available history.`,
+    }
+  })
+  const suggestedCalendarTargets = computed<Record<string, number>>(() => {
+    const lookback = activeHistoryLookback.value
+    if (lookback <= 0) return {}
+    const next: Record<string, number> = {}
+    const windows = historyWindows.value.slice(0, lookback)
+    props.calendars.forEach((cal) => {
+      const values = windows.map((slot) => Number(slot.totals[cal.id] ?? 0))
+      if (!values.length) return
+      const average = values.reduce((sum, value) => sum + value, 0) / values.length
+      if (average <= 0) return
+      next[cal.id] = roundGoal(average)
+    })
+    return next
+  })
+  const suggestedCategoryTargets = computed<Record<string, number>>(() => {
+    const next: Record<string, number> = {}
+    categories.value.forEach((cat) => {
+      const total = selectedCalendarIds.value.reduce((sum, calId) => {
+        if (assignments.value[calId] !== cat.id) return sum
+        return sum + Number(suggestedCalendarTargets.value[calId] ?? 0)
+      }, 0)
+      if (total > 0) next[cat.id] = roundGoal(total)
+    })
+    return next
+  })
+  const unassignedSelectedCalendars = computed(() =>
+    selectedCalendars.value.filter((cal) => categoriesEnabled.value && !assignments.value[cal.id]),
   )
+  const goalsHealth = computed(() => {
+    const assigned = selectedCalendarIds.value.filter((id) => assignments.value[id]).length
+    const unassigned = selectedCalendarIds.value.length - assigned
+    const categoryTotal = categoryTotalHours.value
+    const calendarTotal = totalCalendarTargetHours.value
+    const delta = roundGoal(calendarTotal - categoryTotal)
+    return {
+      assigned,
+      unassigned,
+      calendarTotal,
+      categoryTotal,
+      delta,
+      totalsMatch: Math.abs(delta) < 0.01,
+    }
+  })
 
   const draft = computed(() =>
     buildStrategyResult(
@@ -386,6 +514,11 @@ export function useOnboardingWizard(options: { props: WizardProps; emit: WizardE
   function syncTotalsWithStrategy() {
     if (categoriesEnabled.value) {
       totalHoursInput.value = clampTotalHours(categoryTotalHours.value)
+      return
+    }
+    if (selectedStrategy.value === 'total_plus_categories') {
+      const derived = totalCalendarTargetHours.value
+      totalHoursInput.value = derived > 0 ? clampTotalHours(derived) : totalHoursInput.value
       return
     }
     if (totalHoursInput.value === null) {
@@ -417,16 +550,16 @@ export function useOnboardingWizard(options: { props: WizardProps; emit: WizardE
         return 'Intro'
       case 'strategy':
         return 'Strategy'
-      case 'dashboard':
-        return 'Dashboard'
       case 'calendars':
         return 'Calendars'
-      case 'categories':
-        return 'Targets'
+      case 'deck':
+        return 'Deck'
+      case 'goals':
+        return 'Goals'
       case 'preferences':
         return 'Preferences'
-      case 'deck':
-        return 'Deck boards'
+      case 'dashboard':
+        return 'Dashboard'
       case 'review':
         return 'Review'
       default:
@@ -456,9 +589,21 @@ export function useOnboardingWizard(options: { props: WizardProps; emit: WizardE
     }
   })
 
+  watch(totalCalendarTargetHours, (total) => {
+    if (!categoriesEnabled.value && selectedStrategy.value === 'total_plus_categories' && total > 0) {
+      totalHoursInput.value = clampTotalHours(total)
+    }
+  })
+
   watch(currentStep, (step) => {
-    if (step !== 'categories') {
+    if (step !== 'goals') {
       closeColorPopover()
+    }
+    if (step === 'goals' && categoriesEnabled.value && categories.value.length === 0) {
+      initializeStrategyState()
+      if (!categories.value.length) {
+        applyCategoryPreset(categoryPresets[0])
+      }
     }
   })
 
@@ -518,6 +663,28 @@ export function useOnboardingWizard(options: { props: WizardProps; emit: WizardE
     categories.value = categories.value.map((cat) => (cat.id === id ? { ...cat, label: value } : cat))
   }
 
+  function moveCategory(id: string, direction: 'up' | 'down') {
+    const index = categories.value.findIndex((cat) => cat.id === id)
+    if (index < 0) return
+    const nextIndex = direction === 'up' ? index - 1 : index + 1
+    if (nextIndex < 0 || nextIndex >= categories.value.length) return
+    const next = [...categories.value]
+    const [item] = next.splice(index, 1)
+    next.splice(nextIndex, 0, item)
+    categories.value = next
+  }
+
+  function reorderCategory(sourceId: string, targetId: string) {
+    if (sourceId === targetId) return
+    const sourceIndex = categories.value.findIndex((cat) => cat.id === sourceId)
+    const targetIndex = categories.value.findIndex((cat) => cat.id === targetId)
+    if (sourceIndex < 0 || targetIndex < 0) return
+    const next = [...categories.value]
+    const [item] = next.splice(sourceIndex, 1)
+    next.splice(targetIndex, 0, item)
+    categories.value = next
+  }
+
   function applyCategoryPreset(preset: CategoryPreset) {
     categories.value = preset.categories.map((cat, index) => ({
       id: String(cat.id || `cat_${index}`),
@@ -547,6 +714,11 @@ export function useOnboardingWizard(options: { props: WizardProps; emit: WizardE
       ...assignments.value,
       [calId]: categoryId,
     }
+  }
+
+  function addCalendarToCategory(categoryId: string, calId: string) {
+    if (!localSelection.value.includes(calId)) return
+    assignCalendar(calId, categoryId)
   }
 
   function toggleColorPopover(id: string) {
@@ -639,6 +811,11 @@ export function useOnboardingWizard(options: { props: WizardProps; emit: WizardE
     return JSON.parse(JSON.stringify(value))
   }
 
+  function roundGoal(value: number): number {
+    if (!Number.isFinite(value)) return 0
+    return Math.round(Math.max(0, value) * 2) / 2
+  }
+
   async function loadDeckBoards() {
     deckBoardsLoading.value = true
     deckBoardsError.value = ''
@@ -657,6 +834,53 @@ export function useOnboardingWizard(options: { props: WizardProps; emit: WizardE
       deckBoards.value = []
     } finally {
       deckBoardsLoading.value = false
+    }
+  }
+
+  async function loadHistoryWindows() {
+    suggestionsLoading.value = true
+    suggestionsError.value = ''
+    const calendarIds = props.calendars.map((cal) => cal.id).filter(Boolean)
+    if (!calendarIds.length) {
+      historyWindows.value = []
+      suggestionsLoading.value = false
+      return
+    }
+    try {
+      const slots: CalendarHistorySlot[] = []
+      for (let offset = 1; offset <= 6; offset += 1) {
+        const payload = await postJson(route('loadData'), {
+          range: 'week',
+          offset,
+          cals: calendarIds,
+          include: ['data'],
+        })
+        const series = Array.isArray(payload?.charts?.perDaySeries?.series)
+          ? payload.charts.perDaySeries.series
+          : []
+        const totals: Record<string, number> = {}
+        series.forEach((entry: any) => {
+          const id = String(entry?.id ?? '')
+          if (!id) return
+          const data = Array.isArray(entry?.data) ? entry.data : []
+          totals[id] = roundGoal(data.reduce((sum: number, value: any) => sum + Number(value || 0), 0))
+        })
+        if (!Object.keys(totals).length) {
+          const byCal = Array.isArray(payload?.byCal) ? payload.byCal : []
+          byCal.forEach((entry: any) => {
+            const id = String(entry?.id ?? entry?.calendarId ?? '')
+            if (!id) return
+            totals[id] = roundGoal(Number(entry?.hours ?? entry?.total ?? 0))
+          })
+        }
+        slots.push({ offset, totals })
+      }
+      historyWindows.value = slots
+    } catch (error) {
+      suggestionsError.value = 'Recent activity could not be loaded.'
+      historyWindows.value = []
+    } finally {
+      suggestionsLoading.value = false
     }
   }
 
@@ -726,24 +950,73 @@ export function useOnboardingWizard(options: { props: WizardProps; emit: WizardE
     reportingDraft.value = { ...reportingDraft.value, ...patch }
   }
 
+  function createFallbackQuickTargets(selection: string[]) {
+    const noisePattern = /(birthday|holiday|feiertag|urlaub|contacts?)/i
+    const values = [4, 5, 6]
+    const next: Record<string, number> = {}
+    let valueIndex = 0
+    selection.forEach((id) => {
+      const cal = calendarById.value.get(id)
+      const label = cal?.displayname ?? ''
+      if (noisePattern.test(label)) return
+      next[id] = values[valueIndex % values.length]
+      valueIndex += 1
+    })
+    return next
+  }
+
+  function runQuickSetup() {
+    const allCalendarIds = props.calendars.map((cal) => cal.id).filter(Boolean)
+    localSelection.value = allCalendarIds
+    selectedStrategy.value = 'total_plus_categories'
+    dashboardMode.value = 'standard'
+    themePreference.value = 'auto'
+    allDayHoursInput.value = 8
+    reportingDraft.value = { ...createDefaultReportingConfig(), enabled: false }
+    trendLookbackInput.value = clampLookback(activeHistoryLookback.value || 3)
+    deckSettingsDraft.value = cloneDeckSettings(createDefaultDeckSettings())
+    if (deckBoards.value.length) {
+      deckSettingsDraft.value.enabled = true
+      deckSettingsDraft.value.hiddenBoards = []
+    } else {
+      deckSettingsDraft.value.enabled = false
+      deckSettingsDraft.value.hiddenBoards = []
+    }
+    categories.value = []
+    assignments.value = {}
+    const suggested = Object.fromEntries(
+      Object.entries(suggestedCalendarTargets.value).filter(([id]) => allCalendarIds.includes(id)),
+    )
+    calendarTargets.value = Object.keys(suggested).length ? suggested : createFallbackQuickTargets(allCalendarIds)
+    totalHoursInput.value = clampTotalHours(
+      Object.values(calendarTargets.value).reduce((sum, hours) => sum + Number(hours || 0), 0) || 40,
+    )
+    emitComplete()
+  }
+
   const canGoBack = computed(() => stepIndex.value > 0)
   const canGoNext = computed(() => stepIndex.value < enabledSteps.value.length - 1)
 
   const nextDisabled = computed(() => {
+    if (currentStep.value === 'intro') {
+      return !introChoice.value
+    }
     if (currentStep.value === 'strategy') {
       return !selectedStrategy.value
     }
     if (currentStep.value === 'calendars') {
       return localSelection.value.length === 0
     }
-    if (currentStep.value === 'categories' && categoriesEnabled.value) {
-      if (!localSelection.value.length) return true
-      if (!categories.value.length) return true
+    if (currentStep.value === 'goals') {
+      if (selectedStrategy.value === 'total_only') {
+        return totalHoursInput.value === null || totalHoursInput.value <= 0
+      }
+      if (categoriesEnabled.value) {
+        if (!localSelection.value.length) return true
+        if (!categories.value.length) return true
+      }
     }
     if (currentStep.value === 'preferences') {
-      if (!categoriesEnabled.value) {
-        if (totalHoursInput.value === null || totalHoursInput.value < 0) return true
-      }
       if (allDayHoursInput.value < 0 || allDayHoursInput.value > 24) return true
     }
     if (currentStep.value === 'review') {
@@ -753,6 +1026,12 @@ export function useOnboardingWizard(options: { props: WizardProps; emit: WizardE
   })
 
   function nextStep() {
+    if (currentStep.value === 'intro') {
+      if (introChoice.value === 'quick') {
+        runQuickSetup()
+        return
+      }
+    }
     if (canGoNext.value && !nextDisabled.value) {
       stepIndex.value++
     }
@@ -789,6 +1068,9 @@ export function useOnboardingWizard(options: { props: WizardProps; emit: WizardE
     config.balance.trend.lookbackWeeks = clampLookback(trendLookbackInput.value)
     if (categoriesEnabled.value) {
       const total = clampTotalHours(categoryTotalHours.value)
+      if (total != null) config.totalHours = total
+    } else if (selectedStrategy.value === 'total_plus_categories') {
+      const total = clampTotalHours(totalCalendarTargetHours.value)
       if (total != null) config.totalHours = total
     } else if (totalHoursInput.value != null) {
       const total = clampTotalHours(totalHoursInput.value)
@@ -841,6 +1123,9 @@ export function useOnboardingWizard(options: { props: WizardProps; emit: WizardE
     if (categoriesEnabled.value) {
       const total = clampTotalHours(categoryTotalHours.value)
       if (total != null) config.totalHours = total
+    } else if (selectedStrategy.value === 'total_plus_categories') {
+      const total = clampTotalHours(totalCalendarTargetHours.value)
+      if (total != null) config.totalHours = total
     } else if (totalHoursInput.value != null) {
       const total = clampTotalHours(totalHoursInput.value)
       if (total != null) config.totalHours = total
@@ -891,13 +1176,15 @@ export function useOnboardingWizard(options: { props: WizardProps; emit: WizardE
         targets_month: targetsPayload.targetsMonth,
       }
     }
-    if (step === 'dashboard') {
-      return { onboarding: onboardingDraft, dashboardMode: dashboardMode.value, widgets: dashboardWidgets.value }
-    }
     if (step === 'calendars') {
       return { cals: targetsPayload.selected }
     }
-    if (step === 'categories') {
+    if (step === 'deck') {
+      return {
+        deck_settings: cloneDeckSettings(deckSettingsDraft.value),
+      }
+    }
+    if (step === 'goals') {
       return {
         targets_config: targetsPayload.targetsConfig,
         groups: targetsPayload.groups,
@@ -912,10 +1199,8 @@ export function useOnboardingWizard(options: { props: WizardProps; emit: WizardE
         reporting_config: { ...reportingDraft.value },
       }
     }
-    if (step === 'deck') {
-      return {
-        deck_settings: cloneDeckSettings(deckSettingsDraft.value),
-      }
+    if (step === 'dashboard') {
+      return { onboarding: onboardingDraft, dashboardMode: dashboardMode.value, widgets: dashboardWidgets.value }
     }
     return {
       cals: targetsPayload.selected,
@@ -964,6 +1249,7 @@ export function useOnboardingWizard(options: { props: WizardProps; emit: WizardE
     selectedStrategy,
     dashboardMode,
     profileMode,
+    introChoice,
     saveProfile,
     profileName,
     localSelection,
@@ -979,6 +1265,8 @@ export function useOnboardingWizard(options: { props: WizardProps; emit: WizardE
     deckBoards,
     deckBoardsLoading,
     deckBoardsError,
+    suggestionsLoading,
+    suggestionsError,
     dashboardPresets,
     deckVisibleBoards,
     deckReviewSummary,
@@ -1001,9 +1289,18 @@ export function useOnboardingWizard(options: { props: WizardProps; emit: WizardE
     snapshotSaving,
     snapshotNotice,
     selectedCalendars,
+    selectedCalendarIds,
+    suggestedCalendarTargets,
+    suggestedCategoryTargets,
+    availableHistoryLookback,
+    activeHistoryLookback,
+    historySummary,
+    unassignedSelectedCalendars,
+    goalsHealth,
     draft,
     strategyTitle,
     setProfileMode,
+    setIntroChoice,
     setSaveProfile,
     setProfileName,
     applyStartStep,
@@ -1011,11 +1308,14 @@ export function useOnboardingWizard(options: { props: WizardProps; emit: WizardE
     stepLabel,
     addCategory,
     removeCategory,
+    moveCategory,
+    reorderCategory,
     setCategoryLabel,
     applyCategoryPreset,
     setCategoryTarget,
     toggleCategoryWeekend,
     assignCalendar,
+    addCalendarToCategory,
     setCalendarTarget,
     getCalendarTarget,
     toggleColorPopover,
@@ -1042,6 +1342,7 @@ export function useOnboardingWizard(options: { props: WizardProps; emit: WizardE
     handleSkip,
     handleClose,
     emitComplete,
+    runQuickSetup,
     toggleCalendar,
     resetWizard,
     buildStepPayload,

@@ -126,7 +126,7 @@ describe('DashboardLayout advanced targets overlay', () => {
     await wrapper.vm.$nextTick()
     const onboardingBtn = wrapper.findAll('button').find((btn) => btn.text().includes('Edit via onboarding'))
     await onboardingBtn?.trigger('click')
-    expect(wrapper.emitted('open:onboarding')?.[0]).toEqual(['categories'])
+    expect(wrapper.emitted('open:onboarding')?.[0]).toEqual(['goals'])
 
     await wrapper.find('.layout-item').trigger('click')
     await wrapper.vm.$nextTick()

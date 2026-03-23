@@ -173,7 +173,7 @@ function resetToGlobalTargets() {
 }
 
 function openOnboardingTargets() {
-  emit('open-onboarding', 'categories')
+  emit('open-onboarding', 'goals')
 }
 
 function sanitizeHexColor(value: any): string | null {

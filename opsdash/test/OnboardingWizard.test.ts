@@ -56,36 +56,64 @@ describe('OnboardingWizard', () => {
 
   it('honors startStep and allows jumping via step pills', async () => {
     const wrapper = mountWizard({
-      startStep: 'categories',
+      startStep: 'goals',
       initialStrategy: 'full_granular',
     })
-    const pills = wrapper.findAll('.step-pill')
-    const labels = pills.map((p) => p.text())
-    expect(labels).toContain('Targets')
-    const targetsPill = pills.find((p) => p.text() === 'Targets')
-    expect(targetsPill?.classes()).toContain('active')
+    const arrows = wrapper.findAll('.step-arrow')
+    const labels = arrows.map((p) => p.text())
+    expect(labels.some((label) => label.includes('Goals'))).toBe(true)
+    const goalsArrow = arrows.find((p) => p.text().includes('Goals'))
+    expect(goalsArrow?.classes()).toContain('current')
 
-    const calendarsPill = pills.find((p) => p.text() === 'Calendars')
-    await calendarsPill?.trigger('click')
-    expect(calendarsPill?.classes()).toContain('active')
+    const calendarsArrow = arrows.find((p) => p.text().includes('Calendars'))
+    await calendarsArrow?.trigger('click')
+    expect(calendarsArrow?.classes()).toContain('current')
   })
 
-  it('shows global trend lookback input in preferences', () => {
+  it('shows global trend lookback choices in preferences after opening the editor', async () => {
     const wrapper = mountWizard({
       startStep: 'preferences',
       initialTargetsConfig: { balanceTrendLookback: 5 },
     })
-    const inputs = wrapper.findAll('input[type="number"]')
-    const lookbackInput = inputs.find((node) => node.attributes('max') === '6' && node.attributes('min') === '1')
-    expect(lookbackInput).toBeDefined()
-    expect(lookbackInput?.element.value).toBe('5')
+    const lookbackRow = wrapper.findAll('.field-row').find((row) => row.text().includes('Trend lookback'))
+    const openButton = lookbackRow?.findAll('button').find((button) => button.text().includes('Choose'))
+    await openButton?.trigger('click')
+
+    const editor = wrapper.find('.editor-card')
+    expect(editor.exists()).toBe(true)
+    expect(editor.text()).toContain('Open trend lookback selection')
+    expect(editor.text()).toContain('5 weeks')
   })
 
   it('uses a dedicated deck boards step', () => {
     const wrapper = mountWizard({
       startStep: 'deck',
     })
-    expect(wrapper.find('.step-pill.active').text()).toContain('Deck boards')
+    expect(wrapper.find('.step-arrow.current').text()).toContain('Deck')
     expect(wrapper.text()).toContain('Choose Deck boards')
+  })
+
+  it('completes quick setup from intro with the default onboarding payload', async () => {
+    const wrapper = mountWizard({
+      hasExistingConfig: false,
+      initialSelection: [],
+    })
+
+    const quickCard = wrapper.findAll('.intro-route-card').find((card) => card.text().includes('Quick setup'))
+    await quickCard?.trigger('click')
+    const continueButton = wrapper.findAll('button').find((button) => button.text().includes('Continue'))
+    await continueButton?.trigger('click')
+
+    const complete = wrapper.emitted('complete')
+    expect(complete).toBeTruthy()
+    expect(complete?.[0]?.[0]?.strategy).toBe('total_plus_categories')
+    expect(complete?.[0]?.[0]?.dashboardMode).toBe('standard')
+    expect(complete?.[0]?.[0]?.selected).toEqual(['cal-1'])
+  })
+
+  it('renders the new onboarding step order', () => {
+    const wrapper = mountWizard()
+    const labels = wrapper.findAll('.step-arrow__label').map((node) => node.text())
+    expect(labels).toEqual(['Intro', 'Strategy', 'Calendars', 'Deck', 'Goals', 'Preferences', 'Dashboard', 'Review'])
   })
 })

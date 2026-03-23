@@ -1,6 +1,6 @@
 import { computed, nextTick, ref } from 'vue'
 
-export type StepId = 'intro' | 'strategy' | 'dashboard' | 'calendars' | 'categories' | 'preferences' | 'deck' | 'review'
+export type StepId = 'intro' | 'strategy' | 'calendars' | 'deck' | 'goals' | 'preferences' | 'dashboard' | 'review'
 
 export function createOnboardingWizardState() {
   const autoWizardNeeded = ref(false)

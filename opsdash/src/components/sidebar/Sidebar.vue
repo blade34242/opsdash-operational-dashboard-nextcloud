@@ -51,20 +51,28 @@
       </div>
       <ol class="onboarding-jumps">
         <li>
-          <button type="button" class="link" @click="$emit('rerun-onboarding', 'dashboard')">Dashboard</button>
-          <div v-if="guidedHints?.dashboard" class="onboarding-hint">{{ guidedHints.dashboard }}</div>
+          <button type="button" class="link" @click="$emit('rerun-onboarding', 'strategy')">Strategy</button>
+          <div v-if="guidedHints?.strategy" class="onboarding-hint">{{ guidedHints.strategy }}</div>
         </li>
         <li>
           <button type="button" class="link" @click="$emit('rerun-onboarding', 'calendars')">Calendars</button>
           <div v-if="guidedHints?.calendars" class="onboarding-hint">{{ guidedHints.calendars }}</div>
         </li>
         <li>
-          <button type="button" class="link" @click="$emit('rerun-onboarding', 'categories')">Targets</button>
-          <div v-if="guidedHints?.categories" class="onboarding-hint">{{ guidedHints.categories }}</div>
+          <button type="button" class="link" @click="$emit('rerun-onboarding', 'deck')">Deck</button>
+          <div v-if="guidedHints?.deck" class="onboarding-hint">{{ guidedHints.deck }}</div>
+        </li>
+        <li>
+          <button type="button" class="link" @click="$emit('rerun-onboarding', 'goals')">Goals</button>
+          <div v-if="guidedHints?.goals" class="onboarding-hint">{{ guidedHints.goals }}</div>
         </li>
         <li>
           <button type="button" class="link" @click="$emit('rerun-onboarding', 'preferences')">Preferences</button>
           <div v-if="guidedHints?.preferences" class="onboarding-hint">{{ guidedHints.preferences }}</div>
+        </li>
+        <li>
+          <button type="button" class="link" @click="$emit('rerun-onboarding', 'dashboard')">Dashboard</button>
+          <div v-if="guidedHints?.dashboard" class="onboarding-hint">{{ guidedHints.dashboard }}</div>
         </li>
         <li>
           <button type="button" class="link" @click="$emit('rerun-onboarding', 'review')">Review</button>
@@ -120,7 +128,7 @@ const props = defineProps<{
   navToggleLabel: string
   navToggleIcon: string
   dashboardMode?: 'quick' | 'standard' | 'pro'
-  guidedHints?: Partial<Record<'dashboard' | 'calendars' | 'categories' | 'preferences' | 'review', string>>
+  guidedHints?: Partial<Record<'strategy' | 'calendars' | 'deck' | 'goals' | 'preferences' | 'dashboard' | 'review', string>>
 }>()
 
 const emit = defineEmits([

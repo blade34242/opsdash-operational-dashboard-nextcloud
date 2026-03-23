@@ -201,7 +201,7 @@ export function useOnboardingActions(deps: OnboardingActionDeps) {
         },
       })
       await deps.reloadAfterPersist()
-      deps.notifySuccess('You can revisit onboarding from the Targets tab any time.')
+      deps.notifySuccess('You can revisit the setup wizard any time from Guided Setup.')
     } catch (error) {
       console.error(error)
       deps.notifyError('Failed to update onboarding state')

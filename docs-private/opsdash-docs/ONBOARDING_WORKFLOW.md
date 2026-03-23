@@ -6,19 +6,42 @@
 - Manual reset via `?onboarding=reset`.
 
 ## Flow (current)
-1. Intro (edit current vs create new profile, optional backup).
-2. Strategy (Single Goal/Calendar Goals/Calendar + Categories).
-3. Dashboard layout (Empty/Standard/Advanced).
-4. Calendars (no defaults; at least one required).
-5. Categories/Targets (only for Calendar + Categories).
-6. Preferences (theme, all-day hours, reporting, activity day-off).
-7. Deck boards (enable Deck + choose visible boards).
-8. Review (summary + optional "save as new profile").
+1. Intro
+   - Existing config: default path is `Change current setup`.
+   - New setup: default path is `Quick setup`.
+   - `Quick setup` completes onboarding immediately.
+2. Strategy
+   - Modes: `Single Goal`, `Calendar Goals`, `Calendar + Category Goals`.
+   - This decides how the Goals step behaves later.
+3. Calendars
+   - Select calendars only.
+   - No defaults for manual setup; at least one selected calendar is required.
+4. Deck
+   - `Show Deck in this setup` stays positive by default.
+   - When boards exist, users choose visible boards from a scrollable list.
+   - When Deck or boards are unavailable, the step stays visible with an info/empty state.
+5. Goals
+   - `Single Goal`: one overall weekly target.
+   - `Calendar Goals`: per-calendar weekly goals.
+   - `Calendar + Category Goals`: category targets, calendar targets, assignments, suggestions, and reorder controls.
+   - Suggestions use the currently available 1-6 week lookback window.
+6. Preferences
+   - Core defaults on the left, optional recap module on the right.
+   - Includes theme, all-day hours, and trend lookback.
+7. Dashboard
+   - Choose `Empty`, `Standard`, or `Advanced`.
+   - Uses visual preview thumbnails that match the saved widget preset.
+8. Review
+   - Configuration summary, readiness checks, and optional `save as new profile`.
 
 ## Rules
-- Calendar targets show in Calendar Goals and Calendar + Categories.
-- Category assignment is optional; Unassigned calendars are allowed.
-- Category presets seed common defaults.
+- Wizard step order is fixed to `Intro -> Strategy -> Calendars -> Deck -> Goals -> Preferences -> Dashboard -> Review`.
+- `Quick setup` selects all calendars, uses `Calendar Goals`, sets the standard dashboard, follows the Nextcloud theme, disables recap by default, and enables all Deck boards when available.
+- If recent history exists, `Quick setup` and the Goals step use lookback-based suggestions; otherwise fallback quick targets use small defaults (`4 / 5 / 6h` pattern).
+- Calendar targets are used in `Calendar Goals` and `Calendar + Category Goals`.
+- Category assignment is optional; `Unassigned` calendars are allowed.
+- Each calendar can map to at most one category.
+- Category presets seed common defaults for `Calendar + Category Goals`.
 - Wizard can save per step without finishing.
 
 ## Persistence

@@ -13,7 +13,7 @@ A quick guide to the docs that matter most when working on the Operational Dashb
 - **ROADMAP.md** - consolidated backlog and priorities.
 
 ## Feature Specs
-- **ONBOARDING_WORKFLOW.md** - end-to-end wizard requirements (calendars, targets, Deck/reporting toggles, activity prefs).
+- **ONBOARDING_WORKFLOW.md** - current 8-step wizard flow, quick-setup behavior, goal suggestion rules, and persistence notes.
 - **DECK_INTEGRATION.md** - API usage, seeding helpers, fixtures, and UI goals for the Deck tab.
 - **REPORTING_FEATURE.md** - recap cadence, delivery channels, and notification/email plans.
 - **SIDEBAR_CONFIGURATION.md** / **SIDEBAR_RANGE_CONTROLS.md** - every sidebar control, persistence path, and UX rationale.
