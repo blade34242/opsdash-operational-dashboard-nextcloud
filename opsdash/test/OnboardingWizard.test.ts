@@ -116,4 +116,51 @@ describe('OnboardingWizard', () => {
     const labels = wrapper.findAll('.step-arrow__label').map((node) => node.text())
     expect(labels).toEqual(['Intro', 'Strategy', 'Calendars', 'Deck', 'Goals', 'Preferences', 'Dashboard', 'Review'])
   })
+
+  it('removes category mix trend from single goal dashboard presets', async () => {
+    const wrapper = mountWizard({
+      startStep: 'review',
+      initialStrategy: 'total_only',
+      initialDashboardMode: 'pro',
+    })
+
+    const startButton = wrapper.findAll('button').find((button) => button.text().includes('Start dashboard'))
+    await startButton?.trigger('click')
+
+    const payload = wrapper.emitted('complete')?.[0]?.[0]
+    const widgetTypes = (payload?.widgets?.tabs || []).flatMap((tab: any) => (tab.widgets || []).map((widget: any) => widget.type))
+    expect(widgetTypes).not.toContain('category_mix_trend')
+    expect(widgetTypes).toContain('balance_index')
+  })
+
+  it('removes category mix trend from calendar goals dashboard presets', async () => {
+    const wrapper = mountWizard({
+      startStep: 'review',
+      initialStrategy: 'total_plus_categories',
+      initialDashboardMode: 'pro',
+    })
+
+    const startButton = wrapper.findAll('button').find((button) => button.text().includes('Start dashboard'))
+    await startButton?.trigger('click')
+
+    const payload = wrapper.emitted('complete')?.[0]?.[0]
+    const widgetTypes = (payload?.widgets?.tabs || []).flatMap((tab: any) => (tab.widgets || []).map((widget: any) => widget.type))
+    expect(widgetTypes).not.toContain('category_mix_trend')
+    expect(widgetTypes).toContain('balance_index')
+  })
+
+  it('keeps category mix trend for calendar plus category goals', async () => {
+    const wrapper = mountWizard({
+      startStep: 'review',
+      initialStrategy: 'full_granular',
+      initialDashboardMode: 'pro',
+    })
+
+    const startButton = wrapper.findAll('button').find((button) => button.text().includes('Start dashboard'))
+    await startButton?.trigger('click')
+
+    const payload = wrapper.emitted('complete')?.[0]?.[0]
+    const widgetTypes = (payload?.widgets?.tabs || []).flatMap((tab: any) => (tab.widgets || []).map((widget: any) => widget.type))
+    expect(widgetTypes).toContain('category_mix_trend')
+  })
 })

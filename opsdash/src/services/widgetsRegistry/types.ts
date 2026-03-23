@@ -91,6 +91,7 @@ export interface WidgetRenderContext {
   colorsByName?: Record<string, string>
   currentTargets?: Record<string, number>
   calendarTodayHours?: Record<string, number>
+  onboardingStrategy?: string | null
 }
 
 export type WidgetRenderer = (def: WidgetDefinition, ctx: WidgetRenderContext) => any

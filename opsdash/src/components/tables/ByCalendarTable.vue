@@ -16,9 +16,23 @@
         <tr class="group-row">
           <td colspan="5">
             <div class="group-header">
-              <div class="group-label">
-                <span class="dot" :style="{ background: group.color || 'var(--brand)' }"></span>
-                <span class="name">{{ group.label }}</span>
+              <div class="group-main">
+                <div class="group-label">
+                  <span class="dot" :style="{ background: group.color || 'var(--brand)' }"></span>
+                  <span class="name">{{ group.label }}</span>
+                </div>
+                <div class="group-progress" v-if="groupHasTarget(group)">
+                  <div class="group-progress__bar" :style="{ width: groupProgressPct(group) + '%', background: group.color || undefined }"></div>
+                  <div
+                    v-if="groupTodayOverlay(group)"
+                    class="group-progress__today"
+                    :style="{
+                      left: groupTodayOverlay(group)!.left + '%',
+                      width: groupTodayOverlay(group)!.pct + '%',
+                      background: group.color || 'var(--brand)',
+                    }"
+                  ></div>
+                </div>
               </div>
               <div class="group-meta" v-if="group.summary">
                 <span class="summary">{{ groupSummary(group) }}</span>
@@ -45,9 +59,7 @@
                     width: todayOverlay(row)!.pct + '%',
                     background: group.color || 'var(--brand)',
                   }"
-                >
-                  <span class="progress-chip">{{ todayOverlay(row)!.text }}</span>
-                </div>
+                ></div>
               </div>
             </div>
           </td>
@@ -79,6 +91,7 @@ type TableGroup = {
   label: string
   summary: TargetsProgress | null
   color?: string
+  todayHours?: number
   rows: any[]
 }
 
@@ -86,7 +99,7 @@ const props = defineProps<{
   rows: any[]
   n2: (v:any)=>string
   targets?: Record<string, number>
-  groups?: Array<{ id: string; label: string; summary: TargetsProgress; rows: any[]; color?: string }>
+  groups?: Array<{ id: string; label: string; summary: TargetsProgress; rows: any[]; color?: string; todayHours?: number }>
   todayHours?: Record<string, number>
 }>()
 
@@ -97,6 +110,7 @@ const grouped = computed<TableGroup[]>(() => {
       label: group.label,
       summary: group.summary ?? null,
       color: group.color,
+      todayHours: Number(group.todayHours ?? 0) || 0,
       rows: (group.rows || []).map(mapRow),
     }))
   }
@@ -180,7 +194,29 @@ function todayOverlay(row: any){
   const pct = Math.max(2, Math.min(120, (today / target) * 100))
   const progress = progressPct(row.total_hours, target)
   const left = Math.max(0, progress - pct)
-  return { pct, left, text: today.toFixed(2) + 'h' }
+  return { pct, left }
+}
+
+function groupHasTarget(group: TableGroup): boolean {
+  return !!group.summary && Number(group.summary.targetHours ?? 0) > 0
+}
+
+function groupProgressPct(group: TableGroup): number {
+  if (!group.summary) return 0
+  const actual = Number(group.summary.actualHours ?? 0)
+  const target = Number(group.summary.targetHours ?? 0)
+  return progressPct(actual, target)
+}
+
+function groupTodayOverlay(group: TableGroup) {
+  if (!group.summary) return null
+  const target = Number(group.summary.targetHours ?? 0)
+  const today = Number(group.todayHours ?? 0)
+  if (target <= 0 || today <= 0.0001) return null
+  const pct = Math.max(2, Math.min(120, (today / target) * 100))
+  const progress = groupProgressPct(group)
+  const left = Math.max(0, progress - pct)
+  return { pct, left }
 }
 
 function normalizeId(id: any): string {
@@ -231,9 +267,24 @@ tbody tr:not(.group-row):not(.empty-row):hover td{
 .group-row:hover td{
   background:color-mix(in oklab, var(--brand) 12%, var(--card) 88%);
 }
-.group-header{ display:flex; justify-content:space-between; align-items:center; gap:12px; font-size:12px }
+.group-header{ display:flex; justify-content:space-between; align-items:flex-start; gap:12px; font-size:12px }
+.group-main{ display:flex; flex-direction:column; gap:6px; min-width:0; flex:1 }
 .group-label{ display:flex; align-items:center; gap:8px; font-weight:600; color:var(--fg) }
 .group-label .dot{ width:10px; height:10px; border-radius:50%; background:var(--brand); box-shadow:0 0 0 1px color-mix(in srgb, var(--fg) 12%, transparent) }
+.group-progress{ position:relative; height:7px; max-width:320px; background:color-mix(in srgb, var(--muted) 22%, transparent); border-radius:999px; overflow:visible }
+.group-progress__bar{ height:100%; border-radius:999px; background:var(--brand); transition:width .2s ease }
+.group-progress__today{
+  position:absolute;
+  top:-2px;
+  height:11px;
+  border-radius:999px;
+  opacity:.98;
+  box-shadow:
+    0 0 0 1px color-mix(in srgb, white 38%, transparent),
+    0 0 8px color-mix(in srgb, white 42%, transparent),
+    0 0 14px color-mix(in srgb, var(--brand) 34%, transparent);
+  filter:saturate(1.2) brightness(1.06);
+}
 .group-meta{ display:flex; align-items:center; gap:8px; flex-wrap:wrap; color:var(--muted) }
 .group-meta .summary{ font-size:12px }
 .group-meta .summary-percent{ font-variant-numeric:tabular-nums; color:var(--fg); font-weight:600 }
@@ -245,10 +296,20 @@ tbody tr:not(.group-row):not(.empty-row):hover td{
 .status-none{ background:color-mix(in srgb, var(--muted) 12%, white); color:var(--muted) }
 .cell{ display:flex; flex-direction:column; gap:4px }
 .row-name{ font-weight:600; color:var(--fg) }
-.progress{ position:relative; height:6px; background:color-mix(in srgb, var(--muted) 22%, transparent); border-radius:999px; overflow:hidden }
+.progress{ position:relative; height:6px; background:color-mix(in srgb, var(--muted) 22%, transparent); border-radius:999px; overflow:visible }
 .progress-bar{ height:100%; border-radius:999px; background:var(--brand); transition:width .2s ease }
-.progress-today{ position:absolute; top:-2px; height:10px; border-radius:8px; opacity:0.9; display:flex; align-items:center; justify-content:center; box-shadow:0 1px 4px rgba(0,0,0,0.12); }
-.progress-chip{ font-size:10px; font-weight:700; color:#fff; padding:0 6px; white-space:nowrap; text-shadow:0 1px 3px rgba(0,0,0,0.25) }
+.progress-today{
+  position:absolute;
+  top:-2px;
+  height:10px;
+  border-radius:999px;
+  opacity:.98;
+  box-shadow:
+    0 0 0 1px color-mix(in srgb, white 38%, transparent),
+    0 0 8px color-mix(in srgb, white 42%, transparent),
+    0 0 14px color-mix(in srgb, var(--brand) 34%, transparent);
+  filter:saturate(1.2) brightness(1.08);
+}
 .num{ text-align:right; font-variant-numeric:tabular-nums; color:var(--fg) }
 .hint{ color:var(--muted); font-size:11px }
 .delta{ font-weight:600 }

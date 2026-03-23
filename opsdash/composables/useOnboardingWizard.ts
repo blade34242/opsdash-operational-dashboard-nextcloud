@@ -18,7 +18,7 @@ import {
   type ReportingConfig,
 } from '../src/services/reporting'
 import { clampTarget, convertWeekToMonth } from '../src/services/targets'
-import { createDefaultWidgetTabs } from '../src/services/widgetsRegistry'
+import { createDefaultWidgetTabs, filterWidgetTabsForStrategy } from '../src/services/widgetsRegistry'
 import { fetchDeckBoardsMeta } from '../src/services/deck'
 import { useOcHttp } from './useOcHttp'
 
@@ -241,7 +241,9 @@ export function useOnboardingWizard(options: { props: WizardProps; emit: WizardE
   const calendarTargetsEnabled = computed(() => selectedStrategyDef.value.layers.calendars)
   const isClosable = computed(() => props.closable !== false)
 
-  const dashboardWidgets = computed(() => createDefaultWidgetTabs(dashboardMode.value))
+  const dashboardWidgets = computed(() =>
+    filterWidgetTabsForStrategy(createDefaultWidgetTabs(dashboardMode.value), selectedStrategy.value),
+  )
 
   const enabledSteps = computed(() => [...stepOrder])
   const currentStep = computed<StepId>(() => enabledSteps.value[Math.min(stepIndex.value, enabledSteps.value.length - 1)])

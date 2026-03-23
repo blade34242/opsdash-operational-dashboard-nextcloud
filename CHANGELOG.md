@@ -5,6 +5,17 @@ All notable changes to this project will be documented in this file.
 ## Unreleased
 - None yet.
 
+## 0.7.1 - 2026-03-23
+### Changed
+- Calendar Table widget now adapts correctly to all three strategy modes: Single Goal, Calendar Goals, and Calendar + Category Goals.
+- Calendar Table now trusts the real onboarding strategy before stale stored category config, so Single Goal setups no longer render as category-driven views.
+- Category Mix Trend is now removed from Single Goal and Calendar Goals dashboard presets while remaining available for Calendar + Category Goals.
+
+### Fixed
+- Fixed Calendar Table mode detection when old category config remained in storage after switching to Single Goal.
+- Fixed Calendar Table visual hierarchy for category rows by adding category-level progress bars in Calendar + Category Goals mode.
+- Replaced the old numeric “today” overlay chips in Calendar Table progress bars with a cleaner neon highlight for both category and calendar progress states.
+
 ## 0.7.0 - 2026-03-23
 ### Added
 - Guided onboarding now supports a real one-click `Quick setup` path that finishes setup immediately with sensible defaults, uses recent lookback data when available, and falls back to lightweight per-calendar goals when no history exists.

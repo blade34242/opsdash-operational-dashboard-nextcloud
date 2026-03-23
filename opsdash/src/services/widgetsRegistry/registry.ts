@@ -18,6 +18,8 @@ import { targetsV2Entry } from './widgets/targets_v2'
 import { timeSummaryLookbackEntry, timeSummaryOverviewEntry } from './widgets/time_summary_v2'
 import { createDefaultWidgetTabs as createDefaultWidgetTabsFromDefaults, getWidgetPreset } from '../widgetDefaults'
 
+type StrategyId = 'total_only' | 'total_plus_categories' | 'full_granular'
+
 const CHART_FILTER_WIDGETS = new Set(['chart_pie', 'chart_stacked', 'chart_per_day', 'chart_dow'])
 
 function parseIdList(input: any): string[] {
@@ -141,6 +143,44 @@ export function createDefaultWidgets(): WidgetDefinition[] {
 
 export function createDefaultWidgetTabs(mode: DashboardMode): WidgetTabsState {
   return createDefaultWidgetTabsFromDefaults(mode)
+}
+
+export function getRestrictedWidgetTypesForStrategy(strategy?: string | null): string[] {
+  if (strategy === 'total_only') {
+    return ['category_mix_trend']
+  }
+  if (strategy === 'total_plus_categories') {
+    return ['category_mix_trend']
+  }
+  return []
+}
+
+export function filterWidgetDefinitionsForStrategy(
+  widgets: WidgetDefinition[],
+  strategy?: StrategyId | string | null,
+): WidgetDefinition[] {
+  const restricted = new Set(getRestrictedWidgetTypesForStrategy(strategy))
+  if (!restricted.size) return widgets
+  return widgets.filter((widget) => !restricted.has(String(widget?.type ?? '')))
+}
+
+export function filterWidgetTabsForStrategy(
+  state: WidgetTabsState,
+  strategy?: StrategyId | string | null,
+): WidgetTabsState {
+  const restricted = new Set(getRestrictedWidgetTypesForStrategy(strategy))
+  if (!restricted.size) return state
+
+  const tabs = (state?.tabs || []).map((tab) => ({
+    ...tab,
+    widgets: (tab.widgets || []).filter((widget) => !restricted.has(String(widget?.type ?? ''))),
+  }))
+
+  const defaultTabId = tabs.some((tab) => tab.id === state.defaultTabId)
+    ? state.defaultTabId
+    : (tabs[0]?.id || 'tab-1')
+
+  return { tabs, defaultTabId }
 }
 
 export function normalizeWidgetTabs(raw: any, fallback: WidgetTabsState): WidgetTabsState {

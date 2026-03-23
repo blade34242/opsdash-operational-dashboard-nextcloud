@@ -5,6 +5,13 @@ This file is a short internal log. Full release notes live in the repo root `CHA
 ## Unreleased
 - None yet.
 
+## 0.7.1 - 2026-03-23
+- Calendar Table auf alle drei Strategy-Modi angepasst: `Single Goal`, `Calendar Goals`, `Calendar + Category Goals`.
+- Calendar Table erkennt den echten Onboarding-Strategy-State jetzt vor eventuell alten gespeicherten Kategorien; `Single Goal` kippt damit nicht mehr fälschlich in den Category-Modus.
+- `Category Mix Trend` aus `Single Goal` und `Calendar Goals` Presets entfernt; bleibt nur für `Calendar + Category Goals`.
+- Category-Zeilen im Calendar Table bekommen jetzt eigene Progress Bars.
+- Die alte numerische `today`-Einblendung in den Progress Bars wurde durch einen ruhigeren Neon-Highlight-State ersetzt.
+
 ## 0.7.0 - 2026-03-23
 - Onboarding komplett auf den neuen 8-Schritte-Flow umgebaut: `Intro -> Strategy -> Calendars -> Deck -> Goals -> Preferences -> Dashboard -> Review`.
 - Neue Arrow-Navigation mit `done/current/upcoming`-Zuständen ersetzt die alte kompakte Step-Pill-Optik im Wizard.

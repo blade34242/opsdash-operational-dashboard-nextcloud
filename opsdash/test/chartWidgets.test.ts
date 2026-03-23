@@ -34,6 +34,72 @@ describe('chart widgets', () => {
     expect(props.rows[0].id).toBe('cal-2')
   })
 
+  it('keeps calendar table ungrouped for single goal', () => {
+    const entry = widgetsRegistry.calendar_table
+    const props = entry.buildProps({ options: {} } as any, {
+      byCal: [{ id: 'cal-1', total_hours: 2 }],
+      currentTargets: {},
+      onboardingStrategy: 'total_only',
+      targetsConfig: { totalHours: 40, categories: [] },
+      calendarGroups: [{ id: '__uncategorized__', label: 'Unassigned', rows: [{ id: 'cal-1', total_hours: 2 }] }],
+      calendarTodayHours: {},
+    } as any) as any
+
+    expect(props.mode).toBe('single_goal')
+    expect(props.totalTarget).toBe(40)
+    expect(props.groups).toEqual([])
+  })
+
+  it('keeps calendar table ungrouped for calendar goals', () => {
+    const entry = widgetsRegistry.calendar_table
+    const props = entry.buildProps({ options: {} } as any, {
+      byCal: [{ id: 'cal-1', total_hours: 2 }],
+      currentTargets: { 'cal-1': 8 },
+      onboardingStrategy: 'total_plus_categories',
+      targetsConfig: { totalHours: 8, categories: [] },
+      calendarGroups: [{ id: '__uncategorized__', label: 'Unassigned', rows: [{ id: 'cal-1', total_hours: 2 }] }],
+      calendarTodayHours: {},
+    } as any) as any
+
+    expect(props.mode).toBe('calendar_goals')
+    expect(props.groups).toEqual([])
+    expect(props.targets).toEqual({ 'cal-1': 8 })
+  })
+
+  it('keeps category grouping for category and calendar goals', () => {
+    const entry = widgetsRegistry.calendar_table
+    const groups = [{ id: 'deep-work', label: 'Deep Work', rows: [{ id: 'cal-1', total_hours: 2 }] }]
+    const props = entry.buildProps({ options: {} } as any, {
+      byCal: [{ id: 'cal-1', total_hours: 2 }],
+      currentTargets: { 'cal-1': 8 },
+      onboardingStrategy: 'full_granular',
+      targetsConfig: { totalHours: 12, categories: [{ id: 'deep-work', label: 'Deep Work', targetHours: 12 }] },
+      calendarGroups: groups,
+      calendarTodayHours: {},
+    } as any) as any
+
+    expect(props.mode).toBe('category_and_calendar_goals')
+    expect(props.groups).toEqual(groups)
+  })
+
+  it('prefers onboarding strategy over stale categories in single goal mode', () => {
+    const entry = widgetsRegistry.calendar_table
+    const props = entry.buildProps({ options: {} } as any, {
+      byCal: [{ id: 'cal-1', total_hours: 2 }],
+      currentTargets: {},
+      onboardingStrategy: 'total_only',
+      targetsConfig: {
+        totalHours: 40,
+        categories: [{ id: 'old-cat', label: 'Old Category', targetHours: 12 }],
+      },
+      calendarGroups: [{ id: 'old-cat', label: 'Old Category', rows: [{ id: 'cal-1', total_hours: 2 }] }],
+      calendarTodayHours: {},
+    } as any) as any
+
+    expect(props.mode).toBe('single_goal')
+    expect(props.groups).toEqual([])
+  })
+
   it('applies projection mode per chart widget', () => {
     const entry = widgetsRegistry.chart_stacked
     const today = new Date()

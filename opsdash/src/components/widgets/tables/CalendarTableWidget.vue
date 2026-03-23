@@ -4,6 +4,15 @@
       <div class="table-widget__title">{{ titleText }}</div>
       <div v-if="subtitle" class="table-widget__subtitle">{{ subtitle }}</div>
     </div>
+    <div v-if="mode === 'single_goal'" class="table-widget__context">
+      <span class="table-widget__badge">Single Goal</span>
+      <span v-if="totalTarget > 0" class="table-widget__context-text">Shared total target: {{ n2(totalTarget) }} h</span>
+      <span v-else class="table-widget__context-text">Shared total goal without per-calendar targets</span>
+    </div>
+    <div v-else-if="mode === 'category_and_calendar_goals'" class="table-widget__context">
+      <span class="table-widget__badge">Category + Calendar Goals</span>
+      <span class="table-widget__context-text">Grouped by category assignment with per-calendar targets.</span>
+    </div>
     <ByCalendarTable
       v-if="rows && rows.length"
       :rows="rows"
@@ -29,6 +38,8 @@ const props = defineProps<{
   targets?: Record<string, number>
   groups?: any[]
   todayHours?: Record<string, number>
+  mode?: 'single_goal' | 'calendar_goals' | 'category_and_calendar_goals'
+  totalTarget?: number
 }>()
 
 const showHeader = computed(() => props.showHeader !== false)
@@ -54,6 +65,27 @@ const n2 = (v: any) => Number(v ?? 0).toFixed(2)
 }
 .table-widget__subtitle {
   font-size: calc(12px * var(--widget-scale, 1));
+  color: var(--muted);
+}
+.table-widget__context {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+.table-widget__badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 3px 9px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  background: color-mix(in srgb, var(--brand) 14%, var(--card) 86%);
+  color: var(--brand);
+}
+.table-widget__context-text {
+  font-size: 12px;
   color: var(--muted);
 }
 .table-widget__empty {

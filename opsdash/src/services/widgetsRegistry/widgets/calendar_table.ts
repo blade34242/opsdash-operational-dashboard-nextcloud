@@ -9,6 +9,18 @@ const CalendarTableWidget = defineAsyncComponent(() =>
 
 const baseTitle = 'Calendar Table'
 
+function detectCalendarTableMode(ctx: any): 'single_goal' | 'calendar_goals' | 'category_and_calendar_goals' {
+  const strategy = String(ctx?.onboardingStrategy ?? '')
+  if (strategy === 'total_only') return 'single_goal'
+  if (strategy === 'total_plus_categories') return 'calendar_goals'
+  if (strategy === 'full_granular') return 'category_and_calendar_goals'
+
+  const categories = Array.isArray(ctx?.targetsConfig?.categories) ? ctx.targetsConfig.categories : []
+  if (categories.length > 0) return 'category_and_calendar_goals'
+  const currentTargets = ctx?.currentTargets && typeof ctx.currentTargets === 'object' ? ctx.currentTargets : {}
+  return Object.keys(currentTargets).length > 0 ? 'calendar_goals' : 'single_goal'
+}
+
 export const calendarTableEntry: RegistryEntry = {
   component: CalendarTableWidget,
   defaultLayout: { width: 'full', height: 'l', order: 70 },
@@ -29,11 +41,14 @@ export const calendarTableEntry: RegistryEntry = {
     ]
   },
   buildProps: (def, ctx) => {
+    const mode = detectCalendarTableMode(ctx)
     const calendarFilter = new Set(parseIdList(def.options?.calendarFilter))
     const rows = Array.isArray(ctx.byCal) ? ctx.byCal : []
     const filteredRows = calendarFilter.size
       ? rows.filter((row: any) => calendarFilter.has(String(row?.id ?? row?.calendar_id ?? row?.calendar ?? '')))
       : rows
+    const groupedRows = Array.isArray(ctx.calendarGroups) ? ctx.calendarGroups : (Array.isArray(ctx.groups) ? ctx.groups : [])
+    const groups = mode === 'category_and_calendar_goals' ? groupedRows : []
     return {
       title: buildTitle(baseTitle, def.options?.titlePrefix),
       subtitle: calendarFilter.size ? 'Filtered calendars' : undefined,
@@ -41,8 +56,10 @@ export const calendarTableEntry: RegistryEntry = {
       showHeader: def.options?.showHeader !== false,
       rows: filteredRows,
       targets: ctx.currentTargets || {},
-      groups: ctx.calendarGroups || [],
+      groups,
       todayHours: ctx.calendarTodayHours || {},
+      mode,
+      totalTarget: Number(ctx?.targetsConfig?.totalHours ?? 0) || 0,
     }
   },
 }

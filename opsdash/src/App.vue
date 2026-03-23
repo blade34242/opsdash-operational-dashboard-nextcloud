@@ -298,7 +298,15 @@ import DashboardLayout from './components/layout/DashboardLayout.vue'
 import { buildTargetsSummary, normalizeTargetsConfig, createEmptyTargetsSummary, createDefaultActivityCardConfig, createDefaultBalanceConfig, cloneTargetsConfig, convertWeekToMonth, type ActivityCardConfig, type BalanceConfig, type TargetsConfig } from './services/targets'
 import { normalizeReportingConfig, normalizeDeckSettings, type DeckFilterMode } from './services/reporting'
 import { ONBOARDING_VERSION, getStrategyDefinitions } from './services/onboarding'
-import { createDashboardPreset, createDefaultWidgetTabs, normalizeWidgetTabs, widgetsRegistry } from './services/widgetsRegistry'
+import {
+  createDashboardPreset,
+  createDefaultWidgetTabs,
+  filterWidgetDefinitionsForStrategy,
+  filterWidgetTabsForStrategy,
+  getRestrictedWidgetTypesForStrategy,
+  normalizeWidgetTabs,
+  widgetsRegistry,
+} from './services/widgetsRegistry'
 import { formatDateKey, getWeekNumber, parseDateKey } from './services/dateTime'
 // Lightweight notifications without @nextcloud/dialogs
 function notifySuccess(msg: string){
@@ -423,6 +431,7 @@ const { notesPrev, notesCurrDraft, notesHistory, isSavingNote, fetchNotes, saveN
 // Widget layout storage must be declared before downstream composables consume it
 const hasInitialLoad = ref(false)
 const dashboardMode = ref<'quick' | 'standard' | 'pro'>('standard')
+const widgetStrategy = ref<string | null>(null)
 const widgetsQueueSaveRef = ref<null | ((silent?: boolean) => void)>(null)
 const deckEnabledForWidgets = ref(true)
 
@@ -455,9 +464,9 @@ const {
 } = useWidgetLayoutManager({
   storageKey: 'opsdash.widgets.v1',
   widgetsRegistry,
-  createDefaultTabs: () => createDefaultWidgetTabs(dashboardMode.value),
+  createDefaultTabs: () => filterWidgetTabsForStrategy(createDefaultWidgetTabs(dashboardMode.value), widgetStrategy.value),
   normalizeWidgetTabs,
-  createDashboardPreset,
+  createDashboardPreset: (mode) => filterWidgetDefinitionsForStrategy(createDashboardPreset(mode), widgetStrategy.value),
   dashboardMode,
   deckEnabled: deckEnabledForWidgets,
   hasInitialLoad,
@@ -632,6 +641,13 @@ const setDeckFilter = (value: DeckFilterMode) => {
 }
 
 const onboardingState = onboarding
+watch(
+  () => onboardingState.value?.strategy ?? null,
+  (strategy) => {
+    widgetStrategy.value = strategy
+  },
+  { immediate: true },
+)
 
 const {
   themePreference,
@@ -690,28 +706,17 @@ const { queueSave, isSaving: reportingSaving } = useDashboardPersistence({
 
 widgetsQueueSaveRef.value = queueSave
 
-const isSingleGoalStrategy = computed(() => onboardingState.value?.strategy === 'total_only')
-
 const availableWidgetTypesForStrategy = computed(() => {
-  if (!isSingleGoalStrategy.value) return availableWidgetTypes.value
-  return availableWidgetTypes.value.filter((entry) => entry.type !== 'balance_index')
+  const restricted = new Set(getRestrictedWidgetTypesForStrategy(onboardingState.value?.strategy))
+  if (!restricted.size) return availableWidgetTypes.value
+  return availableWidgetTypes.value.filter((entry) => !restricted.has(entry.type))
 })
 
-function removeBalanceIndexFromTabsState(state: { tabs: any[]; defaultTabId: string }) {
-  let changed = false
-  const tabs = (state?.tabs || []).map((tab) => {
-    const sourceWidgets = Array.isArray(tab?.widgets) ? tab.widgets : []
-    const widgets = sourceWidgets.filter((widget: any) => String(widget?.type ?? '') !== 'balance_index')
-    if (widgets.length !== sourceWidgets.length) changed = true
-    return { ...tab, widgets }
-  })
-  return { changed, next: { tabs, defaultTabId: state?.defaultTabId || 'tab-1' } }
-}
-
-function enforceSingleGoalWidgetConstraints() {
-  if (!isSingleGoalStrategy.value) return
-  const { changed, next } = removeBalanceIndexFromTabsState(widgetTabsState.value as any)
-  if (!changed) return
+function enforceStrategyWidgetConstraints() {
+  const next = filterWidgetTabsForStrategy(widgetTabsState.value as any, onboardingState.value?.strategy)
+  const currentJson = JSON.stringify(widgetTabsState.value)
+  const nextJson = JSON.stringify(next)
+  if (currentJson === nextJson) return
   setTabsFromPayload(next)
   if (hasInitialLoad.value) {
     queueSave(false)
@@ -721,17 +726,17 @@ function enforceSingleGoalWidgetConstraints() {
 watch(
   () => newWidgetType.value,
   (type) => {
-    if (!isSingleGoalStrategy.value) return
-    if (type === 'balance_index') {
+    const restricted = new Set(getRestrictedWidgetTypesForStrategy(onboardingState.value?.strategy))
+    if (restricted.has(type)) {
       newWidgetType.value = ''
     }
   },
 )
 
 watch(
-  () => isSingleGoalStrategy.value,
+  () => onboardingState.value?.strategy,
   () => {
-    enforceSingleGoalWidgetConstraints()
+    enforceStrategyWidgetConstraints()
   },
   { immediate: true },
 )
@@ -739,7 +744,7 @@ watch(
 watch(
   () => widgetTabsState.value,
   () => {
-    enforceSingleGoalWidgetConstraints()
+    enforceStrategyWidgetConstraints()
   },
   { deep: true },
 )
@@ -1209,6 +1214,7 @@ const { widgetContext } = useWidgetRenderContext({
   colorsByName,
   currentTargets,
   calendarTodayHours,
+  onboardingStrategy: computed(() => onboardingState.value?.strategy ?? null),
 })
 
 const dashboardModeLabel = computed(() => {

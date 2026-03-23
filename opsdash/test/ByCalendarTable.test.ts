@@ -5,7 +5,7 @@ import ByCalendarTable from '../src/components/tables/ByCalendarTable.vue'
 const n2 = (v: any) => Number(v ?? 0).toFixed(2)
 
 describe('ByCalendarTable', () => {
-  it('renders today overlay with chip when todayHours are provided', () => {
+  it('renders a today highlight overlay without a numeric chip when todayHours are provided', () => {
     const wrapper = mount(ByCalendarTable, {
       props: {
         rows: [
@@ -19,9 +19,7 @@ describe('ByCalendarTable', () => {
 
     const overlay = wrapper.find('.progress-today')
     expect(overlay.exists()).toBe(true)
-    const chip = wrapper.find('.progress-chip')
-    expect(chip.exists()).toBe(true)
-    expect(chip.text()).toContain('2.00h')
+    expect(wrapper.find('.progress-chip').exists()).toBe(false)
   })
 
   it('omits today overlay when no todayHours are provided', () => {
