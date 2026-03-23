@@ -11,6 +11,8 @@ This file is a short internal log. Full release notes live in the repo root `CHA
 - `Category Mix Trend` aus `Single Goal` und `Calendar Goals` Presets entfernt; bleibt nur für `Calendar + Category Goals`.
 - Category-Zeilen im Calendar Table bekommen jetzt eigene Progress Bars.
 - Die alte numerische `today`-Einblendung in den Progress Bars wurde durch einen ruhigeren Neon-Highlight-State ersetzt.
+- Strategy-Step nutzt jetzt dieselbe Card-Sprache wie Intro statt eines separaten Artikel-Layouts.
+- Calendars-Step hat jetzt wie Deck einen eigenen internen Scroll-Container für lange Listen.
 
 ## 0.7.0 - 2026-03-23
 - Onboarding komplett auf den neuen 8-Schritte-Flow umgebaut: `Intro -> Strategy -> Calendars -> Deck -> Goals -> Preferences -> Dashboard -> Review`.

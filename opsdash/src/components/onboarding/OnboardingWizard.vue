@@ -475,8 +475,8 @@ function isStepLocked(index: number) {
 .onboarding-panel.theme-light .pref-hint,
 .onboarding-panel.theme-light .field .label,
 .onboarding-panel.theme-light .field-hint,
-.onboarding-panel.theme-light .strategy-card .subtitle,
-.onboarding-panel.theme-light .strategy-card footer,
+.onboarding-panel.theme-light .strategy-route-card .subtitle,
+.onboarding-panel.theme-light .strategy-route-card footer,
 .onboarding-panel.theme-light .theme-option__desc,
 .onboarding-panel.theme-light .theme-preview,
 .onboarding-panel.theme-light .preset-desc,
@@ -505,7 +505,7 @@ function isStepLocked(index: number) {
 .onboarding-panel.theme-light .onboarding-title h2,
 .onboarding-panel.theme-light .onboarding-step h3,
 .onboarding-panel.theme-light .onboarding-step h4,
-.onboarding-panel.theme-light .strategy-card h4,
+.onboarding-panel.theme-light .strategy-route-card h4,
 .onboarding-panel.theme-light .mode-card strong {
   color: #000000 !important;
 }
@@ -580,7 +580,7 @@ function isStepLocked(index: number) {
 .onboarding-panel.theme-dark .review-row,
 .onboarding-panel.theme-dark .deck-step-card,
 .onboarding-panel.theme-dark .pref-card,
-.onboarding-panel.theme-dark .strategy-card {
+.onboarding-panel.theme-dark .strategy-route-card {
   background: #111827;
   border-color: #1f2937;
 }
@@ -969,37 +969,20 @@ function isStepLocked(index: number) {
   gap: 16px;
 }
 
-.onboarding-overlay .strategy-intro {
-  margin: 0 0 20px;
-  max-width: 72ch;
+.onboarding-overlay .strategy-route-card {
+  height: 100%;
 }
 
-.onboarding-overlay .strategy-card {
-  border: 1px solid var(--color-border);
-  border-radius: 8px;
-  padding: 16px;
-  cursor: pointer;
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-  transition: border-color 0.15s ease, box-shadow 0.15s ease;
-}
-
-.onboarding-overlay .strategy-card.active {
-  border-color: var(--color-primary);
-  box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.2);
-}
-
-.onboarding-overlay .strategy-card h4 {
+.onboarding-overlay .strategy-route-card .subtitle {
   margin: 0;
 }
 
-.onboarding-overlay .strategy-card .subtitle {
-  color: var(--color-text-light);
+.onboarding-overlay .strategy-route-card ul {
   margin: 0;
+  padding-left: 18px;
 }
 
-.onboarding-overlay .strategy-card footer {
+.onboarding-overlay .strategy-route-card footer {
   margin-top: auto;
   font-size: 0.85rem;
   color: var(--color-text-light);
@@ -1009,6 +992,12 @@ function isStepLocked(index: number) {
   display: grid;
   gap: 6px;
   margin-top: 8px;
+}
+
+.onboarding-overlay .calendar-list--scroll {
+  max-height: 280px;
+  overflow: auto;
+  padding-right: 4px;
 }
 
 .onboarding-overlay .calendar-item {

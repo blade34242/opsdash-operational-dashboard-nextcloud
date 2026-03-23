@@ -1,7 +1,7 @@
 <template>
   <h3>Choose calendars to include</h3>
   <p>Select the calendars Opsdash should include. Goal editing happens later in the dedicated Goals step.</p>
-  <div class="calendar-list">
+  <div class="calendar-list calendar-list--scroll">
     <label
       v-for="cal in calendars"
       :key="cal.id"

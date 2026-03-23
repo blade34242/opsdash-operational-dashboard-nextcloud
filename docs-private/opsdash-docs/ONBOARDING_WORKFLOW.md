@@ -16,6 +16,7 @@
 3. Calendars
    - Select calendars only.
    - No defaults for manual setup; at least one selected calendar is required.
+   - Long calendar lists scroll inside the step, like Deck board selection.
 4. Deck
    - `Show Deck in this setup` stays positive by default.
    - When boards exist, users choose visible boards from a scrollable list.

@@ -10,6 +10,8 @@ All notable changes to this project will be documented in this file.
 - Calendar Table widget now adapts correctly to all three strategy modes: Single Goal, Calendar Goals, and Calendar + Category Goals.
 - Calendar Table now trusts the real onboarding strategy before stale stored category config, so Single Goal setups no longer render as category-driven views.
 - Category Mix Trend is now removed from Single Goal and Calendar Goals dashboard presets while remaining available for Calendar + Category Goals.
+- Strategy onboarding cards now use the same card language as the Intro step instead of a separate article-style layout.
+- Calendars onboarding now uses the same internal scroll-list behavior as Deck selection for long lists.
 
 ### Fixed
 - Fixed Calendar Table mode detection when old category config remained in storage after switching to Single Goal.
