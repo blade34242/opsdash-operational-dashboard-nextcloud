@@ -17,6 +17,10 @@ All notable changes to this project will be documented in this file.
 - Fixed onboarding wizard state resets by snapshotting the existing configuration on open, so strategy changes inside one wizard session no longer drop category assignments/suggestion context.
 - Replaced the `Targets` widget badge icon dependency with local SVG components, removing the `@iconoir/vue` unit-test warnings.
 
+## 0.7.2 - 2026-03-25
+### Fixed
+- Fixed the Playwright onboarding rerun coverage in CI by updating the E2E tests to use the current onboarding close action instead of the removed `Maybe later` button.
+
 ## 0.7.1 - 2026-03-23
 ### Changed
 - Calendar Table widget now adapts correctly to all three strategy modes: Single Goal, Calendar Goals, and Calendar + Category Goals.
