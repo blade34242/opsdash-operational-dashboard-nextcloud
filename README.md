@@ -67,6 +67,16 @@ make smoke
 
 ## Packaging
 ```bash
+make release VERSION=0.6.4
+```
+
+One-step release helper:
+- bumps `appinfo/info.xml`, `package.json`, `package-lock.json`, `opsdash/VERSION`, and `SECURITY.md`
+- runs the packaged app build
+- creates `build/dist/opsdash-<version>.tar.gz`
+
+Manual packaging only:
+```bash
 make appstore VERSION=0.6.4
 ```
 

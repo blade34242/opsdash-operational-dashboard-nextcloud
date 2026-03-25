@@ -14,15 +14,20 @@ This consolidates the release workflow, packaging/signing steps, App Store submi
 4. **Run tests** - `npm run test -- --run`, `composer run test:unit`, `npm run test:e2e`, security scripts in `tools/security/`.
 
 ## Packaging & Signing
-1. `VERSION=<x.y.z> make appstore` - copies `opsdash/` into `build/opsdash`, installs prod deps, strips dev files, and creates `build/opsdash-<version>.tar.gz`.
-2. Sign the staged app:
+1. Preferred one-step helper: `make release VERSION=<x.y.z>`
+   - runs `tools/release/bump_version.sh`
+   - updates versioned sources
+   - calls `make appstore VERSION=<x.y.z>`
+   - creates `build/dist/opsdash-<version>.tar.gz`
+2. Manual packaging only: `VERSION=<x.y.z> make appstore` - copies `opsdash/` into `build/opsdash`, installs prod deps, strips dev files, and creates `build/opsdash-<version>.tar.gz`.
+3. Sign the staged app:
    ```bash
    php /var/www/html/occ integrity:sign-app \
      --privateKey=/path/privkey.pem \
      --certificate=/path/cert.crt \
      --path=/absolute/path/to/build/opsdash
    ```
-3. Release automation enforces version sync before packaging (`tools/release/bump_version.sh`) and fails on tag/version mismatches.
+4. Release automation enforces version sync before packaging (`tools/release/bump_version.sh`) and fails on tag/version mismatches.
 
 ## App Store Submission
 - Upload the signed tarball via the Nextcloud App Store UI or REST API.
