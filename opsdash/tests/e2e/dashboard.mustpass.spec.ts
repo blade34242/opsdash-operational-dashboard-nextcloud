@@ -4,11 +4,15 @@ async function dismissOnboardingIfVisible(page: Page) {
   const dialog = page.getByRole('dialog')
   const onboardingHeading = page.getByRole('heading', { name: 'Welcome to Opsdash' })
   if (await dialog.isVisible({ timeout: 1000 }).catch(() => false)) {
-    const maybeLater = dialog.getByRole('button', { name: 'Maybe later' })
-    if (await maybeLater.isVisible().catch(() => false)) {
-      await maybeLater.click()
+    const closeButton = dialog.getByRole('button', { name: 'Close onboarding' })
+    if (await closeButton.isVisible().catch(() => false)) {
+      await closeButton.click()
       await expect(onboardingHeading).toBeHidden({ timeout: 15000 })
+      return
     }
+
+    await page.locator('.onboarding-backdrop').click({ force: true })
+    await expect(onboardingHeading).toBeHidden({ timeout: 15000 })
   }
 }
 
