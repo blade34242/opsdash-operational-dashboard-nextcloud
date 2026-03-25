@@ -1,16 +1,5 @@
 <template>
   <div class="layout-wrapper" :class="{ 'editable-mode': editable }" @click.self="clearSelection">
-    <DashboardGrid
-      :ordered="ordered"
-      :editable="editable"
-      :selected-id="selectedId"
-      :widget-type-list="widgetTypeList"
-      @select="selectItem"
-      @select-cell="selectCell"
-      @add="(type, hint) => emit('edit:add', type, hint)"
-      @reorder="(id, hint) => emit('edit:reorder', id, hint)"
-    />
-
     <DashboardToolbar
       :editable="editable && !advancedTargetsId"
       :selected-item="selectedItem"
@@ -26,6 +15,17 @@
       @toggle-options="toggleOptions"
       @open-advanced="openAdvancedTargets"
       @edit-options="(id, key, value) => emit('edit:options', id, key, value)"
+    />
+
+    <DashboardGrid
+      :ordered="ordered"
+      :editable="editable"
+      :selected-id="selectedId"
+      :widget-type-list="widgetTypeList"
+      @select="selectItem"
+      @select-cell="selectCell"
+      @add="(type, hint) => emit('edit:add', type, hint)"
+      @reorder="(id, hint) => emit('edit:reorder', id, hint)"
     />
 
     <DashboardAdvancedTargetsOverlay
@@ -203,7 +203,6 @@ defineExpose({
   position:relative;
 }
 .layout-wrapper.editable-mode{
-  padding-bottom:120px;
   overflow:visible;
 }
 </style>

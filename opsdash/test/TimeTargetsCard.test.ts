@@ -254,4 +254,100 @@ describe('TimeTargetsCard', () => {
 
     expect(wrapper.find('.targets-header').exists()).toBe(false)
   })
+
+  it('keeps done targets in the endless zone when never finished mode is enabled', () => {
+    const summary = {
+      total: {
+        id: 'total',
+        label: 'Total',
+        actualHours: 22,
+        targetHours: 20,
+        percent: 110,
+        deltaHours: 2,
+        remainingHours: 0,
+        needPerDay: 0,
+        daysLeft: 0,
+        calendarPercent: 100,
+        gap: 10,
+        status: 'done',
+        statusLabel: 'Done',
+        includeWeekend: true,
+        paceMode: 'days_only',
+      },
+      categories: [
+        {
+          id: 'work',
+          label: 'Work',
+          actualHours: 15,
+          targetHours: 12,
+          percent: 125,
+          deltaHours: 3,
+          remainingHours: 0,
+          needPerDay: 0,
+          daysLeft: 0,
+          calendarPercent: 100,
+          gap: 25,
+          status: 'done',
+          statusLabel: 'Done',
+          includeWeekend: true,
+          paceMode: 'days_only',
+        },
+      ],
+      forecast: { text: 'On pace', linear: 22, momentum: 24, primaryMethod: 'linear' as const },
+    }
+
+    const wrapper = mount(TimeTargetsCard, {
+      props: {
+        summary,
+        config: createDefaultTargetsConfig(),
+        neverFinishedMode: true,
+      },
+    })
+
+    expect(wrapper.text()).toContain('Never Finished')
+    expect(wrapper.text()).toContain('Stay Hard')
+    expect(wrapper.text()).not.toContain('Done')
+    expect(wrapper.find('.targets-hustle').exists()).toBe(true)
+    expect(wrapper.text()).not.toContain('110%')
+    const hintedPercent = wrapper.text().match(/(\d+)%/)
+    expect(hintedPercent).not.toBeNull()
+    expect(Number.parseInt(hintedPercent?.[1] ?? '0', 10)).toBeGreaterThanOrEqual(80)
+    expect(Number.parseInt(hintedPercent?.[1] ?? '0', 10)).toBeLessThan(100)
+  })
+
+  it('keeps real percentages below the endless threshold', () => {
+    const summary = {
+      total: {
+        id: 'total',
+        label: 'Total',
+        actualHours: 15,
+        targetHours: 20,
+        percent: 75,
+        deltaHours: -5,
+        remainingHours: 5,
+        needPerDay: 1,
+        daysLeft: 5,
+        calendarPercent: 60,
+        gap: 15,
+        status: 'on_track',
+        statusLabel: 'On Track',
+        includeWeekend: true,
+        paceMode: 'days_only',
+      },
+      categories: [],
+      forecast: { text: 'Forecast text', linear: 18, momentum: 19, primaryMethod: 'linear' as const },
+    }
+
+    const wrapper = mount(TimeTargetsCard, {
+      props: {
+        summary,
+        config: createDefaultTargetsConfig(),
+        neverFinishedMode: true,
+      },
+    })
+
+    expect(wrapper.text()).toContain('75%')
+    expect(wrapper.text()).toContain('On Track')
+    expect(wrapper.text()).not.toContain('Stay Hard')
+  })
 })

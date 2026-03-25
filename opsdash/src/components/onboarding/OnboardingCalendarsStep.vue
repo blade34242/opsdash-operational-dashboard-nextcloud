@@ -1,6 +1,12 @@
 <template>
-  <h3>Choose calendars to include</h3>
-  <p>Select the calendars Opsdash should include. Goal editing happens later in the dedicated Goals step.</p>
+  <h3>Select the calendars Opsdash should include</h3>
+  <div v-if="calendars.length" class="selection-step-toolbar">
+    <span class="selection-step-toolbar__meta">{{ localSelection.length }} of {{ calendars.length }} selected</span>
+    <div class="selection-step-toolbar__actions">
+      <button type="button" class="ghost-btn" :disabled="allSelected" @click="selectAllCalendars">Select all</button>
+      <button type="button" class="ghost-btn" :disabled="!localSelection.length" @click="deselectAllCalendars">Deselect all</button>
+    </div>
+  </div>
   <div class="calendar-list calendar-list--scroll">
     <label
       v-for="cal in calendars"
@@ -23,11 +29,30 @@
 </template>
 
 <script setup lang="ts">
+import { computed } from 'vue'
 import type { CalendarSummary } from '../../services/onboarding'
 
-defineProps<{
+const props = defineProps<{
   calendars: CalendarSummary[]
   localSelection: string[]
   toggleCalendar: (id: string, el: HTMLInputElement) => void
 }>()
+
+const allSelected = computed(() => props.calendars.length > 0 && props.localSelection.length === props.calendars.length)
+
+function selectAllCalendars() {
+  for (const cal of props.calendars) {
+    if (!props.localSelection.includes(cal.id)) {
+      props.toggleCalendar(cal.id, { checked: true } as HTMLInputElement)
+    }
+  }
+}
+
+function deselectAllCalendars() {
+  for (const cal of props.calendars) {
+    if (props.localSelection.includes(cal.id)) {
+      props.toggleCalendar(cal.id, { checked: false } as HTMLInputElement)
+    }
+  }
+}
 </script>

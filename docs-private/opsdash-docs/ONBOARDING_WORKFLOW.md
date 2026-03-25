@@ -22,10 +22,11 @@
    - When boards exist, users choose visible boards from a scrollable list.
    - When Deck or boards are unavailable, the step stays visible with an info/empty state.
 5. Goals
-   - `Single Goal`: one overall weekly target.
-   - `Calendar Goals`: per-calendar weekly goals.
+   - `Single Goal`: one overall weekly target with a summed suggestion from recent selected-calendar history.
+   - `Calendar Goals`: per-calendar weekly goals with per-row history suggestions.
    - `Calendar + Category Goals`: category targets, calendar targets, assignments, suggestions, and reorder controls.
-   - Suggestions use the currently available 1-6 week lookback window.
+   - Suggestions use the currently available 1-6 week lookback window from previous weeks.
+   - The wizard snapshots the existing config when it opens so switching strategies during one session does not wipe the original categories/assignments.
 6. Preferences
    - Core defaults on the left, optional recap module on the right.
    - Includes theme, all-day hours, and trend lookback.
@@ -39,6 +40,7 @@
 - Wizard step order is fixed to `Intro -> Strategy -> Calendars -> Deck -> Goals -> Preferences -> Dashboard -> Review`.
 - `Quick setup` selects all calendars, uses `Calendar Goals`, sets the standard dashboard, follows the Nextcloud theme, disables recap by default, and enables all Deck boards when available.
 - If recent history exists, `Quick setup` and the Goals step use lookback-based suggestions; otherwise fallback quick targets use small defaults (`4 / 5 / 6h` pattern).
+- Goal suggestions are expected to work in all three strategy modes; category suggestions depend on the current calendar-to-category assignments.
 - Calendar targets are used in `Calendar Goals` and `Calendar + Category Goals`.
 - Category assignment is optional; `Unassigned` calendars are allowed.
 - Each calendar can map to at most one category.

@@ -1,13 +1,14 @@
 <template>
   <h3>Choose dashboard layout</h3>
-  <p class="hint">Pick the starting dashboard structure now that strategy, calendars, Deck, and goals are already defined.</p>
   <div class="strategy-grid dashboard-preset-grid">
-    <article
+    <button
       v-for="mode in dashboardPresets"
       :key="mode.id"
-      class="strategy-card dashboard-preset-card"
+      type="button"
+      class="intro-route-card intro-route-card--button dashboard-preset-card"
       :class="{ active: dashboardMode === mode.id }"
       @click="setDashboardMode(mode.id)"
+      @dblclick="onContinue"
     >
       <div class="dashboard-thumb" :class="`dashboard-thumb--${mode.id}`">
         <div class="dashboard-tab-strip">
@@ -68,7 +69,7 @@
         <span class="pill">{{ mode.widgets }}</span>
         <span class="pill">{{ mode.badge }}</span>
       </div>
-    </article>
+    </button>
   </div>
 </template>
 
@@ -76,6 +77,7 @@
 defineProps<{
   dashboardMode: 'quick' | 'standard' | 'pro'
   setDashboardMode: (mode: 'quick' | 'standard' | 'pro') => void
+  onContinue: () => void
   dashboardPresets: Array<{
     id: 'quick' | 'standard' | 'pro'
     title: string

@@ -67,6 +67,25 @@ type CalendarHistorySlot = {
   totals: Record<string, number>
 }
 
+function isStrategyId(value: unknown): value is StrategyDefinition['id'] {
+  return value === 'total_only' || value === 'total_plus_categories' || value === 'full_granular'
+}
+
+type ExistingWizardSeed = {
+  strategy: StrategyDefinition['id']
+  selection: string[]
+  themePreference: 'auto' | 'light' | 'dark'
+  allDayHours: number
+  totalHours: number | null
+  trendLookback: number
+  deckSettings: DeckFeatureSettings
+  reportingConfig: ReportingConfig
+  dashboardMode: 'quick' | 'standard' | 'pro'
+  targetsWeek: Record<string, number>
+  categories: CategoryDraft[]
+  assignments: Record<string, string>
+}
+
 export function useOnboardingWizard(options: { props: WizardProps; emit: WizardEmit }) {
   const { props, emit } = options
   const { route, postJson } = useOcHttp()
@@ -96,6 +115,7 @@ export function useOnboardingWizard(options: { props: WizardProps; emit: WizardE
   const suggestionsLoading = ref(false)
   const suggestionsError = ref('')
   const historyWindows = ref<CalendarHistorySlot[]>([])
+  const existingSeed = ref<ExistingWizardSeed | null>(null)
   const dashboardPresets = [
     {
       id: 'quick' as const,
@@ -147,14 +167,16 @@ export function useOnboardingWizard(options: { props: WizardProps; emit: WizardE
     },
     {
       id: 'client_internal_learning',
-      title: 'Client / Internal / Learning',
-      description: 'Great for agency or team workloads.',
+      title: 'Client / Internal / Learning / Admin / Recovery',
+      description: 'A broader split for delivery, upkeep, admin work, and recovery.',
       categories: [
         { id: 'client', label: 'Client', targetHours: 28, includeWeekend: false, paceMode: 'days_only', color: '#0EA5E9' },
         { id: 'internal', label: 'Internal', targetHours: 8, includeWeekend: false, paceMode: 'days_only', color: '#F59E0B' },
         { id: 'learning', label: 'Learning', targetHours: 4, includeWeekend: true, paceMode: 'days_only', color: '#22C55E' },
+        { id: 'admin', label: 'Admin', targetHours: 3, includeWeekend: false, paceMode: 'days_only', color: '#A855F7' },
+        { id: 'recovery', label: 'Recovery', targetHours: 3, includeWeekend: true, paceMode: 'days_only', color: '#EC4899' },
       ],
-      colors: ['#0EA5E9', '#F59E0B', '#22C55E'],
+      colors: ['#0EA5E9', '#F59E0B', '#22C55E', '#A855F7', '#EC4899'],
     },
   ]
 
@@ -303,32 +325,34 @@ export function useOnboardingWizard(options: { props: WizardProps; emit: WizardE
   })
 
   function resetWizard(mode?: ProfileMode) {
+    captureExistingSeed()
     const resolvedMode: ProfileMode = mode ?? (props.hasExistingConfig ? 'existing' : 'new')
     profileMode.value = resolvedMode
     introChoice.value = props.hasExistingConfig ? resolvedMode : 'quick'
     const useExisting = resolvedMode === 'existing'
+    const seed = existingSeed.value
     stepIndex.value = 0
-    selectedStrategy.value = useExisting ? (props.initialStrategy ?? 'total_plus_categories') : 'total_plus_categories'
-    dashboardMode.value = useExisting ? (props.initialDashboardMode || 'standard') : 'standard'
-    const initial = useExisting ? [...(props.initialSelection ?? [])] : []
+    selectedStrategy.value = useExisting ? (seed?.strategy ?? 'total_plus_categories') : 'total_plus_categories'
+    dashboardMode.value = useExisting ? (seed?.dashboardMode ?? 'standard') : 'standard'
+    const initial = useExisting ? [...(seed?.selection ?? [])] : []
     localSelection.value = Array.from(new Set(initial.filter((id) => props.calendars.some((cal) => cal.id === id))))
-    themePreference.value = useExisting ? (props.initialThemePreference ?? 'auto') : 'auto'
-    allDayHoursInput.value = clampAllDayHours(useExisting ? (props.initialAllDayHours ?? 8) : 8)
-    totalHoursInput.value = clampTotalHours(useExisting ? (props.initialTotalHours ?? null) : null)
-    trendLookbackInput.value = clampLookback(useExisting ? (props.initialTargetsConfig?.balanceTrendLookback ?? 3) : 3)
+    themePreference.value = useExisting ? (seed?.themePreference ?? 'auto') : 'auto'
+    allDayHoursInput.value = clampAllDayHours(useExisting ? (seed?.allDayHours ?? 8) : 8)
+    totalHoursInput.value = clampTotalHours(useExisting ? (seed?.totalHours ?? null) : null)
+    trendLookbackInput.value = clampLookback(useExisting ? (seed?.trendLookback ?? 3) : 3)
     calendarTargets.value = {}
     if (useExisting) {
-      Object.entries(props.initialTargetsWeek ?? {}).forEach(([id, hours]) => {
+      Object.entries(seed?.targetsWeek ?? {}).forEach(([id, hours]) => {
         if (props.calendars.some((cal) => cal.id === id)) {
           calendarTargets.value[id] = clampTarget(hours)
         }
       })
     }
     deckSettingsDraft.value = cloneDeckSettings(
-      useExisting ? (props.initialDeckSettings ?? createDefaultDeckSettings()) : createDefaultDeckSettings(),
+      useExisting ? (seed?.deckSettings ?? createDefaultDeckSettings()) : createDefaultDeckSettings(),
     )
     reportingDraft.value = {
-      ...(useExisting ? (props.initialReportingConfig ?? createDefaultReportingConfig()) : createDefaultReportingConfig()),
+      ...(useExisting ? (seed?.reportingConfig ?? createDefaultReportingConfig()) : createDefaultReportingConfig()),
     }
     if (props.hasExistingConfig) {
       saveProfile.value = resolvedMode === 'new'
@@ -345,9 +369,9 @@ export function useOnboardingWizard(options: { props: WizardProps; emit: WizardE
         totalHoursInput.value = null
       }
     } else if (selectedStrategy.value === 'total_only') {
-      totalHoursInput.value = clampTotalHours(useExisting ? (props.initialTotalHours ?? 40) : 40)
+      totalHoursInput.value = clampTotalHours(useExisting ? (seed?.totalHours ?? 40) : 40)
     } else if (totalHoursInput.value === null && useExisting) {
-      totalHoursInput.value = clampTotalHours(props.initialTotalHours ?? 40)
+      totalHoursInput.value = clampTotalHours(seed?.totalHours ?? 40)
     }
     applyStartStep()
   }
@@ -381,15 +405,16 @@ export function useOnboardingWizard(options: { props: WizardProps; emit: WizardE
   }
 
   function initializeStrategyState() {
+    const seed = existingSeed.value
     if (!categoriesEnabled.value) {
       categories.value = []
       assignments.value = {}
       syncTotalsWithStrategy()
       return
     }
-    if (profileMode.value === 'existing' && props.initialCategories?.length) {
-      categories.value = cloneCategoryDrafts(props.initialCategories)
-      assignments.value = { ...(props.initialAssignments ?? {}) }
+    if (profileMode.value === 'existing' && seed?.categories?.length) {
+      categories.value = cloneCategoryDrafts(seed.categories)
+      assignments.value = { ...(seed.assignments ?? {}) }
     } else {
       const draft = createStrategyDraft(selectedStrategy.value, props.calendars, localSelection.value)
       if (selectedStrategy.value === 'full_granular') {
@@ -526,8 +551,25 @@ export function useOnboardingWizard(options: { props: WizardProps; emit: WizardE
     if (totalHoursInput.value === null) {
       totalHoursInput.value =
         profileMode.value === 'existing'
-          ? clampTotalHours(props.initialTotalHours ?? 40)
+          ? clampTotalHours(existingSeed.value?.totalHours ?? 40)
           : null
+    }
+  }
+
+  function captureExistingSeed() {
+    existingSeed.value = {
+      strategy: isStrategyId(props.initialStrategy) ? props.initialStrategy : 'total_plus_categories',
+      selection: [...(props.initialSelection ?? [])],
+      themePreference: props.initialThemePreference ?? 'auto',
+      allDayHours: clampAllDayHours(props.initialAllDayHours ?? 8),
+      totalHours: clampTotalHours(props.initialTotalHours ?? null),
+      trendLookback: clampLookback(props.initialTargetsConfig?.balanceTrendLookback ?? 3),
+      deckSettings: cloneDeckSettings(props.initialDeckSettings ?? createDefaultDeckSettings()),
+      reportingConfig: { ...(props.initialReportingConfig ?? createDefaultReportingConfig()) },
+      dashboardMode: props.initialDashboardMode || 'standard',
+      targetsWeek: { ...(props.initialTargetsWeek ?? {}) },
+      categories: cloneCategoryDrafts(props.initialCategories),
+      assignments: { ...(props.initialAssignments ?? {}) },
     }
   }
 
@@ -685,6 +727,28 @@ export function useOnboardingWizard(options: { props: WizardProps; emit: WizardE
     const [item] = next.splice(sourceIndex, 1)
     next.splice(targetIndex, 0, item)
     categories.value = next
+  }
+
+  function reorderSelectedCalendar(sourceId: string, targetId: string) {
+    if (sourceId === targetId) return
+    const sourceIndex = localSelection.value.findIndex((id) => id === sourceId)
+    const targetIndex = localSelection.value.findIndex((id) => id === targetId)
+    if (sourceIndex < 0 || targetIndex < 0) return
+    const next = [...localSelection.value]
+    const [item] = next.splice(sourceIndex, 1)
+    next.splice(targetIndex, 0, item)
+    localSelection.value = next
+  }
+
+  function moveSelectedCalendar(id: string, direction: 'up' | 'down') {
+    const index = localSelection.value.findIndex((calId) => calId === id)
+    if (index < 0) return
+    const nextIndex = direction === 'up' ? index - 1 : index + 1
+    if (nextIndex < 0 || nextIndex >= localSelection.value.length) return
+    const next = [...localSelection.value]
+    const [item] = next.splice(index, 1)
+    next.splice(nextIndex, 0, item)
+    localSelection.value = next
   }
 
   function applyCategoryPreset(preset: CategoryPreset) {
@@ -850,10 +914,11 @@ export function useOnboardingWizard(options: { props: WizardProps; emit: WizardE
     }
     try {
       const slots: CalendarHistorySlot[] = []
-      for (let offset = 1; offset <= 6; offset += 1) {
+      for (let step = 1; step <= 6; step += 1) {
+        const historyOffset = -step
         const payload = await postJson(route('loadData'), {
           range: 'week',
-          offset,
+          offset: historyOffset,
           cals: calendarIds,
           include: ['data'],
         })
@@ -875,7 +940,7 @@ export function useOnboardingWizard(options: { props: WizardProps; emit: WizardE
             totals[id] = roundGoal(Number(entry?.hours ?? entry?.total ?? 0))
           })
         }
-        slots.push({ offset, totals })
+        slots.push({ offset: historyOffset, totals })
       }
       historyWindows.value = slots
     } catch (error) {
@@ -1312,6 +1377,8 @@ export function useOnboardingWizard(options: { props: WizardProps; emit: WizardE
     removeCategory,
     moveCategory,
     reorderCategory,
+    reorderSelectedCalendar,
+    moveSelectedCalendar,
     setCategoryLabel,
     applyCategoryPreset,
     setCategoryTarget,

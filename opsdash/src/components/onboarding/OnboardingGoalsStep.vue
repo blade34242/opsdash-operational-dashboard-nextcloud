@@ -5,17 +5,6 @@
         <h3>Set your goals</h3>
         <p class="hint">This step changes shape based on your strategy, but all planning now lives here.</p>
       </div>
-      <div v-if="historySummary.available" class="goals-lookback">
-        <span class="goals-lookback__label">Suggestion window</span>
-        <input
-          type="number"
-          min="1"
-          :max="historySummary.available"
-          :value="activeHistoryLookback"
-          @input="onTrendLookbackChange($event.target as HTMLInputElement)"
-        />
-        <span class="goals-lookback__meta">{{ historySummary.available }} week{{ historySummary.available === 1 ? '' : 's' }} available</span>
-      </div>
     </header>
 
     <template v-if="selectedStrategy === 'total_only'">
@@ -54,6 +43,31 @@
           <h4>Set weekly goals per selected calendar</h4>
           <p class="hint">Suggestions are based on the currently available lookback window. Leave rows empty if you only want a few calendars to carry goals.</p>
         </article>
+        <div v-if="historySummary.available" class="goal-suggestion-toolbar">
+          <div class="goal-suggestion-toolbar__cluster">
+            <button
+              type="button"
+              class="goal-suggestion-toggle"
+              :class="{ 'is-open': showSuggestionControls }"
+              @click="showSuggestionControls = !showSuggestionControls"
+            >
+              <span class="goal-suggestion-toggle__icon" aria-hidden="true">◔</span>
+              Suggestion window
+            </button>
+            <div v-if="showSuggestionControls" class="goal-suggestion-inline-editor">
+              <span class="goal-suggestion-inline-editor__label">Lookback</span>
+              <input
+                type="number"
+                min="1"
+                :max="historySummary.available"
+                :value="activeHistoryLookback"
+                @input="onTrendLookbackChange($event.target as HTMLInputElement)"
+              />
+              <span class="goal-suggestion-inline-editor__meta">/ {{ historySummary.available }} weeks</span>
+            </div>
+          </div>
+          <span class="goal-suggestion-toolbar__meta">Using last {{ activeHistoryLookback }} week{{ activeHistoryLookback === 1 ? '' : 's' }} for calendar suggestions</span>
+        </div>
         <div class="goal-calendar-list">
           <div
             v-for="cal in selectedCalendars"
@@ -97,10 +111,10 @@
             @click="selectTemplate(preset)"
           >
             <strong>Example set {{ String.fromCharCode(65 + index) }}</strong>
-            <p>{{ index < 2 ? '3 categories' : '5 categories' }} · sample only</p>
+            <p>{{ preset.colors.length }} categories · sample only</p>
             <div class="goal-preset-swatches">
               <span
-                v-for="color in preset.colors.slice(0, 3)"
+                v-for="color in preset.colors"
                 :key="`${preset.id}-${color}`"
                 class="goal-preset-swatch"
                 :style="{ backgroundColor: color }"
@@ -111,8 +125,9 @@
 
         <article class="goal-panel-card">
           <div class="goal-panel-card__head">
-            <div>
+            <div class="goal-panel-card__title">
               <h4>Suggested category goals</h4>
+              <p class="hint">Align category targets with assigned calendar hours, then tune pacing and color per row.</p>
             </div>
             <div class="goal-panel-pills">
               <span class="pill">{{ categories.length }} categories</span>
@@ -120,6 +135,32 @@
               <span class="pill" :class="{ 'pill--warn': primaryMismatch }">{{ primaryMismatch ? '1 mismatch open' : 'All rows aligned' }}</span>
               <button type="button" class="ghost-btn" @click="addCategory">Add category</button>
             </div>
+          </div>
+
+          <div v-if="historySummary.available" class="goal-suggestion-toolbar goal-suggestion-toolbar--panel">
+            <div class="goal-suggestion-toolbar__cluster">
+              <button
+                type="button"
+                class="goal-suggestion-toggle"
+                :class="{ 'is-open': showSuggestionControls }"
+                @click="showSuggestionControls = !showSuggestionControls"
+              >
+                <span class="goal-suggestion-toggle__icon" aria-hidden="true">◔</span>
+                Suggestion window
+              </button>
+              <div v-if="showSuggestionControls" class="goal-suggestion-inline-editor">
+                <span class="goal-suggestion-inline-editor__label">Lookback</span>
+                <input
+                  type="number"
+                  min="1"
+                  :max="historySummary.available"
+                  :value="activeHistoryLookback"
+                  @input="onTrendLookbackChange($event.target as HTMLInputElement)"
+                />
+                <span class="goal-suggestion-inline-editor__meta">/ {{ historySummary.available }} weeks</span>
+              </div>
+            </div>
+            <span class="goal-suggestion-toolbar__meta">Using last {{ activeHistoryLookback }} week{{ activeHistoryLookback === 1 ? '' : 's' }} for calendar and category suggestions</span>
           </div>
 
           <div v-if="primaryMismatch" class="goal-mismatch-box">
@@ -149,70 +190,73 @@
               @dragover.prevent
               @drop.prevent="dropOn(cat.id)"
             >
-              <button type="button" class="goal-category-summary" @click="activeCategoryId = cat.id">
-                <span class="mini-pills">
-                  <span class="drag-pill">⋮⋮</span>
-                  <span class="chevron-pill">{{ activeCategoryId === cat.id ? '⌄' : '›' }}</span>
-                  <span class="color-dot" :style="{ backgroundColor: resolvedColor(cat) }"></span>
-                  <strong class="row-name">{{ cat.label || 'Untitled category' }}</strong>
-                </span>
-                <span class="value-pill">{{ Number(cat.targetHours || 0).toFixed(1) }} h / week</span>
-                <span
-                  class="suggest-pill"
-                  :class="{ 'suggest-pill--warn': categoryMismatch(cat).mismatch > 0.01 }"
-                >
-                  {{ categoryStatusLabel(cat) }}
-                </span>
-              </button>
-
-              <div v-if="activeCategoryId === cat.id" class="goal-category-editor">
-                <div class="goal-category-editor__fields">
-                  <input
-                    class="goal-category-name"
-                    type="text"
-                    :value="cat.label"
-                    placeholder="Category name"
-                    @input="setCategoryLabel(cat.id, ($event.target as HTMLInputElement).value)"
-                  />
-                  <div class="input-unit input-unit--small">
-                    <input
-                      type="number"
-                      min="0"
-                      step="0.5"
-                      :value="cat.targetHours"
-                      @input="setCategoryTarget(cat.id, ($event.target as HTMLInputElement).value)"
-                    />
-                    <span class="unit">h</span>
-                  </div>
-                  <span v-if="suggestedCategoryTargets[cat.id]" class="goal-suggestion-pill">
-                    Suggested {{ suggestedCategoryTargets[cat.id].toFixed(1) }} h
-                  </span>
-                  <select class="goal-add-select goal-add-select--inline" @change="handleAddCalendar(cat.id, $event.target as HTMLSelectElement)">
-                    <option value="">+ calendar</option>
-                    <option
-                      v-for="option in assignableCalendars(cat.id)"
-                      :key="`${cat.id}-${option.id}`"
-                      :value="option.id"
+              <div class="goal-category-top" :class="{ 'is-open': activeCategoryId === cat.id }">
+                <template v-if="activeCategoryId === cat.id">
+                  <div class="goal-category-titlebar">
+                    <button
+                      type="button"
+                      class="goal-category-collapse"
+                      aria-label="Collapse category"
+                      title="Collapse category"
+                      @click="activeCategoryId = ''"
                     >
-                      {{ option.displayname }}
-                    </option>
-                  </select>
-                  <input
-                    class="goal-color-input"
-                    type="color"
-                    :value="resolvedColor(cat)"
-                    @input="onColorInput(cat.id, ($event.target as HTMLInputElement).value)"
-                  />
-                  <div class="goal-category-options goal-category-options--inline">
-                    <label class="field checkbox goal-checkbox">
-                      <input
-                        type="checkbox"
-                        :checked="cat.includeWeekend"
-                        @change="toggleCategoryWeekend(cat.id, ($event.target as HTMLInputElement).checked)"
-                      />
-                      <span>Weekend</span>
+                      ‹
+                    </button>
+                    <span class="color-dot" :style="{ backgroundColor: resolvedColor(cat) }"></span>
+                    <input
+                      class="goal-category-title-input"
+                      type="text"
+                      :value="cat.label"
+                      placeholder="Category title"
+                      @input="setCategoryLabel(cat.id, ($event.target as HTMLInputElement).value)"
+                    />
+                    <span class="value-pill">{{ Number(cat.targetHours || 0).toFixed(1) }} h / week</span>
+                    <span
+                      class="suggest-pill"
+                      :class="{ 'suggest-pill--warn': categoryMismatch(cat).mismatch > 0.01 }"
+                    >
+                      {{ categoryStatusLabel(cat) }}
+                    </span>
+                  </div>
+
+                  <div class="goal-category-action-card">
+                    <span class="goal-card-corner-grip" title="Drag to reorder category" aria-hidden="true">⋮⋮</span>
+                    <label class="field goal-field-stack goal-inline-target goal-action-block">
+                      <span class="label">Weekly target</span>
+                      <div class="input-unit input-unit--small">
+                        <input
+                          type="number"
+                          min="0"
+                          step="0.5"
+                          :value="cat.targetHours"
+                          @input="setCategoryTarget(cat.id, ($event.target as HTMLInputElement).value)"
+                        />
+                        <span class="unit">h</span>
+                      </div>
                     </label>
-                    <label class="field goal-pace-field">
+
+                    <label class="field goal-field-stack goal-color-stack goal-color-stack--inline goal-action-block">
+                      <span class="label">Color</span>
+                      <input
+                        class="goal-color-input"
+                        type="color"
+                        :value="resolvedColor(cat)"
+                        @input="onColorInput(cat.id, ($event.target as HTMLInputElement).value)"
+                      />
+                    </label>
+
+                    <label class="field goal-checkbox goal-action-block">
+                      <span class="label">Weekend</span>
+                      <span class="goal-checkbox__control">
+                        <input
+                          type="checkbox"
+                          :checked="cat.includeWeekend"
+                          @change="toggleCategoryWeekend(cat.id, ($event.target as HTMLInputElement).checked)"
+                        />
+                      </span>
+                    </label>
+
+                    <label class="field goal-pace-field goal-action-block">
                       <span class="label">Pacing</span>
                       <select
                         :value="cat.paceMode"
@@ -222,20 +266,102 @@
                         <option value="time_aware">Time aware</option>
                       </select>
                     </label>
-                  </div>
-                  <button
-                    class="ghost-btn goal-remove-btn"
-                    type="button"
-                    :disabled="categories.length <= 1"
-                    aria-label="Remove category"
-                    title="Remove category"
-                    @click="removeCategory(cat.id)"
-                  >
-                    ×
-                  </button>
-                </div>
 
+                    <div class="goal-suggestion-stack goal-suggestion-stack--inline goal-action-block">
+                      <span class="label">Suggestion</span>
+                      <span v-if="suggestedCategoryTargets[cat.id]" class="goal-suggestion-pill">
+                        Suggested {{ suggestedCategoryTargets[cat.id].toFixed(1) }} h
+                      </span>
+                      <span v-else class="goal-suggestion-pill goal-suggestion-pill--muted">No recent suggestion</span>
+                    </div>
+
+                    <div class="goal-category-action-icons">
+                      <label
+                        class="goal-add-calendar-control"
+                        :class="{ 'goal-add-calendar-control--empty': !assignableCalendars(cat.id).length }"
+                        :title="assignableCalendars(cat.id).length ? `Add calendar to ${cat.label || 'category'}` : 'No calendars left to assign'"
+                      >
+                        <span class="goal-add-calendar-control__icon" aria-hidden="true">
+                          <span class="goal-add-calendar-control__sheet"></span>
+                          <span class="goal-add-calendar-control__plus">+</span>
+                        </span>
+                        <select
+                          class="goal-add-calendar-control__native"
+                          :aria-label="assignableCalendars(cat.id).length ? `Add calendar to ${cat.label || 'category'}` : 'No calendars left to assign'"
+                          @change="handleAddCalendar(cat.id, $event.target as HTMLSelectElement)"
+                        >
+                          <option value="">{{ assignableCalendars(cat.id).length ? 'Add calendar' : 'No calendars left' }}</option>
+                          <option
+                            v-for="option in assignableCalendars(cat.id)"
+                            :key="`${cat.id}-${option.id}`"
+                            :value="option.id"
+                          >
+                            {{ option.displayname }}
+                          </option>
+                        </select>
+                      </label>
+
+                      <button
+                        class="goal-row-icon-btn"
+                        type="button"
+                        :disabled="categories.length <= 1"
+                        aria-label="Remove category"
+                        title="Remove category"
+                        @click="removeCategory(cat.id)"
+                      >
+                        ×
+                      </button>
+
+                      <div class="goal-reorder-tools goal-reorder-tools--surface goal-reorder-tools--compact" aria-label="Category reorder controls">
+                        <button type="button" class="reorder-icon-btn" title="Move category up" aria-label="Move category up" @click.stop="moveCategory(cat.id, 'up')">↑</button>
+                        <button type="button" class="reorder-icon-btn" title="Move category down" aria-label="Move category down" @click.stop="moveCategory(cat.id, 'down')">↓</button>
+                      </div>
+                    </div>
+                  </div>
+                </template>
+
+                <template v-else>
+                  <button type="button" class="goal-category-summary" @click="activeCategoryId = cat.id">
+                    <span class="mini-pills">
+                      <span class="chevron-pill">{{ activeCategoryId === cat.id ? '⌄' : '›' }}</span>
+                      <span class="color-dot" :style="{ backgroundColor: resolvedColor(cat) }"></span>
+                      <strong class="row-name">{{ cat.label || 'Untitled category' }}</strong>
+                    </span>
+                    <span class="value-pill">{{ Number(cat.targetHours || 0).toFixed(1) }} h / week</span>
+                    <span
+                      class="suggest-pill"
+                      :class="{ 'suggest-pill--warn': categoryMismatch(cat).mismatch > 0.01 }"
+                    >
+                      {{ categoryStatusLabel(cat) }}
+                    </span>
+                  </button>
+
+                  <div
+                    v-if="calendarsForCategory(cat.id).length"
+                    class="goal-category-assigned-badges"
+                    aria-label="Assigned calendars"
+                  >
+                    <span
+                      v-for="cal in calendarsForCategory(cat.id)"
+                      :key="`${cat.id}-${cal.id}-badge`"
+                      class="goal-calendar-badge"
+                    >
+                      <span class="goal-calendar-color" :style="{ backgroundColor: cal.color || '#3B82F6' }"></span>
+                      <span class="goal-calendar-badge__name">{{ cal.displayname }}</span>
+                      <span class="goal-calendar-badge__hours">{{ calendarTargetLabel(cal.id) }}</span>
+                    </span>
+                  </div>
+                </template>
+              </div>
+
+              <div v-if="activeCategoryId === cat.id" class="goal-category-editor">
                 <div class="goal-category-row-bottom">
+                  <div class="goal-category-row-bottom__head">
+                    <div class="goal-section-copy">
+                      <strong class="goal-section-label">Calendars in this category</strong>
+                      <span class="row-inline-note">Use the handles below to reorder calendars inside this category.</span>
+                    </div>
+                  </div>
                   <div class="goal-nice-select">
                     <span
                       v-for="cal in calendarsForCategory(cat.id)"
@@ -246,7 +372,6 @@
                       {{ cal.displayname }}
                     </span>
                   </div>
-                  <span class="row-inline-note">Drag handle changes category order</span>
                 </div>
 
                 <div v-if="calendarsForCategory(cat.id).length" class="goal-calendar-sublist">
@@ -254,8 +379,12 @@
                     v-for="cal in calendarsForCategory(cat.id)"
                     :key="`${cat.id}-${cal.id}`"
                     class="goal-calendar-subrow"
+                    draggable="true"
+                    @dragstart="startCalendarDrag(cal.id)"
+                    @dragover.prevent
+                    @drop.prevent="dropCalendarOn(cal.id)"
                   >
-                    <span class="drag-pill">⋮⋮</span>
+                    <span class="goal-calendar-corner-grip" title="Drag to reorder calendar" aria-hidden="true">⋮⋮</span>
                     <div class="goal-calendar-subrow__main">
                       <span class="goal-calendar-color" :style="{ backgroundColor: cal.color || '#3B82F6' }"></span>
                       <strong class="row-name">{{ cal.displayname }}</strong>
@@ -270,10 +399,27 @@
                       />
                       <span class="unit">h</span>
                     </div>
-                    <span class="suggest-pill">
-                      {{ suggestedCalendarTargets[cal.id] ? `suggested ${suggestedCalendarTargets[cal.id].toFixed(1)} h` : `assigned ${Number(getCalendarTarget(cal.id) || 0).toFixed(1)} h` }}
-                    </span>
-                    <button class="ghost-btn" type="button" @click="assignCalendar(cal.id, '')">Unassign</button>
+                    <div class="goal-calendar-subrow__status">
+                      <span class="label">Suggestion</span>
+                      <span class="suggest-pill" :class="{ 'suggest-pill--muted': !suggestedCalendarTargets[cal.id] }">
+                        {{ calendarSuggestionLabel(cal.id) }}
+                      </span>
+                    </div>
+                    <div class="goal-calendar-subrow__actions">
+                      <div class="goal-reorder-tools goal-reorder-tools--calendar goal-reorder-tools--surface" aria-label="Calendar reorder controls">
+                        <button type="button" class="reorder-icon-btn" title="Move calendar up" aria-label="Move calendar up" @click.stop="moveSelectedCalendar(cal.id, 'up')">↑</button>
+                        <button type="button" class="reorder-icon-btn" title="Move calendar down" aria-label="Move calendar down" @click.stop="moveSelectedCalendar(cal.id, 'down')">↓</button>
+                      </div>
+                      <button
+                        class="goal-row-icon-btn"
+                        type="button"
+                        :aria-label="`Unassign ${cal.displayname}`"
+                        :title="`Unassign ${cal.displayname}`"
+                        @click="assignCalendar(cal.id, '')"
+                      >
+                        ×
+                      </button>
+                    </div>
                   </div>
                 </div>
                 <p v-else class="hint">No calendars assigned yet.</p>
@@ -318,7 +464,10 @@ const props = defineProps<{
   suggestedCategoryTargets: Record<string, number>
   addCategory: () => void
   removeCategory: (id: string) => void
+  moveCategory: (id: string, direction: 'up' | 'down') => void
   reorderCategory: (sourceId: string, targetId: string) => void
+  reorderSelectedCalendar: (sourceId: string, targetId: string) => void
+  moveSelectedCalendar: (id: string, direction: 'up' | 'down') => void
   setCategoryLabel: (id: string, value: string) => void
   applyCategoryPreset: (preset: { id: string; title: string; description: string; colors: string[] }) => void
   setCategoryTarget: (id: string, value: string) => void
@@ -341,8 +490,10 @@ const props = defineProps<{
 }>()
 
 const draggedCategoryId = ref('')
+const draggedCalendarId = ref('')
 const activeCategoryId = ref('')
 const activeTemplateId = ref('')
+const showSuggestionControls = ref(false)
 let delayedHydration: ReturnType<typeof setTimeout> | null = null
 
 const suggestedTotalTarget = computed(() =>
@@ -403,6 +554,7 @@ watch(
 watch(
   () => [props.selectedStrategy, props.categories.length, props.categoryPresets.length].join('::'),
   () => {
+    showSuggestionControls.value = false
     if (props.selectedStrategy === 'full_granular' && !props.categories.length && props.categoryPresets.length) {
       const fallback = props.categoryPresets[0]
       activeTemplateId.value = fallback.id
@@ -423,6 +575,16 @@ function dropOn(categoryId: string) {
   if (!draggedCategoryId.value) return
   props.reorderCategory(draggedCategoryId.value, categoryId)
   draggedCategoryId.value = ''
+}
+
+function startCalendarDrag(calendarId: string) {
+  draggedCalendarId.value = calendarId
+}
+
+function dropCalendarOn(calendarId: string) {
+  if (!draggedCalendarId.value) return
+  props.reorderSelectedCalendar(draggedCalendarId.value, calendarId)
+  draggedCalendarId.value = ''
 }
 
 function handleAddCalendar(categoryId: string, select: HTMLSelectElement) {
@@ -451,6 +613,18 @@ function categoryStatusLabel(cat: CategoryDraft) {
   return `${meta.count} calendar${meta.count === 1 ? '' : 's'} · ${meta.mismatch.toFixed(1)} h mismatch`
 }
 
+function calendarTargetLabel(calendarId: string) {
+  return `${Number(props.getCalendarTarget(calendarId) || 0).toFixed(1)} h`
+}
+
+function calendarSuggestionLabel(calendarId: string) {
+  const suggested = Number(props.suggestedCalendarTargets[calendarId] ?? 0)
+  if (suggested > 0) {
+    return `Suggested ${suggested.toFixed(1)} h`
+  }
+  return `Assigned ${calendarTargetLabel(calendarId)}`
+}
+
 function templateTone(index: number) {
   if (index === 0) return 'is-cool'
   if (index === 1) return 'is-warm'
@@ -458,6 +632,12 @@ function templateTone(index: number) {
 }
 
 function selectTemplate(preset: { id: string; title: string; description: string; colors: string[] }) {
+  if (props.categories.length > 0 && activeTemplateId.value !== preset.id) {
+    const shouldReplace = typeof window === 'undefined'
+      ? true
+      : window.confirm('Replace the current categories with this example set?')
+    if (!shouldReplace) return
+  }
   activeTemplateId.value = preset.id
   props.applyCategoryPreset(preset)
 }

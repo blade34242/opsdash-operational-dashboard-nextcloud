@@ -8,6 +8,7 @@
       class="intro-route-card intro-route-card--button strategy-route-card"
       :class="{ active: selectedStrategy === strategy.id }"
       @click="setSelectedStrategy(strategy.id)"
+      @dblclick="onContinue"
     >
       <h4>{{ strategy.title }}</h4>
       <p class="subtitle">{{ strategy.subtitle }}</p>
@@ -32,5 +33,6 @@ defineProps<{
   }>
   selectedStrategy: StrategyDefinition['id']
   setSelectedStrategy: (id: StrategyDefinition['id']) => void
+  onContinue: () => void
 }>()
 </script>

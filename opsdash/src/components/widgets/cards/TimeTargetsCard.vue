@@ -2,7 +2,33 @@
   <div class="card targets-card" :style="cardStyle">
     <div class="targets-header" v-if="showHeader">
       <strong>{{ title || 'Targets' }}</strong>
-      <span class="hint" v-if="total.targetHours > 0">{{ total.percent.toFixed(0) }}%</span>
+      <span class="hint" v-if="total.targetHours > 0">{{ totalDisplay.percentText }}%</span>
+    </div>
+    <div v-if="neverFinishedMode" class="targets-hustle">
+      <div class="targets-hustle__badge">
+        <span class="targets-hustle__title">Never Finished</span>
+        <div class="targets-hustle__orb">
+          <div
+            v-for="(scene, index) in hustleScenes"
+            :key="scene.id"
+            class="targets-hustle__scene"
+            :class="{ 'is-active': index === activeSceneIndex }"
+          >
+            <component :is="scene.icon" class="targets-hustle__icon" aria-hidden="true" />
+          </div>
+        </div>
+        <div class="targets-hustle__meta">
+          <span class="targets-hustle__label">{{ hustleScenes[activeSceneIndex]?.label }}</span>
+          <div class="targets-hustle__dots" aria-hidden="true">
+            <span
+              v-for="(scene, index) in hustleScenes"
+              :key="scene.id + '-dot'"
+              class="targets-hustle__dot"
+              :class="{ 'is-active': index === activeSceneIndex }"
+            ></span>
+          </div>
+        </div>
+      </div>
     </div>
     <div class="targets-main">
       <div class="line total-line">
@@ -15,8 +41,8 @@
         Days left {{ total.daysLeft }} • Need {{ formatHours(total.needPerDay) }} h/day
       </div>
       <div class="line" v-if="showPace && total.targetHours > 0">
-        Pace: {{ total.percent.toFixed(0) }}% vs {{ total.calendarPercent.toFixed(0) }}% →
-        <span :class="['status-label', statusClass(total.status)]">{{ total.statusLabel }}</span>
+        Pace: {{ totalDisplay.percentText }}% vs {{ total.calendarPercent.toFixed(0) }}% →
+        <span :class="['status-label', totalDisplay.statusClass]">{{ totalDisplay.paceLabel }}</span>
       </div>
       <div class="line forecast" v-if="showForecast">
         Forecast: {{ summary.forecast.text }}
@@ -26,7 +52,7 @@
       </div>
     </div>
     <div class="targets-badges" v-if="config.ui.badges && total.targetHours > 0">
-      <span class="badge" :class="statusClass(total.status)">{{ total.statusLabel }}</span>
+      <span class="badge" :class="totalDisplay.statusClass">{{ totalDisplay.badgeLabel }}</span>
     </div>
     <div class="targets-categories" v-if="config.ui.showCategoryBlocks && categoryItems.length">
       <div class="category" v-for="cat in categoryItems" :key="cat.id">
@@ -36,14 +62,18 @@
             <span class="name">{{ cat.label }}</span>
           </div>
           <div class="cat-meta">
-            <span class="percent">{{ cat.percent.toFixed(0) }}%</span>
-            <span v-if="config.ui.badges && cat.targetHours > 0" class="badge" :class="statusClass(cat.status)">{{ cat.statusLabel }}</span>
+            <span class="percent">{{ cat.percentText }}%</span>
+            <span v-if="config.ui.badges && cat.targetHours > 0" class="badge" :class="cat.statusClass">{{ cat.badgeLabel }}</span>
           </div>
         </div>
-        <div class="cat-progress">
+        <div class="cat-progress" :class="{ 'is-endless': cat.isEndless }">
           <div class="bar">
             <div class="bar-track">
-              <div class="fill" :style="{ width: cat.progress + '%', background: cat.color || 'var(--brand)' }"></div>
+              <div
+                class="fill"
+                :class="{ 'fill-endless': cat.isEndless }"
+                :style="{ width: cat.progress + '%', '--fill-color': cat.color || 'var(--brand)' }"
+              ></div>
               <div
                 v-if="cat.todayWidth > 0"
                 class="today-overlay"
@@ -78,8 +108,14 @@
 </template>
 
 <script setup lang="ts">
-import { computed } from 'vue'
+import { computed, onBeforeUnmount, onMounted, ref } from 'vue'
 import type { TargetsConfig, TargetsSummary, TargetsProgress } from '../../../services/targets'
+import {
+  HustleDeadliftIcon,
+  HustleRideIcon,
+  HustleRunIcon,
+  HustleSwimIcon,
+} from './hustleIcons'
 
 type CategoryGroup = {
   id: string
@@ -96,18 +132,43 @@ const props = withDefaults(defineProps<{
   groups?: CategoryGroup[]
   showPace?: boolean
   showForecast?: boolean
+  neverFinishedMode?: boolean
   showHeader?: boolean
   title?: string
   cardBg?: string | null
 }>(), {
   showPace: true,
   showForecast: true,
+  neverFinishedMode: false,
   title: 'Targets',
   cardBg: null,
 })
 
 const total = computed<TargetsProgress>(() => props.summary?.total ?? fallbackProgress('total', 'Total'))
+const neverFinishedMode = computed(() => props.neverFinishedMode === true)
 const showHeader = computed(() => props.showHeader !== false)
+const sceneTick = ref(0)
+const displaySeed = ref(0.42)
+let sceneTimer: ReturnType<typeof setInterval> | null = null
+
+onMounted(() => {
+  displaySeed.value = ((Date.now() % 997) + 1) / 998
+  sceneTimer = setInterval(() => {
+    sceneTick.value = (sceneTick.value + 1) % 24
+  }, 780)
+})
+
+onBeforeUnmount(() => {
+  if (sceneTimer) clearInterval(sceneTimer)
+})
+
+const hustleScenes = [
+  { id: 'run', label: 'Run', icon: HustleRunIcon },
+  { id: 'swim', label: 'Swim', icon: HustleSwimIcon },
+  { id: 'ride', label: 'Ride', icon: HustleRideIcon },
+  { id: 'lift', label: 'Deadlift', icon: HustleDeadliftIcon },
+] as const
+const activeSceneIndex = computed(() => sceneTick.value % hustleScenes.length)
 const categoryGroups = computed<CategoryGroup[]>(() => {
   if (Array.isArray(props.groups) && props.groups.length) {
     return props.groups.map(group => ({
@@ -133,6 +194,8 @@ const cardStyle = computed(() => ({
   background: props.cardBg || undefined,
 }))
 
+const totalDisplay = computed(() => buildDisplayProgress(total.value, 'pace'))
+
 const categoryItems = computed(() => categoryGroups.value.map(group => {
   const summary = group.summary ?? fallbackProgress(group.id, group.label)
   const todayHours = Number((group as any).todayHours ?? 0)
@@ -141,23 +204,28 @@ const categoryItems = computed(() => categoryGroups.value.map(group => {
   const overToday = Math.min(totalOver, todayHours)
   const hasTodayHours = todayHours > 0
   const todayPct = targetHours > 0 ? (todayHours / targetHours) * 100 : 0
-  const progressPct = clamp(summary.percent, 0, 200)
+  const display = buildDisplayProgress(summary, 'badge')
+  const progressPct = display.progress
   return {
     id: group.id,
     label: group.label || summary.label,
     actualHours: summary.actualHours,
     targetHours,
-    percent: summary.percent,
+    percent: display.percent,
+    percentText: display.percentText,
     deltaHours: summary.deltaHours,
     needPerDay: summary.needPerDay,
     daysLeft: summary.daysLeft,
     calendarPercent: summary.calendarPercent,
     gap: summary.gap,
     status: summary.status,
-    statusLabel: summary.statusLabel,
+    statusLabel: display.badgeLabel,
+    badgeLabel: display.badgeLabel,
+    statusClass: display.statusClass,
     color: group.color,
     calendarCount: Array.isArray(group.rows) ? group.rows.length : 0,
     progress: progressPct,
+    isEndless: display.isEndless,
     todayHours,
     overToday,
     todayWidth: hasTodayHours && targetHours > 0 ? clamp(todayPct, 2, 200) : 0,
@@ -175,6 +243,37 @@ function formatHours(value: number): string {
   const rounded = Math.round(value * 10) / 10
   if (Math.abs(rounded - Math.round(rounded)) < 0.05) return String(Math.round(rounded))
   return rounded.toFixed(1)
+}
+
+function buildDisplayProgress(summary: TargetsProgress, mode: 'badge' | 'pace') {
+  const rawPercent = clamp(summary.percent, 0, 200)
+  const isEndless = neverFinishedMode.value && summary.targetHours > 0 && rawPercent >= 80
+  if (!isEndless) {
+    return {
+      percent: rawPercent,
+      percentText: rawPercent.toFixed(0),
+      progress: clamp(rawPercent, 0, 200),
+      badgeLabel: summary.statusLabel,
+      paceLabel: summary.statusLabel,
+      statusClass: statusClass(summary.status),
+      isEndless: false,
+    }
+  }
+
+  const intensity = Math.min(1, Math.max(0, (rawPercent - 80) / 20))
+  const floor = 80.5 + intensity * 7
+  const ceil = 90.5 + intensity * 8
+  const displayPercent = round1(Math.min(98.8, floor + displaySeed.value * (ceil - floor)))
+
+  return {
+    percent: displayPercent,
+    percentText: displayPercent.toFixed(0),
+    progress: clamp(displayPercent, 80, 99),
+    badgeLabel: 'Never Finished',
+    paceLabel: mode === 'pace' ? 'Stay Hard' : 'Never Finished',
+    statusClass: 'status-endless',
+    isEndless: true,
+  }
 }
 
 function formatSigned(value: number): string {
@@ -220,6 +319,10 @@ function clamp(value: number, min: number, max: number): number {
   return value
 }
 
+function round1(value: number): number {
+  return Math.round(value * 10) / 10
+}
+
 function methodLabel(method: 'linear' | 'momentum'): string {
   return method === 'momentum' ? 'Momentum' : 'Linear'
 }
@@ -239,12 +342,31 @@ function colorMix(hex: string, factor = 0.5): string {
 
 <style scoped>
 .targets-card{ display:flex; flex-direction:column; gap:var(--widget-gap, 8px); font-size:var(--widget-font, 14px) }
+.targets-card{ position:relative }
 .targets-header{ display:flex; justify-content:space-between; align-items:center }
 .targets-header strong{ font-size:var(--widget-title-size, calc(14px * var(--widget-scale, 1))) }
 .targets-main{ display:flex; flex-direction:column; gap:calc(4px * var(--widget-space, 1)); font-size:calc(13px * var(--widget-scale, 1)) }
 .targets-main .line{ display:flex; flex-wrap:wrap; gap:calc(6px * var(--widget-space, 1)) }
 .targets-main .line.forecast{ flex-direction:column; gap:calc(2px * var(--widget-space, 1)) }
 .targets-main .line .value{ display:flex; gap:calc(6px * var(--widget-space, 1)); align-items:center }
+.targets-hustle{ position:absolute; top:calc(8px * var(--widget-space, 1)); right:calc(8px * var(--widget-space, 1)); z-index:2 }
+.targets-hustle__badge{ display:grid; grid-template-columns:auto auto; grid-template-areas:'title title' 'orb meta'; gap:calc(5px * var(--widget-space, 1)) calc(7px * var(--widget-space, 1)); align-items:center; padding:calc(5px * var(--widget-space, 1)) calc(7px * var(--widget-space, 1)); border-radius:calc(15px * var(--widget-space, 1)); background:color-mix(in srgb, var(--bg) 90%, transparent); border:1px solid color-mix(in srgb, #f97316 26%, var(--line)); box-shadow:0 8px 22px color-mix(in srgb, #020617 26%, transparent) }
+.targets-hustle__title{ grid-area:title; font-size:calc(8px * var(--widget-scale, 1)); font-weight:800; letter-spacing:.08em; line-height:1; text-transform:uppercase; color:#ea580c }
+.targets-hustle__orb{ grid-area:orb; position:relative; width:calc(50px * var(--widget-space, 1)); aspect-ratio:1; border-radius:50%; background:radial-gradient(circle at 35% 30%, color-mix(in srgb, #fb923c 20%, transparent), transparent 45%), linear-gradient(145deg, color-mix(in srgb, #f97316 16%, transparent), color-mix(in srgb, var(--brand) 12%, transparent)); border:1px solid color-mix(in srgb, #f97316 34%, var(--line)); box-shadow:inset 0 0 0 1px color-mix(in srgb, #fb923c 10%, transparent); overflow:hidden }
+.targets-hustle__orb::after{ content:''; position:absolute; inset:12%; border-radius:50%; background:radial-gradient(circle, color-mix(in srgb, #fb923c 18%, transparent) 0%, transparent 72%); opacity:.45; filter:blur(4px); pointer-events:none; transition:opacity .34s ease, transform .34s ease }
+.targets-hustle__scene{ position:absolute; inset:0; display:grid; place-items:center; opacity:0; transform:scale(.92); transition:opacity .34s ease, transform .34s ease, filter .34s ease; filter:saturate(.82) brightness(.88) }
+.targets-hustle__scene::after{ content:''; position:absolute; inset:16%; border-radius:50%; background:radial-gradient(circle, color-mix(in srgb, #fb923c 24%, transparent) 0%, transparent 74%); opacity:0; transform:scale(.86); filter:blur(4px); transition:opacity .34s ease, transform .34s ease; pointer-events:none }
+.targets-hustle__scene.is-active{ opacity:1; transform:scale(1); filter:saturate(1.08) brightness(1.06) }
+.targets-hustle__scene.is-active::after{ opacity:.82; transform:scale(1.04) }
+.targets-hustle__icon{ width:100%; max-width:29px; height:auto; color:color-mix(in srgb, #fff 22%, #f97316 78%); transition:filter .34s ease, opacity .34s ease, transform .34s ease; opacity:.78; filter:drop-shadow(0 0 0 transparent) }
+.targets-hustle__icon :deep(svg),
+.targets-hustle__icon:deep(svg){ width:100%; height:auto; stroke-width:1.8 }
+.targets-hustle__scene.is-active .targets-hustle__icon{ opacity:1; transform:scale(1.02); filter:drop-shadow(0 0 8px color-mix(in srgb, #fb923c 45%, transparent)) drop-shadow(0 0 14px color-mix(in srgb, #f97316 20%, transparent)) }
+.targets-hustle__meta{ grid-area:meta; display:flex; flex-direction:column; gap:calc(3px * var(--widget-space, 1)); align-items:flex-start; justify-content:center; min-width:calc(40px * var(--widget-space, 1)); width:calc(40px * var(--widget-space, 1)) }
+.targets-hustle__label{ font-size:calc(6.75px * var(--widget-scale, 1)); font-weight:800; letter-spacing:.06em; line-height:1; text-transform:uppercase; color:#ea580c; white-space:nowrap }
+.targets-hustle__dots{ display:flex; gap:calc(4px * var(--widget-space, 1)) }
+.targets-hustle__dot{ width:calc(5px * var(--widget-space, 1)); height:calc(5px * var(--widget-space, 1)); border-radius:50%; background:color-mix(in srgb, var(--muted) 28%, transparent); transition:transform .14s ease, background-color .14s ease }
+.targets-hustle__dot.is-active{ background:#f97316; transform:scale(1.25) }
 .targets-badges{ display:flex; flex-wrap:wrap; gap:calc(6px * var(--widget-space, 1)) }
 .targets-categories{ display:flex; flex-direction:column; gap:calc(10px * var(--widget-space, 1)); padding-top:calc(6px * var(--widget-space, 1)); border-top:1px solid var(--line) }
 .category{ display:flex; flex-direction:column; gap:calc(6px * var(--widget-space, 1)); font-size:calc(12px * var(--widget-scale, 1)); padding:calc(4px * var(--widget-space, 1)) 0 }
@@ -256,7 +378,8 @@ function colorMix(hex: string, factor = 0.5): string {
 .category .cat-meta .percent{ font-variant-numeric:tabular-nums; color:var(--fg) }
 .cat-progress .bar{ position:relative; width:100%; overflow:visible }
 .cat-progress .bar .bar-track{ position:relative; height:calc(16px * var(--widget-space, 1)); border-radius:999px; background:color-mix(in srgb, var(--muted) 20%, transparent); overflow:hidden }
-.cat-progress .bar .fill{ height:100%; border-radius:999px; transition:width .2s ease; max-width:100% }
+.cat-progress .bar .fill{ height:100%; border-radius:999px; transition:width .2s ease; max-width:100%; background:var(--fill-color, var(--brand)) }
+.cat-progress .bar .fill.fill-endless{ transition:none; background-image:linear-gradient(90deg, color-mix(in srgb, var(--fill-color, #f97316) 70%, #f97316), color-mix(in srgb, #fb923c 38%, transparent), color-mix(in srgb, var(--fill-color, #f97316) 78%, #f97316)) }
 .cat-progress .bar .today-overlay{ position:absolute; top:0; height:100%; border-radius:999px; opacity:0.45; border:0; pointer-events:none }
 .category .cat-metrics{ display:flex; flex-wrap:wrap; gap:calc(6px * var(--widget-space, 1)); align-items:center; color:var(--fg) }
 .cat-metrics .today-inline{ font-weight:600 }
@@ -268,6 +391,7 @@ function colorMix(hex: string, factor = 0.5): string {
 .status-risk{ background:color-mix(in srgb, #f97316 20%, white); color:#f97316 }
 .status-behind{ background:color-mix(in srgb, #ef4444 20%, white); color:#ef4444 }
 .status-done{ background:color-mix(in srgb, var(--pos) 25%, white); color:var(--pos) }
+.status-endless{ background:color-mix(in srgb, #f97316 18%, white); color:#ea580c }
 .status-none{ background:color-mix(in srgb, var(--muted) 12%, white); color:var(--muted) }
 .delta{ font-weight:600 }
 .delta.pos{ color:var(--pos) }
@@ -276,4 +400,8 @@ function colorMix(hex: string, factor = 0.5): string {
 .cat-footer .hint{ font-size:calc(11px * var(--widget-scale, 1)) }
 .cat-progress{ padding:calc(2px * var(--widget-space, 1)) 0 }
 .cat-meta .badge{ font-size:calc(10px * var(--widget-scale, 1)) }
+@media (max-width: 720px) {
+  .targets-hustle{ top:calc(6px * var(--widget-space, 1)); right:calc(6px * var(--widget-space, 1)) }
+  .targets-hustle__badge{ padding:calc(4px * var(--widget-space, 1)) calc(5px * var(--widget-space, 1)) }
+}
 </style>

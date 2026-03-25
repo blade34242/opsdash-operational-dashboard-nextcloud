@@ -1,7 +1,7 @@
 <template>
   <transition name="onboarding-fade">
     <div v-if="visible" class="onboarding-overlay" role="dialog" aria-modal="true">
-      <div class="onboarding-backdrop" @click="handleClose"></div>
+      <div class="onboarding-backdrop" @click="requestClose"></div>
       <div class="onboarding-panel" :class="`theme-${previewTheme}`" @click.stop>
         <header class="onboarding-header">
           <div class="onboarding-title">
@@ -9,13 +9,12 @@
             <p class="subtitle">Build a dashboard that matches your calendars, planning style, and review rhythm.</p>
           </div>
           <div class="onboarding-actions">
-            <button type="button" class="skip-link" @click="handleSkip" :disabled="saving">Maybe later</button>
             <button
               v-if="isClosable"
               type="button"
               class="close-btn"
               :disabled="saving"
-              @click="handleClose"
+              @click="requestClose"
               aria-label="Close onboarding"
             >
               ×
@@ -36,7 +35,7 @@
               locked: isStepLocked(index),
             }"
             :disabled="saving"
-            @click="!isStepLocked(index) ? goToStep(step) : undefined"
+            @click="handleStepArrowClick(step, index)"
           >
             <span class="step-arrow__inner">
               <span class="step-arrow__main">
@@ -61,7 +60,7 @@
               :profile-mode="profileMode"
               :set-intro-choice="setIntroChoice"
               :set-profile-mode="setProfileMode"
-              :on-continue="nextStep"
+              :on-continue="handleContinue"
               :on-save-current-config="() => emit('save-current-config')"
             />
           </section>
@@ -71,6 +70,7 @@
               :strategies="strategies"
               :selected-strategy="selectedStrategy"
               :set-selected-strategy="(id) => (selectedStrategy = id)"
+              :on-continue="handleContinue"
             />
           </section>
 
@@ -113,7 +113,10 @@
               :suggested-category-targets="suggestedCategoryTargets"
               :add-category="addCategory"
               :remove-category="removeCategory"
+              :move-category="moveCategory"
               :reorder-category="reorderCategory"
+              :reorder-selected-calendar="reorderSelectedCalendar"
+              :move-selected-calendar="moveSelectedCalendar"
               :set-category-label="setCategoryLabel"
               :apply-category-preset="applyCategoryPreset"
               :set-category-target="setCategoryTarget"
@@ -155,6 +158,7 @@
             <OnboardingDashboardStep
               :dashboard-mode="dashboardMode"
               :set-dashboard-mode="(mode) => (dashboardMode = mode)"
+              :on-continue="handleContinue"
               :dashboard-presets="dashboardPresets"
             />
           </section>
@@ -189,12 +193,11 @@
         <footer class="onboarding-footer">
           <template v-if="currentStep === 'intro'">
             <div class="onboarding-footer-spacer"></div>
-            <NcButton type="primary" :disabled="saving || nextDisabled" @click="nextStep">Continue</NcButton>
+            <NcButton type="primary" :disabled="saving || nextDisabled" @click="handleContinue">Continue</NcButton>
           </template>
           <template v-else>
-            <NcButton v-if="canGoBack" type="tertiary" :disabled="saving" @click="prevStep">Back</NcButton>
-            <NcButton type="tertiary" :disabled="saving || nextDisabled" @click="emitSaveStep">Save step</NcButton>
-            <NcButton v-if="canGoNext" type="primary" :disabled="nextDisabled || saving" @click="nextStep">Continue</NcButton>
+            <NcButton v-if="canGoBack" type="tertiary" :disabled="saving" @click="handleBack">Back</NcButton>
+            <NcButton v-if="canGoNext" type="primary" :disabled="nextDisabled || saving" @click="handleContinue">Continue</NcButton>
             <NcButton
               v-else
               type="primary"
@@ -211,6 +214,7 @@
 </template>
 
 <script setup lang="ts">
+import { computed, ref } from 'vue'
 import { NcButton } from '@nextcloud/vue'
 import OnboardingIntroStep from './OnboardingIntroStep.vue'
 import OnboardingPreferencesStep from './OnboardingPreferencesStep.vue'
@@ -224,6 +228,7 @@ import type { CalendarSummary, CategoryDraft, StrategyDefinition } from '../../s
 import type { DeckFeatureSettings, ReportingConfig } from '../../services/reporting'
 import type { TargetsConfig } from '../../services/targets'
 import { useOnboardingWizard } from '../../../composables/useOnboardingWizard'
+import type { WizardStepSavePayload } from '../../../composables/useOnboardingActions'
 
 const props = defineProps<{
   visible: boolean
@@ -250,6 +255,7 @@ const props = defineProps<{
   initialTargetsConfig?: {
     balanceTrendLookback?: number
   } | null
+  persistStep?: (payload: WizardStepSavePayload) => Promise<void>
 }>()
 
 const emit = defineEmits<{
@@ -280,11 +286,10 @@ const {
   enabledSteps,
   currentStep,
   isClosable,
-  saving,
+  saving: baseSaving,
   stepLabel,
   goToStep,
   handleClose,
-  handleSkip,
   canGoBack,
   canGoNext,
   nextDisabled,
@@ -340,7 +345,10 @@ const {
   calendarTargets,
   addCategory,
   removeCategory,
+  moveCategory,
   reorderCategory,
+  reorderSelectedCalendar,
+  moveSelectedCalendar,
   setCategoryLabel,
   setCategoryTarget,
   setCategoryPaceMode,
@@ -369,8 +377,60 @@ const {
   buildStepPayload,
 } = useOnboardingWizard({ props, emit })
 
-function emitSaveStep() {
-  emit('save-step', buildStepPayload(currentStep.value))
+const isPersistingStep = ref(false)
+const saving = computed(() => baseSaving.value || isPersistingStep.value)
+
+async function persistPayload(payload: WizardStepSavePayload) {
+  if (!props.persistStep) {
+    emit('save-step', payload)
+    return true
+  }
+  try {
+    isPersistingStep.value = true
+    await props.persistStep(payload)
+    return true
+  } catch {
+    return false
+  } finally {
+    isPersistingStep.value = false
+  }
+}
+
+async function persistCurrentStep() {
+  if (saving.value) return false
+  return persistPayload(buildStepPayload(currentStep.value) as WizardStepSavePayload)
+}
+
+async function handleStepArrowClick(step: typeof currentStep.value, index: number) {
+  if (saving.value || isStepLocked(index) || step === currentStep.value) return
+  const saved = await persistCurrentStep()
+  if (!saved) return
+  goToStep(step)
+}
+
+async function handleContinue() {
+  if (saving.value || nextDisabled.value) return
+  if (currentStep.value === 'intro' && introChoice.value === 'quick') {
+    nextStep()
+    return
+  }
+  const saved = await persistCurrentStep()
+  if (!saved) return
+  nextStep()
+}
+
+async function handleBack() {
+  if (saving.value || !canGoBack.value) return
+  const saved = await persistCurrentStep()
+  if (!saved) return
+  prevStep()
+}
+
+async function requestClose() {
+  if (saving.value || !isClosable.value) return
+  const saved = await persistCurrentStep()
+  if (!saved) return
+  handleClose()
 }
 
 function isStepDone(step: typeof currentStep.value, index: number) {
@@ -405,12 +465,15 @@ function isStepLocked(index: number) {
 
 .onboarding-overlay {
   position: fixed;
-  inset: 0;
+  top: calc(var(--header-height, 50px) + 8px);
+  right: 0;
+  bottom: 0;
+  left: 0;
   z-index: 2000;
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   justify-content: center;
-  padding: 24px;
+  padding: 16px 24px 24px;
 }
 
 .onboarding-backdrop {
@@ -423,8 +486,8 @@ function isStepLocked(index: number) {
   position: relative;
   z-index: 1;
   width: min(1080px, 100%);
-  height: min(820px, calc(100vh - 48px));
-  max-height: calc(100vh - 48px);
+  height: min(840px, calc(100vh - var(--header-height, 50px) - 56px));
+  max-height: calc(100vh - var(--header-height, 50px) - 56px);
   background: var(--color-main-background, #fff);
   border: 1px solid color-mix(in oklab, var(--brand, #2563eb), var(--line, #e2e8f0) 70%);
   border-radius: 14px;
@@ -433,7 +496,7 @@ function isStepLocked(index: number) {
     inset 0 0 0 1px color-mix(in oklab, var(--brand, #2563eb), transparent 82%);
   display: flex;
   flex-direction: column;
-  padding: 24px 28px;
+  padding: 20px 24px;
 }
 
 .onboarding-panel.theme-light {
@@ -585,6 +648,40 @@ function isStepLocked(index: number) {
   border-color: #1f2937;
 }
 
+.onboarding-panel.theme-dark .goal-panel-card,
+.onboarding-panel.theme-dark .goal-category-action-card,
+.onboarding-panel.theme-dark .goal-category-row-bottom,
+.onboarding-panel.theme-dark .goal-calendar-subrow {
+  border-color: #2c3a4f;
+  background: linear-gradient(180deg, rgba(15, 23, 42, 0.92), rgba(17, 24, 39, 0.96));
+  box-shadow: inset 0 0 0 1px rgba(71, 85, 105, 0.18);
+}
+
+.onboarding-panel.theme-dark .goal-category-title-input,
+.onboarding-panel.theme-dark .goal-color-input,
+.onboarding-panel.theme-dark .goal-category-card select,
+.onboarding-panel.theme-dark .goal-category-card input[type="number"],
+.onboarding-panel.theme-dark .goal-category-card input[type="text"] {
+  border-color: #314257;
+  background: #0f172a;
+}
+
+.onboarding-panel.theme-dark .goal-add-calendar-control,
+.onboarding-panel.theme-dark .goal-row-icon-btn,
+.onboarding-panel.theme-dark .reorder-icon-btn,
+.onboarding-panel.theme-dark .drag-pill,
+.onboarding-panel.theme-dark .goal-category-action-icons,
+.onboarding-panel.theme-dark .goal-calendar-subrow__actions {
+  border-color: #35506e;
+  background: linear-gradient(180deg, rgba(15, 23, 42, 0.92), rgba(19, 31, 52, 0.96));
+}
+
+.onboarding-panel.theme-dark .goal-section-label,
+.onboarding-panel.theme-dark .goal-category-title-edit__eyebrow,
+.onboarding-panel.theme-dark .row-inline-note {
+  color: #93a7c4;
+}
+
 .onboarding-panel.theme-dark .mode-card,
 .onboarding-panel.theme-dark .input-unit,
 .onboarding-panel.theme-dark .empty-state {
@@ -689,11 +786,31 @@ function isStepLocked(index: number) {
   color: #fecaca;
 }
 
+.onboarding-panel.theme-dark .goal-suggestion-toggle {
+  color: #fdba74;
+  border-color: rgba(249, 115, 22, 0.42);
+  background: linear-gradient(180deg, rgba(154, 52, 18, 0.38), rgba(124, 45, 18, 0.28));
+}
+
+.onboarding-panel.theme-dark .goal-suggestion-toggle__icon {
+  background: rgba(15, 23, 42, 0.42);
+}
+
+.onboarding-panel.theme-dark .goal-suggestion-inline-editor {
+  border-color: rgba(249, 115, 22, 0.34);
+  background: linear-gradient(180deg, rgba(67, 20, 7, 0.76), rgba(30, 41, 59, 0.9));
+}
+
+.onboarding-panel.theme-dark .goal-suggestion-inline-editor input {
+  border-color: #35506e;
+  background: #0f172a;
+}
+
 .onboarding-header {
   display: flex;
   justify-content: space-between;
   align-items: baseline;
-  margin-bottom: 16px;
+  margin-bottom: 12px;
 }
 
 .onboarding-actions {
@@ -738,7 +855,7 @@ function isStepLocked(index: number) {
   grid-template-columns:repeat(8, minmax(0, 1fr));
   gap:0;
   width:calc(100% + 12px);
-  margin:0 -6px 16px;
+  margin:0 -6px 12px;
   padding-bottom:4px;
 }
 .onboarding-overlay .step-arrow{
@@ -898,9 +1015,11 @@ function isStepLocked(index: number) {
 
 .onboarding-body {
   flex: 1;
+  min-height: 0;
   overflow-y: auto;
-  padding-right: 8px;
-  margin-right: -8px;
+  padding-right: 10px;
+  margin-right: -10px;
+  padding-bottom: 8px;
 }
 
 @media (max-width: 960px) {
@@ -910,14 +1029,20 @@ function isStepLocked(index: number) {
 
   .onboarding-panel {
     width: 100%;
-    height: calc(100vh - 24px);
-    max-height: calc(100vh - 24px);
+    height: calc(100vh - var(--header-height, 50px) - 32px);
+    max-height: calc(100vh - var(--header-height, 50px) - 32px);
     padding: 16px;
   }
 }
 
 .onboarding-step h3 {
   margin-top: 0;
+}
+
+.onboarding-step {
+  min-height: 100%;
+  display: grid;
+  align-content: start;
 }
 
 .onboarding-overlay .highlights {
@@ -930,9 +1055,10 @@ function isStepLocked(index: number) {
   border-radius: 8px;
   padding: 12px;
   margin: 12px 0;
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 12px;
 }
 
 .onboarding-overlay .config-warning p {
@@ -941,9 +1067,39 @@ function isStepLocked(index: number) {
   color: var(--color-text);
 }
 
+.onboarding-overlay .config-warning__actions {
+  display: flex;
+  justify-content: flex-end;
+}
+
+.onboarding-overlay .config-warning .snapshot-notice {
+  grid-column: 1 / -1;
+  margin-top: 0;
+}
+
 .onboarding-overlay .hint {
   color: var(--color-text-light, #334155);
   margin-top: 12px;
+}
+
+.onboarding-overlay .selection-step-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin: 0 0 12px;
+  flex-wrap: wrap;
+}
+
+.onboarding-overlay .selection-step-toolbar__meta {
+  font-size: 0.92rem;
+  color: var(--color-text-light, #475569);
+}
+
+.onboarding-overlay .selection-step-toolbar__actions {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
 }
 
 .onboarding-overlay .snapshot-notice {
@@ -995,7 +1151,7 @@ function isStepLocked(index: number) {
 }
 
 .onboarding-overlay .calendar-list--scroll {
-  max-height: 280px;
+  max-height: 460px;
   overflow: auto;
   padding-right: 4px;
 }
@@ -1075,9 +1231,9 @@ function isStepLocked(index: number) {
 }
 
 .onboarding-overlay .review-layout {
-  margin-top: 18px;
+  margin-top: 10px;
   display: grid;
-  gap: 18px;
+  gap: 14px;
   grid-template-columns: minmax(0, 2fr) minmax(280px, 1fr);
   align-items: start;
 }
@@ -1090,10 +1246,10 @@ function isStepLocked(index: number) {
 .onboarding-overlay .review-section {
   border: 1px solid color-mix(in oklab, var(--color-border), transparent 34%);
   border-radius: 12px;
-  padding: 14px;
+  padding: 12px;
   background: color-mix(in oklab, var(--color-main-background, #fff), transparent 6%);
   display: grid;
-  gap: 12px;
+  gap: 10px;
 }
 
 .onboarding-overlay .review-section h4 {
@@ -1687,7 +1843,10 @@ function isStepLocked(index: number) {
   display: flex;
   justify-content: flex-end;
   gap: 12px;
-  margin-top: 24px;
+  margin-top: 14px;
+  padding-top: 10px;
+  border-top: 1px solid color-mix(in oklab, var(--color-border), transparent 28%);
+  flex-shrink: 0;
 }
 
 .onboarding-overlay .preferences-grid {
@@ -1737,10 +1896,10 @@ function isStepLocked(index: number) {
 }
 
 .onboarding-overlay .deck-board-list {
-  border: 1px solid color-mix(in oklab, var(--color-border), transparent 40%);
-  border-radius: 8px;
+  border: 1px solid color-mix(in oklab, var(--color-border), transparent 24%);
+  border-radius: 12px;
   padding: 10px;
-  background: color-mix(in oklab, var(--color-main-background, #fff), transparent 6%);
+  background: color-mix(in oklab, var(--color-main-background, #fff), transparent 4%);
   display: flex;
   flex-direction: column;
   gap: 8px;
@@ -2216,7 +2375,7 @@ function isStepLocked(index: number) {
 }
 
 .onboarding-overlay .deck-board-list--scroll {
-  max-height: 280px;
+  max-height: 420px;
   overflow: auto;
 }
 
@@ -2379,25 +2538,97 @@ function isStepLocked(index: number) {
 }
 
 .onboarding-overlay .goals-step__header {
-  grid-template-columns: minmax(0, 1fr) auto;
+  grid-template-columns: minmax(0, 1fr);
   align-items: start;
 }
 
-.onboarding-overlay .goals-lookback {
-  display: grid;
-  gap: 6px;
-  justify-items: end;
-}
-
-.onboarding-overlay .goals-lookback input {
-  width: 90px;
-}
-
 .onboarding-overlay .goals-lookback__label,
-.onboarding-overlay .goals-lookback__meta,
 .onboarding-overlay .goal-suggestion-inline {
   font-size: 0.8rem;
   color: var(--color-text-light);
+}
+
+.onboarding-overlay .goal-suggestion-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.onboarding-overlay .goal-suggestion-toolbar--panel {
+  margin-top: -2px;
+}
+
+.onboarding-overlay .goal-suggestion-toolbar__cluster {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.onboarding-overlay .goal-suggestion-toolbar__meta {
+  font-size: 0.84rem;
+  color: var(--color-text-light);
+}
+
+.onboarding-overlay .goal-suggestion-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 38px;
+  padding: 8px 14px;
+  border-radius: 999px;
+  border: 1px solid rgba(194, 65, 12, 0.45);
+  background: linear-gradient(180deg, rgba(251, 146, 60, 0.22), rgba(249, 115, 22, 0.16));
+  color: #9a3412;
+  font-weight: 700;
+  box-shadow: 0 10px 24px rgba(194, 65, 12, 0.14);
+}
+
+.onboarding-overlay .goal-suggestion-toggle.is-open {
+  background: linear-gradient(180deg, rgba(251, 146, 60, 0.28), rgba(249, 115, 22, 0.22));
+  border-color: rgba(194, 65, 12, 0.6);
+}
+
+.onboarding-overlay .goal-suggestion-toggle__icon {
+  width: 18px;
+  height: 18px;
+  display: inline-grid;
+  place-items: center;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.5);
+  color: inherit;
+  font-size: 12px;
+  line-height: 1;
+}
+
+.onboarding-overlay .goal-suggestion-inline-editor {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 38px;
+  padding: 6px 10px;
+  border-radius: 999px;
+  border: 1px solid rgba(194, 65, 12, 0.28);
+  background: linear-gradient(180deg, rgba(255, 247, 237, 0.9), rgba(255, 237, 213, 0.74));
+}
+
+.onboarding-overlay .goal-suggestion-inline-editor__label,
+.onboarding-overlay .goal-suggestion-inline-editor__meta {
+  font-size: 0.76rem;
+  color: var(--color-text-light);
+  white-space: nowrap;
+}
+
+.onboarding-overlay .goal-suggestion-inline-editor input {
+  width: 64px;
+  min-width: 64px;
+  border: 1px solid color-mix(in srgb, var(--color-border) 76%, transparent);
+  border-radius: 999px;
+  padding: 6px 10px;
+  background: var(--color-main-background, #fff);
+  color: var(--color-text);
 }
 
 .onboarding-overlay .goal-info-card {
@@ -2529,6 +2760,10 @@ function isStepLocked(index: number) {
   text-align:left;
 }
 
+.onboarding-overlay .goal-template-card p {
+  margin: 0;
+}
+
 .onboarding-overlay .goal-template-card.active {
   border-color:color-mix(in srgb, var(--color-primary) 55%, var(--color-border));
   background:linear-gradient(180deg, rgba(37, 99, 235, 0.1), transparent), var(--color-main-background, #fff);
@@ -2586,7 +2821,6 @@ function isStepLocked(index: number) {
 
 .onboarding-overlay .goal-panel-card__head,
 .onboarding-overlay .goal-panel-pills,
-.onboarding-overlay .goal-category-editor__fields,
 .onboarding-overlay .goal-category-row-bottom,
 .onboarding-overlay .goal-category-options {
   display:flex;
@@ -2597,6 +2831,16 @@ function isStepLocked(index: number) {
 
 .onboarding-overlay .goal-panel-card__head {
   justify-content:space-between;
+}
+
+.onboarding-overlay .goal-panel-card__title {
+  display: grid;
+  gap: 4px;
+}
+
+.onboarding-overlay .goal-panel-card__title h4,
+.onboarding-overlay .goal-panel-card__title .hint {
+  margin: 0;
 }
 
 .onboarding-overlay .goal-mismatch-box {
@@ -2644,6 +2888,36 @@ function isStepLocked(index: number) {
   gap:10px;
 }
 
+.onboarding-overlay .goal-category-editor {
+  display: grid;
+  gap: 12px;
+}
+
+.onboarding-overlay .goal-category-editor__primary,
+.onboarding-overlay .goal-category-editor__secondary {
+  display: grid;
+  gap: 10px;
+}
+
+.onboarding-overlay .goal-category-editor__primary {
+  grid-template-columns: minmax(180px, 0.95fr) minmax(124px, auto) minmax(120px, auto);
+  align-items: end;
+}
+
+.onboarding-overlay .goal-category-editor__secondary {
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: end;
+}
+
+.onboarding-overlay .goal-field-stack {
+  display: grid;
+  gap: 6px;
+}
+
+.onboarding-overlay .goal-field-stack .label {
+  margin: 0;
+}
+
 .onboarding-overlay .goal-category-summary {
   display:grid;
   grid-template-columns:minmax(0, 1fr) auto auto;
@@ -2657,6 +2931,43 @@ function isStepLocked(index: number) {
   text-align:left;
 }
 
+.onboarding-overlay .goal-category-top {
+  display:grid;
+  grid-template-columns:minmax(0, 1fr);
+  gap:10px;
+  align-items:stretch;
+}
+
+.onboarding-overlay .goal-category-top.is-open {
+  grid-template-columns: minmax(0, 1fr);
+  align-items: stretch;
+  gap: 12px;
+}
+
+.onboarding-overlay .goal-category-titlebar {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+  flex-wrap: wrap;
+}
+
+.onboarding-overlay .goal-category-collapse {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 30px;
+  min-width: 30px;
+  height: 30px;
+  padding: 0;
+  border-radius: 999px;
+  border: 1px solid color-mix(in oklab, var(--color-border), transparent 12%);
+  background: color-mix(in oklab, var(--color-main-background, #fff), transparent 5%);
+  color: var(--color-text-light);
+  font-size: 1rem;
+  line-height: 1;
+}
+
 .onboarding-overlay .goal-category-card__header,
 .onboarding-overlay .goal-category-card__toolbar,
 .onboarding-overlay .goal-footer-row {
@@ -2667,9 +2978,23 @@ function isStepLocked(index: number) {
 }
 
 .onboarding-overlay .goal-category-name {
-  flex: 0 1 180px;
+  width: 100%;
+  min-width: 0;
+  max-width: 260px;
+}
+
+.onboarding-overlay .goal-category-title-input {
+  flex: 0 1 220px;
+  width: 220px;
   min-width: 140px;
-  max-width: 220px;
+  max-width: 240px;
+  font-size: 1.04rem;
+  font-weight: 700;
+  border: 0;
+  padding: 0;
+  background: transparent;
+  box-shadow: none;
+  color: var(--color-text);
 }
 
 .onboarding-overlay .goal-category-meta {
@@ -2689,7 +3014,6 @@ function isStepLocked(index: number) {
 }
 
 .onboarding-overlay .goal-remove-btn {
-  margin-left: auto;
   width: 34px;
   min-width: 34px;
   height: 34px;
@@ -2699,29 +3023,82 @@ function isStepLocked(index: number) {
   line-height: 1;
 }
 
+.onboarding-overlay .goal-suggestion-stack {
+  display: grid;
+  gap: 6px;
+  min-width: 120px;
+  justify-self: end;
+}
+
+.onboarding-overlay .goal-suggestion-stack--inline {
+  min-width: 132px;
+  justify-self: auto;
+}
+
+.onboarding-overlay .goal-action-block {
+  display: grid;
+  align-content: center;
+  justify-items: center;
+  gap: 6px;
+  min-height: 78px;
+  padding: 8px 10px;
+  border-radius: 12px;
+  border: 1px solid color-mix(in oklab, var(--color-border), transparent 14%);
+  background: color-mix(in oklab, var(--color-main-background, #fff), transparent 4%);
+  text-align: center;
+}
+
+.onboarding-overlay .goal-action-block .label {
+  margin: 0;
+  line-height: 1;
+}
+
+.onboarding-overlay .goal-action-block .input-unit {
+  justify-content: center;
+}
+
+.onboarding-overlay .goal-action-block .input-unit--small {
+  grid-template-columns: minmax(0, 38px) auto;
+}
+
+.onboarding-overlay .goal-action-block .input-unit--small .unit {
+  padding: 6px 8px;
+}
+
+.onboarding-overlay .goal-suggestion-stack .label {
+  margin: 0;
+}
+
 .onboarding-overlay .goal-category-options--inline {
   gap: 8px;
   flex-wrap: nowrap;
 }
 
 .onboarding-overlay .goal-checkbox {
-  display: inline-flex;
-  align-items: center;
+  display: grid;
+  justify-items: center;
   gap: 6px;
   margin: 0;
   white-space: nowrap;
   font-size: 0.8rem;
 }
 
+.onboarding-overlay .goal-checkbox__control {
+  min-height: 36px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
 .onboarding-overlay .goal-checkbox input[type="checkbox"] {
-  width: 14px;
-  height: 14px;
+  width: 18px;
+  height: 18px;
   margin: 0;
 }
 
 .onboarding-overlay .goal-pace-field {
-  display: inline-flex;
-  align-items: center;
+  display: grid;
+  justify-items: center;
   gap: 6px;
   margin: 0;
   white-space: nowrap;
@@ -2737,8 +3114,44 @@ function isStepLocked(index: number) {
   padding: 6px 8px;
 }
 
+.onboarding-overlay .goal-category-tone-controls {
+  display: flex;
+  align-items: end;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.onboarding-overlay .goal-color-stack {
+  min-width: 72px;
+}
+
+.onboarding-overlay .goal-color-stack--inline {
+  min-width: 62px;
+}
+
+.onboarding-overlay .goal-color-stack--inline .goal-color-input {
+  margin: 0 auto;
+}
+
 .onboarding-overlay .drag-handle {
   cursor: grab;
+}
+
+.onboarding-overlay .goal-reorder-tools {
+  display:inline-flex;
+  align-items:center;
+  gap:6px;
+}
+
+.onboarding-overlay .goal-reorder-tools--surface {
+  padding: 4px;
+  border-radius: 999px;
+  border: 1px solid color-mix(in oklab, var(--color-border), transparent 10%);
+  background: color-mix(in oklab, var(--color-main-background, #fff), transparent 3%);
+}
+
+.onboarding-overlay .goal-reorder-tools--calendar {
+  align-self:stretch;
 }
 
 .onboarding-overlay .drag-pill,
@@ -2760,6 +3173,49 @@ function isStepLocked(index: number) {
   border:1px solid color-mix(in oklab, var(--color-border), transparent 12%);
   background:color-mix(in oklab, var(--color-main-background, #fff), transparent 4%);
   color:var(--color-text);
+}
+
+.onboarding-overlay .drag-pill {
+  justify-content:flex-start;
+  font-weight:600;
+}
+
+.onboarding-overlay .drag-pill__glyph {
+  font-size:0.95rem;
+  line-height:1;
+  letter-spacing:-0.08em;
+}
+
+.onboarding-overlay .drag-pill__label {
+  font-size:0.76rem;
+  color:var(--color-text-light);
+}
+
+.onboarding-overlay .drag-pill--calendar {
+  min-width:128px;
+}
+
+.onboarding-overlay .reorder-icon-btn {
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  width:28px;
+  min-width:28px;
+  height:28px;
+  padding:0;
+  border-radius:999px;
+  border:1px solid color-mix(in oklab, var(--color-border), transparent 10%);
+  background:color-mix(in oklab, var(--color-main-background, #fff), transparent 3%);
+  color:var(--color-text-light);
+  font-size:0.9rem;
+  font-weight:700;
+  line-height:1;
+}
+
+.onboarding-overlay .reorder-icon-btn:hover {
+  color:var(--color-text);
+  border-color:color-mix(in srgb, var(--color-primary) 24%, var(--color-border));
+  box-shadow:0 0 0 3px color-mix(in srgb, var(--color-primary) 10%, transparent);
 }
 
 .onboarding-overlay .value-pill {
@@ -2787,6 +3243,61 @@ function isStepLocked(index: number) {
   flex-wrap:wrap;
 }
 
+.onboarding-overlay .goal-category-row-bottom {
+  align-items: stretch;
+  justify-content: space-between;
+  padding: 12px 0 0;
+  border-top: 1px solid color-mix(in oklab, var(--color-border), transparent 26%);
+}
+
+.onboarding-overlay .goal-category-assigned-badges {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  padding-left: 42px;
+}
+
+.onboarding-overlay .goal-calendar-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 32px;
+  padding: 6px 10px;
+  border-radius: 999px;
+  border: 1px solid color-mix(in oklab, var(--color-border), transparent 16%);
+  background: color-mix(in oklab, var(--color-main-background, #fff), transparent 4%);
+  color: var(--color-text);
+}
+
+.onboarding-overlay .goal-calendar-badge__name {
+  max-width: 170px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.onboarding-overlay .goal-calendar-badge__hours {
+  padding-left: 8px;
+  border-left: 1px solid color-mix(in oklab, var(--color-border), transparent 18%);
+  font-size: 0.76rem;
+  font-weight: 700;
+  color: var(--color-text-light);
+  white-space: nowrap;
+}
+
+.onboarding-overlay .goal-category-row-bottom__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  width: 100%;
+}
+
+.onboarding-overlay .goal-section-copy {
+  display: grid;
+  gap: 4px;
+}
+
 .onboarding-overlay .goal-calendar-color {
   width: 10px;
   height: 10px;
@@ -2801,6 +3312,14 @@ function isStepLocked(index: number) {
   font-size:0.8rem;
 }
 
+.onboarding-overlay .goal-section-label {
+  font-size:0.8rem;
+  font-weight:700;
+  color:var(--color-text-light);
+  text-transform:uppercase;
+  letter-spacing:0.04em;
+}
+
 .onboarding-overlay .goal-add-select,
 .onboarding-overlay .goal-category-name,
 .onboarding-overlay .goal-color-input {
@@ -2811,12 +3330,151 @@ function isStepLocked(index: number) {
 }
 
 .onboarding-overlay .goal-add-select--inline {
-  min-width: 132px;
-  max-width: 170px;
+  flex: 1 1 auto;
+  min-width: 0;
+  max-width: none;
+  border: 0;
+  padding: 0;
+  background: transparent;
+  color: inherit;
+  box-shadow: none;
+  appearance: none;
+  cursor: pointer;
+}
+
+.onboarding-overlay .goal-add-calendar-control {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  min-width: 40px;
+  height: 40px;
+  padding: 0;
+  border-radius: 999px;
+  border: 1px solid color-mix(in srgb, var(--color-primary) 34%, var(--color-border));
+  background:
+    linear-gradient(180deg, color-mix(in srgb, var(--color-primary) 8%, var(--color-main-background, #fff)), color-mix(in srgb, var(--color-primary) 3%, var(--color-main-background, #fff)));
+  color: var(--color-text);
+  box-shadow: 0 8px 18px rgba(15, 23, 42, 0.08);
+  overflow: hidden;
+}
+
+.onboarding-overlay .goal-category-action-card {
+  position: relative;
+  display: flex;
+  align-items: stretch;
+  gap: 10px;
+  flex-wrap: wrap;
+  padding: 14px 12px 10px;
+  border-radius: 14px;
+  border: 1px solid color-mix(in oklab, var(--color-border), transparent 12%);
+  background: color-mix(in oklab, var(--color-main-background, #fff), transparent 3%);
+}
+
+.onboarding-overlay .goal-card-corner-grip {
+  position: absolute;
+  top: -1px;
+  right: 12px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 34px;
+  height: 18px;
+  padding: 0 8px;
+  border-radius: 0 0 10px 10px;
+  border: 1px solid color-mix(in oklab, var(--color-border), transparent 10%);
+  border-top: 0;
+  background: color-mix(in oklab, var(--color-main-background, #fff), transparent 1%);
+  color: var(--color-text-light);
+  font-size: 0.82rem;
+  line-height: 1;
+  letter-spacing: -0.08em;
+  cursor: grab;
+}
+
+.onboarding-overlay .goal-inline-target {
+  min-width: 72px;
+}
+
+.onboarding-overlay .goal-category-action-icons {
+  margin-left: auto;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  padding: 4px 6px;
+  border-radius: 999px;
+  border: 1px solid color-mix(in oklab, var(--color-border), transparent 10%);
+  background: color-mix(in oklab, var(--color-main-background, #fff), transparent 3%);
+}
+
+.onboarding-overlay .goal-reorder-tools--compact {
+  gap: 6px;
+}
+
+.onboarding-overlay .goal-add-calendar-control__native {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  opacity: 0;
+  cursor: pointer;
+}
+
+.onboarding-overlay .goal-add-calendar-control__icon {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  color: var(--color-primary);
+}
+
+.onboarding-overlay .goal-add-calendar-control__sheet {
+  position: relative;
+  width: 18px;
+  height: 16px;
+  border-radius: 5px;
+  border: 1.5px solid currentColor;
+  background: color-mix(in srgb, var(--color-primary) 12%, var(--color-main-background, #fff));
+}
+
+.onboarding-overlay .goal-add-calendar-control__sheet::before {
+  content: '';
+  position: absolute;
+  top: 3px;
+  left: 2px;
+  right: 2px;
+  height: 1.5px;
+  background: currentColor;
+  opacity: 0.85;
+}
+
+.onboarding-overlay .goal-add-calendar-control__plus {
+  position: absolute;
+  right: 0;
+  bottom: 0;
+  width: 11px;
+  height: 11px;
+  display: inline-grid;
+  place-items: center;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--color-primary) 18%, var(--color-main-background, #fff));
+  border: 1px solid color-mix(in srgb, var(--color-primary) 32%, transparent);
+  color: var(--color-primary);
+  font-size: 10px;
+  font-weight: 800;
+  line-height: 1;
+}
+
+.onboarding-overlay .goal-add-calendar-control--empty {
+  opacity: 0.55;
 }
 
 .onboarding-overlay .goal-color-input {
-  width: 44px;
+  width: 48px;
   padding: 4px;
 }
 
@@ -2827,22 +3485,93 @@ function isStepLocked(index: number) {
 }
 
 .onboarding-overlay .goal-calendar-subrow {
+  position: relative;
   margin-left: 12px;
   border-style: dashed;
   display:grid;
-  grid-template-columns:auto minmax(0, 1fr) auto auto auto;
+  grid-template-columns:minmax(0, 1fr) auto auto auto;
   align-items:center;
   gap:10px;
-  padding:10px 12px;
+  padding:14px 12px 10px;
   border-radius:12px;
   border:1px dashed color-mix(in oklab, var(--color-border), transparent 12%);
   background:color-mix(in oklab, var(--color-main-background, #fff), transparent 3%);
+}
+
+.onboarding-overlay .goal-calendar-corner-grip {
+  position: absolute;
+  top: -1px;
+  right: 12px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 32px;
+  height: 18px;
+  padding: 0 7px;
+  border-radius: 0 0 10px 10px;
+  border: 1px solid color-mix(in oklab, var(--color-border), transparent 10%);
+  border-top: 0;
+  background: color-mix(in oklab, var(--color-main-background, #fff), transparent 1%);
+  color: var(--color-text-light);
+  font-size: 0.82rem;
+  line-height: 1;
+  letter-spacing: -0.08em;
+  cursor: grab;
+}
+
+.onboarding-overlay .goal-row-icon-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 34px;
+  min-width: 34px;
+  height: 34px;
+  padding: 0;
+  border-radius: 999px;
+  border: 1px solid color-mix(in srgb, #ef4444 24%, var(--color-border));
+  background: color-mix(in srgb, #ef4444 8%, var(--color-main-background, #fff));
+  color: color-mix(in srgb, #b91c1c 82%, var(--color-text));
+  font-size: 1rem;
+  font-weight: 700;
+  line-height: 1;
+}
+
+.onboarding-overlay .goal-row-icon-btn:hover {
+  border-color: color-mix(in srgb, #ef4444 40%, var(--color-border));
+  box-shadow: 0 0 0 3px color-mix(in srgb, #ef4444 10%, transparent);
 }
 
 .onboarding-overlay .goal-calendar-subrow__actions {
   display: flex;
   align-items: center;
   gap: 8px;
+  margin-left: auto;
+  padding: 4px 6px;
+  border-radius: 999px;
+  border: 1px solid color-mix(in oklab, var(--color-border), transparent 10%);
+  background: color-mix(in oklab, var(--color-main-background, #fff), transparent 3%);
+}
+
+.onboarding-overlay .goal-calendar-subrow__status {
+  display: grid;
+  gap: 4px;
+  justify-items: start;
+  min-width: 154px;
+}
+
+.onboarding-overlay .goal-calendar-subrow__status .label {
+  margin: 0;
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+  color: var(--color-text-light);
+}
+
+.onboarding-overlay .goal-calendar-subrow .input-unit--small {
+  grid-template-columns: 38px auto;
+  width: max-content;
+  justify-self: start;
 }
 
 .onboarding-overlay .goal-calendar-subrow .row-name,
@@ -2853,7 +3582,10 @@ function isStepLocked(index: number) {
 }
 
 .onboarding-overlay .input-unit--small input {
-  width: 72px;
+  width: 38px;
+  min-width: 38px;
+  padding: 6px 4px;
+  text-align: center;
 }
 
 .onboarding-overlay .goal-suggestion-pill {
@@ -2862,6 +3594,28 @@ function isStepLocked(index: number) {
   padding: 3px 8px;
   background: rgba(59, 130, 246, 0.1);
   color: var(--color-primary);
+}
+
+.onboarding-overlay .goal-suggestion-pill--muted {
+  border-color: color-mix(in srgb, var(--color-border) 92%, transparent);
+  background: color-mix(in srgb, var(--color-border) 12%, transparent);
+  color: var(--color-text-light);
+}
+
+.onboarding-panel.theme-dark .goal-calendar-badge {
+  border-color: #35506e;
+  background: linear-gradient(180deg, rgba(15, 23, 42, 0.92), rgba(19, 31, 52, 0.96));
+  box-shadow: inset 0 0 0 1px rgba(71, 85, 105, 0.16);
+}
+
+.onboarding-panel.theme-dark .goal-calendar-badge__hours,
+.onboarding-panel.theme-dark .goal-calendar-subrow__status .label {
+  color: #93a7c4;
+}
+
+.onboarding-panel.theme-dark .goal-calendar-corner-grip {
+  border-color: #35506e;
+  background: linear-gradient(180deg, rgba(15, 23, 42, 0.92), rgba(19, 31, 52, 0.96));
 }
 
 .onboarding-overlay .review-row-list {
@@ -2874,7 +3628,7 @@ function isStepLocked(index: number) {
   align-items: flex-start;
   justify-content: space-between;
   gap: 12px;
-  padding: 14px 16px;
+  padding: 12px 14px;
   border-radius: 12px;
   border: 1px solid color-mix(in oklab, var(--color-border), transparent 18%);
   background: color-mix(in oklab, var(--color-main-background, #fff), transparent 4%);
@@ -2906,6 +3660,11 @@ function isStepLocked(index: number) {
     grid-template-columns:1fr;
   }
 
+  .onboarding-overlay .config-warning {
+    grid-template-columns: 1fr;
+    align-items: start;
+  }
+
   .onboarding-overlay .goal-side-panel {
     position: static;
   }
@@ -2917,6 +3676,20 @@ function isStepLocked(index: number) {
 
   .onboarding-overlay .field-actions {
     justify-content: flex-start;
+  }
+
+  .onboarding-overlay .goal-category-editor__primary,
+  .onboarding-overlay .goal-category-editor__secondary {
+    grid-template-columns: 1fr;
+  }
+
+  .onboarding-overlay .goal-category-row-bottom__head {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .onboarding-overlay .goal-calendar-subrow__status {
+    min-width: 132px;
   }
 }
 
@@ -2949,6 +3722,19 @@ function isStepLocked(index: number) {
 
   .onboarding-overlay .intro-visual__copy .accent {
     font-size:2.7rem;
+  }
+
+  .onboarding-overlay .goal-calendar-subrow {
+    grid-template-columns: 1fr;
+  }
+
+  .onboarding-overlay .goal-category-assigned-badges {
+    padding-left: 0;
+  }
+
+  .onboarding-overlay .goal-calendar-subrow__actions {
+    margin-left: 0;
+    justify-self: start;
   }
 }
 

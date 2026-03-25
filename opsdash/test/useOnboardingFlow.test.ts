@@ -11,7 +11,8 @@ function setupFlow(overrides: Partial<Parameters<typeof useOnboardingFlow>[0]> =
   const onboardingState = ref<OnboardingState | null>(null)
   const calendars = ref<any[]>([{ id: 'cal-1', displayname: 'Primary', color: '#ff0000' }])
   const selected = ref<string[]>(['cal-1'])
-  const groupsById = ref<Record<string, number>>({ 'cal-1': 1 })
+  const targetsWeek = ref<Record<string, number>>({})
+  const groupsById = ref<Record<string, number>>({ 'cal-1': 0 })
   const targetsConfig = ref(createDefaultTargetsConfig())
   const deckSettings = ref(createDefaultDeckSettings())
   const reportingConfig = ref(createDefaultReportingConfig())
@@ -29,6 +30,7 @@ function setupFlow(overrides: Partial<Parameters<typeof useOnboardingFlow>[0]> =
     onboardingState,
     calendars,
     selected,
+    targetsWeek,
     groupsById,
     targetsConfig,
     deckSettings,
@@ -42,6 +44,7 @@ function setupFlow(overrides: Partial<Parameters<typeof useOnboardingFlow>[0]> =
     onboardingState,
     calendars,
     selected,
+    targetsWeek,
     groupsById,
     targetsConfig,
     deckSettings,
@@ -82,6 +85,13 @@ describe('useOnboardingFlow', () => {
     expect(ctx.actions.saveSnapshot).toHaveBeenCalledTimes(1)
   })
 
+  it('does not treat normalized default targets config as existing setup', () => {
+    const ctx = setupFlow()
+
+    expect(ctx.hasExistingConfig.value).toBe(false)
+    expect(ctx.wizardInitialStrategy.value).toBe('total_only')
+  })
+
   it('delegates completion to onboarding actions and updates flags', async () => {
     const ctx = setupFlow()
     ctx.hasInitialLoad.value = true
@@ -112,5 +122,103 @@ describe('useOnboardingFlow', () => {
 
     expect(ctx.autoWizardNeeded.value).toBe(true)
     expect(ctx.wizardStartStep.value).toBeNull()
+  })
+
+  it('closes the wizard immediately while skip is still pending', async () => {
+    let resolveSkip: (() => void) | null = null
+    const skip = vi.fn().mockImplementation(() => new Promise<void>((resolve) => {
+      resolveSkip = resolve
+    }))
+    const ctx = setupFlow({
+      actions: {
+        isOnboardingSaving: ref(false),
+        isSnapshotSaving: ref(false),
+        snapshotNotice: ref(null),
+        complete: vi.fn().mockResolvedValue(undefined),
+        skip,
+        saveSnapshot: vi.fn().mockResolvedValue(undefined),
+      } as OnboardingActions,
+    })
+
+    ctx.autoWizardNeeded.value = true
+    const pending = ctx.handleWizardSkip()
+
+    expect(ctx.onboardingWizardVisible.value).toBe(false)
+    expect(skip).toHaveBeenCalledTimes(1)
+
+    resolveSkip?.()
+    await pending
+  })
+
+  it('prefers persisted onboarding strategy over stale category config', () => {
+    const ctx = setupFlow()
+    ctx.onboardingState.value = {
+      completed: true,
+      version: 1,
+      strategy: 'total_plus_categories',
+      completed_at: new Date().toISOString(),
+    }
+    ctx.targetsConfig.value = {
+      ...ctx.targetsConfig.value,
+      categories: [
+        {
+          id: 'focus',
+          label: 'Focus',
+          targetHours: 12,
+          includeWeekend: false,
+          paceMode: 'days_only',
+          color: '#2563EB',
+          groupId: 1,
+        } as any,
+      ],
+    }
+
+    expect(ctx.wizardInitialStrategy.value).toBe('total_plus_categories')
+  })
+
+  it('recognizes existing config from persisted setup even when onboarding is incomplete', () => {
+    const ctx = setupFlow()
+    ctx.onboardingState.value = {
+      completed: false,
+      version: 1,
+      strategy: 'total_plus_categories',
+      completed_at: '',
+      dashboardMode: 'standard',
+    }
+    ctx.targetsWeek.value = { 'cal-1': 8 }
+
+    expect(ctx.hasExistingConfig.value).toBe(true)
+    expect(ctx.wizardInitialStrategy.value).toBe('total_plus_categories')
+  })
+
+  it('does not auto-open onboarding for existing config until opened manually', async () => {
+    const ctx = setupFlow()
+    ctx.hasInitialLoad.value = true
+    ctx.onboardingState.value = {
+      completed: false,
+      version: 1,
+      strategy: 'total_plus_categories',
+      completed_at: '',
+      dashboardMode: 'standard',
+    }
+    ctx.targetsWeek.value = { 'cal-1': 8 }
+
+    ctx.evaluateOnboarding()
+    await nextTick()
+
+    expect(ctx.hasExistingConfig.value).toBe(true)
+    expect(ctx.autoWizardNeeded.value).toBe(false)
+    expect(ctx.onboardingWizardVisible.value).toBe(false)
+  })
+
+  it('falls back to calendar goals when only calendar targets exist', () => {
+    const ctx = setupFlow()
+    ctx.targetsConfig.value = {
+      ...ctx.targetsConfig.value,
+      categories: [],
+    }
+    ctx.targetsWeek.value = { 'cal-1': 8 }
+
+    expect(ctx.wizardInitialStrategy.value).toBe('total_plus_categories')
   })
 })

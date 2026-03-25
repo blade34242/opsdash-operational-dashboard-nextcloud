@@ -19,6 +19,7 @@ export const targetsV2Entry: RegistryEntry = {
   defaultOptions: {
     showForecast: true,
     showPace: true,
+    neverFinishedMode: false,
     useLocalConfig: false,
     localConfig: null,
   },
@@ -27,6 +28,7 @@ export const targetsV2Entry: RegistryEntry = {
     { key: 'showDelta', label: 'Show delta', type: 'toggle' },
     { key: 'showForecast', label: 'Show forecast', type: 'toggle' },
     { key: 'showPace', label: 'Show pace line', type: 'toggle' },
+    { key: 'neverFinishedMode', label: 'Never Finished · Stay Hard', type: 'toggle' },
     { key: 'showToday', label: 'Show today overlay', type: 'toggle' },
     { key: 'useLocalConfig', label: 'Use custom targets for this widget', type: 'toggle' },
     { key: 'showTotalDelta', label: 'Show total delta', type: 'toggle' },
@@ -71,6 +73,7 @@ export const targetsV2Entry: RegistryEntry = {
       showDelta: def.options?.showDelta !== false,
       showForecast: def.options?.showForecast !== false,
       showPace: def.options?.showPace !== false,
+      neverFinishedMode: def.options?.neverFinishedMode === true,
       showToday: def.options?.showToday !== false,
       title: buildTitle(baseTitle, def.options?.titlePrefix),
       cardBg: def.options?.cardBg,

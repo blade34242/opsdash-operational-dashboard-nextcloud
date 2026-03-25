@@ -1,5 +1,21 @@
-import { mount } from '@vue/test-utils'
-import { describe, it, expect } from 'vitest'
+import { flushPromises, mount } from '@vue/test-utils'
+import { beforeEach, describe, it, expect, vi } from 'vitest'
+
+const { postJsonMock, fetchDeckBoardsMetaMock } = vi.hoisted(() => ({
+  postJsonMock: vi.fn(),
+  fetchDeckBoardsMetaMock: vi.fn(),
+}))
+
+vi.mock('../composables/useOcHttp', () => ({
+  useOcHttp: () => ({
+    route: (name: string) => `/${name}`,
+    postJson: postJsonMock,
+  }),
+}))
+
+vi.mock('../src/services/deck', () => ({
+  fetchDeckBoardsMeta: fetchDeckBoardsMetaMock,
+}))
 
 import OnboardingWizard from '../src/components/onboarding/OnboardingWizard.vue'
 
@@ -26,6 +42,16 @@ function mountWizard(overrides: Record<string, any> = {}) {
 }
 
 describe('OnboardingWizard', () => {
+  beforeEach(() => {
+    postJsonMock.mockReset()
+    fetchDeckBoardsMetaMock.mockReset()
+    postJsonMock.mockResolvedValue({
+      charts: { perDaySeries: { series: [] } },
+      byCal: [],
+    })
+    fetchDeckBoardsMetaMock.mockResolvedValue([])
+  })
+
   it('locks body scroll while visible', async () => {
     const wrapper = mountWizard()
     expect(document.body.classList.contains('opsdash-onboarding-lock')).toBe(true)
@@ -67,7 +93,8 @@ describe('OnboardingWizard', () => {
 
     const calendarsArrow = arrows.find((p) => p.text().includes('Calendars'))
     await calendarsArrow?.trigger('click')
-    expect(calendarsArrow?.classes()).toContain('current')
+    await flushPromises()
+    expect(wrapper.find('.step-arrow.current').text()).toContain('Calendars')
   })
 
   it('shows global trend lookback choices in preferences after opening the editor', async () => {
@@ -90,7 +117,155 @@ describe('OnboardingWizard', () => {
       startStep: 'deck',
     })
     expect(wrapper.find('.step-arrow.current').text()).toContain('Deck')
-    expect(wrapper.text()).toContain('Choose Deck boards')
+    expect(wrapper.text()).toContain('Select Deck boards to include')
+  })
+
+  it('continues to calendars on strategy card double click', async () => {
+    const wrapper = mountWizard({
+      startStep: 'strategy',
+      initialStrategy: 'total_only',
+    })
+
+    const card = wrapper.findAll('.strategy-route-card').find((node) => node.text().includes('Calendar Goals'))
+    await card?.trigger('dblclick')
+    await flushPromises()
+
+    expect(wrapper.find('.step-arrow.current').text()).toContain('Calendars')
+  })
+
+  it('auto-saves before continuing to the next step', async () => {
+    const persistStep = vi.fn().mockResolvedValue(undefined)
+    const wrapper = mountWizard({
+      startStep: 'strategy',
+      initialStrategy: 'total_only',
+      persistStep,
+    })
+
+    const continueButton = wrapper.findAll('button').find((button) => button.text().includes('Continue'))
+    await continueButton?.trigger('click')
+    await flushPromises()
+
+    expect(persistStep).toHaveBeenCalledTimes(1)
+    expect(wrapper.find('.step-arrow.current').text()).toContain('Calendars')
+  })
+
+  it('loads goal suggestions from previous weeks instead of future weeks', async () => {
+    const wrapper = mountWizard({
+      startStep: 'goals',
+      initialStrategy: 'full_granular',
+      calendars: [
+        { id: 'cal-1', displayname: 'Primary', color: '#ff0000' },
+        { id: 'cal-2', displayname: 'Secondary', color: '#00ff00' },
+      ],
+      initialSelection: ['cal-1', 'cal-2'],
+    })
+
+    await flushPromises()
+
+    const loadCalls = postJsonMock.mock.calls
+      .map((call) => call[1])
+      .filter((payload) => payload?.range === 'week' && Array.isArray(payload?.include) && payload.include.includes('data'))
+    const offsets = loadCalls.map((payload) => payload.offset)
+
+    expect(new Set(offsets)).toEqual(new Set([-1, -2, -3, -4, -5, -6]))
+    expect(offsets.every((offset) => offset < 0)).toBe(true)
+
+    wrapper.unmount()
+  })
+
+  it('shows suggestions in single goal mode from recent history', async () => {
+    postJsonMock.mockResolvedValue({
+      charts: {
+        perDaySeries: {
+          series: [
+            { id: 'cal-1', data: [6] },
+          ],
+        },
+      },
+      byCal: [{ id: 'cal-1', total_hours: 6 }],
+    })
+
+    const wrapper = mountWizard({
+      startStep: 'goals',
+      initialStrategy: 'total_only',
+    })
+
+    await flushPromises()
+
+    expect(wrapper.text()).toContain('Suggested from recent activity:')
+    expect(wrapper.text()).toContain('6.0 h / week')
+  })
+
+  it('shows category suggestions when existing assignments map calendars to a category', async () => {
+    postJsonMock.mockResolvedValue({
+      charts: {
+        perDaySeries: {
+          series: [
+            { id: 'cal-1', data: [6] },
+            { id: 'cal-2', data: [2] },
+          ],
+        },
+      },
+      byCal: [
+        { id: 'cal-1', total_hours: 6 },
+        { id: 'cal-2', total_hours: 2 },
+      ],
+    })
+
+    const wrapper = mountWizard({
+      startStep: 'goals',
+      initialStrategy: 'full_granular',
+      calendars: [
+        { id: 'cal-1', displayname: 'Primary', color: '#ff0000' },
+        { id: 'cal-2', displayname: 'Secondary', color: '#00ff00' },
+      ],
+      initialSelection: ['cal-1', 'cal-2'],
+      initialCategories: [
+        {
+          id: 'work',
+          label: 'Work',
+          targetHours: 12,
+          includeWeekend: false,
+          paceMode: 'days_only',
+          color: '#2563EB',
+        },
+      ],
+      initialAssignments: {
+        'cal-1': 'work',
+        'cal-2': 'work',
+      },
+    })
+
+    await flushPromises()
+
+    expect(wrapper.text()).toContain('Suggested 8.0 h')
+  })
+
+  it('auto-saves before closing the wizard', async () => {
+    const persistStep = vi.fn().mockResolvedValue(undefined)
+    const wrapper = mountWizard({
+      startStep: 'preferences',
+      persistStep,
+    })
+
+    await wrapper.find('.close-btn').trigger('click')
+    await flushPromises()
+
+    expect(persistStep).toHaveBeenCalledTimes(1)
+    expect(wrapper.emitted('close')).toBeTruthy()
+  })
+
+  it('continues to review on dashboard card double click', async () => {
+    const wrapper = mountWizard({
+      startStep: 'dashboard',
+      initialDashboardMode: 'standard',
+    })
+
+    const card = wrapper.findAll('.dashboard-preset-card').find((node) => node.text().includes('Advanced'))
+    await card?.trigger('dblclick')
+    await flushPromises()
+
+    expect(wrapper.find('.step-arrow.current').text()).toContain('Review')
   })
 
   it('completes quick setup from intro with the default onboarding payload', async () => {

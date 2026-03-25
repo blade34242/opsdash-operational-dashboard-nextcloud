@@ -1,7 +1,7 @@
 import { computed, ref, watch, type Ref } from 'vue'
 
 import { ONBOARDING_VERSION, type StrategyDefinition, type CalendarSummary, type CategoryDraft } from '../src/services/onboarding'
-import { type TargetsConfig } from '../src/services/targets'
+import { createDefaultTargetsConfig, normalizeTargetsConfig, type TargetsConfig } from '../src/services/targets'
 import {
   type DeckFeatureSettings,
   type ReportingConfig,
@@ -15,12 +15,38 @@ interface OnboardingFlowDeps {
   onboardingState: Ref<OnboardingState | null>
   calendars: Ref<Array<Record<string, any>>>
   selected: Ref<string[]>
+  targetsWeek: Ref<Record<string, number>>
   groupsById: Ref<Record<string, number>>
   targetsConfig: Ref<TargetsConfig>
   deckSettings: Ref<DeckFeatureSettings>
   reportingConfig: Ref<ReportingConfig>
   hasInitialLoad: Ref<boolean>
   actions: OnboardingActions
+}
+
+const DEFAULT_TARGETS_CONFIG = normalizeTargetsConfig(createDefaultTargetsConfig())
+const DEFAULT_CATEGORY_SIGNATURE = buildCategorySignature(DEFAULT_TARGETS_CONFIG.categories)
+
+function isStrategyId(value: unknown): value is StrategyDefinition['id'] {
+  return value === 'total_only' || value === 'total_plus_categories' || value === 'full_granular'
+}
+
+function buildCategorySignature(categories: unknown): string {
+  if (!Array.isArray(categories)) return '[]'
+  return JSON.stringify(categories.map((cat: any) => ({
+    id: String(cat?.id ?? ''),
+    label: String(cat?.label ?? ''),
+    targetHours: Number.isFinite(Number(cat?.targetHours)) ? Number(cat.targetHours) : 0,
+    includeWeekend: !!cat?.includeWeekend,
+    paceMode: cat?.paceMode === 'time_aware' ? 'time_aware' : 'days_only',
+    color: typeof cat?.color === 'string' ? cat.color.toUpperCase() : null,
+    groupIds: Array.isArray(cat?.groupIds)
+      ? cat.groupIds
+          .map((groupId: unknown) => Number(groupId))
+          .filter((groupId: number) => Number.isFinite(groupId))
+          .sort((a: number, b: number) => a - b)
+      : [],
+  })))
 }
 
 export function useOnboardingFlow(deps: OnboardingFlowDeps) {
@@ -33,7 +59,34 @@ export function useOnboardingFlow(deps: OnboardingFlowDeps) {
     wizardStartStep,
   } = createOnboardingWizardState()
 
-  const hasExistingConfig = computed(() => Boolean(deps.onboardingState.value?.completed))
+  const hasPositiveTargetsWeek = computed(() =>
+    Object.values(deps.targetsWeek.value || {}).some((hours) => Number(hours) > 0),
+  )
+  const hasSelectedSubset = computed(() => {
+    const calendarCount = (deps.calendars.value || []).length
+    const selectedCount = new Set((deps.selected.value || []).filter(Boolean)).size
+    return calendarCount > 0 && selectedCount > 0 && selectedCount < calendarCount
+  })
+  const hasAssignedGroups = computed(() => {
+    const selectedSet = new Set(deps.selected.value || [])
+    return Object.entries(deps.groupsById.value || {}).some(([calId, groupId]) =>
+      selectedSet.has(calId) && Number(groupId) > 0,
+    )
+  })
+  const hasCustomCategories = computed(() => {
+    const categories = deps.targetsConfig.value?.categories
+    return Array.isArray(categories)
+      && categories.length > 0
+      && buildCategorySignature(categories) !== DEFAULT_CATEGORY_SIGNATURE
+  })
+  const hasExistingConfig = computed(() =>
+    Boolean(deps.onboardingState.value?.completed)
+    || isStrategyId(deps.onboardingState.value?.strategy)
+    || hasPositiveTargetsWeek.value
+    || hasAssignedGroups.value
+    || hasSelectedSubset.value
+    || hasCustomCategories.value,
+  )
   const isOnboardingSaving = deps.actions.isOnboardingSaving
   const isSnapshotSaving = deps.actions.isSnapshotSaving
   const snapshotNotice = deps.actions.snapshotNotice
@@ -50,12 +103,20 @@ export function useOnboardingFlow(deps: OnboardingFlowDeps) {
 
   const wizardInitialSelection = computed(() => [...deps.selected.value])
   const wizardInitialStrategy = computed<StrategyDefinition['id']>(() => {
-    const rawCategories = Array.isArray(deps.targetsConfig.value?.categories) ? deps.targetsConfig.value.categories : []
-    if (rawCategories.length > 0) {
+    const persisted = deps.onboardingState.value?.strategy
+    if (isStrategyId(persisted)) {
+      return persisted
+    }
+
+    if (hasCustomCategories.value || hasAssignedGroups.value) {
       return 'full_granular'
     }
-    const fallback = deps.onboardingState.value?.strategy as StrategyDefinition['id'] | undefined
-    return fallback ?? 'total_only'
+
+    if (hasPositiveTargetsWeek.value) {
+      return 'total_plus_categories'
+    }
+
+    return 'total_only'
   })
 
   const wizardInitialAllDayHours = computed(() => deps.targetsConfig.value?.allDayHours ?? 8)
@@ -118,11 +179,17 @@ export function useOnboardingFlow(deps: OnboardingFlowDeps) {
     return false
   }
 
+  function shouldAutoOpenWizard(state: OnboardingState | null): boolean {
+    if (state?.resetRequested) return true
+    if (hasExistingConfig.value) return false
+    return shouldRequireOnboarding(state)
+  }
+
   function evaluateOnboarding(state?: OnboardingState | null) {
     const next = state ?? deps.onboardingState.value
     if (!deps.hasInitialLoad.value && !next) return
     const needs = shouldRequireOnboarding(next)
-    autoWizardNeeded.value = needs || !!next?.resetRequested
+    autoWizardNeeded.value = shouldAutoOpenWizard(next)
     if (needs || next?.resetRequested) {
       wizardStartStep.value = null
     }
@@ -150,11 +217,15 @@ export function useOnboardingFlow(deps: OnboardingFlowDeps) {
   }
 
   async function handleWizardSkip() {
+    const wasAuto = autoWizardNeeded.value
+    const wasManual = manualWizardOpen.value
     try {
-      await deps.actions.skip()
       manualWizardOpen.value = false
       autoWizardNeeded.value = false
+      await deps.actions.skip()
     } catch (error) {
+      manualWizardOpen.value = wasManual
+      autoWizardNeeded.value = wasAuto
       console.error('[opsdash] onboarding skip failed', error)
     }
   }

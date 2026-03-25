@@ -3,7 +3,17 @@
 All notable changes to this project will be documented in this file.
 
 ## Unreleased
-- None yet.
+### Added
+- Added a `Never Finished · Stay Hard` option for the `Targets` widget. When enabled, the widget keeps totals in an endless 80-99% display zone and shows a compact rotating hustle badge in the card corner.
+
+### Changed
+- Moved the widget-edit toolbar from the bottom floating bar into a secondary toolbar below the main dashboard tabs/edit header.
+- Reworked the onboarding Goals step UI across calendar and category planning modes, including compact action rows, clearer dark-theme borders, select-all helpers, and better responsive behavior for zoomed/medium-width layouts.
+
+### Fixed
+- Fixed onboarding suggestion loading so lookback-based suggestions use previous weeks and now surface consistently in `Single Goal`, `Calendar Goals`, and `Calendar + Category Goals`.
+- Fixed onboarding wizard state resets by snapshotting the existing configuration on open, so strategy changes inside one wizard session no longer drop category assignments/suggestion context.
+- Replaced the `Targets` widget badge icon dependency with local SVG components, removing the `@iconoir/vue` unit-test warnings.
 
 ## 0.7.1 - 2026-03-23
 ### Changed

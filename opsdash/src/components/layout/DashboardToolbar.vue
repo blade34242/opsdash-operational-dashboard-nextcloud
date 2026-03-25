@@ -1,91 +1,89 @@
 <template>
-  <Teleport to="body">
-    <div v-if="editable" class="widget-toolbar-layer">
-      <div class="widget-toolbar">
-        <div class="toolbar-title">
-          <template v-if="selectedItem">{{ selectedItemTitle }}</template>
-          <template v-else>Click a widget to edit</template>
+  <div v-if="editable" class="widget-toolbar-layer">
+    <div class="widget-toolbar">
+      <div class="toolbar-title">
+        <template v-if="selectedItem">{{ selectedItemTitle }}</template>
+        <template v-else>Click a widget to edit</template>
+      </div>
+      <div class="toolbar-actions" v-if="selectedItem">
+        <button type="button" class="ghost" title="Move earlier" @click="$emit('move', 'up')">←</button>
+        <button type="button" class="ghost" title="Move later" @click="$emit('move', 'down')">→</button>
+        <button type="button" class="ghost" title="Cycle width" @click="$emit('cycle-width')">{{ widthLabel(selectedItem.layout.width) }}</button>
+        <button type="button" class="ghost" title="Cycle height" @click="$emit('cycle-height')">{{ heightLabel(selectedItem.layout.height) }}</button>
+        <div class="toolbar-quick">
+          <label class="toolbar-field">
+            <span>Title</span>
+            <input
+              type="text"
+              :value="optionValue('titlePrefix') || ''"
+              placeholder="Prefix"
+              @input="$emit('edit-options', selectedItem.id, 'titlePrefix', ($event.target as HTMLInputElement).value)"
+            />
+          </label>
+          <label class="toolbar-field">
+            <span>Card</span>
+            <input
+              type="color"
+              :value="optionValue('cardBg') || '#ffffff'"
+              @input="$emit('edit-options', selectedItem.id, 'cardBg', ($event.target as HTMLInputElement).value)"
+            />
+          </label>
+          <label class="toolbar-field">
+            <span>Scale</span>
+            <select
+              :value="optionValue('scale') || 'md'"
+              @change="$emit('edit-options', selectedItem.id, 'scale', ($event.target as HTMLSelectElement).value)"
+            >
+              <option value="sm">Small</option>
+              <option value="md">Normal</option>
+              <option value="lg">Large</option>
+              <option value="xl">Extra large</option>
+            </select>
+          </label>
+          <label class="toolbar-field toolbar-field--toggle">
+            <input
+              type="checkbox"
+              :checked="optionValue('showHeader') !== false"
+              @change="$emit('edit-options', selectedItem.id, 'showHeader', ($event.target as HTMLInputElement).checked)"
+            />
+            <span>Show title</span>
+          </label>
+          <label class="toolbar-field toolbar-field--toggle">
+            <input
+              type="checkbox"
+              :checked="!!optionValue('dense')"
+              @change="$emit('edit-options', selectedItem.id, 'dense', ($event.target as HTMLInputElement).checked)"
+            />
+            <span>Dense</span>
+          </label>
         </div>
-        <div class="toolbar-actions" v-if="selectedItem">
-          <button type="button" class="ghost" title="Move earlier" @click="$emit('move', 'up')">←</button>
-          <button type="button" class="ghost" title="Move later" @click="$emit('move', 'down')">→</button>
-          <button type="button" class="ghost" title="Cycle width" @click="$emit('cycle-width')">{{ widthLabel(selectedItem.layout.width) }}</button>
-          <button type="button" class="ghost" title="Cycle height" @click="$emit('cycle-height')">{{ heightLabel(selectedItem.layout.height) }}</button>
-          <div class="toolbar-quick">
-            <label class="toolbar-field">
-              <span>Title</span>
-              <input
-                type="text"
-                :value="optionValue('titlePrefix') || ''"
-                placeholder="Prefix"
-                @input="$emit('edit-options', selectedItem.id, 'titlePrefix', ($event.target as HTMLInputElement).value)"
-              />
-            </label>
-            <label class="toolbar-field">
-              <span>Card</span>
-              <input
-                type="color"
-                :value="optionValue('cardBg') || '#ffffff'"
-                @input="$emit('edit-options', selectedItem.id, 'cardBg', ($event.target as HTMLInputElement).value)"
-              />
-            </label>
-            <label class="toolbar-field">
-              <span>Scale</span>
-              <select
-                :value="optionValue('scale') || 'md'"
-                @change="$emit('edit-options', selectedItem.id, 'scale', ($event.target as HTMLSelectElement).value)"
-              >
-                <option value="sm">Small</option>
-                <option value="md">Normal</option>
-                <option value="lg">Large</option>
-                <option value="xl">Extra large</option>
-              </select>
-            </label>
-            <label class="toolbar-field toolbar-field--toggle">
-              <input
-                type="checkbox"
-                :checked="optionValue('showHeader') !== false"
-                @change="$emit('edit-options', selectedItem.id, 'showHeader', ($event.target as HTMLInputElement).checked)"
-              />
-              <span>Show title</span>
-            </label>
-            <label class="toolbar-field toolbar-field--toggle">
-              <input
-                type="checkbox"
-                :checked="!!optionValue('dense')"
-                @change="$emit('edit-options', selectedItem.id, 'dense', ($event.target as HTMLInputElement).checked)"
-              />
-              <span>Dense</span>
-            </label>
-          </div>
-          <WidgetOptionsMenu
-            v-if="selectedItem && isConfigurable(selectedItem.type)"
-            :entry="registryEntry(selectedItem.type)"
-            :options="selectedItem.options"
-            :open="openOptionsId === selectedItem.id"
-            :show-advanced="selectedItem.type === 'targets_v2'"
-            :context="context"
-            @toggle="(nextOpen) => $emit('toggle-options', selectedItem.id, nextOpen)"
-            @open-advanced="$emit('open-advanced', selectedItem.id)"
-            @change="(key,value)=>$emit('edit-options', selectedItem.id, key, value)"
-          />
-          <button
-            v-if="presetLabel"
-            type="button"
-            class="ghost"
-            title="Reset widgets to preset"
-            @click="$emit('reset-preset')"
-          >
-            Reset {{ presetLabel }}
-          </button>
-          <button type="button" class="ghost danger" title="Remove widget" @click="$emit('remove')">✕</button>
-        </div>
-        <div class="toolbar-actions" v-else>
-          <button type="button" class="ghost" @click="$emit('select-first')">Select first widget</button>
-        </div>
+        <WidgetOptionsMenu
+          v-if="selectedItem && isConfigurable(selectedItem.type)"
+          :entry="registryEntry(selectedItem.type)"
+          :options="selectedItem.options"
+          :open="openOptionsId === selectedItem.id"
+          :show-advanced="selectedItem.type === 'targets_v2'"
+          :context="context"
+          @toggle="(nextOpen) => $emit('toggle-options', selectedItem.id, nextOpen)"
+          @open-advanced="$emit('open-advanced', selectedItem.id)"
+          @change="(key,value)=>$emit('edit-options', selectedItem.id, key, value)"
+        />
+        <button
+          v-if="presetLabel"
+          type="button"
+          class="ghost"
+          title="Reset widgets to preset"
+          @click="$emit('reset-preset')"
+        >
+          Reset {{ presetLabel }}
+        </button>
+        <button type="button" class="ghost danger" title="Remove widget" @click="$emit('remove')">✕</button>
+      </div>
+      <div class="toolbar-actions" v-else>
+        <button type="button" class="ghost" @click="$emit('select-first')">Select first widget</button>
       </div>
     </div>
-  </Teleport>
+  </div>
 </template>
 
 <script setup lang="ts">
@@ -169,14 +167,14 @@ function heightLabel(height: string) {
 }
 
 .widget-toolbar-layer {
-  position:fixed;
-  inset:auto 24px 10px calc(24px + var(--opsdash-nav-offset, 0px));
-  pointer-events:none;
-  z-index:2147480000;
-  display:flex;
-  align-items:flex-end;
-  justify-content:center;
-  padding:0;
+  position: sticky;
+  top: 8px;
+  z-index: 25;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0 0 14px;
+  padding: 0;
   background: none;
 }
 .widget-toolbar {
@@ -195,7 +193,6 @@ function heightLabel(height: string) {
   --tb-btn-fg: #0f172a;
   --tb-btn-hover-bg: color-mix(in oklab, #dbeafe, #ffffff 72%);
   --tb-btn-hover-border: color-mix(in oklab, #2563eb, transparent 48%);
-  pointer-events: auto;
   position: relative;
   margin-top: 0;
   padding: 7px 10px;
@@ -207,10 +204,9 @@ function heightLabel(height: string) {
   justify-content: space-between;
   gap: 6px;
   box-shadow: var(--tb-shadow);
-  max-width:1200px;
-  width:min(100%, 1200px);
+  max-width: 1200px;
+  width: min(100%, 1200px);
   opacity:1;
-  z-index:2147480001;
   backdrop-filter: blur(6px);
   transition: background 140ms ease, box-shadow 140ms ease, transform 140ms ease;
 }
@@ -242,6 +238,7 @@ function heightLabel(height: string) {
   font-weight:600;
   font-size:13px;
   color: var(--tb-fg);
+  min-width: 140px;
 }
 
 .toolbar-actions {
@@ -256,6 +253,20 @@ function heightLabel(height: string) {
   gap:6px;
   flex-wrap:wrap;
   align-items:center;
+}
+
+@media (max-width: 900px) {
+  .widget-toolbar-layer {
+    top: 6px;
+  }
+
+  .widget-toolbar {
+    align-items: flex-start;
+  }
+
+  .toolbar-title {
+    min-width: 0;
+  }
 }
 
 .toolbar-field {

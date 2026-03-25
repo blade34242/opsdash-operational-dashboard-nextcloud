@@ -87,28 +87,30 @@
 
     <div v-if="hasExistingConfig" class="config-warning">
       <p>Change current setup is the default for existing configs. Save a profile first if you want a clean restore point before replacing anything.</p>
-      <NcButton
-        type="tertiary"
-        size="small"
-        :disabled="snapshotSaving || saving"
-        :aria-busy="snapshotSaving"
-        @click="onSaveCurrentConfig"
+      <div class="config-warning__actions">
+        <NcButton
+          type="tertiary"
+          size="small"
+          :disabled="snapshotSaving || saving"
+          :aria-busy="snapshotSaving"
+          @click="onSaveCurrentConfig"
+        >
+          Save current setup as profile
+        </NcButton>
+      </div>
+      <div
+        v-if="snapshotNotice"
+        class="snapshot-notice"
+        :class="`snapshot-notice--${snapshotNotice.type}`"
+        role="status"
       >
-        Save current setup as profile
-      </NcButton>
+        {{ snapshotNotice.message }}
+      </div>
     </div>
 
     <p class="hint">
       {{ hasExistingConfig ? 'Quick setup can replace the current setup automatically. Manual setup keeps the full step-by-step flow.' : 'Quick setup finishes everything automatically. Manual setup opens the full step-by-step flow.' }}
     </p>
-  </div>
-  <div
-    v-if="snapshotNotice"
-    class="snapshot-notice"
-    :class="`snapshot-notice--${snapshotNotice.type}`"
-    role="status"
-  >
-    {{ snapshotNotice.message }}
   </div>
 </template>
 

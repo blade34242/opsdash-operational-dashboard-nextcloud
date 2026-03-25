@@ -54,7 +54,7 @@ interface OnboardingActionDeps {
   notifySuccess: (message: string) => void
   notifyError: (message: string) => void
   setThemePreference: (value: ThemePreference, options?: { persist?: boolean }) => void
-  savePreset: (name: string) => Promise<void>
+  savePreset: (name: string, options?: { notifySuccess?: boolean }) => Promise<void>
   reloadAfterPersist: () => Promise<void>
   setSelected: (val: string[]) => void
   setTargetsWeek: (val: Record<string, number>) => void
@@ -178,7 +178,6 @@ export function useOnboardingActions(deps: OnboardingActionDeps) {
       if (payload.widgets) {
         deps.setWidgetTabs?.(payload.widgets)
       }
-      deps.notifySuccess('Step saved')
     } catch (error) {
       console.error(error)
       deps.notifyError('Failed to save step')
@@ -217,7 +216,7 @@ export function useOnboardingActions(deps: OnboardingActionDeps) {
       snapshotNotice.value = null
       const stamp = new Date()
       const name = `Before onboarding ${stamp.toISOString().slice(0, 16).replace('T', ' ')}`
-      await deps.savePreset(name)
+      await deps.savePreset(name, { notifySuccess: false })
       snapshotNotice.value = {
         type: 'success',
         message: `Profile "${name}" saved — find it under Config & Setup.`,

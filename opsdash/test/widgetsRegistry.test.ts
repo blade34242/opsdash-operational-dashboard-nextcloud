@@ -37,6 +37,15 @@ describe('widgetsRegistry targets_v2', () => {
     expect(props.showPace).toBe(false)
   })
 
+  it('passes never finished mode only when explicitly enabled', () => {
+    const entry = widgetsRegistry.targets_v2
+    const offProps = entry.buildProps({ options: {} } as any, {}) as any
+    const onProps = entry.buildProps({ options: { neverFinishedMode: true } } as any, {}) as any
+    expect(entry.defaultOptions?.neverFinishedMode).toBe(false)
+    expect(offProps.neverFinishedMode).toBe(false)
+    expect(onProps.neverFinishedMode).toBe(true)
+  })
+
   it('uses localConfig when enabled', () => {
     const entry = widgetsRegistry.targets_v2
     const baseCfg = createDefaultTargetsConfig()

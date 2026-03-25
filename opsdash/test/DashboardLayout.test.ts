@@ -274,7 +274,7 @@ describe('DashboardLayout grid add flow', () => {
     expect(item.classes()).toContain('scale-sm')
   })
 
-  it('shows floating toolbar in editable mode', () => {
+  it('shows inline toolbar in editable mode', () => {
     const wrapper = mount(DashboardLayout, {
       props: {
         widgets: [
@@ -289,8 +289,8 @@ describe('DashboardLayout grid add flow', () => {
       },
     })
 
-    const bar = document.body.querySelector('.widget-toolbar')
-    expect(bar).not.toBeNull()
+    const bar = wrapper.find('.widget-toolbar')
+    expect(bar.exists()).toBe(true)
     wrapper.unmount()
   })
 
@@ -312,8 +312,8 @@ describe('DashboardLayout grid add flow', () => {
     await nextTick()
     await wrapper.find('.layout-item').trigger('click')
     await nextTick()
-    const toolbar = document.body.querySelector('.widget-toolbar') as HTMLElement
-    expect(toolbar).not.toBeNull()
+    const toolbar = wrapper.find('.widget-toolbar')
+    expect(toolbar.exists()).toBe(true)
 
     // Call the same handlers the toolbar buttons are wired to so we verify emissions
     ;(wrapper.vm as any).selectedId = 'w1'
@@ -333,7 +333,6 @@ describe('DashboardLayout grid add flow', () => {
   })
 
   it('hides toolbar when not editable', () => {
-    document.querySelectorAll('.widget-toolbar').forEach((el) => el.remove())
     const wrapper = mount(DashboardLayout, {
       props: {
         widgets: [

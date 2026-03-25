@@ -24,11 +24,11 @@
       :saving="isOnboardingSaving"
       :snapshot-saving="isWizardSnapshotSaving"
       :snapshot-notice="wizardSnapshotNotice"
+      :persist-step="handleWizardSaveStep"
       @close="handleWizardClose"
       @skip="handleWizardSkip"
       @complete="handleWizardComplete"
       @save-current-config="handleWizardSaveSnapshot"
-      @save-step="handleWizardSaveStep"
     />
     <ProfilesOverlay
       :visible="profilesOverlayOpen"

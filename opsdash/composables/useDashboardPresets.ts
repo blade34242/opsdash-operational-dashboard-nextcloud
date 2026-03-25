@@ -59,7 +59,7 @@ export function useDashboardPresets(deps: DashboardPresetsDeps) {
     }
   }
 
-  async function savePreset(name: string) {
+  async function savePreset(name: string, options: { notifySuccess?: boolean } = {}) {
     const trimmed = name.trim()
     if (trimmed === '') {
       deps.notifyError('Enter a preset name.')
@@ -85,7 +85,9 @@ export function useDashboardPresets(deps: DashboardPresetsDeps) {
       const warnings = Array.isArray(res?.warnings) ? res.warnings : []
       presetWarnings.value = warnings
       lastLoadedPreset.value = trimmed
-      deps.notifySuccess(`Profile "${trimmed}" saved`)
+      if (options.notifySuccess !== false) {
+        deps.notifySuccess(`Profile "${trimmed}" saved`)
+      }
     } catch (error) {
       console.error(error)
       deps.notifyError('Failed to save preset')
