@@ -26,6 +26,7 @@
    - `Calendar Goals`: per-calendar weekly goals with per-row history suggestions.
    - `Calendar + Category Goals`: category targets, calendar targets, assignments, suggestions, and reorder controls.
    - Suggestions use the currently available 1-6 week lookback window from previous weeks.
+   - Clicking a visible suggestion applies that value directly into the matching target field.
    - The wizard snapshots the existing config when it opens so switching strategies during one session does not wipe the original categories/assignments.
 6. Preferences
    - Core defaults on the left, optional recap module on the right.

@@ -5,14 +5,19 @@ Short, current guide for local work and ops toggles.
 ## Environment
 - Nextcloud 30-32, Node.js 20+, npm 10+, Composer 2.
 - Docker files: `docker-compose*.yml` mount the app under `apps-extra/opsdash`.
+- Local helper targets:
+  - `make start` -> Nextcloud 32 on `http://localhost:8092`
+  - `make start31` -> Nextcloud 31 on `http://localhost:8088`
+  - `make status` / `make logs` -> stack health checks
 
 ## Build & Test
 ```bash
+make start
 cd opsdash
 npm ci
 npm run build
 npm run test:unit
-PLAYWRIGHT_BASE_URL=http://localhost:8088 npm run test:e2e
+PLAYWRIGHT_BASE_URL=http://localhost:8092 npm run test:e2e
 composer run test:unit
 ```
 - Fast smoke pass:

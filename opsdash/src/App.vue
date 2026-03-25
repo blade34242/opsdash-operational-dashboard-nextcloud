@@ -140,7 +140,7 @@
               </template>
             </div>
 
-            <div class="cards-toolbar">
+            <div class="cards-toolbar" :class="{ 'cards-toolbar--editing': isLayoutEditing }">
               <div class="cards-toolbar__tabs" role="tablist" aria-label="Dashboard tabs">
                 <div
                   v-for="tab in layoutTabs"
@@ -196,32 +196,36 @@
                   + Tab
                 </button>
               </div>
-              <div class="cards-toolbar__center">
-                <button
-                  type="button"
-                  class="ghost-btn ghost-btn--edit"
-                  @click="toggleLayoutEditing"
-                >
-                  <span class="ghost-btn__icon" aria-hidden="true">✎</span>
-                  {{ isLayoutEditing ? 'Done editing' : 'Edit layout' }}
-                </button>
-                <span class="range-badge" aria-label="Active range">
-                  <span class="range-badge__mode" v-text="rangeBadgePrimary" />
-                  <span class="range-badge__span" v-text="rangeBadgeSecondary" />
-                </span>
-                <span v-if="isRefreshing" class="refresh-indicator" role="status" aria-live="polite">
-                  Updating...
-                </span>
-                <div v-if="isLayoutEditing" class="cards-toolbar__add">
-                  <select v-model="newWidgetType" @change="handleAddWidget">
-                    <option value="" disabled>Select widget…</option>
-                    <option v-for="entry in availableWidgetTypesForStrategy" :key="entry.type" :value="entry.type">
-                      {{ entry.label }}
-                    </option>
-                  </select>
-                  <button type="button" class="ghost-btn" @click="resetWidgets">
-                    Reset
+              <div class="cards-toolbar__center" :class="{ 'cards-toolbar__center--editing': isLayoutEditing }">
+                <div class="cards-toolbar__mode">
+                  <button
+                    type="button"
+                    class="ghost-btn ghost-btn--edit"
+                    @click="toggleLayoutEditing"
+                  >
+                    <span class="ghost-btn__icon" aria-hidden="true">✎</span>
+                    {{ isLayoutEditing ? 'Done editing' : 'Edit layout' }}
                   </button>
+                </div>
+                <div class="cards-toolbar__tools">
+                  <span class="range-badge" aria-label="Active range">
+                    <span class="range-badge__mode" v-text="rangeBadgePrimary" />
+                    <span class="range-badge__span" v-text="rangeBadgeSecondary" />
+                  </span>
+                  <span v-if="isRefreshing" class="refresh-indicator" role="status" aria-live="polite">
+                    Updating...
+                  </span>
+                  <div v-if="isLayoutEditing" class="cards-toolbar__actions">
+                    <select v-model="newWidgetType" @change="handleAddWidget">
+                      <option value="" disabled>Add widget…</option>
+                      <option v-for="entry in availableWidgetTypesForStrategy" :key="entry.type" :value="entry.type">
+                        {{ entry.label }}
+                      </option>
+                    </select>
+                    <button type="button" class="ghost-btn ghost-btn--tight" @click="resetWidgets">
+                      Reset preset
+                    </button>
+                  </div>
                 </div>
               </div>
             </div>

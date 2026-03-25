@@ -22,3 +22,4 @@ PLAYWRIGHT_BASE_URL=http://localhost:8088 npx playwright test tests/e2e/dashboar
 - Run `npm run build` before packaging.
 - Keep fixtures updated when `/overview/load` or `/overview/persist` schemas change.
 - Current `dashboard.spec.ts` focuses on core startup/config flows; deck-tab heavy assertions were intentionally removed to keep CI/local runs stable.
+- If local Playwright Chromium fails before the first test with `sandbox_host_linux.cc` / `Operation not permitted`, the blocker is the local browser runtime environment rather than the app under test.

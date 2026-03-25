@@ -6,7 +6,7 @@ APP_BUILD_DIR := $(BUILD_DIR)/$(APP_NAME)
 VERSION ?= $(shell sed -n 's/.*<version>\(.*\)<\/version>.*/\1/p' $(SRC_DIR)/appinfo/info.xml | head -n 1)
 
 .PHONY: clean deps build test appstore
-.PHONY: smoke
+.PHONY: smoke start start31 stop status logs
 
 clean:
 	@echo "[make] Cleaning build artifacts"
@@ -20,6 +20,26 @@ deps:
 build:
 	@echo "[make] Building SPA assets"
 	cd $(SRC_DIR) && npm run build
+
+start:
+	@echo "[make] Starting Nextcloud 32 dev stack on http://localhost:8092"
+	docker compose up -d nextcloud32
+
+start31:
+	@echo "[make] Starting Nextcloud 31 dev stack on http://localhost:8088"
+	docker compose up -d nextcloud31
+
+stop:
+	@echo "[make] Stopping local dev stack"
+	docker compose down
+
+status:
+	@echo "[make] Local dev stack status"
+	docker compose ps
+
+logs:
+	@echo "[make] Tail logs for Nextcloud 32 dev stack"
+	docker compose logs --no-color --tail=80 nextcloud32
 
 # Minimal unit tests (Vitest + PHPUnit). Playwright runs in CI against a real NC instance.
 test:

@@ -196,6 +196,34 @@ describe('OnboardingWizard', () => {
     expect(wrapper.text()).toContain('6.0 h / week')
   })
 
+  it('applies the single goal suggestion when clicked', async () => {
+    postJsonMock.mockResolvedValue({
+      charts: {
+        perDaySeries: {
+          series: [
+            { id: 'cal-1', data: [6] },
+          ],
+        },
+      },
+      byCal: [{ id: 'cal-1', total_hours: 6 }],
+    })
+
+    const wrapper = mountWizard({
+      startStep: 'goals',
+      initialStrategy: 'total_only',
+    })
+
+    await flushPromises()
+
+    const suggestion = wrapper.findAll('button').find((button) => button.text().includes('6.0 h / week'))
+    expect(suggestion).toBeTruthy()
+    await suggestion?.trigger('click')
+    await flushPromises()
+
+    const weeklyInput = wrapper.find('.goal-single__editor input[type="number"]')
+    expect((weeklyInput.element as HTMLInputElement).value).toBe('6')
+  })
+
   it('shows category suggestions when existing assignments map calendars to a category', async () => {
     postJsonMock.mockResolvedValue({
       charts: {
@@ -239,6 +267,89 @@ describe('OnboardingWizard', () => {
     await flushPromises()
 
     expect(wrapper.text()).toContain('Suggested 8.0 h')
+  })
+
+  it('applies the calendar suggestion when clicked in calendar goals mode', async () => {
+    postJsonMock.mockResolvedValue({
+      charts: {
+        perDaySeries: {
+          series: [
+            { id: 'cal-1', data: [6] },
+          ],
+        },
+      },
+      byCal: [{ id: 'cal-1', total_hours: 6 }],
+    })
+
+    const wrapper = mountWizard({
+      startStep: 'goals',
+      initialStrategy: 'total_plus_categories',
+      calendars: [
+        { id: 'cal-1', displayname: 'Primary', color: '#ff0000' },
+      ],
+      initialSelection: ['cal-1'],
+    })
+
+    await flushPromises()
+
+    const suggestion = wrapper.findAll('button').find((button) => button.text().includes('Suggested 6.0 h'))
+    expect(suggestion).toBeTruthy()
+    await suggestion?.trigger('click')
+    await flushPromises()
+
+    const targetInput = wrapper.find('.goal-calendar-row .input-unit input[type="number"]')
+    expect((targetInput.element as HTMLInputElement).value).toBe('6')
+  })
+
+  it('applies the category suggestion when clicked in granular mode', async () => {
+    postJsonMock.mockResolvedValue({
+      charts: {
+        perDaySeries: {
+          series: [
+            { id: 'cal-1', data: [6] },
+            { id: 'cal-2', data: [2] },
+          ],
+        },
+      },
+      byCal: [
+        { id: 'cal-1', total_hours: 6 },
+        { id: 'cal-2', total_hours: 2 },
+      ],
+    })
+
+    const wrapper = mountWizard({
+      startStep: 'goals',
+      initialStrategy: 'full_granular',
+      calendars: [
+        { id: 'cal-1', displayname: 'Primary', color: '#ff0000' },
+        { id: 'cal-2', displayname: 'Secondary', color: '#00ff00' },
+      ],
+      initialSelection: ['cal-1', 'cal-2'],
+      initialCategories: [
+        {
+          id: 'work',
+          label: 'Work',
+          targetHours: 12,
+          includeWeekend: false,
+          paceMode: 'days_only',
+          color: '#2563EB',
+        },
+      ],
+      initialAssignments: {
+        'cal-1': 'work',
+        'cal-2': 'work',
+      },
+    })
+
+    await flushPromises()
+
+    const suggestion = wrapper.findAll('button').find((button) => button.text().includes('Suggested 8.0 h'))
+    expect(suggestion).toBeTruthy()
+    await suggestion?.trigger('click')
+    await flushPromises()
+
+    const targetInput = wrapper.find('.goal-inline-target input[type="number"]')
+    expect((targetInput.element as HTMLInputElement).value).toBe('8')
   })
 
   it('auto-saves before closing the wizard', async () => {

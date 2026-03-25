@@ -46,14 +46,19 @@ occ app:enable opsdash
 
 ## Development
 ```bash
+make start
 cd opsdash
 npm ci
 composer install
 npm run build
 npm run test:unit
 composer run test:unit
-PLAYWRIGHT_BASE_URL=http://localhost:8088 npm run test:e2e
+PLAYWRIGHT_BASE_URL=http://localhost:8092 npm run test:e2e
 ```
+
+- `make start` starts the local Nextcloud 32 dev container on `http://localhost:8092`.
+- `make start31` starts the Nextcloud 31 container on `http://localhost:8088`.
+- `make status` / `make logs` help confirm the stack is up before testing.
 
 Quick smoke check:
 ```bash

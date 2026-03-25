@@ -508,6 +508,9 @@ export function useOnboardingWizard(options: { props: WizardProps; emit: WizardE
     })
     return next
   })
+  const suggestedTotalTarget = computed(() =>
+    selectedCalendarIds.value.reduce((sum, calId) => sum + Number(suggestedCalendarTargets.value[calId] ?? 0), 0),
+  )
   const unassignedSelectedCalendars = computed(() =>
     selectedCalendars.value.filter((cal) => categoriesEnabled.value && !assignments.value[cal.id]),
   )
@@ -1001,6 +1004,23 @@ export function useOnboardingWizard(options: { props: WizardProps; emit: WizardE
     trendLookbackInput.value = clampLookback(parsed)
   }
 
+  function applySuggestedTotalTarget() {
+    if (suggestedTotalTarget.value <= 0) return
+    totalHoursInput.value = clampTotalHours(roundGoal(suggestedTotalTarget.value))
+  }
+
+  function applySuggestedCalendarTarget(id: string) {
+    const suggested = Number(suggestedCalendarTargets.value[id] ?? 0)
+    if (suggested <= 0) return
+    setCalendarTarget(id, String(roundGoal(suggested)))
+  }
+
+  function applySuggestedCategoryTarget(id: string) {
+    const suggested = Number(suggestedCategoryTargets.value[id] ?? 0)
+    if (suggested <= 0) return
+    setCategoryTarget(id, String(roundGoal(suggested)))
+  }
+
   function setReportingEnabled(enabled: boolean) {
     reportingDraft.value = { ...reportingDraft.value, enabled }
   }
@@ -1399,6 +1419,9 @@ export function useOnboardingWizard(options: { props: WizardProps; emit: WizardE
     onTotalHoursChange,
     onAllDayHoursChange,
     onTrendLookbackChange,
+    applySuggestedTotalTarget,
+    applySuggestedCalendarTarget,
+    applySuggestedCategoryTarget,
     setReportingEnabled,
     setReportingSchedule,
     setReportingInterim,

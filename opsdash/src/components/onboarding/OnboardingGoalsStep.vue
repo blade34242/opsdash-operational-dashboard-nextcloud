@@ -30,7 +30,10 @@
             </div>
           </label>
           <p class="hint" v-if="suggestedTotalTarget > 0">
-            Suggested from recent activity: <strong>{{ suggestedTotalTarget.toFixed(1) }} h / week</strong>
+            Suggested from recent activity:
+            <button type="button" class="goal-suggestion-link" @click="onApplyTotalSuggestion">
+              <strong>{{ suggestedTotalTarget.toFixed(1) }} h / week</strong>
+            </button>
           </p>
         </article>
       </section>
@@ -79,7 +82,14 @@
               <div>
                 <strong>{{ cal.displayname }}</strong>
                 <div class="goal-suggestion-inline">
-                  <span v-if="suggestedCalendarTargets[cal.id]">Suggested {{ suggestedCalendarTargets[cal.id].toFixed(1) }} h</span>
+                  <button
+                    v-if="suggestedCalendarTargets[cal.id]"
+                    type="button"
+                    class="goal-suggestion-link"
+                    @click="onApplyCalendarSuggestion(cal.id)"
+                  >
+                    Suggested {{ suggestedCalendarTargets[cal.id].toFixed(1) }} h
+                  </button>
                   <span v-else>No recent suggestion</span>
                 </div>
               </div>
@@ -269,9 +279,14 @@
 
                     <div class="goal-suggestion-stack goal-suggestion-stack--inline goal-action-block">
                       <span class="label">Suggestion</span>
-                      <span v-if="suggestedCategoryTargets[cat.id]" class="goal-suggestion-pill">
+                      <button
+                        v-if="suggestedCategoryTargets[cat.id]"
+                        type="button"
+                        class="goal-suggestion-pill goal-suggestion-pill--action"
+                        @click="onApplyCategorySuggestion(cat.id)"
+                      >
                         Suggested {{ suggestedCategoryTargets[cat.id].toFixed(1) }} h
-                      </span>
+                      </button>
                       <span v-else class="goal-suggestion-pill goal-suggestion-pill--muted">No recent suggestion</span>
                     </div>
 
@@ -401,9 +416,18 @@
                     </div>
                     <div class="goal-calendar-subrow__status">
                       <span class="label">Suggestion</span>
-                      <span class="suggest-pill" :class="{ 'suggest-pill--muted': !suggestedCalendarTargets[cal.id] }">
+                      <button
+                        type="button"
+                        class="suggest-pill"
+                        :class="{
+                          'suggest-pill--muted': !suggestedCalendarTargets[cal.id],
+                          'suggest-pill--action': !!suggestedCalendarTargets[cal.id],
+                        }"
+                        :disabled="!suggestedCalendarTargets[cal.id]"
+                        @click="onApplyCalendarSuggestion(cal.id)"
+                      >
                         {{ calendarSuggestionLabel(cal.id) }}
-                      </span>
+                      </button>
                     </div>
                     <div class="goal-calendar-subrow__actions">
                       <div class="goal-reorder-tools goal-reorder-tools--calendar goal-reorder-tools--surface" aria-label="Calendar reorder controls">
@@ -454,6 +478,7 @@ const props = defineProps<{
   }>
   totalHoursInput: number | null
   onTotalHoursChange: (el: HTMLInputElement) => void
+  onApplyTotalSuggestion: () => void
   trendLookbackInput: number
   activeHistoryLookback: number
   historySummary: { enabled: boolean; available: number; label: string }
@@ -462,6 +487,8 @@ const props = defineProps<{
   onTrendLookbackChange: (el: HTMLInputElement) => void
   suggestedCalendarTargets: Record<string, number>
   suggestedCategoryTargets: Record<string, number>
+  onApplyCalendarSuggestion: (id: string) => void
+  onApplyCategorySuggestion: (id: string) => void
   addCategory: () => void
   removeCategory: (id: string) => void
   moveCategory: (id: string, direction: 'up' | 'down') => void

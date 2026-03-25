@@ -8,10 +8,12 @@ All notable changes to this project will be documented in this file.
 
 ### Changed
 - Moved the widget-edit toolbar from the bottom floating bar into a secondary toolbar below the main dashboard tabs/edit header.
+- Aligned the widget configuration card with the edit toolbar geometry so both bars now share the same outer width, radius, and top-edge rhythm.
 - Reworked the onboarding Goals step UI across calendar and category planning modes, including compact action rows, clearer dark-theme borders, select-all helpers, and better responsive behavior for zoomed/medium-width layouts.
 
 ### Fixed
 - Fixed onboarding suggestion loading so lookback-based suggestions use previous weeks and now surface consistently in `Single Goal`, `Calendar Goals`, and `Calendar + Category Goals`.
+- Fixed onboarding goal suggestions so clicking a suggested hours value now applies it directly into the matching target field for single, calendar, and category goal modes.
 - Fixed onboarding wizard state resets by snapshotting the existing configuration on open, so strategy changes inside one wizard session no longer drop category assignments/suggestion context.
 - Replaced the `Targets` widget badge icon dependency with local SVG components, removing the `@iconoir/vue` unit-test warnings.
 

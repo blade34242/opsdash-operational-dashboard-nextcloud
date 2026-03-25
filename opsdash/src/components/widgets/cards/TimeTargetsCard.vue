@@ -166,7 +166,7 @@ const hustleScenes = [
   { id: 'run', label: 'Run', icon: HustleRunIcon },
   { id: 'swim', label: 'Swim', icon: HustleSwimIcon },
   { id: 'ride', label: 'Ride', icon: HustleRideIcon },
-  { id: 'lift', label: 'Deadlift', icon: HustleDeadliftIcon },
+  { id: 'lift', label: 'Lifting', icon: HustleDeadliftIcon },
 ] as const
 const activeSceneIndex = computed(() => sceneTick.value % hustleScenes.length)
 const categoryGroups = computed<CategoryGroup[]>(() => {
@@ -351,7 +351,7 @@ function colorMix(hex: string, factor = 0.5): string {
 .targets-main .line .value{ display:flex; gap:calc(6px * var(--widget-space, 1)); align-items:center }
 .targets-hustle{ position:absolute; top:calc(8px * var(--widget-space, 1)); right:calc(8px * var(--widget-space, 1)); z-index:2 }
 .targets-hustle__badge{ display:grid; grid-template-columns:auto auto; grid-template-areas:'title title' 'orb meta'; gap:calc(5px * var(--widget-space, 1)) calc(7px * var(--widget-space, 1)); align-items:center; padding:calc(5px * var(--widget-space, 1)) calc(7px * var(--widget-space, 1)); border-radius:calc(15px * var(--widget-space, 1)); background:color-mix(in srgb, var(--bg) 90%, transparent); border:1px solid color-mix(in srgb, #f97316 26%, var(--line)); box-shadow:0 8px 22px color-mix(in srgb, #020617 26%, transparent) }
-.targets-hustle__title{ grid-area:title; font-size:calc(8px * var(--widget-scale, 1)); font-weight:800; letter-spacing:.08em; line-height:1; text-transform:uppercase; color:#ea580c }
+.targets-hustle__title{ grid-area:title; display:block; width:100%; text-align:center; justify-self:center; font-size:calc(8px * var(--widget-scale, 1)); font-weight:800; letter-spacing:.08em; line-height:1; text-transform:uppercase; color:#ea580c }
 .targets-hustle__orb{ grid-area:orb; position:relative; width:calc(50px * var(--widget-space, 1)); aspect-ratio:1; border-radius:50%; background:radial-gradient(circle at 35% 30%, color-mix(in srgb, #fb923c 20%, transparent), transparent 45%), linear-gradient(145deg, color-mix(in srgb, #f97316 16%, transparent), color-mix(in srgb, var(--brand) 12%, transparent)); border:1px solid color-mix(in srgb, #f97316 34%, var(--line)); box-shadow:inset 0 0 0 1px color-mix(in srgb, #fb923c 10%, transparent); overflow:hidden }
 .targets-hustle__orb::after{ content:''; position:absolute; inset:12%; border-radius:50%; background:radial-gradient(circle, color-mix(in srgb, #fb923c 18%, transparent) 0%, transparent 72%); opacity:.45; filter:blur(4px); pointer-events:none; transition:opacity .34s ease, transform .34s ease }
 .targets-hustle__scene{ position:absolute; inset:0; display:grid; place-items:center; opacity:0; transform:scale(.92); transition:opacity .34s ease, transform .34s ease, filter .34s ease; filter:saturate(.82) brightness(.88) }
@@ -360,7 +360,7 @@ function colorMix(hex: string, factor = 0.5): string {
 .targets-hustle__scene.is-active::after{ opacity:.82; transform:scale(1.04) }
 .targets-hustle__icon{ width:100%; max-width:29px; height:auto; color:color-mix(in srgb, #fff 22%, #f97316 78%); transition:filter .34s ease, opacity .34s ease, transform .34s ease; opacity:.78; filter:drop-shadow(0 0 0 transparent) }
 .targets-hustle__icon :deep(svg),
-.targets-hustle__icon:deep(svg){ width:100%; height:auto; stroke-width:1.8 }
+.targets-hustle__icon:deep(svg){ width:100%; height:auto; stroke-width:1.5 }
 .targets-hustle__scene.is-active .targets-hustle__icon{ opacity:1; transform:scale(1.02); filter:drop-shadow(0 0 8px color-mix(in srgb, #fb923c 45%, transparent)) drop-shadow(0 0 14px color-mix(in srgb, #f97316 20%, transparent)) }
 .targets-hustle__meta{ grid-area:meta; display:flex; flex-direction:column; gap:calc(3px * var(--widget-space, 1)); align-items:flex-start; justify-content:center; min-width:calc(40px * var(--widget-space, 1)); width:calc(40px * var(--widget-space, 1)) }
 .targets-hustle__label{ font-size:calc(6.75px * var(--widget-scale, 1)); font-weight:800; letter-spacing:.06em; line-height:1; text-transform:uppercase; color:#ea580c; white-space:nowrap }

@@ -32,7 +32,7 @@
 
 ## UI changes not visible (stale cache)
 - Rebuild: `npm run build` (produces new hashed assets in `js/assets/`).
-- Restart container; re-enable app: `occ app:disable/enable opsdash`.
+- Restart container with `make start`; if needed re-enable app: `occ app:disable/enable opsdash`.
 - In browser DevTools, enable "Disable cache" and hard-reload.
 - Confirm `js/.vite/manifest.json` references the new hash and the HTML includes the matching `<script src="/apps-extra/opsdash/js/assets/...">`.
 - Confirm the template still renders the `#app` mount with data attributes.

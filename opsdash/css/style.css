@@ -1270,40 +1270,92 @@
 }
 #opsdash .cards-toolbar{
   display:flex;
+  flex-direction:row;
   align-items:center;
   gap:12px;
   margin:0;
   width:100%;
-  flex-wrap:wrap;
   justify-content:flex-start;
-  padding:12px 14px;
+  padding:10px 14px;
   border:1px solid color-mix(in oklab, var(--brand), var(--line) 70%);
-  border-radius:14px;
-  background:color-mix(in oklab, var(--card), transparent 10%);
-  box-shadow:0 6px 16px rgba(15,23,42,0.12), inset 0 0 0 1px color-mix(in oklab, var(--brand), transparent 82%);
+  border-radius:16px;
+  background:linear-gradient(180deg, color-mix(in oklab, var(--card), #ffffff 4%) 0%, color-mix(in oklab, var(--card), transparent 8%) 100%);
+  box-shadow:0 10px 24px rgba(15,23,42,0.12), inset 0 0 0 1px color-mix(in oklab, var(--brand), transparent 84%);
+}
+#opsdash .cards-toolbar--editing{
+  flex-direction:column;
+  align-items:stretch;
+  gap:14px;
+  padding:14px 16px;
+  border-color:color-mix(in oklab, var(--brand), var(--line) 48%);
+  box-shadow:0 12px 28px rgba(15,23,42,0.14), inset 0 0 0 1px color-mix(in oklab, var(--brand), transparent 72%);
 }
 #opsdash .cards-toolbar__tabs{
   display:flex;
   align-items:center;
   gap:6px;
+  flex-wrap:nowrap;
+  flex:1 1 auto;
+  min-width:0;
+  overflow-x:auto;
+  overflow-y:hidden;
+  scrollbar-width:none;
+  border-bottom:0;
+  padding-bottom:0;
+}
+#opsdash .cards-toolbar__tabs::-webkit-scrollbar{ display:none; }
+#opsdash .cards-toolbar--editing .cards-toolbar__tabs{
+  width:100%;
+  flex:0 0 auto;
   flex-wrap:wrap;
+  overflow:visible;
   border-bottom:1px solid color-mix(in oklab, var(--line), transparent 10%);
-  padding-bottom:2px;
+  padding-bottom:8px;
 }
 #opsdash .tab-item{
   display:inline-flex;
   align-items:stretch;
+  flex:0 0 auto;
 }
 #opsdash .cards-toolbar__center{
   display:flex;
   align-items:center;
-  gap:8px;
-  margin-left:12px;
-  flex-wrap:wrap;
-  flex:1 1 auto;
+  justify-content:space-between;
+  gap:12px;
+  flex-wrap:nowrap;
+  flex:0 0 auto;
+  min-width:0;
 }
-#opsdash .cards-toolbar__center .range-badge{
+#opsdash .cards-toolbar--editing .cards-toolbar__center{
+  display:grid;
+  grid-template-columns:auto minmax(0, 1fr);
+  align-items:center;
+  gap:12px;
+  width:100%;
+}
+#opsdash .cards-toolbar__mode{
+  display:flex;
+  align-items:center;
+  gap:12px;
+  min-width:0;
+  flex:0 0 auto;
+}
+#opsdash .cards-toolbar__tools{
+  display:flex;
+  align-items:center;
+  gap:10px;
+  flex-wrap:nowrap;
+  justify-content:flex-end;
+  flex:0 0 auto;
+}
+#opsdash .cards-toolbar__tools .range-badge{
   margin-left:auto;
+}
+#opsdash .cards-toolbar--editing .cards-toolbar__tools{
+  flex-wrap:nowrap;
+  justify-content:flex-end;
+  width:100%;
+  min-width:0;
 }
 #opsdash .refresh-indicator{
   display:inline-flex;
@@ -1356,6 +1408,13 @@
   color:var(--muted);
   position:relative;
   box-shadow:0 1px 0 rgba(15,23,42,0.04);
+}
+#opsdash .cards-toolbar:not(.cards-toolbar--editing) .tab-btn{
+  padding:5px 10px 4px;
+  font-size:13px;
+}
+#opsdash .cards-toolbar:not(.cards-toolbar--editing) .tab-btn .tab-default{
+  font-size:9px;
 }
 #opsdash .tab-btn--with-menu{
   border-radius:6px 0 0 0;
@@ -1424,10 +1483,23 @@
 #opsdash .cards-toolbar select{
   min-width:180px;
 }
-#opsdash .cards-toolbar__add{
+#opsdash .cards-toolbar__actions{
   display:flex;
   gap:6px;
   align-items:center;
+  padding:6px 8px;
+  border-radius:12px;
+  border:1px solid color-mix(in oklab, var(--line), transparent 4%);
+  background:color-mix(in oklab, var(--card), var(--soft) 18%);
+}
+#opsdash .cards-toolbar__actions select{
+  min-width:190px;
+}
+#opsdash .cards-toolbar:not(.cards-toolbar--editing) .ghost-btn--edit{
+  padding:5px 10px;
+}
+#opsdash .cards-toolbar:not(.cards-toolbar--editing) .range-badge{
+  padding:5px 10px;
 }
 #opsdash .ghost-btn--tight{
   padding:5px 8px;
@@ -1496,6 +1568,9 @@
 #opsdash.opsdash-theme-dark .cards-toolbar__tabs{
   border-bottom:1px solid var(--opsdash-border);
 }
+#opsdash.opsdash-theme-dark .cards-toolbar{
+  background:linear-gradient(180deg, rgba(15,23,42,0.96) 0%, rgba(10,18,33,0.96) 100%);
+}
 #opsdash.opsdash-theme-dark .tab-btn{
   background:#0d1526;
   border-color:var(--opsdash-border);
@@ -1530,6 +1605,10 @@
   color:var(--opsdash-text);
   border-color:var(--opsdash-border);
 }
+#opsdash.opsdash-theme-dark .cards-toolbar__actions{
+  background:#0f1a30;
+  border-color:var(--opsdash-border);
+}
 #opsdash.opsdash-theme-dark .cards-toolbar select:focus{
   outline:2px solid color-mix(in oklab, var(--opsdash-accent), transparent 40%);
   outline-offset:1px;
@@ -1552,6 +1631,9 @@
 }
 #opsdash.opsdash-theme-light .cards-toolbar__tabs{
   border-bottom:1px solid var(--opsdash-border);
+}
+#opsdash.opsdash-theme-light .cards-toolbar{
+  background:linear-gradient(180deg, #ffffff 0%, #f8fbff 100%);
 }
 #opsdash.opsdash-theme-light .tab-btn{
   background:#ffffff;
@@ -1586,6 +1668,10 @@
   background:#ffffff;
   color:var(--opsdash-text);
   border-color:var(--opsdash-border);
+}
+#opsdash.opsdash-theme-light .cards-toolbar__actions{
+  background:#ffffff;
+  border-color:#dbe4f0;
 }
 #opsdash.opsdash-theme-light .ghost-btn--edit{
   color:#ffffff;
@@ -1706,6 +1792,42 @@
 #opsdash.opsdash-theme-light .widget-toolbar .ghost:hover{
   background:#eff6ff;
   border-color:#60a5fa;
+}
+@media (max-width: 980px){
+  #opsdash .cards-toolbar--editing{
+    padding:12px 12px;
+  }
+  #opsdash .cards-toolbar--editing .cards-toolbar__center{
+    grid-template-columns:1fr;
+    align-items:stretch;
+  }
+  #opsdash .cards-toolbar--editing .cards-toolbar__mode{
+    align-items:flex-start;
+  }
+  #opsdash .cards-toolbar--editing .cards-toolbar__tools{
+    width:100%;
+    padding-top:8px;
+    border-top:1px solid color-mix(in oklab, var(--line), transparent 10%);
+    justify-content:flex-start;
+    flex-wrap:wrap;
+  }
+  #opsdash .cards-toolbar--editing .cards-toolbar__tools .range-badge{
+    margin-left:0;
+  }
+}
+@media (max-width: 760px){
+  #opsdash .cards-toolbar--editing .cards-toolbar__tools{
+    justify-content:flex-start;
+    align-items:flex-start;
+  }
+  #opsdash .cards-toolbar--editing .cards-toolbar__actions{
+    width:100%;
+    flex-wrap:wrap;
+  }
+  #opsdash .cards-toolbar--editing .cards-toolbar__actions select{
+    flex:1 1 180px;
+    min-width:0;
+  }
 }
 #opsdash.opsdash-theme-light .app-content,
 #opsdash.opsdash-theme-light .app-content__main,

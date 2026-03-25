@@ -103,6 +103,7 @@
               :category-presets="categoryPresets"
               :total-hours-input="totalHoursInput"
               :on-total-hours-change="onTotalHoursChange"
+              :on-apply-total-suggestion="applySuggestedTotalTarget"
               :trend-lookback-input="trendLookbackInput"
               :active-history-lookback="activeHistoryLookback"
               :history-summary="historySummary"
@@ -111,6 +112,8 @@
               :on-trend-lookback-change="onTrendLookbackChange"
               :suggested-calendar-targets="suggestedCalendarTargets"
               :suggested-category-targets="suggestedCategoryTargets"
+              :on-apply-calendar-suggestion="applySuggestedCalendarTarget"
+              :on-apply-category-suggestion="applySuggestedCategoryTarget"
               :add-category="addCategory"
               :remove-category="removeCategory"
               :move-category="moveCategory"
@@ -309,6 +312,7 @@ const {
   categoriesEnabled,
   calendarTargetsEnabled,
   onTotalHoursChange,
+  applySuggestedTotalTarget,
   allDayHoursInput,
   onAllDayHoursChange,
   trendLookbackInput,
@@ -335,6 +339,8 @@ const {
   selectedCalendars,
   suggestedCalendarTargets,
   suggestedCategoryTargets,
+  applySuggestedCalendarTarget,
+  applySuggestedCategoryTarget,
   suggestionsLoading,
   suggestionsError,
   activeHistoryLookback,
@@ -3230,6 +3236,33 @@ function isStepLocked(index: number) {
   color:var(--color-text-light);
 }
 
+.onboarding-overlay .suggest-pill--action,
+.onboarding-overlay .goal-suggestion-pill--action,
+.onboarding-overlay .goal-suggestion-link {
+  cursor:pointer;
+  transition:border-color 140ms ease, background 140ms ease, color 140ms ease, box-shadow 140ms ease;
+}
+
+.onboarding-overlay .suggest-pill--action:hover,
+.onboarding-overlay .goal-suggestion-pill--action:hover,
+.onboarding-overlay .goal-suggestion-link:hover {
+  border-color:color-mix(in srgb, var(--color-primary) 42%, var(--color-border));
+  color:var(--color-primary);
+  box-shadow:0 0 0 3px color-mix(in srgb, var(--color-primary) 10%, transparent);
+}
+
+.onboarding-overlay .goal-suggestion-link {
+  appearance:none;
+  display:inline-flex;
+  align-items:center;
+  gap:6px;
+  padding:0;
+  border:0;
+  background:transparent;
+  color:var(--color-primary);
+  text-decoration:none;
+}
+
 .onboarding-overlay .suggest-pill--warn {
   border-color:color-mix(in srgb, #b45309 36%, var(--color-border));
   background:rgba(245, 158, 11, 0.12);
@@ -3592,6 +3625,7 @@ function isStepLocked(index: number) {
   font-size: 0.76rem;
   border-radius: 999px;
   padding: 3px 8px;
+  border: 1px solid transparent;
   background: rgba(59, 130, 246, 0.1);
   color: var(--color-primary);
 }
