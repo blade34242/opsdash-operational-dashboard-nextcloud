@@ -3,6 +3,9 @@
 All notable changes to this project will be documented in this file.
 
 ## Unreleased
+- None yet.
+
+## 0.7.2 - 2026-03-25
 ### Added
 - Added a `Never Finished · Stay Hard` option for the `Targets` widget. When enabled, the widget keeps totals in an endless 80-99% display zone and shows a compact rotating hustle badge in the card corner.
 
@@ -16,9 +19,6 @@ All notable changes to this project will be documented in this file.
 - Fixed onboarding goal suggestions so clicking a suggested hours value now applies it directly into the matching target field for single, calendar, and category goal modes.
 - Fixed onboarding wizard state resets by snapshotting the existing configuration on open, so strategy changes inside one wizard session no longer drop category assignments/suggestion context.
 - Replaced the `Targets` widget badge icon dependency with local SVG components, removing the `@iconoir/vue` unit-test warnings.
-
-## 0.7.2 - 2026-03-25
-### Fixed
 - Fixed the Playwright onboarding rerun coverage in CI by updating the E2E tests to use the current onboarding close action instead of the removed `Maybe later` button.
 
 ## 0.7.1 - 2026-03-23

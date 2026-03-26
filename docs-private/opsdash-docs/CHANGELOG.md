@@ -5,6 +5,17 @@ This file is a short internal log. Full release notes live in the repo root `CHA
 ## Unreleased
 - None yet.
 
+## 0.7.2 - 2026-03-25
+- `Targets`-Widget erweitert um den optionalen Modus `Never Finished · Stay Hard`.
+- Widget-Edit-Toolbar von der unteren Floating-Bar in eine obere Secondary Toolbar unter den Tabs verschoben.
+- Widget-Konfigurationskarte geometrisch an die Edit-Toolbar angeglichen.
+- Goals-Step im Onboarding für Kalender- und Kategorieplanung visuell und responsiv überarbeitet.
+- Goal-Suggestions laden jetzt aus vergangenen Wochen und greifen konsistent in `Single Goal`, `Calendar Goals` und `Calendar + Category Goals`.
+- Sichtbare Goal-Suggestions lassen sich direkt anklicken und übernehmen ihren Stundenwert ins passende Feld.
+- Wizard snapshotet bestehende Konfigurationen beim Öffnen, sodass Strategy-Wechsel in derselben Session Assignments/Suggestion-Kontext nicht verlieren.
+- Targets-Badge auf lokale SVGs umgestellt; die `@iconoir/vue`-Warnungen in den Unit-Tests entfallen.
+- Playwright-E2E für den Wizard-Rerun an den aktuellen Close-Flow angepasst (`Close onboarding` statt altem `Maybe later`).
+
 ## 0.7.1 - 2026-03-23
 - Calendar Table auf alle drei Strategy-Modi angepasst: `Single Goal`, `Calendar Goals`, `Calendar + Category Goals`.
 - Calendar Table erkennt den echten Onboarding-Strategy-State jetzt vor eventuell alten gespeicherten Kategorien; `Single Goal` kippt damit nicht mehr fälschlich in den Category-Modus.
